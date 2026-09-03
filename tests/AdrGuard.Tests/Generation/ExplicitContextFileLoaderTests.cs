@@ -139,6 +139,47 @@ public sealed class ExplicitContextFileLoaderTests
     }
 
     [Fact]
+    public async Task LoadAsyncAcceptsAggregateExactlyAtLimit()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var firstPath = Path.Combine(root, "first.txt");
+            var secondPath = Path.Combine(root, "second.md");
+
+            await File.WriteAllTextAsync(
+                firstPath,
+                new string(
+                    'a',
+                    AdrGenerationContextLimits
+                        .MaximumContextFileCharacters),
+                TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(
+                secondPath,
+                new string(
+                    'b',
+                    AdrGenerationContextLimits
+                        .MaximumContextFileCharacters),
+                TestContext.Current.CancellationToken);
+
+            var files = await ExplicitContextFileLoader.LoadAsync(
+                [firstPath, secondPath],
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(2, files.Count);
+            Assert.Equal(
+                AdrGenerationContextLimits
+                    .MaximumAggregateContextFileCharacters,
+                files.Sum(file => file.Content.Length));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
     public async Task LoadAsyncRejectsAggregateContextFileOverflow()
     {
         var root = CreateTempDirectory();
