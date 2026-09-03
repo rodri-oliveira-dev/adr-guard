@@ -37,6 +37,8 @@ public sealed class DraftCommandIntegrationTests
         Assert.Contains("GEMINI_API_KEY", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("ADR_GUARD_OPENAI_COMPATIBLE_API_KEY", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("en-US", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("Ctrl+C", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("atomically", output.ToString(), StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
     }
 
