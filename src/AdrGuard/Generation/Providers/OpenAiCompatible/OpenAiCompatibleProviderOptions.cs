@@ -30,7 +30,7 @@ internal sealed class OpenAiCompatibleProviderOptions
         }
 
         var normalizedBaseUri = baseUri.AbsoluteUri.EndsWith(
-            '/',
+            "/",
             StringComparison.Ordinal)
             ? baseUri
             : new Uri($"{baseUri.AbsoluteUri}/", UriKind.Absolute);
