@@ -13,8 +13,6 @@ internal static class DraftCommand
         IReadOnlyList<string> contextFilePaths,
         bool includeExistingAdrs,
         bool dryRun,
-        string? providerName,
-        string? model,
         IAdrGenerationProvider? provider,
         TextWriter output,
         TextWriter error)
@@ -58,16 +56,6 @@ internal static class DraftCommand
 
         try
         {
-            if (!string.IsNullOrWhiteSpace(providerName))
-            {
-                output.WriteLine($"AI provider: {providerName}");
-            }
-
-            if (!string.IsNullOrWhiteSpace(model))
-            {
-                output.WriteLine($"AI model: {model}");
-            }
-
             if (dryRun)
             {
                 output.WriteLine("Dry-run enabled: the generated ADR will be validated and printed without creating a file.");
