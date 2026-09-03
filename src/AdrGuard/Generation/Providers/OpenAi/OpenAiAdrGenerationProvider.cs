@@ -68,7 +68,8 @@ internal sealed class OpenAiAdrGenerationProvider
                         "object",
                         schemaProperties,
                         ["context", "decision", "consequences"],
-                        AdditionalProperties: false))));
+                        AdditionalProperties: false))),
+            Store: false);
 
         var httpRequest = new HttpRequestMessage(
             HttpMethod.Post,
@@ -220,7 +221,8 @@ internal sealed class OpenAiAdrGenerationProvider
         string Model,
         string Instructions,
         string Input,
-        ResponsesText Text);
+        ResponsesText Text,
+        bool Store);
 
     private sealed record ResponsesText(
         StructuredOutputFormat Format);
