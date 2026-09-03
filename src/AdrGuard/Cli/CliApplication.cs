@@ -199,6 +199,8 @@ internal static class CliApplication
 
         if (injectedProvider is not null)
         {
+            WriteProviderSelection(draftArguments, output);
+
             return RunDraftCommand(
                 draftArguments,
                 injectedProvider,
@@ -217,6 +219,8 @@ internal static class CliApplication
                 "Run 'adr-guard draft --help' for usage.");
             return ExitCodes.UsageError;
         }
+
+        WriteProviderSelection(draftArguments, output);
 
         try
         {
@@ -265,11 +269,24 @@ internal static class CliApplication
             arguments.ContextFilePaths,
             arguments.IncludeExistingAdrs,
             arguments.DryRun,
-            arguments.ProviderName,
-            arguments.Model,
             provider,
             output,
             error);
+
+    private static void WriteProviderSelection(
+        DraftArguments arguments,
+        TextWriter output)
+    {
+        if (!string.IsNullOrWhiteSpace(arguments.ProviderName))
+        {
+            output.WriteLine($"AI provider: {arguments.ProviderName}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(arguments.Model))
+        {
+            output.WriteLine($"AI model: {arguments.Model}");
+        }
+    }
 
     private static bool TryParseIndexArguments(
         IReadOnlyList<string> args,
