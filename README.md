@@ -203,6 +203,12 @@ ADR Guard validates its own architecture decisions. See [docs/adr](docs/adr/READ
 
 The repository CI builds and tests the solution, packages the .NET Tool, installs that package locally, runs the packaged `adr-guard` against `docs/adr`, regenerates the ADR index, and verifies that no documentation drift was introduced.
 
+## Additional resources
+
+For more background on Architecture Decision Records, including documents, templates, and examples:
+
+- [Architecture Decision Record reference repository](https://github.com/architecture-decision-record/architecture-decision-record/tree/main/locales/en)
+
 ## Releases
 
 After a pull request is merged into `main`, the release workflow waits for the `CI` workflow for that `main` commit to complete successfully. It then:
