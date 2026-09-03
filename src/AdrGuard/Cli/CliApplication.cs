@@ -16,7 +16,7 @@ internal static class CliApplication
         Usage:
           adr-guard check [directory]
           adr-guard index [directory] [--output <file>]
-          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs]
+          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
           adr-guard [options]
 
         Commands:
@@ -54,7 +54,7 @@ internal static class CliApplication
 
     private const string DraftHelpText = """
         Usage:
-          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs]
+          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
 
         Generate a Proposed ADR draft through a configured AI provider.
         The directory defaults to the current directory.
@@ -71,6 +71,7 @@ internal static class CliApplication
                                   Relative paths are resolved from the current working directory.
           --include-existing-adrs   Opt in to sending parsed existing ADR context to the provider.
                                   ADRs are ordered deterministically and bounded to 12000 characters.
+          --dry-run, --preview      Generate and validate the ADR without writing a file.
 
         Authentication is read only from environment variables:
           openai                  OPENAI_API_KEY
@@ -263,6 +264,9 @@ internal static class CliApplication
             arguments.CultureName,
             arguments.ContextFilePaths,
             arguments.IncludeExistingAdrs,
+            arguments.DryRun,
+            arguments.ProviderName,
+            arguments.Model,
             provider,
             output,
             error);
@@ -324,6 +328,7 @@ internal static class CliApplication
         string? endpoint = null;
         var contextFilePaths = new List<string>();
         var includeExistingAdrs = false;
+        var dryRun = false;
 
         var directoryAssigned = false;
         var titleAssigned = false;
@@ -333,6 +338,7 @@ internal static class CliApplication
         var modelAssigned = false;
         var endpointAssigned = false;
         var includeExistingAdrsAssigned = false;
+        var dryRunAssigned = false;
 
         for (var index = 1; index < args.Count; index++)
         {
@@ -348,6 +354,19 @@ internal static class CliApplication
 
                 includeExistingAdrs = true;
                 includeExistingAdrsAssigned = true;
+                continue;
+            }
+
+            if (argument is "--dry-run" or "--preview")
+            {
+                if (dryRunAssigned)
+                {
+                    draftArguments = DraftArguments.Empty;
+                    return false;
+                }
+
+                dryRun = true;
+                dryRunAssigned = true;
                 continue;
             }
 
@@ -469,7 +488,8 @@ internal static class CliApplication
             model,
             endpoint,
             contextFilePaths,
-            includeExistingAdrs);
+            includeExistingAdrs,
+            dryRun);
 
         return titleAssigned && contextAssigned;
     }
@@ -532,7 +552,8 @@ internal static class CliApplication
         string? Model,
         string? Endpoint,
         IReadOnlyList<string> ContextFilePaths,
-        bool IncludeExistingAdrs)
+        bool IncludeExistingAdrs,
+        bool DryRun)
     {
         internal static DraftArguments Empty { get; } =
             new(
@@ -544,6 +565,7 @@ internal static class CliApplication
                 null,
                 null,
                 [],
+                false,
                 false);
     }
 }
