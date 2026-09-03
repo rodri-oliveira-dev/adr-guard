@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
   packages: write
 
 concurrency:
@@ -32,7 +33,6 @@ jobs:
       DOTNET_NOLOGO: "true"
       NUGET_XMLDOC_MODE: skip
       RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout successful commit
@@ -40,6 +40,7 @@ jobs:
         with:
           ref: ${{ env.RELEASE_SHA }}
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -108,14 +109,39 @@ jobs:
           --no-restore
           --output artifacts/package
           -p:Version=${{ steps.version.outputs.version }}
+          -p:RepositoryCommit=${{ env.RELEASE_SHA }}
           -p:ContinuousIntegrationBuild=true
 
+      - name: Authenticate to NuGet.org with Trusted Publishing
+        id: nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: rodri-oliveira-dev
+
+      - name: Publish to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: >
+          dotnet nuget push
+          "artifacts/package/*.nupkg"
+          --source https://api.nuget.org/v3/index.json
+          --api-key "${NUGET_API_KEY}"
+          --skip-duplicate
+
       - name: Configure GitHub Packages source
-        shell: bash
-        run: |
-          dotnet nuget add source             --username "${GITHUB_ACTOR}"             --password "${GITHUB_TOKEN}"             --store-password-in-clear-text             --name github             "https://nuget.pkg.github.com/${GITHUB_REPOSITORY_OWNER}/index.json"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >
+          dotnet nuget add source
+          --username "${{ github.actor }}"
+          --password "${GITHUB_TOKEN}"
+          --store-password-in-clear-text
+          --name github
+          "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
 
       - name: Publish to GitHub Packages
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: >
           dotnet nuget push
           "artifacts/package/*.nupkg"
@@ -126,6 +152,7 @@ jobs:
       - name: Create GitHub tag and release
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
         run: |
           set -euo pipefail
