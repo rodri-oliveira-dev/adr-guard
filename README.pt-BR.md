@@ -203,6 +203,14 @@ O ADR Guard valida os próprios ADRs do projeto. Consulte [docs/adr](docs/adr/RE
 
 O CI do repositório compila e testa a solução, empacota a .NET Tool, instala o pacote localmente, executa o `adr-guard` empacotado contra `docs/adr`, regenera o índice e verifica se houve drift na documentação.
 
+## Recursos adicionais
+
+Para quem quiser se aprofundar em Architecture Decision Records, há uma coleção de documentos, modelos e exemplos em português brasileiro:
+
+- [Architecture Decision Record — documentação em português brasileiro](https://github.com/rodri-oliveira-dev/architecture-decision-record/blob/translation/pt-br/locales/pt-br/index.md)
+
+A tradução para português brasileiro foi uma contribuição minha ao projeto `architecture-decision-record`.
+
 ## Releases
 
 Depois que um pull request é integrado à `main`, o workflow de release aguarda o workflow `CI` desse commit em `main` terminar com sucesso. Em seguida ele:
