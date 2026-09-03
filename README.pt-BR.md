@@ -139,6 +139,25 @@ adr-guard index docs/adr --output adr-index.md
 
 Dentro da própria pasta de ADRs, Markdown gerado precisa se chamar `README.md`; caso contrário, ele seria interpretado como candidato a ADR na validação seguinte.
 
+## Contexto de ADRs existentes para rascunhos com IA
+
+Os ADRs existentes **não** são enviados a um provedor de IA por padrão. Para incluir explicitamente dados parseados dos ADRs como contexto de geração, use:
+
+```bash
+adr-guard draft docs/adr \
+  --title "Adotar um message broker" \
+  --context "Precisamos de integração assíncrona." \
+  --provider openai \
+  --model <modelo> \
+  --include-existing-adrs
+```
+
+Quando habilitado, o ADR Guard monta um contexto compacto a partir dos dados parseados dos ADRs, em vez de concatenar arquivos do repositório. Cada ADR selecionado contribui com ID, título, status, decisão e relacionamentos Markdown locais. Os ADRs são ordenados pelo ID numérico e, em seguida, pelo nome do arquivo.
+
+O contexto dos ADRs existentes é limitado de forma determinística a **12.000 caracteres**. O ADR Guard adiciona representações completas dos ADRs nessa ordem enquanto elas couberem no limite; quando o próximo ADR completo ultrapassaria o limite, ele e todos os ADRs seguintes são omitidos. Essa estratégia nunca trunca parcialmente os campos de um ADR.
+
+A opção é propositalmente opt-in porque o conteúdo selecionado dos ADRs é enviado ao provedor externo de IA configurado.
+
 ## Regras de validação
 
 | Código | Validação |
