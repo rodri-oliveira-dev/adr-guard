@@ -10,4 +10,5 @@ internal static class ValidationCodes
     internal const string DuplicateId = "ADR006";
     internal const string BrokenReference = "ADR007";
     internal const string MissingSupersededBy = "ADR008";
+    internal const string DuplicateCanonicalSection = "ADR009";
 }
