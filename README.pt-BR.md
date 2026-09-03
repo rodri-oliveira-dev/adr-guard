@@ -158,6 +158,28 @@ O contexto dos ADRs existentes é limitado de forma determinística a **12.000 c
 
 A opção é propositalmente opt-in porque o conteúdo selecionado dos ADRs é enviado ao provedor externo de IA configurado.
 
+## Arquivos de contexto explícitos para rascunhos com IA
+
+É possível fornecer contexto arquitetural adicional a partir de um ou mais arquivos Markdown ou texto selecionados explicitamente usando a opção repetível `--context-file`:
+
+```bash
+adr-guard draft docs/adr \
+  --title "Adotar um message broker" \
+  --context "Precisamos de integração assíncrona." \
+  --context-file ./architecture/constraints.md \
+  --context-file ./notes/runtime.txt \
+  --provider openai \
+  --model <modelo>
+```
+
+Somente os paths exatos informados em `--context-file` são lidos. O ADR Guard não faz varredura recursiva do repositório, da árvore de código-fonte, de arquivos vizinhos nem dos diretórios pai dos arquivos selecionados. As extensões de arquivo de contexto suportadas são `.md` e `.txt`.
+
+Quando vários arquivos são informados, eles são compostos na mesma ordem em que `--context-file` aparece na linha de comando. Paths relativos são resolvidos a partir do diretório de trabalho atual. Antes da geração, o ADR Guard exibe os paths locais resolvidos que serão utilizados.
+
+O request enviado ao provider contém o nome e o conteúdo de cada arquivo selecionado, mas não o path local completo do filesystem. O conteúdo dos arquivos selecionados é enviado ao provedor externo de IA configurado; portanto, revise os arquivos antes de incluí-los para evitar o envio de informações sensíveis.
+
+Arquivos de contexto explícitos podem ser combinados com `--include-existing-adrs`. O contexto dos ADRs existentes continua sendo opt-in separadamente e mantém seu limite determinístico de 12.000 caracteres.
+
 ## Regras de validação
 
 | Código | Validação |
