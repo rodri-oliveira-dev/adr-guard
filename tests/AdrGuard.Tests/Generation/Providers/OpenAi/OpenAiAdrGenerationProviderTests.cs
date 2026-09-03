@@ -67,6 +67,8 @@ public sealed class OpenAiAdrGenerationProviderTests
         Assert.Equal(
             "test-model",
             root.GetProperty("model").GetString());
+        Assert.False(
+            root.GetProperty("store").GetBoolean());
         Assert.Contains(
             "pt-BR",
             root.GetProperty("instructions").GetString(),
