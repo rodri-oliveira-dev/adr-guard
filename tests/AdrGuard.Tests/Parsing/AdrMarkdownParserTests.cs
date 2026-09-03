@@ -107,6 +107,26 @@ public sealed class AdrMarkdownParserTests
     }
 
     [Fact]
+    public void ParsePreservesLiteralHashAtEndOfHeading()
+    {
+        const string markdown = "# Use C#";
+
+        var document = AdrMarkdownParser.Parse("0002-use-csharp.md", markdown);
+
+        Assert.Equal("Use C#", document.Title);
+    }
+
+    [Fact]
+    public void ParseTrimsMarkdownClosingHeadingSequence()
+    {
+        const string markdown = "# Use PostgreSQL ##";
+
+        var document = AdrMarkdownParser.Parse("0003-use-postgresql.md", markdown);
+
+        Assert.Equal("Use PostgreSQL", document.Title);
+    }
+
+    [Fact]
     public void ParseSupportsTildeFencedCodeBlocks()
     {
         const string markdown = """
