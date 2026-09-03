@@ -1,5 +1,6 @@
 using AdrGuard.Generation;
 using AdrGuard.Model;
+using System.Globalization;
 using Xunit;
 
 namespace AdrGuard.Tests.Generation;
@@ -58,7 +59,7 @@ public sealed class AdrGenerationContextBuilderTests
         Assert.Contains(
             AdrGenerationContextLimits
                 .MaximumInlineContextCharacters
-                .ToString(),
+                .ToString(CultureInfo.InvariantCulture),
             exception.Message,
             StringComparison.Ordinal);
     }
@@ -101,7 +102,7 @@ public sealed class AdrGenerationContextBuilderTests
         Assert.Contains(
             AdrGenerationContextLimits
                 .MaximumComposedContextCharacters
-                .ToString(),
+                .ToString(CultureInfo.InvariantCulture),
             exception.Message,
             StringComparison.Ordinal);
     }
