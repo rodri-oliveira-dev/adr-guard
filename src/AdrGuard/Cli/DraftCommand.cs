@@ -20,12 +20,12 @@ internal static class DraftCommand
 
         if (!Directory.Exists(directoryPath))
         {
-            error.WriteLine($`ADR directory does not exist: '{directoryPath}'.`);
+            error.WriteLine($"ADR directory does not exist: '{directoryPath}'.");
             return ExitCodes.OperationalError;
         }
 
-        if (title.Contains('\r', StringComparison.Ordinal)
-            || title.Contains('\n', StringComparison.Ordinal))
+        if (title.Contains('\r')
+            || title.Contains('\n'))
         {
             error.WriteLine("ADR title must be a single line.");
             return ExitCodes.UsageError;
@@ -57,7 +57,7 @@ internal static class DraftCommand
                 return ExitCodes.ValidationFailed;
             }
 
-            output.WriteLine($`ADR draft written: {result.FilePath}`);
+            output.WriteLine($"ADR draft written: {result.FilePath}");
             return ExitCodes.Success;
         }
         catch (IOException exception)
@@ -82,7 +82,7 @@ internal static class DraftCommand
         Exception exception,
         TextWriter error)
     {
-        error.WriteLine($`Unable to generate ADR draft: {exception.Message}`);
+        error.WriteLine($"Unable to generate ADR draft: {exception.Message}");
         return ExitCodes.OperationalError;
     }
 }

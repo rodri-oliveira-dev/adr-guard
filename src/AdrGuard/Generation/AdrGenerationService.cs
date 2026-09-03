@@ -50,14 +50,12 @@ internal sealed class AdrGenerationService
                 + "The title must contain at least one ASCII letter or digit.");
         }
 
-        var fileName = string.Create(
-            CultureInfo.InvariantCulture,
-            $`{id:D4}-{slug}.md`);
+        var fileName = $"{id.ToString("D4", CultureInfo.InvariantCulture)}-{slug}.md";
         var filePath = Path.GetFullPath(Path.Combine(directoryPath, fileName));
 
         if (File.Exists(filePath))
         {
-            throw new IOException($`ADR file already exists: '{filePath}'.`);
+            throw new IOException($"ADR file already exists: '{filePath}'.");
         }
 
         var generated = await _provider
