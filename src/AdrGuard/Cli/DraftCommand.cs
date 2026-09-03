@@ -12,6 +12,9 @@ internal static class DraftCommand
         string cultureName,
         IReadOnlyList<string> contextFilePaths,
         bool includeExistingAdrs,
+        bool dryRun,
+        string? providerName,
+        string? model,
         IAdrGenerationProvider? provider,
         TextWriter output,
         TextWriter error)
@@ -55,6 +58,21 @@ internal static class DraftCommand
 
         try
         {
+            if (!string.IsNullOrWhiteSpace(providerName))
+            {
+                output.WriteLine($"AI provider: {providerName}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(model))
+            {
+                output.WriteLine($"AI model: {model}");
+            }
+
+            if (dryRun)
+            {
+                output.WriteLine("Dry-run enabled: the generated ADR will be validated and printed without creating a file.");
+            }
+
             if (contextFilePaths.Count > 0)
             {
                 output.WriteLine("Explicit context files that will be sent to the configured provider:");
@@ -80,6 +98,7 @@ internal static class DraftCommand
                     normalizedCultureName,
                     contextFilePaths,
                     includeExistingAdrs,
+                    dryRun,
                     CancellationToken.None)
                 .GetAwaiter()
                 .GetResult();
@@ -88,6 +107,14 @@ internal static class DraftCommand
             {
                 ValidationOutput.WriteIssues(result.ValidationResult, error);
                 return ExitCodes.ValidationFailed;
+            }
+
+            if (dryRun)
+            {
+                output.WriteLine($"ADR draft preview path: {result.FilePath}");
+                output.WriteLine();
+                output.Write(result.Content);
+                return ExitCodes.Success;
             }
 
             output.WriteLine($"ADR draft written: {result.FilePath}");
