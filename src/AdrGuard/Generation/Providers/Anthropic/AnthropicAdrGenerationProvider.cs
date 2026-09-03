@@ -8,7 +8,11 @@ internal sealed class AnthropicAdrGenerationProvider
     : IAdrGenerationProvider
 {
     private static readonly JsonSerializerOptions JsonOptions =
-        new(JsonSerializerDefaults.Web);
+        new(JsonSerializerDefaults.Web)
+        {
+            PropertyNamingPolicy =
+                JsonNamingPolicy.SnakeCaseLower,
+        };
 
     private readonly AiHttpTransport _transport;
     private readonly AnthropicProviderOptions _options;
