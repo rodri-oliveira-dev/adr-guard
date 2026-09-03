@@ -61,7 +61,7 @@ internal static class AdrGenerationProviderFactory
         };
     }
 
-    private static IAdrGenerationProvider CreateOpenAi(
+    private static OpenAiAdrGenerationProvider CreateOpenAi(
         string model,
         string? endpoint,
         AiHttpTransport transport,
@@ -78,7 +78,7 @@ internal static class AdrGenerationProviderFactory
                 environmentVariableReader));
     }
 
-    private static IAdrGenerationProvider CreateAnthropic(
+    private static AnthropicAdrGenerationProvider CreateAnthropic(
         string model,
         string? endpoint,
         AiHttpTransport transport,
@@ -96,7 +96,7 @@ internal static class AdrGenerationProviderFactory
                     environmentVariableReader));
     }
 
-    private static IAdrGenerationProvider CreateGemini(
+    private static GeminiAdrGenerationProvider CreateGemini(
         string model,
         string? endpoint,
         AiHttpTransport transport,
@@ -113,7 +113,7 @@ internal static class AdrGenerationProviderFactory
                 environmentVariableReader));
     }
 
-    private static IAdrGenerationProvider CreateOpenAiCompatible(
+    private static OpenAiCompatibleAdrGenerationProvider CreateOpenAiCompatible(
         string model,
         string? endpoint,
         AiHttpTransport transport,
