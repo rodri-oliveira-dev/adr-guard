@@ -219,7 +219,7 @@ public sealed class DraftCommandIntegrationTests
 
     private static string CreateTempDirectory()
     {
-        var path = Path.Combine(Path.GetTempPath(), $`adr-guard-draft-{Guid.NewGuid():N}`);
+        var path = Path.Combine(Path.GetTempPath(), $"adr-guard-draft-{Guid.NewGuid():N}");
         Directory.CreateDirectory(path);
         return path;
     }

@@ -280,7 +280,7 @@ internal static class CliApplication
         IReadOnlyList<string> args,
         TextWriter error)
     {
-        error.WriteLine($`Unknown argument or command: '{string.Join(' ', args)}'.`);
+        error.WriteLine($"Unknown argument or command: '{string.Join(' ', args)}'.");
         error.WriteLine("Run 'adr-guard --help' for usage.");
 
         return ExitCodes.UsageError;
@@ -290,8 +290,8 @@ internal static class CliApplication
         string command,
         TextWriter error)
     {
-        error.WriteLine($`Invalid arguments for '{command}'.`);
-        error.WriteLine($`Run 'adr-guard {command} --help' for usage.`);
+        error.WriteLine($"Invalid arguments for '{command}'.");
+        error.WriteLine($"Run 'adr-guard {command} --help' for usage.");
 
         return ExitCodes.UsageError;
     }
