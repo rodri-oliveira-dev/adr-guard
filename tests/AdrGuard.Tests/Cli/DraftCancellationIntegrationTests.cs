@@ -35,9 +35,8 @@ public sealed class DraftCancellationIntegrationTests
                 ],
                 output,
                 error,
-                generationProvider: provider,
-                cancellationToken:
-                    cancellationSource.Token);
+                cancellationSource.Token,
+                generationProvider: provider);
 
             Assert.Equal(
                 ExitCodes.OperationalError,
