@@ -10,6 +10,7 @@ internal static class DraftCommand
         string title,
         string context,
         string cultureName,
+        IReadOnlyList<string> contextFilePaths,
         bool includeExistingAdrs,
         IAdrGenerationProvider? provider,
         TextWriter output,
@@ -19,6 +20,7 @@ internal static class DraftCommand
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(context);
         ArgumentException.ThrowIfNullOrWhiteSpace(cultureName);
+        ArgumentNullException.ThrowIfNull(contextFilePaths);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
 
@@ -53,6 +55,16 @@ internal static class DraftCommand
 
         try
         {
+            if (contextFilePaths.Count > 0)
+            {
+                output.WriteLine("Explicit context files that will be sent to the configured provider:");
+
+                foreach (var contextFilePath in contextFilePaths)
+                {
+                    output.WriteLine($"- {Path.GetFullPath(contextFilePath)}");
+                }
+            }
+
             if (includeExistingAdrs)
             {
                 output.WriteLine(
@@ -66,6 +78,7 @@ internal static class DraftCommand
                     title,
                     context,
                     normalizedCultureName,
+                    contextFilePaths,
                     includeExistingAdrs,
                     CancellationToken.None)
                 .GetAwaiter()
@@ -81,6 +94,10 @@ internal static class DraftCommand
             return ExitCodes.Success;
         }
         catch (IOException exception)
+        {
+            return WriteOperationalError(exception, error);
+        }
+        catch (ArgumentException exception)
         {
             return WriteOperationalError(exception, error);
         }
