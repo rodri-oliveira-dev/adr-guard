@@ -180,6 +180,25 @@ O request enviado ao provider contém o nome e o conteúdo de cada arquivo selec
 
 Arquivos de contexto explícitos podem ser combinados com `--include-existing-adrs`. O contexto dos ADRs existentes continua sendo opt-in separadamente e mantém seu limite determinístico de 12.000 caracteres.
 
+## Visualizar rascunhos com IA sem gravar arquivos
+
+Use `--dry-run` (ou o alias `--preview`) para executar o fluxo normal de geração e validação sem persistir o ADR gerado:
+
+```bash
+adr-guard draft docs/adr \
+  --title "Adotar um message broker" \
+  --context "Precisamos de integração assíncrona." \
+  --provider openai \
+  --model <modelo> \
+  --dry-run
+```
+
+O dry-run calcula o mesmo próximo ID determinístico e o mesmo filename compatível que seriam usados na persistência, gera o candidato por meio do provider selecionado, força o status canônico `Proposed`, faz o parse do Markdown resultante e executa o validador normal de ADRs. Se a validação for bem-sucedida, o ADR completo gerado é exibido na saída padrão junto com o path candidato.
+
+Nenhum arquivo de ADR é criado, nenhum ADR existente é sobrescrito e o índice de ADRs não é gerado nem modificado. Saída gerada inválida continua falhando na validação e nunca é persistida.
+
+Para transparência em produção, a CLI informa o provider de IA e o modelo selecionados antes da criação do provider ou da geração. Valores de autenticação continuam sendo obtidos pelo ambiente e nunca são exibidos por esse fluxo.
+
 ## Regras de validação
 
 | Código | Validação |
