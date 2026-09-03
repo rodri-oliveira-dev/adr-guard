@@ -89,6 +89,8 @@ internal static class CliApplication
         Oversized context is rejected before provider invocation and is never silently truncated.
         ADR structural headings and the Proposed status remain canonical.
         Generated content is validated before a new ADR file is written.
+        Ctrl+C cancels the draft workflow through context loading, provider calls, validation, and persistence.
+        Persisted drafts are written to a temporary file and atomically promoted without overwrite.
         Dry-run/preview uses the same deterministic ID and filename calculation,
         validates the generated ADR, prints it, and does not write any file.
         """;
