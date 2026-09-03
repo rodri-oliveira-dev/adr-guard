@@ -24,6 +24,16 @@ internal static class IndexCommand
 
         try
         {
+            var resolvedOutputPath = ResolveOutputPath(directoryPath, outputPath);
+
+            if (!IsAllowedOutputPath(directoryPath, resolvedOutputPath))
+            {
+                error.WriteLine(
+                    "A custom index inside the ADR directory must be named 'README.md' "
+                    + "because other Markdown files are validated as ADRs.");
+                return ExitCodes.UsageError;
+            }
+
             var documents = AdrDocumentLoader.LoadDirectory(directoryPath);
             var validationResult = AdrValidator.Validate(documents);
 
@@ -33,7 +43,6 @@ internal static class IndexCommand
                 return ExitCodes.ValidationFailed;
             }
 
-            var resolvedOutputPath = ResolveOutputPath(directoryPath, outputPath);
             var content = AdrIndexGenerator.Generate(documents);
 
             if (File.Exists(resolvedOutputPath)
@@ -67,12 +76,28 @@ internal static class IndexCommand
     {
         if (string.IsNullOrWhiteSpace(outputPath))
         {
-            return Path.Combine(directoryPath, "README.md");
+            return Path.GetFullPath(Path.Combine(directoryPath, "README.md"));
         }
 
-        return Path.IsPathRooted(outputPath)
-            ? outputPath
-            : Path.Combine(directoryPath, outputPath);
+        return Path.GetFullPath(outputPath);
+    }
+
+    private static bool IsAllowedOutputPath(
+        string directoryPath,
+        string outputPath)
+    {
+        var directory = Path.GetFullPath(directoryPath);
+        var relativePath = Path.GetRelativePath(directory, outputPath);
+        var isInsideDirectory = !Path.IsPathRooted(relativePath)
+            && relativePath != ".."
+            && !relativePath.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            && !relativePath.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal);
+
+        return !isInsideDirectory
+            || string.Equals(
+                Path.GetFileName(outputPath),
+                "README.md",
+                StringComparison.OrdinalIgnoreCase);
     }
 
     private static int WriteOperationalError(
