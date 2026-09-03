@@ -688,6 +688,156 @@ public sealed class DraftCommandIntegrationTests
     }
 
     [Fact]
+    public void DraftRejectsGeneratedLevelOneTitleWithoutWritingFile()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var provider = new FakeAdrGenerationProvider(
+                new AdrGenerationResult(
+                    "Context is present.\n\n# Injected title",
+                    "Use PostgreSQL.",
+                    "Operate PostgreSQL."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use PostgreSQL",
+                    "--context",
+                    "We need persistent relational storage.",
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                "structural Markdown",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsGeneratedCanonicalSectionWithoutWritingFile()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var provider = new FakeAdrGenerationProvider(
+                new AdrGenerationResult(
+                    "Context is present.\n\n## Status\nAccepted",
+                    "Use PostgreSQL.",
+                    "Operate PostgreSQL."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use PostgreSQL",
+                    "--context",
+                    "We need persistent relational storage.",
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                "canonical level-two ADR sections",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftAllowsCanonicalHeadingsInsideFencedCodeBlocks()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var provider = new FakeAdrGenerationProvider(
+                new AdrGenerationResult(
+                    """
+                    Context includes an example:
+
+                    ```markdown
+                    ## Status
+                    Accepted
+                    ```
+                    """,
+                    "Use PostgreSQL.",
+                    "Operate PostgreSQL."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use PostgreSQL",
+                    "--context",
+                    "We need persistent relational storage.",
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.Success,
+                exitCode);
+            Assert.Equal(
+                string.Empty,
+                error.ToString());
+
+            var draftPath = Path.Combine(
+                root,
+                "0001-use-postgresql.md");
+
+            Assert.True(File.Exists(draftPath));
+            Assert.Contains(
+                "```markdown",
+                File.ReadAllText(draftPath),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
     public void DraftRejectsInvalidGeneratedContentWithoutWritingFile()
     {
         var root = CreateTempDirectory();
