@@ -25,7 +25,7 @@ internal static class ExplicitContextFileLoader
         }
 
         var files = new List<ExplicitContextFile>(filePaths.Count);
-        var aggregateCharacterCount = 0;
+        long aggregateCharacterCount = 0;
 
         foreach (var filePath in filePaths)
         {
