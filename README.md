@@ -183,6 +183,8 @@ adr-guard draft docs/adr --title "Decision" --context "Context" \
 
 Authentication is read from environment variables rather than CLI arguments, which keeps credentials out of command history and ADR content. The CLI reports provider and model selection but does not print authentication values.
 
+For `openai-compatible`, plain HTTP is allowed only when no API key is configured. If `ADR_GUARD_OPENAI_COMPATIBLE_API_KEY` is set, the endpoint must use HTTPS so the Bearer credential and architectural context are not sent over plaintext transport. Official OpenAI requests explicitly set `store: false`.
+
 ### Language and inline context
 
 `--context` supplies the architectural problem or constraints directly and remains required. Generated prose defaults to `en-US`; use a .NET globalization culture name such as `pt-BR` when another language is desired:
