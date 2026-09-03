@@ -92,7 +92,7 @@ public sealed class AdrGenerationServiceCancellationTests
         }
     }
 
-    private static IAdrGenerationProvider CreateProvider() =>
+    private static FixedProvider CreateProvider() =>
         new FixedProvider(
             new AdrGenerationResult(
                 "The service needs distributed caching.",
