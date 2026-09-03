@@ -200,6 +200,20 @@ adr-guard draft docs/adr \
 
 Canonical ADR headings and the `Proposed` status remain unchanged regardless of the selected culture. Provider-generated prose is rejected if it attempts to introduce another level-one title or duplicate canonical level-two `Status`, `Context`, `Decision`, or `Consequences` sections. Headings inside fenced code blocks remain ordinary section content.
 
+### Context size limits
+
+ADR Guard bounds provider input deterministically before invoking the configured AI provider:
+
+| Context source | Maximum |
+| --- | ---: |
+| Inline `--context` | 20,000 characters |
+| Each `--context-file` | 50,000 characters |
+| All explicit context files combined | 100,000 characters |
+| Parsed existing ADR context | 12,000 characters |
+| Final composed generation context | 120,000 characters |
+
+Explicit files are read only up to the per-file limit plus one character so arbitrarily large files are not loaded fully just to detect overflow. Oversized inline, per-file, aggregate, or composed context is rejected with an actionable error before provider invocation. Explicit files are never silently truncated.
+
 ### Existing ADR context
 
 Existing ADRs are **not** sent to an AI provider by default. Add `--include-existing-adrs` to opt in:
