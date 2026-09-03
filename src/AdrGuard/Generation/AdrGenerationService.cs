@@ -84,6 +84,7 @@ internal sealed class AdrGenerationService
             .ConfigureAwait(false);
 
         ArgumentNullException.ThrowIfNull(generated);
+        GeneratedAdrStructureGuard.Validate(generated);
 
         var content = BuildMarkdown(title, generated);
         var candidate = AdrMarkdownParser.Parse(filePath, content);
