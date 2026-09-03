@@ -1,6 +1,5 @@
 using AdrGuard.Generation;
 using AdrGuard.Model;
-using System.Text;
 using Xunit;
 
 namespace AdrGuard.Tests.Generation;
