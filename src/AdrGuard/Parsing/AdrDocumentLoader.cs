@@ -5,8 +5,14 @@ namespace AdrGuard.Parsing;
 internal static class AdrDocumentLoader
 {
     internal static IReadOnlyList<AdrDocument> LoadDirectory(
+        string directoryPath) =>
+        LoadDirectory(
+            directoryPath,
+            default);
+
+    internal static IReadOnlyList<AdrDocument> LoadDirectory(
         string directoryPath,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
 
