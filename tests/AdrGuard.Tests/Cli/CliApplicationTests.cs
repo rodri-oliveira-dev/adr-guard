@@ -6,7 +6,7 @@ namespace AdrGuard.Tests.Cli;
 public sealed class CliApplicationTests
 {
     [Fact]
-    public void Run_WithNoArguments_WritesHelpAndReturnsSuccess()
+    public void RunWithNoArgumentsWritesHelpAndReturnsSuccess()
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
@@ -21,7 +21,7 @@ public sealed class CliApplicationTests
     [Theory]
     [InlineData("-h")]
     [InlineData("--help")]
-    public void Run_WithHelpOption_WritesHelpAndReturnsSuccess(string option)
+    public void RunWithHelpOptionWritesHelpAndReturnsSuccess(string option)
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
@@ -34,7 +34,7 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
-    public void Run_WithVersionOption_WritesVersionAndReturnsSuccess()
+    public void RunWithVersionOptionWritesVersionAndReturnsSuccess()
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
@@ -47,7 +47,7 @@ public sealed class CliApplicationTests
     }
 
     [Fact]
-    public void Run_WithUnknownArgument_WritesErrorAndReturnsUsageError()
+    public void RunWithUnknownArgumentWritesErrorAndReturnsUsageError()
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
