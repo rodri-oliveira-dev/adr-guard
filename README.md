@@ -158,6 +158,28 @@ Existing ADR context is bounded deterministically to **12,000 characters**. ADR 
 
 The option is intentionally opt-in because the selected ADR content is sent to the configured external AI provider.
 
+## Explicit context files for AI drafts
+
+Additional architectural context can be supplied from one or more explicitly selected Markdown or text files with the repeatable `--context-file` option:
+
+```bash
+adr-guard draft docs/adr \
+  --title "Adopt a message broker" \
+  --context "We need asynchronous integration." \
+  --context-file ./architecture/constraints.md \
+  --context-file ./notes/runtime.txt \
+  --provider openai \
+  --model <model>
+```
+
+Only the exact paths supplied through `--context-file` are read. ADR Guard does not recursively scan the repository, source tree, sibling files, or the parent directories of selected files. Supported context file extensions are `.md` and `.txt`.
+
+Multiple files are composed in the same order in which `--context-file` appears on the command line. Relative paths are resolved from the current working directory. Before generation, ADR Guard prints the resolved local paths that will be used.
+
+The provider request contains each selected file's name and content, but not its resolved local filesystem path. Selected file contents are sent to the configured external AI provider, so review files for sensitive information before including them.
+
+Explicit context files can be combined with `--include-existing-adrs`. Existing ADR context remains separately opt-in and keeps its deterministic 12,000-character bound.
+
 ## Validation rules
 
 | Code | Validation |
