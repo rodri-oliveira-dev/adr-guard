@@ -16,7 +16,7 @@ internal static class CliApplication
         Usage:
           adr-guard check [directory]
           adr-guard index [directory] [--output <file>]
-          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--include-existing-adrs]
+          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs]
           adr-guard [options]
 
         Commands:
@@ -54,7 +54,7 @@ internal static class CliApplication
 
     private const string DraftHelpText = """
         Usage:
-          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--include-existing-adrs]
+          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs]
 
         Generate a Proposed ADR draft through a configured AI provider.
         The directory defaults to the current directory.
@@ -67,6 +67,8 @@ internal static class CliApplication
           --culture <name>        .NET globalization culture name such as en-US or pt-BR.
                                   Defaults to en-US.
           --endpoint <uri>        Required only for openai-compatible; rejected for official providers.
+          --context-file <path>    Add an explicit .md or .txt context file. May be repeated.
+                                  Relative paths are resolved from the current working directory.
           --include-existing-adrs   Opt in to sending parsed existing ADR context to the provider.
                                   ADRs are ordered deterministically and bounded to 12000 characters.
 
@@ -259,6 +261,7 @@ internal static class CliApplication
             arguments.Title,
             arguments.Context,
             arguments.CultureName,
+            arguments.ContextFilePaths,
             arguments.IncludeExistingAdrs,
             provider,
             output,
@@ -319,6 +322,7 @@ internal static class CliApplication
         string? providerName = null;
         string? model = null;
         string? endpoint = null;
+        var contextFilePaths = new List<string>();
         var includeExistingAdrs = false;
 
         var directoryAssigned = false;
@@ -352,7 +356,8 @@ internal static class CliApplication
                 or "--culture"
                 or "--provider"
                 or "--model"
-                or "--endpoint")
+                or "--endpoint"
+                or "--context-file")
             {
                 if (index + 1 >= args.Count)
                 {
@@ -435,6 +440,10 @@ internal static class CliApplication
                         endpoint = value;
                         endpointAssigned = true;
                         break;
+
+                    case "--context-file":
+                        contextFilePaths.Add(value);
+                        break;
                 }
 
                 continue;
@@ -459,6 +468,7 @@ internal static class CliApplication
             providerName,
             model,
             endpoint,
+            contextFilePaths,
             includeExistingAdrs);
 
         return titleAssigned && contextAssigned;
@@ -521,6 +531,7 @@ internal static class CliApplication
         string? ProviderName,
         string? Model,
         string? Endpoint,
+        IReadOnlyList<string> ContextFilePaths,
         bool IncludeExistingAdrs)
     {
         internal static DraftArguments Empty { get; } =
@@ -532,6 +543,7 @@ internal static class CliApplication
                 null,
                 null,
                 null,
+                [],
                 false);
     }
 }
