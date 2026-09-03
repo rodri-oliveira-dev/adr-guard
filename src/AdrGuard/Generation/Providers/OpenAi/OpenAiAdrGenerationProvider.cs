@@ -134,8 +134,9 @@ internal sealed class OpenAiAdrGenerationProvider
                 "OpenAI returned malformed Responses API JSON.");
         }
 
-        if (!string.Equals(
-                response?.Status,
+        if (response is null
+            || !string.Equals(
+                response.Status,
                 "completed",
                 StringComparison.Ordinal))
         {
