@@ -200,6 +200,20 @@ adr-guard draft docs/adr \
 
 Os headings canônicos do ADR e o status `Proposed` permanecem inalterados independentemente da culture selecionada. A prose gerada pelo provider é rejeitada se tentar introduzir outro título de nível um ou duplicar as seções canônicas de nível dois `Status`, `Context`, `Decision` ou `Consequences`. Headings dentro de blocos de código cercados por fences continuam sendo tratados como conteúdo da seção.
 
+### Limites de tamanho do contexto
+
+O ADR Guard limita deterministicamente o conteúdo enviado antes de invocar o provider de IA configurado:
+
+| Fonte de contexto | Máximo |
+| --- | ---: |
+| `--context` inline | 20.000 caracteres |
+| Cada `--context-file` | 50.000 caracteres |
+| Todos os context files explícitos somados | 100.000 caracteres |
+| Contexto parseado dos ADRs existentes | 12.000 caracteres |
+| Contexto final composto para geração | 120.000 caracteres |
+
+Arquivos explícitos são lidos somente até o limite individual mais um caractere, evitando carregar arquivos arbitrariamente grandes por inteiro apenas para detectar excesso. Contexto inline, arquivo individual, soma dos arquivos ou contexto final acima do limite é rejeitado com erro acionável antes da chamada ao provider. Arquivos explícitos nunca são truncados silenciosamente.
+
 ### Contexto de ADRs existentes
 
 Os ADRs existentes **não** são enviados a um provider de IA por padrão. Use `--include-existing-adrs` para habilitar explicitamente esse contexto:
