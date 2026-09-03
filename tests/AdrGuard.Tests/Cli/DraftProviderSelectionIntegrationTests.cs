@@ -271,6 +271,18 @@ public sealed class DraftProviderSelectionIntegrationTests
             Assert.Equal(
                 "gemini-secret",
                 capturedApiKey);
+            Assert.Contains(
+                "AI provider: GEMINI",
+                output.ToString(),
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "AI model: gemini-test",
+                output.ToString(),
+                StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "gemini-secret",
+                output.ToString(),
+                StringComparison.Ordinal);
             Assert.True(
                 File.Exists(
                     Path.Combine(
