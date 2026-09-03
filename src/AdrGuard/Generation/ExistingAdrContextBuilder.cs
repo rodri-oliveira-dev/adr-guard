@@ -22,7 +22,9 @@ internal static class ExistingAdrContextBuilder
 
         var orderedDocuments = documents
             .OrderBy(document => document.Id ?? int.MaxValue)
-            .ThenBy(document => document.FileName, StringComparer.Ordinal)
+            .ThenBy(
+                document => document.FileName,
+                StringComparer.Ordinal)
             .ToArray();
 
         var builder = new StringBuilder();
@@ -34,9 +36,11 @@ internal static class ExistingAdrContextBuilder
 
             var separatorLength = builder.Length == 0
                 ? 0
-                : Environment.NewLine.Length * 2;
+                : AdrGenerationText.DoubleNewLine.Length;
 
-            if (builder.Length + separatorLength + entry.Length
+            if (builder.Length
+                + separatorLength
+                + entry.Length
                 > MaximumContextCharacters)
             {
                 break;
@@ -44,8 +48,8 @@ internal static class ExistingAdrContextBuilder
 
             if (builder.Length > 0)
             {
-                builder.AppendLine();
-                builder.AppendLine();
+                builder.Append(
+                    AdrGenerationText.DoubleNewLine);
             }
 
             builder.Append(entry);
@@ -59,43 +63,66 @@ internal static class ExistingAdrContextBuilder
             includedCount < orderedDocuments.Length);
     }
 
-    private static string BuildEntry(AdrDocument document)
+    private static string BuildEntry(
+        AdrDocument document)
     {
         var builder = new StringBuilder();
 
         var id = document.Id is { } value
-            ? value.ToString("D4", CultureInfo.InvariantCulture)
+            ? value.ToString(
+                "D4",
+                CultureInfo.InvariantCulture)
             : "unknown";
 
         builder
             .Append("ADR ")
-            .AppendLine(id)
+            .Append(id)
+            .Append(AdrGenerationText.NewLine)
             .Append("Title: ")
-            .AppendLine(document.Title?.Trim() ?? string.Empty)
+            .Append(
+                AdrGenerationText.NormalizeNewLines(
+                    document.Title?.Trim()
+                    ?? string.Empty))
+            .Append(AdrGenerationText.NewLine)
             .Append("Status: ")
-            .AppendLine(document.Status?.Trim() ?? string.Empty)
-            .AppendLine("Decision:");
+            .Append(
+                AdrGenerationText.NormalizeNewLines(
+                    document.Status?.Trim()
+                    ?? string.Empty))
+            .Append(AdrGenerationText.NewLine)
+            .Append("Decision:")
+            .Append(AdrGenerationText.NewLine);
 
         var decision = document.Sections
             .FirstOrDefault(section =>
-                string.Equals(
+                section.Level == 2
+                && string.Equals(
                     section.Heading,
                     "Decision",
                     StringComparison.OrdinalIgnoreCase))
             ?.Content
             .Trim();
 
-        builder.AppendLine(decision ?? string.Empty);
+        builder
+            .Append(
+                AdrGenerationText.NormalizeNewLines(
+                    decision ?? string.Empty))
+            .Append(AdrGenerationText.NewLine)
+            .Append("Relationships:")
+            .Append(AdrGenerationText.NewLine);
 
         var relationships = AdrReference
             .FindAll(document)
-            .Select(reference => Path.GetFileName(reference.ResolvedPath))
-            .Where(target => !string.IsNullOrWhiteSpace(target))
+            .Select(reference =>
+                Path.GetFileName(
+                    reference.ResolvedPath))
+            .Where(target =>
+                !string.IsNullOrWhiteSpace(target))
             .Distinct(StringComparer.Ordinal)
-            .OrderBy(target => target, StringComparer.Ordinal)
+            .OrderBy(
+                target => target,
+                StringComparer.Ordinal)
             .ToArray();
-
-        builder.AppendLine("Relationships:");
 
         if (relationships.Length == 0)
         {
@@ -103,11 +130,14 @@ internal static class ExistingAdrContextBuilder
             return builder.ToString();
         }
 
-        for (var index = 0; index < relationships.Length; index++)
+        for (var index = 0;
+             index < relationships.Length;
+             index++)
         {
             if (index > 0)
             {
-                builder.AppendLine();
+                builder.Append(
+                    AdrGenerationText.NewLine);
             }
 
             builder
