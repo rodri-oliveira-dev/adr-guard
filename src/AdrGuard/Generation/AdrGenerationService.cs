@@ -22,11 +22,13 @@ internal sealed class AdrGenerationService
         string directoryPath,
         string title,
         string context,
+        string cultureName,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(context);
+        ArgumentException.ThrowIfNullOrWhiteSpace(cultureName);
 
         var documents = AdrDocumentLoader.LoadDirectory(directoryPath);
         var existingValidation = AdrValidator.Validate(documents);
@@ -60,7 +62,10 @@ internal sealed class AdrGenerationService
 
         var generated = await _provider
             .GenerateAsync(
-                new AdrGenerationRequest(title.Trim(), context.Trim()),
+                new AdrGenerationRequest(
+                    title.Trim(),
+                    context.Trim(),
+                    cultureName),
                 cancellationToken)
             .ConfigureAwait(false);
 

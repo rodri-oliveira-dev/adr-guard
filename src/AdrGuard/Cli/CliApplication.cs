@@ -5,6 +5,8 @@ namespace AdrGuard.Cli;
 
 internal static class CliApplication
 {
+    private const string DefaultDraftCultureName = "en-US";
+
     private const string HelpText = """
         ADR Guard
 
@@ -13,7 +15,7 @@ internal static class CliApplication
         Usage:
           adr-guard check [directory]
           adr-guard index [directory] [--output <file>]
-          adr-guard draft [directory] --title <title> --context <context>
+          adr-guard draft [directory] --title <title> --context <context> [--culture <name>]
           adr-guard [options]
 
         Commands:
@@ -51,10 +53,13 @@ internal static class CliApplication
 
     private const string DraftHelpText = """
         Usage:
-          adr-guard draft [directory] --title <title> --context <context>
+          adr-guard draft [directory] --title <title> --context <context> [--culture <name>]
 
         Generate a Proposed ADR draft through a configured AI provider.
         The directory defaults to the current directory.
+        --culture accepts a .NET globalization culture name such as en-US or pt-BR.
+        The culture defaults to en-US and is passed to the configured provider.
+        ADR structural headings and the Proposed status remain canonical.
         Generated content is validated before a new ADR file is written.
         Provider integrations and provider-specific configuration are supplied separately.
         """;
@@ -151,7 +156,8 @@ internal static class CliApplication
                 args,
                 out var directoryPath,
                 out var title,
-                out var context))
+                out var context,
+                out var cultureName))
         {
             return WriteCommandUsageError("draft", error);
         }
@@ -160,6 +166,7 @@ internal static class CliApplication
             directoryPath,
             title,
             context,
+            cultureName,
             provider,
             output,
             error);
@@ -212,20 +219,23 @@ internal static class CliApplication
         IReadOnlyList<string> args,
         out string directoryPath,
         out string title,
-        out string context)
+        out string context,
+        out string cultureName)
     {
         directoryPath = ".";
         title = string.Empty;
         context = string.Empty;
+        cultureName = DefaultDraftCultureName;
         var directoryAssigned = false;
         var titleAssigned = false;
         var contextAssigned = false;
+        var cultureAssigned = false;
 
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
 
-            if (argument is "--title" or "--context")
+            if (argument is "--title" or "--context" or "--culture")
             {
                 if (index + 1 >= args.Count)
                 {
@@ -239,25 +249,37 @@ internal static class CliApplication
                     return false;
                 }
 
-                if (argument == "--title")
+                switch (argument)
                 {
-                    if (titleAssigned)
-                    {
-                        return false;
-                    }
+                    case "--title":
+                        if (titleAssigned)
+                        {
+                            return false;
+                        }
 
-                    title = value;
-                    titleAssigned = true;
-                }
-                else
-                {
-                    if (contextAssigned)
-                    {
-                        return false;
-                    }
+                        title = value;
+                        titleAssigned = true;
+                        break;
 
-                    context = value;
-                    contextAssigned = true;
+                    case "--context":
+                        if (contextAssigned)
+                        {
+                            return false;
+                        }
+
+                        context = value;
+                        contextAssigned = true;
+                        break;
+
+                    case "--culture":
+                        if (cultureAssigned)
+                        {
+                            return false;
+                        }
+
+                        cultureName = value;
+                        cultureAssigned = true;
+                        break;
                 }
 
                 continue;
