@@ -81,6 +81,8 @@ internal static class CliApplication
 
         ADR structural headings and the Proposed status remain canonical.
         Generated content is validated before a new ADR file is written.
+        Dry-run/preview uses the same deterministic ID and filename calculation,
+        validates the generated ADR, prints it, and does not write any file.
         """;
 
     internal static int Run(
