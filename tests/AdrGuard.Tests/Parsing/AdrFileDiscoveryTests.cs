@@ -17,18 +17,21 @@ public sealed class AdrFileDiscoveryTests
 
             var second = Path.Combine(root, "0002-second.md");
             var first = Path.Combine(nested, "0001-first.md");
+            var uppercaseExtension = Path.Combine(root, "0003-third.MD");
             var ignored = Path.Combine(root, "notes.txt");
 
             File.WriteAllText(second, "# Second");
             File.WriteAllText(first, "# First");
+            File.WriteAllText(uppercaseExtension, "# Third");
             File.WriteAllText(ignored, "ignore");
 
             var files = AdrFileDiscovery.FindMarkdownFiles(root);
 
-            Assert.Equal(2, files.Count);
+            Assert.Equal(3, files.Count);
             Assert.Equal(files.Order(StringComparer.Ordinal), files);
             Assert.Contains(first, files);
             Assert.Contains(second, files);
+            Assert.Contains(uppercaseExtension, files);
             Assert.DoesNotContain(ignored, files);
         }
         finally
