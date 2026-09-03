@@ -43,7 +43,7 @@ internal sealed class AiHttpTransport
             var response = await _httpClient
                 .SendAsync(
                     request,
-                    HttpCompletionOption.ResponseHeadersRead,
+                    HttpCompletionOption.ResponseContentRead,
                     timeoutSource.Token)
                 .ConfigureAwait(false);
 

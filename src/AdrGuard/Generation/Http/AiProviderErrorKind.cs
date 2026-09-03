@@ -6,6 +6,7 @@ internal enum AiProviderErrorKind
     RateLimited,
     ServiceUnavailable,
     UnexpectedResponse,
+    InvalidResponse,
     Timeout,
     Network,
 }
