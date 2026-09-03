@@ -826,15 +826,14 @@ public sealed class DraftCommandIntegrationTests
         return path;
     }
 
-    private static IReadOnlyDictionary<string, string> SnapshotDirectory(
-        string path) =>
-        Directory
-            .EnumerateFiles(path, "*", SearchOption.AllDirectories)
-            .OrderBy(filePath => filePath, StringComparer.Ordinal)
-            .ToDictionary(
-                filePath => Path.GetRelativePath(path, filePath),
-                File.ReadAllText,
-                StringComparer.Ordinal);
+    private static string SnapshotDirectory(string path) =>
+        string.Join(
+            "\n---\n",
+            Directory
+                .EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                .OrderBy(filePath => filePath, StringComparer.Ordinal)
+                .Select(filePath =>
+                    $"{Path.GetRelativePath(path, filePath)}\n{File.ReadAllText(filePath)}"));
 
     private static void DeleteDirectory(string path)
     {
