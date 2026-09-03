@@ -19,6 +19,14 @@ internal static class AdrValidator
         "Consequences",
     ];
 
+    private static readonly string[] CanonicalSections =
+    [
+        "Status",
+        "Context",
+        "Decision",
+        "Consequences",
+    ];
+
     internal static ValidationResult Validate(IReadOnlyList<AdrDocument> documents)
     {
         ArgumentNullException.ThrowIfNull(documents);
@@ -50,6 +58,7 @@ internal static class AdrValidator
     {
         ValidateFileName(document, issues);
         ValidateTitle(document, issues);
+        ValidateUniqueCanonicalSections(document, issues);
         ValidateStatus(document, issues);
         ValidateRequiredSections(document, issues);
         ValidateReferences(document, knownPaths, issues);
@@ -122,20 +131,62 @@ internal static class AdrValidator
             "ADR must define a level-one title."));
     }
 
+    private static void ValidateUniqueCanonicalSections(
+        AdrDocument document,
+        List<ValidationIssue> issues)
+    {
+        foreach (var canonicalSection in CanonicalSections)
+        {
+            var count = document.Sections.Count(section =>
+                section.Level == 2
+                && string.Equals(
+                    section.Heading,
+                    canonicalSection,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (count <= 1)
+            {
+                continue;
+            }
+
+            issues.Add(new ValidationIssue(
+                ValidationCodes.DuplicateCanonicalSection,
+                document.FilePath,
+                $"ADR must define exactly one level-two '{canonicalSection}' section; found {count}."));
+        }
+    }
+
     private static void ValidateStatus(
         AdrDocument document,
         List<ValidationIssue> issues)
     {
-        if (string.IsNullOrWhiteSpace(document.Status))
+        var statusSection = document.Sections
+            .FirstOrDefault(section =>
+                section.Level == 2
+                && string.Equals(
+                    section.Heading,
+                    "Status",
+                    StringComparison.OrdinalIgnoreCase));
+
+        var status = statusSection?.Content
+            .Split(
+                ['\r', '\n'],
+                StringSplitOptions.RemoveEmptyEntries
+                | StringSplitOptions.TrimEntries)
+            .FirstOrDefault();
+
+        if (string.IsNullOrWhiteSpace(status))
         {
             issues.Add(new ValidationIssue(
                 ValidationCodes.MissingStatus,
                 document.FilePath,
-                "ADR must define a non-empty 'Status' section."));
+                "ADR must define a non-empty level-two 'Status' section."));
             return;
         }
 
-        if (AllowedStatuses.Contains(document.Status, StringComparer.OrdinalIgnoreCase))
+        if (AllowedStatuses.Contains(
+                status,
+                StringComparer.OrdinalIgnoreCase))
         {
             return;
         }
@@ -143,7 +194,7 @@ internal static class AdrValidator
         issues.Add(new ValidationIssue(
             ValidationCodes.InvalidStatus,
             document.FilePath,
-            $"Status '{document.Status}' is invalid. Allowed values: {string.Join(", ", AllowedStatuses)}."));
+            $"Status '{status}' is invalid. Allowed values: {string.Join(", ", AllowedStatuses)}."));
     }
 
     private static void ValidateRequiredSections(
@@ -153,7 +204,11 @@ internal static class AdrValidator
         foreach (var requiredSection in RequiredSections)
         {
             var section = document.Sections.FirstOrDefault(candidate =>
-                string.Equals(candidate.Heading, requiredSection, StringComparison.OrdinalIgnoreCase));
+                candidate.Level == 2
+                && string.Equals(
+                    candidate.Heading,
+                    requiredSection,
+                    StringComparison.OrdinalIgnoreCase));
 
             if (section is not null && !string.IsNullOrWhiteSpace(section.Content))
             {
@@ -223,7 +278,11 @@ internal static class AdrValidator
         }
 
         var section = document.Sections.FirstOrDefault(candidate =>
-            string.Equals(candidate.Heading, "Superseded by", StringComparison.OrdinalIgnoreCase));
+            candidate.Level == 2
+            && string.Equals(
+                candidate.Heading,
+                "Superseded by",
+                StringComparison.OrdinalIgnoreCase));
 
         if (section is null || string.IsNullOrWhiteSpace(section.Content))
         {
