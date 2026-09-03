@@ -7,7 +7,11 @@ internal static class AdrFileDiscovery
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
 
         return Directory
-            .EnumerateFiles(directoryPath, "*.md", SearchOption.AllDirectories)
+            .EnumerateFiles(directoryPath, "*", SearchOption.AllDirectories)
+            .Where(path => string.Equals(
+                Path.GetExtension(path),
+                ".md",
+                StringComparison.OrdinalIgnoreCase))
             .Order(StringComparer.Ordinal)
             .ToArray();
     }
