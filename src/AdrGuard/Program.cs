@@ -31,8 +31,7 @@ try
         args,
         Console.Out,
         Console.Error,
-        cancellationToken:
-            cancellationSource.Token);
+        cancellationSource.Token);
 }
 finally
 {
