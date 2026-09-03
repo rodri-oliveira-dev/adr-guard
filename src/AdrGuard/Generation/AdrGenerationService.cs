@@ -23,6 +23,7 @@ internal sealed class AdrGenerationService
         string title,
         string context,
         string cultureName,
+        bool includeExistingAdrs,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
@@ -41,6 +42,10 @@ internal sealed class AdrGenerationService
                 existingValidation,
                 Written: false);
         }
+
+        var requestContext = includeExistingAdrs
+            ? BuildGenerationContext(context, documents)
+            : context.Trim();
 
         var id = GetNextId(documents);
         var slug = AdrSlug.Create(title);
@@ -64,7 +69,7 @@ internal sealed class AdrGenerationService
             .GenerateAsync(
                 new AdrGenerationRequest(
                     title.Trim(),
-                    context.Trim(),
+                    requestContext,
                     cultureName),
                 cancellationToken)
             .ConfigureAwait(false);
@@ -95,6 +100,43 @@ internal sealed class AdrGenerationService
             content,
             validation,
             Written: true);
+    }
+
+    private static string BuildGenerationContext(
+        string inlineContext,
+        IReadOnlyList<AdrDocument> documents)
+    {
+        var existingContext = ExistingAdrContextBuilder.Build(documents);
+
+        if (existingContext.IncludedCount == 0)
+        {
+            return inlineContext.Trim();
+        }
+
+        var builder = new StringBuilder();
+
+        builder
+            .AppendLine("User-supplied architectural context:")
+            .AppendLine(inlineContext.Trim())
+            .AppendLine()
+            .AppendLine("Existing ADR context:")
+            .Append(existingContext.Content);
+
+        if (existingContext.IsBounded)
+        {
+            builder
+                .AppendLine()
+                .AppendLine()
+                .Append("Existing ADR context was bounded deterministically to ")
+                .Append(existingContext.IncludedCount.ToString(CultureInfo.InvariantCulture))
+                .Append(" of ")
+                .Append(existingContext.TotalCount.ToString(CultureInfo.InvariantCulture))
+                .Append(" ADRs using a ")
+                .Append(ExistingAdrContextBuilder.MaximumContextCharacters.ToString(CultureInfo.InvariantCulture))
+                .Append("-character limit.");
+        }
+
+        return builder.ToString();
     }
 
     private static int GetNextId(IReadOnlyList<AdrDocument> documents)
