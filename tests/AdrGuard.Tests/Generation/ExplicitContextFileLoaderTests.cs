@@ -16,13 +16,22 @@ public sealed class ExplicitContextFileLoaderTests
             var firstPath = Path.Combine(root, "first.md");
             var unselectedPath = Path.Combine(root, "unselected.txt");
 
-            await File.WriteAllTextAsync(secondPath, "second content");
-            await File.WriteAllTextAsync(firstPath, "first content");
-            await File.WriteAllTextAsync(unselectedPath, "must never be read");
+            await File.WriteAllTextAsync(
+                secondPath,
+                "second content",
+                TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(
+                firstPath,
+                "first content",
+                TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(
+                unselectedPath,
+                "must never be read",
+                TestContext.Current.CancellationToken);
 
             var files = await ExplicitContextFileLoader.LoadAsync(
                 [secondPath, firstPath],
-                CancellationToken.None);
+                TestContext.Current.CancellationToken);
 
             Assert.Collection(
                 files,
@@ -58,12 +67,15 @@ public sealed class ExplicitContextFileLoaderTests
         try
         {
             var filePath = Path.Combine(root, "context.json");
-            await File.WriteAllTextAsync(filePath, "{}");
+            await File.WriteAllTextAsync(
+                filePath,
+                "{}",
+                TestContext.Current.CancellationToken);
 
             var exception = await Assert.ThrowsAsync<InvalidOperationException>(
                 () => ExplicitContextFileLoader.LoadAsync(
                     [filePath],
-                    CancellationToken.None));
+                    TestContext.Current.CancellationToken));
 
             Assert.Contains(
                 "Only .md and .txt files are supported",
@@ -88,7 +100,7 @@ public sealed class ExplicitContextFileLoaderTests
             var exception = await Assert.ThrowsAsync<FileNotFoundException>(
                 () => ExplicitContextFileLoader.LoadAsync(
                     [missingPath],
-                    CancellationToken.None));
+                    TestContext.Current.CancellationToken));
 
             Assert.Equal(Path.GetFullPath(missingPath), exception.FileName);
         }
