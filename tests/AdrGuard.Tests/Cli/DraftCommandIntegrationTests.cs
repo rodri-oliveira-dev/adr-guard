@@ -114,7 +114,7 @@ public sealed class DraftCommandIntegrationTests
                     "--context",
                     "Precisamos reduzir a latência de leitura.",
                     "--culture",
-                    "pt-BR",
+                    "pt-br",
                 ],
                 output,
                 error,

@@ -32,7 +32,7 @@ internal static class DraftCommand
         {
             error.WriteLine(
                 $"Invalid culture '{cultureName}'. "
-                + "Use a valid .NET globalization culture name such as 'en-US' or 'pt-BR'.");
+                + "Use a known .NET globalization culture name such as 'en-US' or 'pt-BR'.");
             return ExitCodes.UsageError;
         }
 
@@ -94,24 +94,23 @@ internal static class DraftCommand
         string cultureName,
         out string normalizedCultureName)
     {
-        try
-        {
-            var culture = CultureInfo.GetCultureInfo(cultureName);
+        var culture = CultureInfo
+            .GetCultures(CultureTypes.AllCultures)
+            .FirstOrDefault(candidate =>
+                !string.IsNullOrWhiteSpace(candidate.Name)
+                && string.Equals(
+                    candidate.Name,
+                    cultureName,
+                    StringComparison.OrdinalIgnoreCase));
 
-            if (string.IsNullOrWhiteSpace(culture.Name))
-            {
-                normalizedCultureName = string.Empty;
-                return false;
-            }
-
-            normalizedCultureName = culture.Name;
-            return true;
-        }
-        catch (CultureNotFoundException)
+        if (culture is null)
         {
             normalizedCultureName = string.Empty;
             return false;
         }
+
+        normalizedCultureName = CultureInfo.GetCultureInfo(culture.Name).Name;
+        return true;
     }
 
     private static int WriteOperationalError(
