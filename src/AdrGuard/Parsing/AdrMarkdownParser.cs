@@ -80,7 +80,7 @@ internal static class AdrMarkdownParser
     private static (int? Id, string? Slug) ParseFileName(string fileName)
     {
         var stem = Path.GetFileNameWithoutExtension(fileName);
-        var separatorIndex = stem.IndexOf('-', StringComparison.Ordinal);
+        var separatorIndex = stem.IndexOf("-", StringComparison.Ordinal);
 
         if (separatorIndex <= 0 || separatorIndex == stem.Length - 1)
         {
