@@ -19,6 +19,13 @@ public sealed class DraftCommandIntegrationTests
         Assert.Contains("--title", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--context", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--culture", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--provider", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--model", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--endpoint", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("OPENAI_API_KEY", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("ANTHROPIC_API_KEY", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("GEMINI_API_KEY", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("ADR_GUARD_OPENAI_COMPATIBLE_API_KEY", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("en-US", output.ToString(), StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
     }
@@ -255,7 +262,7 @@ public sealed class DraftCommandIntegrationTests
     }
 
     [Fact]
-    public void DraftWithoutConfiguredProviderReturnsOperationalError()
+    public void DraftWithoutRuntimeProviderSelectionReturnsUsageError()
     {
         var root = CreateTempDirectory();
 
@@ -276,10 +283,10 @@ public sealed class DraftCommandIntegrationTests
                 output,
                 error);
 
-            Assert.Equal(ExitCodes.OperationalError, exitCode);
+            Assert.Equal(ExitCodes.UsageError, exitCode);
             Assert.Empty(Directory.EnumerateFiles(root, "*.md"));
             Assert.Contains(
-                "No ADR generation provider is configured",
+                "'draft' requires both --provider and --model.",
                 error.ToString(),
                 StringComparison.Ordinal);
         }
