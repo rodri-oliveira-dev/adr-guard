@@ -20,30 +20,21 @@ It is designed for repositories that want ADR conventions to be explicit, review
 
 ## Install
 
-Releases are published to [GitHub Packages](https://github.com/rodri-oliveira-dev?tab=packages).
+Releases are published to both NuGet.org and [GitHub Packages](https://github.com/rodri-oliveira-dev?tab=packages).
 
-GitHub Packages requires NuGet authentication. Configure the registry with a GitHub personal access token (classic) that can read packages:
-
-```bash
-dotnet nuget add source \
-  --username rodri-oliveira-dev \
-  --password YOUR_GITHUB_PAT \
-  --store-password-in-clear-text \
-  --name github \
-  "https://nuget.pkg.github.com/rodri-oliveira-dev/index.json"
-```
-
-Install the tool from that source:
+The simplest installation uses NuGet.org:
 
 ```bash
-dotnet tool install --global RodriOliveira.AdrGuard --add-source "https://nuget.pkg.github.com/rodri-oliveira-dev/index.json"
+dotnet tool install --global RodriOliveira.AdrGuard
 ```
 
 Update an existing installation with:
 
 ```bash
-dotnet tool update --global RodriOliveira.AdrGuard --add-source "https://nuget.pkg.github.com/rodri-oliveira-dev/index.json"
+dotnet tool update --global RodriOliveira.AdrGuard
 ```
+
+GitHub Packages is also available as a secondary registry. NuGet clients require GitHub authentication to consume packages from that source.
 
 The installed command is:
 
@@ -212,9 +203,10 @@ After a pull request is merged into `main`, the release workflow waits for the `
 
 1. resolves a stable SemVer version, starting from `VersionPrefix` and incrementing the patch for subsequent releases;
 2. packs `RodriOliveira.AdrGuard` with that version;
-3. publishes the package to GitHub Packages;
-4. creates the corresponding `vMAJOR.MINOR.PATCH` tag and GitHub Release;
-5. attaches the `.nupkg` to the GitHub Release.
+3. authenticates to NuGet.org through Trusted Publishing (OIDC) and publishes the package;
+4. publishes the same package to GitHub Packages;
+5. creates the corresponding `vMAJOR.MINOR.PATCH` tag and GitHub Release;
+6. attaches the `.nupkg` to the GitHub Release.
 
 The workflow is idempotent for a commit that already has a release tag.
 
