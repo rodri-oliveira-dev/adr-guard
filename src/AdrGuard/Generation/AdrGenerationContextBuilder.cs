@@ -16,7 +16,12 @@ internal static class AdrGenerationContextBuilder
         ArgumentNullException.ThrowIfNull(contextFiles);
         ArgumentNullException.ThrowIfNull(documents);
 
-        if (contextFiles.Count == 0 && !includeExistingAdrs)
+        var existingContext = includeExistingAdrs
+            ? ExistingAdrContextBuilder.Build(documents)
+            : null;
+
+        if (contextFiles.Count == 0
+            && (existingContext is null || existingContext.IncludedCount == 0))
         {
             return inlineContext.Trim();
         }
@@ -54,31 +59,26 @@ internal static class AdrGenerationContextBuilder
             }
         }
 
-        if (includeExistingAdrs)
+        if (existingContext is { IncludedCount: > 0 })
         {
-            var existingContext = ExistingAdrContextBuilder.Build(documents);
-
-            if (existingContext.IncludedCount > 0)
-            {
                 builder
                     .AppendLine()
                     .AppendLine()
                     .AppendLine("Existing ADR context:")
                     .Append(existingContext.Content);
 
-                if (existingContext.IsBounded)
-                {
-                    builder
-                        .AppendLine()
-                        .AppendLine()
-                        .Append("Existing ADR context was bounded deterministically to ")
-                        .Append(existingContext.IncludedCount.ToString(CultureInfo.InvariantCulture))
-                        .Append(" of ")
-                        .Append(existingContext.TotalCount.ToString(CultureInfo.InvariantCulture))
-                        .Append(" ADRs using a ")
-                        .Append(ExistingAdrContextBuilder.MaximumContextCharacters.ToString(CultureInfo.InvariantCulture))
-                        .Append("-character limit.");
-                }
+            if (existingContext.IsBounded)
+            {
+                builder
+                    .AppendLine()
+                    .AppendLine()
+                    .Append("Existing ADR context was bounded deterministically to ")
+                    .Append(existingContext.IncludedCount.ToString(CultureInfo.InvariantCulture))
+                    .Append(" of ")
+                    .Append(existingContext.TotalCount.ToString(CultureInfo.InvariantCulture))
+                    .Append(" ADRs using a ")
+                    .Append(ExistingAdrContextBuilder.MaximumContextCharacters.ToString(CultureInfo.InvariantCulture))
+                    .Append("-character limit.");
             }
         }
 
