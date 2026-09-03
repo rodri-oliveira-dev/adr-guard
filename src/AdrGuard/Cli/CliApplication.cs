@@ -1,9 +1,12 @@
+using AdrGuard.Generation;
 using System.Reflection;
 
 namespace AdrGuard.Cli;
 
 internal static class CliApplication
 {
+    private const string DefaultDraftCultureName = "en-US";
+
     private const string HelpText = """
         ADR Guard
 
@@ -12,11 +15,13 @@ internal static class CliApplication
         Usage:
           adr-guard check [directory]
           adr-guard index [directory] [--output <file>]
+          adr-guard draft [directory] --title <title> --context <context> [--culture <name>]
           adr-guard [options]
 
         Commands:
           check    Validate ADR files. Defaults to the current directory.
           index    Validate ADR files and generate an index. Defaults to README.md.
+          draft    Generate a Proposed ADR draft through a configured AI provider.
 
         Options:
           -h, --help    Show command-line help.
@@ -46,10 +51,24 @@ internal static class CliApplication
         Relative --output paths are resolved from the current working directory.
         """;
 
+    private const string DraftHelpText = """
+        Usage:
+          adr-guard draft [directory] --title <title> --context <context> [--culture <name>]
+
+        Generate a Proposed ADR draft through a configured AI provider.
+        The directory defaults to the current directory.
+        --culture accepts a .NET globalization culture name such as en-US or pt-BR.
+        The culture defaults to en-US and is passed to the configured provider.
+        ADR structural headings and the Proposed status remain canonical.
+        Generated content is validated before a new ADR file is written.
+        Provider integrations and provider-specific configuration are supplied separately.
+        """;
+
     internal static int Run(
         IReadOnlyList<string> args,
         TextWriter output,
-        TextWriter error)
+        TextWriter error,
+        IAdrGenerationProvider? generationProvider = null)
     {
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(output);
@@ -71,6 +90,7 @@ internal static class CliApplication
         {
             "check" => RunCheck(args, output, error),
             "index" => RunIndex(args, output, error),
+            "draft" => RunDraft(args, output, error, generationProvider),
             _ => WriteUsageError(args, error),
         };
     }
@@ -120,6 +140,38 @@ internal static class CliApplication
         return IndexCommand.Run(directoryPath, outputPath, output, error);
     }
 
+    private static int RunDraft(
+        IReadOnlyList<string> args,
+        TextWriter output,
+        TextWriter error,
+        IAdrGenerationProvider? provider)
+    {
+        if (args.Count == 2 && IsHelpOption(args[1]))
+        {
+            output.WriteLine(DraftHelpText);
+            return ExitCodes.Success;
+        }
+
+        if (!TryParseDraftArguments(
+                args,
+                out var directoryPath,
+                out var title,
+                out var context,
+                out var cultureName))
+        {
+            return WriteCommandUsageError("draft", error);
+        }
+
+        return DraftCommand.Run(
+            directoryPath,
+            title,
+            context,
+            cultureName,
+            provider,
+            output,
+            error);
+    }
+
     private static bool TryParseIndexArguments(
         IReadOnlyList<string> args,
         out string directoryPath,
@@ -161,6 +213,89 @@ internal static class CliApplication
         }
 
         return true;
+    }
+
+    private static bool TryParseDraftArguments(
+        IReadOnlyList<string> args,
+        out string directoryPath,
+        out string title,
+        out string context,
+        out string cultureName)
+    {
+        directoryPath = ".";
+        title = string.Empty;
+        context = string.Empty;
+        cultureName = DefaultDraftCultureName;
+        var directoryAssigned = false;
+        var titleAssigned = false;
+        var contextAssigned = false;
+        var cultureAssigned = false;
+
+        for (var index = 1; index < args.Count; index++)
+        {
+            var argument = args[index];
+
+            if (argument is "--title" or "--context" or "--culture")
+            {
+                if (index + 1 >= args.Count)
+                {
+                    return false;
+                }
+
+                var value = args[++index];
+                if (string.IsNullOrWhiteSpace(value)
+                    || value.StartsWith('-'))
+                {
+                    return false;
+                }
+
+                switch (argument)
+                {
+                    case "--title":
+                        if (titleAssigned)
+                        {
+                            return false;
+                        }
+
+                        title = value;
+                        titleAssigned = true;
+                        break;
+
+                    case "--context":
+                        if (contextAssigned)
+                        {
+                            return false;
+                        }
+
+                        context = value;
+                        contextAssigned = true;
+                        break;
+
+                    case "--culture":
+                        if (cultureAssigned)
+                        {
+                            return false;
+                        }
+
+                        cultureName = value;
+                        cultureAssigned = true;
+                        break;
+                }
+
+                continue;
+            }
+
+            if (argument.StartsWith('-')
+                || directoryAssigned)
+            {
+                return false;
+            }
+
+            directoryPath = argument;
+            directoryAssigned = true;
+        }
+
+        return titleAssigned && contextAssigned;
     }
 
     private static int WriteUsageError(
