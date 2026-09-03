@@ -88,7 +88,7 @@ internal static class AdrMarkdownParser
     private static (int? Id, string? Slug) ParseFileName(string fileName)
     {
         var stem = Path.GetFileNameWithoutExtension(fileName);
-        var separatorIndex = stem.IndexOf("-", StringComparison.Ordinal);
+        var separatorIndex = stem.IndexOf('-');
 
         if (separatorIndex <= 0 || separatorIndex == stem.Length - 1)
         {
@@ -182,7 +182,7 @@ internal static class AdrMarkdownParser
     }
 
     private static void FlushSection(
-        ICollection<AdrSection> sections,
+        List<AdrSection> sections,
         string? heading,
         int level,
         StringBuilder content)
