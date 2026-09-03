@@ -1,6 +1,7 @@
 using AdrGuard.Generation.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AdrGuard.Generation.Providers.Anthropic;
 
@@ -241,6 +242,7 @@ internal sealed class AnthropicAdrGenerationProvider
         string Type,
         IReadOnlyDictionary<string, JsonSchemaProperty> Properties,
         string[] Required,
+        [property: JsonPropertyName("additionalProperties")]
         bool AdditionalProperties);
 
     private sealed record JsonSchemaProperty(
