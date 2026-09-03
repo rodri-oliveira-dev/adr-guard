@@ -16,47 +16,55 @@ internal static class AdrMarkdownParser
         var sections = new List<AdrSection>();
         string? title = null;
 
-        var currentHeading = default(string);
+        string? currentHeading = null;
         var currentLevel = 0;
         var currentContent = new StringBuilder();
-        var inFence = false;
+        char? fenceMarker = null;
+        var fenceLength = 0;
 
         foreach (var line in ReadLines(markdown))
         {
-            if (IsFence(line))
+            if (TryGetFence(line, out var marker, out var markerLength))
             {
-                inFence = !inFence;
-
-                if (currentHeading is not null)
+                if (fenceMarker is null)
                 {
-                    AppendLine(currentContent, line);
+                    fenceMarker = marker;
+                    fenceLength = markerLength;
+                    AppendToCurrentSection(currentHeading, currentContent, line);
+                    continue;
                 }
 
-                continue;
+                if (marker == fenceMarker
+                    && markerLength >= fenceLength
+                    && IsClosingFence(line, markerLength))
+                {
+                    AppendToCurrentSection(currentHeading, currentContent, line);
+                    fenceMarker = null;
+                    fenceLength = 0;
+                    continue;
+                }
             }
 
-            if (!inFence && TryParseHeading(line, out var level, out var heading))
+            if (fenceMarker is null && TryParseHeading(line, out var level, out var heading))
             {
-                if (level == 1 && title is null)
+                if (level == 1)
                 {
-                    title = heading;
-                }
-
-                if (level >= 2)
-                {
+                    title ??= heading;
                     FlushSection(sections, currentHeading, currentLevel, currentContent);
-                    currentHeading = heading;
-                    currentLevel = level;
+                    currentHeading = null;
+                    currentLevel = 0;
                     currentContent.Clear();
+                    continue;
                 }
 
+                FlushSection(sections, currentHeading, currentLevel, currentContent);
+                currentHeading = heading;
+                currentLevel = level;
+                currentContent.Clear();
                 continue;
             }
 
-            if (currentHeading is not null)
-            {
-                AppendLine(currentContent, line);
-            }
+            AppendToCurrentSection(currentHeading, currentContent, line);
         }
 
         FlushSection(sections, currentHeading, currentLevel, currentContent);
@@ -105,12 +113,31 @@ internal static class AdrMarkdownParser
         }
     }
 
-    private static bool IsFence(string line)
+    private static bool TryGetFence(string line, out char marker, out int markerLength)
     {
         var trimmed = line.TrimStart();
+        marker = default;
+        markerLength = 0;
 
-        return trimmed.StartsWith("```", StringComparison.Ordinal)
-            || trimmed.StartsWith("~~~", StringComparison.Ordinal);
+        if (trimmed.Length < 3 || trimmed[0] is not ('`' or '~'))
+        {
+            return false;
+        }
+
+        marker = trimmed[0];
+
+        while (markerLength < trimmed.Length && trimmed[markerLength] == marker)
+        {
+            markerLength++;
+        }
+
+        return markerLength >= 3;
+    }
+
+    private static bool IsClosingFence(string line, int markerLength)
+    {
+        var trimmed = line.TrimStart();
+        return trimmed[markerLength..].All(char.IsWhiteSpace);
     }
 
     private static bool TryParseHeading(string line, out int level, out string heading)
@@ -131,12 +158,27 @@ internal static class AdrMarkdownParser
             return false;
         }
 
-        heading = trimmed[level..]
-            .Trim()
-            .TrimEnd('#')
-            .TrimEnd();
-
+        heading = TrimClosingSequence(trimmed[level..].Trim());
         return heading.Length > 0;
+    }
+
+    private static string TrimClosingSequence(string heading)
+    {
+        var closingStart = heading.Length;
+
+        while (closingStart > 0 && heading[closingStart - 1] == '#')
+        {
+            closingStart--;
+        }
+
+        if (closingStart == heading.Length
+            || closingStart == 0
+            || !char.IsWhiteSpace(heading[closingStart - 1]))
+        {
+            return heading;
+        }
+
+        return heading[..closingStart].TrimEnd();
     }
 
     private static void FlushSection(
@@ -156,8 +198,16 @@ internal static class AdrMarkdownParser
             content.ToString().Trim()));
     }
 
-    private static void AppendLine(StringBuilder content, string line)
+    private static void AppendToCurrentSection(
+        string? currentHeading,
+        StringBuilder content,
+        string line)
     {
+        if (currentHeading is null)
+        {
+            return;
+        }
+
         if (content.Length > 0)
         {
             content.AppendLine();
