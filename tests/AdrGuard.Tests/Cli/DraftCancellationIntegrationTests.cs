@@ -1,5 +1,6 @@
 using AdrGuard.Cli;
 using AdrGuard.Generation;
+using AdrGuard.Generation.Http;
 using Xunit;
 
 namespace AdrGuard.Tests.Cli;
@@ -58,6 +59,51 @@ public sealed class DraftCancellationIntegrationTests
         }
     }
 
+    [Fact]
+    public void DraftProviderTimeoutLeavesNoArtifacts()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var provider =
+                new FailingAdrGenerationProvider();
+
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    "We need distributed caching.",
+                ],
+                output,
+                error,
+                generationProvider: provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            AssertNoTemporaryFiles(root);
+            Assert.Contains(
+                "timed out",
+                error.ToString(),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
     private static void AssertNoTemporaryFiles(
         string directoryPath)
     {
@@ -90,6 +136,18 @@ public sealed class DraftCancellationIntegrationTests
                 path,
                 recursive: true);
         }
+    }
+
+    private sealed class FailingAdrGenerationProvider
+        : IAdrGenerationProvider
+    {
+        public Task<AdrGenerationResult> GenerateAsync(
+            AdrGenerationRequest request,
+            CancellationToken cancellationToken) =>
+            Task.FromException<AdrGenerationResult>(
+                new AiProviderException(
+                    AiProviderErrorKind.Timeout,
+                    "AI provider timed out."));
     }
 
     private sealed class CancelingAdrGenerationProvider(
