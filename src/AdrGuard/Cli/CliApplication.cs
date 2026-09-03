@@ -73,12 +73,20 @@ internal static class CliApplication
                                   ADRs are ordered deterministically and bounded to 12000 characters.
           --dry-run, --preview      Generate and validate the ADR without writing a file.
 
+        Context limits:
+          --context               20000 characters maximum.
+          each --context-file     50000 characters maximum.
+          all --context-file      100000 characters maximum in aggregate.
+          composed context        120000 characters maximum.
+          existing ADR context    12000 characters maximum.
+
         Authentication is read only from environment variables:
           openai                  OPENAI_API_KEY
           anthropic               ANTHROPIC_API_KEY
           gemini                  GEMINI_API_KEY
           openai-compatible       ADR_GUARD_OPENAI_COMPATIBLE_API_KEY (optional)
 
+        Oversized context is rejected before provider invocation and is never silently truncated.
         ADR structural headings and the Proposed status remain canonical.
         Generated content is validated before a new ADR file is written.
         Dry-run/preview uses the same deterministic ID and filename calculation,
