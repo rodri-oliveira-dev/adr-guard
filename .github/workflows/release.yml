@@ -1,0 +1,138 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tag, release, and publish
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "true"
+      NUGET_XMLDOC_MODE: skip
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout successful commit
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_SHA }}
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.400"
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          existing_tag="$(
+            git tag --points-at "${RELEASE_SHA}"               | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$'               | sort -V               | tail -n 1               || true
+          )"
+
+          if [[ -n "${existing_tag}" ]]; then
+            version="${existing_tag#v}"
+            tag="${existing_tag}"
+          else
+            base_version="$(
+              sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p'                 src/AdrGuard/AdrGuard.csproj                 | head -n 1
+            )"
+
+            if [[ ! "${base_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "VersionPrefix must use stable SemVer format MAJOR.MINOR.PATCH." >&2
+              exit 1
+            fi
+
+            latest_tag="$(
+              git tag --list 'v*'                 | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$'                 | sort -V                 | tail -n 1                 || true
+            )"
+
+            if [[ -z "${latest_tag}" ]]; then
+              version="${base_version}"
+            else
+              latest_version="${latest_tag#v}"
+              highest="$(
+                printf '%s\n%s\n' "${base_version}" "${latest_version}"                   | sort -V                   | tail -n 1
+              )"
+
+              if [[ "${highest}" == "${base_version}" && "${base_version}" != "${latest_version}" ]]; then
+                version="${base_version}"
+              else
+                IFS='.' read -r major minor patch <<< "${latest_version}"
+                version="${major}.${minor}.$((patch + 1))"
+              fi
+            fi
+
+            tag="v${version}"
+          fi
+
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "Release version: ${version}"
+          echo "Release tag: ${tag}"
+
+      - name: Restore
+        run: dotnet restore AdrGuard.slnx
+
+      - name: Pack release
+        run: >
+          dotnet pack
+          src/AdrGuard/AdrGuard.csproj
+          --configuration Release
+          --no-restore
+          --output artifacts/package
+          -p:Version=${{ steps.version.outputs.version }}
+          -p:ContinuousIntegrationBuild=true
+
+      - name: Configure GitHub Packages source
+        shell: bash
+        run: |
+          dotnet nuget add source             --username "${GITHUB_ACTOR}"             --password "${GITHUB_TOKEN}"             --store-password-in-clear-text             --name github             "https://nuget.pkg.github.com/${GITHUB_REPOSITORY_OWNER}/index.json"
+
+      - name: Publish to GitHub Packages
+        run: >
+          dotnet nuget push
+          "artifacts/package/*.nupkg"
+          --source github
+          --api-key "${GITHUB_TOKEN}"
+          --skip-duplicate
+
+      - name: Create GitHub tag and release
+        shell: bash
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists; nothing to create."
+            exit 0
+          fi
+
+          gh release create "${TAG}"             artifacts/package/*.nupkg             --repo "${GITHUB_REPOSITORY}"             --target "${RELEASE_SHA}"             --title "${TAG}"             --generate-notes
