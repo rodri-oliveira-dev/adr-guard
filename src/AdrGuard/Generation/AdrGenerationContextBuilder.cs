@@ -18,8 +18,9 @@ internal static class AdrGenerationContextBuilder
         ArgumentNullException.ThrowIfNull(documents);
 
         var normalizedInlineContext =
-            AdrGenerationText.NormalizeNewLines(
-                inlineContext.Trim());
+            AdrGenerationContextLimits
+                .NormalizeAndValidateInlineContext(
+                    inlineContext);
 
         var existingContext = includeExistingAdrs
             ? ExistingAdrContextBuilder.Build(documents)
@@ -29,6 +30,10 @@ internal static class AdrGenerationContextBuilder
             && (existingContext is null
                 || existingContext.IncludedCount == 0))
         {
+            AdrGenerationContextLimits
+                .ValidateComposedContext(
+                    normalizedInlineContext);
+
             return normalizedInlineContext;
         }
 
@@ -110,6 +115,11 @@ internal static class AdrGenerationContextBuilder
             }
         }
 
-        return builder.ToString();
+        var composedContext = builder.ToString();
+
+        AdrGenerationContextLimits.ValidateComposedContext(
+            composedContext);
+
+        return composedContext;
     }
 }
