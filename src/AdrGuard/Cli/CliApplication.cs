@@ -43,7 +43,7 @@ internal static class CliApplication
         Validate ADR files and generate a Markdown index.
         The directory defaults to the current directory.
         The output defaults to README.md inside the ADR directory.
-        Relative --output paths are resolved from the ADR directory.
+        Relative --output paths are resolved from the current working directory.
         """;
 
     internal static int Run(
