@@ -29,6 +29,22 @@ internal sealed class OpenAiCompatibleProviderOptions
                 nameof(baseUri));
         }
 
+        var normalizedApiKey =
+            string.IsNullOrWhiteSpace(apiKey)
+                ? null
+                : apiKey;
+
+        if (string.Equals(
+                baseUri.Scheme,
+                Uri.UriSchemeHttp,
+                StringComparison.OrdinalIgnoreCase)
+            && normalizedApiKey is not null)
+        {
+            throw new ArgumentException(
+                "OpenAI-compatible endpoints must use HTTPS when an API key is configured.",
+                nameof(baseUri));
+        }
+
         var normalizedBaseUri = baseUri.AbsoluteUri.EndsWith('/')
             ? baseUri
             : new Uri($"{baseUri.AbsoluteUri}/", UriKind.Absolute);
@@ -36,7 +52,7 @@ internal sealed class OpenAiCompatibleProviderOptions
         BaseUri = normalizedBaseUri;
         Endpoint = new Uri(normalizedBaseUri, "chat/completions");
         Model = model.Trim();
-        ApiKey = string.IsNullOrWhiteSpace(apiKey) ? null : apiKey;
+        ApiKey = normalizedApiKey;
     }
 
     internal Uri BaseUri { get; }
