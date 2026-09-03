@@ -154,7 +154,9 @@ adr-guard draft docs/adr \
   --model <modelo-openai>
 ```
 
-O fluxo normal de persistência aloca deterministicamente o próximo ID de ADR, cria um filename compatível, valida o candidato gerado com o parser/validator normal de ADRs e grava usando semântica de criação de arquivo novo, impedindo a sobrescrita de um arquivo existente.
+O fluxo normal de persistência aloca deterministicamente o próximo ID de ADR, cria um filename compatível e valida o candidato gerado com o parser/validator normal de ADRs. Na persistência, o candidato completo é escrito em um arquivo temporário dentro do diretório de ADRs, passa por flush e somente então é promovido atomicamente para o filename final sem sobrescrita. Se houver cancelamento, falha do provider, falha de validação, erro de I/O ou corrida concorrente pelo mesmo filename, o ADR Guard não deixa um ADR final parcial e remove seu arquivo temporário.
+
+A CLI de produção propaga cancelamento por todo o fluxo de draft. Pressionar `Ctrl+C` solicita cancelamento gracioso durante carregamento de contexto, chamadas HTTP ao provider, pontos de validação e persistência.
 
 ### Providers, modelos e autenticação
 
