@@ -99,7 +99,8 @@ internal static class CliApplication
         TextWriter error,
         IAdrGenerationProvider? generationProvider = null,
         Func<HttpClient>? httpClientFactory = null,
-        Func<string, string?>? environmentVariableReader = null)
+        Func<string, string?>? environmentVariableReader = null,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(output);
@@ -127,7 +128,8 @@ internal static class CliApplication
                 error,
                 generationProvider,
                 httpClientFactory,
-                environmentVariableReader),
+                environmentVariableReader,
+                cancellationToken),
             _ => WriteUsageError(args, error),
         };
     }
@@ -190,7 +192,8 @@ internal static class CliApplication
         TextWriter error,
         IAdrGenerationProvider? injectedProvider,
         Func<HttpClient>? httpClientFactory,
-        Func<string, string?>? environmentVariableReader)
+        Func<string, string?>? environmentVariableReader,
+        CancellationToken cancellationToken)
     {
         if (args.Count == 2 && IsHelpOption(args[1]))
         {
@@ -215,7 +218,8 @@ internal static class CliApplication
                 draftArguments,
                 injectedProvider,
                 output,
-                error);
+                error,
+                cancellationToken);
         }
 
         if (string.IsNullOrWhiteSpace(
@@ -250,7 +254,8 @@ internal static class CliApplication
                 draftArguments,
                 provider,
                 output,
-                error);
+                error,
+                cancellationToken);
         }
         catch (ArgumentException exception)
         {
@@ -270,7 +275,8 @@ internal static class CliApplication
         DraftArguments arguments,
         IAdrGenerationProvider provider,
         TextWriter output,
-        TextWriter error) =>
+        TextWriter error,
+        CancellationToken cancellationToken) =>
         DraftCommand.Run(
             arguments.DirectoryPath,
             arguments.Title,
@@ -281,7 +287,8 @@ internal static class CliApplication
             arguments.DryRun,
             provider,
             output,
-            error);
+            error,
+            cancellationToken);
 
     private static void WriteProviderSelection(
         DraftArguments arguments,
