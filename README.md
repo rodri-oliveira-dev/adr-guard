@@ -20,7 +20,7 @@ It is designed for repositories that want ADR conventions to be explicit, review
 - enforces a valid `Superseded by` link for superseded decisions;
 - generates a deterministic Markdown index;
 - avoids rewriting an index that is already current;
-- exposes stable validation codes (`ADR001` through `ADR008`);
+- exposes stable validation codes (`ADR001` through `ADR009`);
 - exposes predictable exit codes for CI/CD;
 - supports human-reviewed AI-assisted `Proposed` ADR drafting through explicit providers and context;
 - ships as a .NET Tool with no third-party runtime dependencies.
@@ -198,7 +198,7 @@ adr-guard draft docs/adr \
   --model <openai-model>
 ```
 
-Canonical ADR headings and the `Proposed` status remain unchanged regardless of the selected culture.
+Canonical ADR headings and the `Proposed` status remain unchanged regardless of the selected culture. Provider-generated prose is rejected if it attempts to introduce another level-one title or duplicate canonical level-two `Status`, `Context`, `Decision`, or `Consequences` sections. Headings inside fenced code blocks remain ordinary section content.
 
 ### Existing ADR context
 
@@ -276,6 +276,7 @@ This workflow does not perform source-code scanning, repository-wide context ing
 | `ADR006` | ADR ID is duplicated |
 | `ADR007` | Relative ADR reference is broken |
 | `ADR008` | Superseded ADR has no valid `Superseded by` link |
+| `ADR009` | Canonical level-two ADR section is duplicated |
 
 ADR IDs do not need to be contiguous. Gaps are allowed because ADRs may be archived, migrated, or removed without renumbering historical decisions.
 
