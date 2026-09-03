@@ -1,0 +1,198 @@
+# ADR Guard
+
+[English](README.md)
+
+ADR Guard é uma ferramenta de linha de comando para .NET focada em validar e indexar Architecture Decision Records (ADRs).
+
+A proposta é permitir que convenções de ADR sejam explícitas, revisáveis e verificáveis tanto no desenvolvimento local quanto no CI, sem adicionar dependências pesadas em runtime.
+
+## Recursos
+
+- valida nomes de arquivos, títulos, status e seções obrigatórias;
+- detecta IDs de ADR duplicados;
+- detecta links relativos quebrados entre ADRs;
+- exige um link válido em `Superseded by` para decisões substituídas;
+- gera um índice Markdown determinístico;
+- evita reescrever um índice que já está atualizado;
+- fornece códigos de validação estáveis (`ADR001` até `ADR008`);
+- fornece exit codes previsíveis para CI/CD;
+- é distribuído como .NET Tool sem dependências externas em runtime.
+
+## Instalação
+
+Depois que o pacote for publicado no NuGet:
+
+```bash
+dotnet tool install --global RodriOliveira.AdrGuard
+```
+
+Para atualizar uma instalação existente:
+
+```bash
+dotnet tool update --global RodriOliveira.AdrGuard
+```
+
+O comando instalado é:
+
+```bash
+adr-guard
+```
+
+## Formato dos ADRs
+
+O ADR Guard espera arquivos Markdown com um ID de quatro dígitos seguido por um slug em lowercase kebab-case:
+
+```text
+0001-use-postgresql.md
+```
+
+Um ADR mínimo válido:
+
+```markdown
+# Use PostgreSQL
+
+## Status
+
+Accepted
+
+## Context
+
+We need a relational database.
+
+## Decision
+
+Use PostgreSQL.
+
+## Consequences
+
+The service depends on PostgreSQL operational knowledge.
+```
+
+Status aceitos:
+
+- `Proposed`
+- `Accepted`
+- `Deprecated`
+- `Superseded`
+
+As seções `Context`, `Decision` e `Consequences` são obrigatórias. Um ADR com status `Superseded` também precisa de uma seção `Superseded by` apontando para um ADR existente.
+
+## Validar ADRs
+
+Para validar recursivamente uma pasta:
+
+```bash
+adr-guard check docs/adr
+```
+
+Quando a pasta não é informada, o diretório atual é utilizado:
+
+```bash
+adr-guard check
+```
+
+Uma validação bem-sucedida retorna exit code `0`. Falhas exibem caminho do arquivo, código estável da regra e mensagem.
+
+Exemplo:
+
+```text
+docs/adr/0002-use-cache.md: ADR004 Status 'Approved' is invalid. Allowed values: Proposed, Accepted, Deprecated, Superseded.
+Validation failed with 1 issue(s).
+```
+
+## Gerar o índice de ADRs
+
+Para validar os ADRs e gerar `README.md` dentro da pasta:
+
+```bash
+adr-guard index docs/adr
+```
+
+O arquivo gerado é determinístico:
+
+```markdown
+# Architecture Decision Records
+
+| ADR | Decision | Status |
+| --- | --- | --- |
+| [0001](0001-use-postgresql.md) | Use PostgreSQL | Accepted |
+| [0002](0002-adopt-opentelemetry.md) | Adopt OpenTelemetry | Proposed |
+```
+
+O índice só é escrito depois que a validação passa. Se o conteúdo existente já estiver atualizado, o arquivo não é reescrito.
+
+Também é possível gerar um índice customizado fora da pasta de ADRs:
+
+```bash
+adr-guard index docs/adr --output adr-index.md
+```
+
+Dentro da própria pasta de ADRs, Markdown gerado precisa se chamar `README.md`; caso contrário, ele seria interpretado como candidato a ADR na validação seguinte.
+
+## Regras de validação
+
+| Código | Validação |
+| --- | --- |
+| `ADR001` | Filename deve seguir `NNNN-lowercase-kebab-case.md` |
+| `ADR002` | Título de nível um é obrigatório |
+| `ADR003` | Status é obrigatório |
+| `ADR004` | Status precisa ser suportado |
+| `ADR005` | Seção obrigatória ausente ou vazia |
+| `ADR006` | ID de ADR duplicado |
+| `ADR007` | Referência relativa para ADR quebrada |
+| `ADR008` | ADR substituído sem link válido em `Superseded by` |
+
+A numeração não precisa ser contínua. Lacunas são aceitas porque ADRs podem ser arquivados, migrados ou removidos sem renumerar decisões históricas.
+
+## Exit codes
+
+| Código | Significado |
+| ---: | --- |
+| `0` | Sucesso |
+| `1` | Validação dos ADRs falhou |
+| `2` | Uso inválido da CLI |
+| `3` | Erro operacional |
+
+Isso permite integração direta em CI:
+
+```yaml
+- name: Validate ADRs
+  run: adr-guard check docs/adr
+```
+
+## Build a partir do código-fonte
+
+Requisito:
+
+- .NET SDK 10.0.400 ou patch compatível da mesma feature band.
+
+Build e testes:
+
+```bash
+dotnet restore AdrGuard.slnx
+dotnet build AdrGuard.slnx --configuration Release --no-restore
+dotnet test AdrGuard.slnx --configuration Release --no-build
+```
+
+Gerar o pacote da ferramenta:
+
+```bash
+dotnet pack src/AdrGuard/AdrGuard.csproj --configuration Release --no-build --output artifacts/package
+```
+
+Instalar localmente o pacote gerado:
+
+```bash
+dotnet tool install --tool-path ./.tools RodriOliveira.AdrGuard --version 0.1.0 --add-source ./artifacts/package
+./.tools/adr-guard check docs/adr
+```
+
+## Decisões de arquitetura
+
+O ADR Guard valida os próprios ADRs do projeto. Consulte [docs/adr](docs/adr/README.md).
+
+O CI do repositório compila e testa a solução, empacota a .NET Tool, instala o pacote localmente, executa o `adr-guard` empacotado contra `docs/adr`, regenera o índice e verifica se houve drift na documentação.
+
+## Licença
+
+Licenciado sob a [MIT License](LICENSE).
