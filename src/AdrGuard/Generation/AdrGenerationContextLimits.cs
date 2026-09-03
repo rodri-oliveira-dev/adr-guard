@@ -30,7 +30,7 @@ internal static class AdrGenerationContextLimits
     }
 
     internal static void ValidateAggregateContextFileCharacters(
-        int characterCount)
+        long characterCount)
     {
         if (characterCount
             <= MaximumAggregateContextFileCharacters)
