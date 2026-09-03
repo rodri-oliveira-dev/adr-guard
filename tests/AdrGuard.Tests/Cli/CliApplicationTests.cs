@@ -52,7 +52,7 @@ public sealed class CliApplicationTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = CliApplication.Run(["check"], output, error);
+        var exitCode = CliApplication.Run(["unknown"], output, error);
 
         Assert.Equal(ExitCodes.UsageError, exitCode);
         Assert.Equal(string.Empty, output.ToString());
