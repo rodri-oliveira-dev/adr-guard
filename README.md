@@ -20,16 +20,29 @@ It is designed for repositories that want ADR conventions to be explicit, review
 
 ## Install
 
-After the package is published to NuGet:
+Releases are published to [GitHub Packages](https://github.com/rodri-oliveira-dev?tab=packages).
+
+GitHub Packages requires NuGet authentication. Configure the registry with a GitHub personal access token (classic) that can read packages:
 
 ```bash
-dotnet tool install --global RodriOliveira.AdrGuard
+dotnet nuget add source \
+  --username rodri-oliveira-dev \
+  --password YOUR_GITHUB_PAT \
+  --store-password-in-clear-text \
+  --name github \
+  "https://nuget.pkg.github.com/rodri-oliveira-dev/index.json"
+```
+
+Install the tool from that source:
+
+```bash
+dotnet tool install --global RodriOliveira.AdrGuard --add-source "https://nuget.pkg.github.com/rodri-oliveira-dev/index.json"
 ```
 
 Update an existing installation with:
 
 ```bash
-dotnet tool update --global RodriOliveira.AdrGuard
+dotnet tool update --global RodriOliveira.AdrGuard --add-source "https://nuget.pkg.github.com/rodri-oliveira-dev/index.json"
 ```
 
 The installed command is:
@@ -192,6 +205,18 @@ dotnet tool install --tool-path ./.tools RodriOliveira.AdrGuard --version 0.1.0 
 ADR Guard validates its own architecture decisions. See [docs/adr](docs/adr/README.md).
 
 The repository CI builds and tests the solution, packages the .NET Tool, installs that package locally, runs the packaged `adr-guard` against `docs/adr`, regenerates the ADR index, and verifies that no documentation drift was introduced.
+
+## Releases
+
+After a pull request is merged into `main`, the release workflow waits for the `CI` workflow for that `main` commit to complete successfully. It then:
+
+1. resolves a stable SemVer version, starting from `VersionPrefix` and incrementing the patch for subsequent releases;
+2. packs `RodriOliveira.AdrGuard` with that version;
+3. publishes the package to GitHub Packages;
+4. creates the corresponding `vMAJOR.MINOR.PATCH` tag and GitHub Release;
+5. attaches the `.nupkg` to the GitHub Release.
+
+The workflow is idempotent for a commit that already has a release tag.
 
 ## License
 
