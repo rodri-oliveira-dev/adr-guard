@@ -74,13 +74,13 @@ public sealed class AdrGenerationContextBuilderTests
         var contextFiles = new[]
         {
             new ExplicitContextFile(
-                "/tmp/first.txt",
+                Path.Combine(Path.GetTempPath(), "first.txt"),
                 new string(
                     'a',
                     AdrGenerationContextLimits
                         .MaximumContextFileCharacters)),
             new ExplicitContextFile(
-                "/tmp/second.txt",
+                Path.Combine(Path.GetTempPath(), "second.txt"),
                 new string(
                     'b',
                     AdrGenerationContextLimits
