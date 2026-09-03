@@ -93,7 +93,7 @@ internal static class CliApplication
 
         var directoryPath = args.Count == 2 ? args[1] : ".";
 
-        if (directoryPath.StartsWith('-', StringComparison.Ordinal))
+        if (directoryPath.StartsWith('-'))
         {
             return WriteCommandUsageError("check", error);
         }
@@ -142,7 +142,7 @@ internal static class CliApplication
 
                 outputPath = args[++index];
                 if (string.IsNullOrWhiteSpace(outputPath)
-                    || outputPath.StartsWith('-', StringComparison.Ordinal))
+                    || outputPath.StartsWith('-'))
                 {
                     return false;
                 }
@@ -150,7 +150,7 @@ internal static class CliApplication
                 continue;
             }
 
-            if (argument.StartsWith('-', StringComparison.Ordinal)
+            if (argument.StartsWith('-')
                 || directoryAssigned)
             {
                 return false;
