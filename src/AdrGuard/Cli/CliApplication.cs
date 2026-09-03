@@ -101,8 +101,41 @@ internal static class CliApplication
         TextWriter error,
         IAdrGenerationProvider? generationProvider = null,
         Func<HttpClient>? httpClientFactory = null,
-        Func<string, string?>? environmentVariableReader = null,
-        CancellationToken cancellationToken = default)
+        Func<string, string?>? environmentVariableReader = null) =>
+        RunCore(
+            args,
+            output,
+            error,
+            generationProvider,
+            httpClientFactory,
+            environmentVariableReader,
+            default);
+
+    internal static int Run(
+        IReadOnlyList<string> args,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken,
+        IAdrGenerationProvider? generationProvider = null,
+        Func<HttpClient>? httpClientFactory = null,
+        Func<string, string?>? environmentVariableReader = null) =>
+        RunCore(
+            args,
+            output,
+            error,
+            generationProvider,
+            httpClientFactory,
+            environmentVariableReader,
+            cancellationToken);
+
+    private static int RunCore(
+        IReadOnlyList<string> args,
+        TextWriter output,
+        TextWriter error,
+        IAdrGenerationProvider? generationProvider,
+        Func<HttpClient>? httpClientFactory,
+        Func<string, string?>? environmentVariableReader,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(output);
