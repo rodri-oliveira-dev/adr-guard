@@ -20,7 +20,9 @@ It is designed for repositories that want ADR conventions to be explicit, review
 
 ## Install
 
-After the package is published to NuGet:
+Releases are published to both NuGet.org and [GitHub Packages](https://github.com/rodri-oliveira-dev?tab=packages).
+
+The simplest installation uses NuGet.org:
 
 ```bash
 dotnet tool install --global RodriOliveira.AdrGuard
@@ -31,6 +33,8 @@ Update an existing installation with:
 ```bash
 dotnet tool update --global RodriOliveira.AdrGuard
 ```
+
+GitHub Packages is also available as a secondary registry. NuGet clients require GitHub authentication to consume packages from that source.
 
 The installed command is:
 
@@ -192,6 +196,19 @@ dotnet tool install --tool-path ./.tools RodriOliveira.AdrGuard --version 0.1.0 
 ADR Guard validates its own architecture decisions. See [docs/adr](docs/adr/README.md).
 
 The repository CI builds and tests the solution, packages the .NET Tool, installs that package locally, runs the packaged `adr-guard` against `docs/adr`, regenerates the ADR index, and verifies that no documentation drift was introduced.
+
+## Releases
+
+After a pull request is merged into `main`, the release workflow waits for the `CI` workflow for that `main` commit to complete successfully. It then:
+
+1. resolves a stable SemVer version, starting from `VersionPrefix` and incrementing the patch for subsequent releases;
+2. packs `RodriOliveira.AdrGuard` with that version;
+3. authenticates to NuGet.org through Trusted Publishing (OIDC) and publishes the package;
+4. publishes the same package to GitHub Packages;
+5. creates the corresponding `vMAJOR.MINOR.PATCH` tag and GitHub Release;
+6. attaches the `.nupkg` to the GitHub Release.
+
+The workflow is idempotent for a commit that already has a release tag.
 
 ## License
 
