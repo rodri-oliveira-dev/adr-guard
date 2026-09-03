@@ -1,4 +1,5 @@
 using AdrGuard.Generation;
+using System.Globalization;
 using Xunit;
 
 namespace AdrGuard.Tests.Generation;
@@ -124,7 +125,7 @@ public sealed class ExplicitContextFileLoaderTests
             Assert.Contains(
                 AdrGenerationContextLimits
                     .MaximumContextFileCharacters
-                    .ToString(),
+                    .ToString(CultureInfo.InvariantCulture),
                 exception.Message,
                 StringComparison.Ordinal);
             Assert.DoesNotContain(
@@ -216,7 +217,7 @@ public sealed class ExplicitContextFileLoaderTests
             Assert.Contains(
                 AdrGenerationContextLimits
                     .MaximumAggregateContextFileCharacters
-                    .ToString(),
+                    .ToString(CultureInfo.InvariantCulture),
                 exception.Message,
                 StringComparison.Ordinal);
         }
