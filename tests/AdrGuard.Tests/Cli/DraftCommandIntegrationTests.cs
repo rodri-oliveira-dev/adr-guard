@@ -27,6 +27,10 @@ public sealed class DraftCommandIntegrationTests
         Assert.Contains("--dry-run", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--preview", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--include-existing-adrs", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("20000", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("50000", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("100000", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("120000", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("12000", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("OPENAI_API_KEY", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("ANTHROPIC_API_KEY", output.ToString(), StringComparison.Ordinal);
