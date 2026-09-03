@@ -16,7 +16,7 @@ internal static class CliApplication
         Usage:
           adr-guard check [directory]
           adr-guard index [directory] [--output <file>]
-          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>]
+          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--include-existing-adrs]
           adr-guard [options]
 
         Commands:
@@ -54,7 +54,7 @@ internal static class CliApplication
 
     private const string DraftHelpText = """
         Usage:
-          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>]
+          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--include-existing-adrs]
 
         Generate a Proposed ADR draft through a configured AI provider.
         The directory defaults to the current directory.
@@ -67,6 +67,8 @@ internal static class CliApplication
           --culture <name>        .NET globalization culture name such as en-US or pt-BR.
                                   Defaults to en-US.
           --endpoint <uri>        Required only for openai-compatible; rejected for official providers.
+          --include-existing-adrs   Opt in to sending parsed existing ADR context to the provider.
+                                  ADRs are ordered deterministically and bounded to 12000 characters.
 
         Authentication is read only from environment variables:
           openai                  OPENAI_API_KEY
@@ -257,6 +259,7 @@ internal static class CliApplication
             arguments.Title,
             arguments.Context,
             arguments.CultureName,
+            arguments.IncludeExistingAdrs,
             provider,
             output,
             error);
@@ -316,6 +319,7 @@ internal static class CliApplication
         string? providerName = null;
         string? model = null;
         string? endpoint = null;
+        var includeExistingAdrs = false;
 
         var directoryAssigned = false;
         var titleAssigned = false;
@@ -324,10 +328,24 @@ internal static class CliApplication
         var providerAssigned = false;
         var modelAssigned = false;
         var endpointAssigned = false;
+        var includeExistingAdrsAssigned = false;
 
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
+
+            if (argument == "--include-existing-adrs")
+            {
+                if (includeExistingAdrsAssigned)
+                {
+                    draftArguments = DraftArguments.Empty;
+                    return false;
+                }
+
+                includeExistingAdrs = true;
+                includeExistingAdrsAssigned = true;
+                continue;
+            }
 
             if (argument is "--title"
                 or "--context"
@@ -440,7 +458,8 @@ internal static class CliApplication
             cultureName,
             providerName,
             model,
-            endpoint);
+            endpoint,
+            includeExistingAdrs);
 
         return titleAssigned && contextAssigned;
     }
@@ -501,7 +520,8 @@ internal static class CliApplication
         string CultureName,
         string? ProviderName,
         string? Model,
-        string? Endpoint)
+        string? Endpoint,
+        bool IncludeExistingAdrs)
     {
         internal static DraftArguments Empty { get; } =
             new(
@@ -511,6 +531,7 @@ internal static class CliApplication
                 DefaultDraftCultureName,
                 null,
                 null,
-                null);
+                null,
+                false);
     }
 }

@@ -10,6 +10,7 @@ internal static class DraftCommand
         string title,
         string context,
         string cultureName,
+        bool includeExistingAdrs,
         IAdrGenerationProvider? provider,
         TextWriter output,
         TextWriter error)
@@ -52,6 +53,12 @@ internal static class DraftCommand
 
         try
         {
+            if (includeExistingAdrs)
+            {
+                output.WriteLine(
+                    $"Existing ADR context enabled: parsed ADR data from '{Path.GetFullPath(directoryPath)}' will be sent to the configured provider.");
+            }
+
             var service = new AdrGenerationService(provider);
             var result = service
                 .GenerateAsync(
@@ -59,6 +66,7 @@ internal static class DraftCommand
                     title,
                     context,
                     normalizedCultureName,
+                    includeExistingAdrs,
                     CancellationToken.None)
                 .GetAwaiter()
                 .GetResult();

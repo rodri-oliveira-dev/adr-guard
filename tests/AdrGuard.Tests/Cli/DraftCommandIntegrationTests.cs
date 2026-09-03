@@ -22,6 +22,8 @@ public sealed class DraftCommandIntegrationTests
         Assert.Contains("--provider", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--model", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--endpoint", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--include-existing-adrs", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("12000", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("OPENAI_API_KEY", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("ANTHROPIC_API_KEY", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("GEMINI_API_KEY", output.ToString(), StringComparison.Ordinal);
@@ -90,6 +92,155 @@ public sealed class DraftCommandIntegrationTests
 
             Assert.Equal(ExitCodes.Success, checkExitCode);
             Assert.Equal(string.Empty, checkError.ToString());
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftCanOptInToParsedExistingAdrContext()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            WriteAdr(
+                root,
+                "0001-use-postgresql.md",
+                """
+                # Use PostgreSQL
+
+                ## Status
+                Accepted
+
+                ## Context
+                We need relational persistence.
+
+                ## Decision
+                Use PostgreSQL for transactional data.
+
+                ## Consequences
+                The team operates PostgreSQL.
+                """);
+
+            WriteAdr(
+                root,
+                "0002-use-redis.md",
+                """
+                # Use Redis
+
+                ## Status
+                Accepted
+
+                ## Context
+                We need distributed caching.
+
+                ## Decision
+                Use Redis for distributed caching.
+
+                ## Consequences
+                Redis becomes an operational dependency.
+
+                ## Related
+                [Database decision](0001-use-postgresql.md)
+                """);
+
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Adopt a Message Broker",
+                    "--context",
+                    "We need asynchronous integration.",
+                    "--include-existing-adrs",
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.Equal(string.Empty, error.ToString());
+            Assert.NotNull(provider.LastRequest);
+            Assert.Contains(
+                "User-supplied architectural context:",
+                provider.LastRequest.Context,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "We need asynchronous integration.",
+                provider.LastRequest.Context,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "ADR 0001",
+                provider.LastRequest.Context,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "Title: Use PostgreSQL",
+                provider.LastRequest.Context,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "Status: Accepted",
+                provider.LastRequest.Context,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "Use PostgreSQL for transactional data.",
+                provider.LastRequest.Context,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "- 0001-use-postgresql.md",
+                provider.LastRequest.Context,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "will be sent to the configured provider",
+                output.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftDoesNotIncludeExistingAdrContextWithoutExplicitOptIn()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            WriteAdr(root, "0001-use-postgresql.md", ValidMarkdown("Use PostgreSQL", "Accepted"));
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    "Only this inline context should be sent.",
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.NotNull(provider.LastRequest);
+            Assert.Equal(
+                "Only this inline context should be sent.",
+                provider.LastRequest.Context);
+            Assert.DoesNotContain(
+                "Existing ADR context enabled",
+                output.ToString(),
+                StringComparison.Ordinal);
         }
         finally
         {
