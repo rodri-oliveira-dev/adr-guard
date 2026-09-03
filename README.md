@@ -154,7 +154,9 @@ adr-guard draft docs/adr \
   --model <openai-model>
 ```
 
-The normal persistence workflow allocates the next ADR ID deterministically, creates a compliant filename, validates the generated candidate with the normal ADR parser/validator, and writes it with create-new semantics so an existing file is never overwritten.
+The normal persistence workflow allocates the next ADR ID deterministically, creates a compliant filename, and validates the generated candidate with the normal ADR parser/validator. Persistence writes the complete candidate to a temporary file in the ADR directory, flushes it, and only then atomically promotes it to the final filename without overwrite. If cancellation, provider failure, validation failure, an I/O error, or a concurrent filename race occurs, ADR Guard does not leave a partial final ADR and cleans up its temporary file.
+
+The production CLI propagates cancellation through the draft workflow. Pressing `Ctrl+C` requests graceful cancellation across context loading, provider HTTP calls, validation boundaries, and persistence.
 
 ### Providers, models, and authentication
 
