@@ -1,5 +1,6 @@
 using AdrGuard.Generation;
 using AdrGuard.Model;
+using System.Text;
 using Xunit;
 
 namespace AdrGuard.Tests.Generation;
@@ -113,6 +114,99 @@ public sealed class ExistingAdrContextBuilderTests
         Assert.DoesNotContain(
             $"ADR {firstExcludedId:D4}",
             first.Content,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildNormalizesLineEndingsBeforeApplyingCharacterBound()
+    {
+        var root = Path.Combine(
+            Path.GetTempPath(),
+            "adr-guard-context-tests");
+
+        var first = CreateDocument(
+            root,
+            1,
+            "0001-first.md",
+            "First",
+            "Accepted",
+            "First decision.",
+            null);
+
+        var probeSecond = CreateDocument(
+            root,
+            2,
+            "0002-second.md",
+            "Second",
+            "Accepted",
+            "x",
+            null);
+
+        var probe = ExistingAdrContextBuilder.Build(
+            [first, probeSecond]);
+
+        var targetDecisionLength =
+            1
+            + ExistingAdrContextBuilder.MaximumContextCharacters
+            - probe.Content.Length;
+
+        var multilinePrefix = string.Join(
+            "\n",
+            Enumerable.Repeat("x", 100));
+
+        Assert.True(
+            targetDecisionLength
+            > multilinePrefix.Length);
+
+        var lfDecision =
+            multilinePrefix
+            + new string(
+                'y',
+                targetDecisionLength
+                - multilinePrefix.Length);
+
+        var crlfDecision = lfDecision.Replace(
+            "\n",
+            "\r\n",
+            StringComparison.Ordinal);
+
+        var lfResult = ExistingAdrContextBuilder.Build(
+            [
+                first,
+                CreateDocument(
+                    root,
+                    2,
+                    "0002-second.md",
+                    "Second",
+                    "Accepted",
+                    lfDecision,
+                    null),
+            ]);
+
+        var crlfResult = ExistingAdrContextBuilder.Build(
+            [
+                first,
+                CreateDocument(
+                    root,
+                    2,
+                    "0002-second.md",
+                    "Second",
+                    "Accepted",
+                    crlfDecision,
+                    null),
+            ]);
+
+        Assert.Equal(2, lfResult.IncludedCount);
+        Assert.Equal(
+            ExistingAdrContextBuilder.MaximumContextCharacters,
+            lfResult.Content.Length);
+        Assert.Equal(lfResult.Content, crlfResult.Content);
+        Assert.Equal(
+            lfResult.IncludedCount,
+            crlfResult.IncludedCount);
+        Assert.DoesNotContain(
+            "\r",
+            lfResult.Content,
             StringComparison.Ordinal);
     }
 
