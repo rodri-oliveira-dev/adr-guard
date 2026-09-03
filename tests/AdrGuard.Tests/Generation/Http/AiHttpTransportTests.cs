@@ -20,12 +20,12 @@ public sealed class AiHttpTransportTests
 
         using var response = await transport.SendAsync(
             request,
-            CancellationToken.None);
+            TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(
             "{\"ok\":true}",
-            await response.Content.ReadAsStringAsync());
+            await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
     [Theory]
@@ -40,7 +40,7 @@ public sealed class AiHttpTransportTests
         using var request = CreateRequest();
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
-            () => transport.SendAsync(request, CancellationToken.None));
+            () => transport.SendAsync(request, TestContext.Current.CancellationToken));
 
         Assert.Equal(AiProviderErrorKind.Authentication, exception.ErrorKind);
         Assert.Equal(statusCode, exception.StatusCode);
@@ -56,7 +56,7 @@ public sealed class AiHttpTransportTests
         using var request = CreateRequest();
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
-            () => transport.SendAsync(request, CancellationToken.None));
+            () => transport.SendAsync(request, TestContext.Current.CancellationToken));
 
         Assert.Equal(AiProviderErrorKind.RateLimited, exception.ErrorKind);
         Assert.Equal((HttpStatusCode)429, exception.StatusCode);
@@ -75,7 +75,7 @@ public sealed class AiHttpTransportTests
         using var request = CreateRequest();
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
-            () => transport.SendAsync(request, CancellationToken.None));
+            () => transport.SendAsync(request, TestContext.Current.CancellationToken));
 
         Assert.Equal(AiProviderErrorKind.ServiceUnavailable, exception.ErrorKind);
         Assert.Equal(statusCode, exception.StatusCode);
@@ -90,7 +90,7 @@ public sealed class AiHttpTransportTests
         using var request = CreateRequest();
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
-            () => transport.SendAsync(request, CancellationToken.None));
+            () => transport.SendAsync(request, TestContext.Current.CancellationToken));
 
         Assert.Equal(AiProviderErrorKind.UnexpectedResponse, exception.ErrorKind);
         Assert.Equal(HttpStatusCode.BadRequest, exception.StatusCode);
@@ -110,7 +110,7 @@ public sealed class AiHttpTransportTests
         using var request = CreateRequest();
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
-            () => transport.SendAsync(request, CancellationToken.None));
+            () => transport.SendAsync(request, TestContext.Current.CancellationToken));
 
         Assert.Equal(AiProviderErrorKind.Timeout, exception.ErrorKind);
         Assert.Null(exception.StatusCode);
@@ -147,7 +147,7 @@ public sealed class AiHttpTransportTests
         using var request = CreateRequest();
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
-            () => transport.SendAsync(request, CancellationToken.None));
+            () => transport.SendAsync(request, TestContext.Current.CancellationToken));
 
         Assert.Equal(AiProviderErrorKind.Network, exception.ErrorKind);
         Assert.DoesNotContain(
@@ -173,7 +173,7 @@ public sealed class AiHttpTransportTests
             new AuthenticationHeaderValue("Bearer", apiKey);
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
-            () => transport.SendAsync(request, CancellationToken.None));
+            () => transport.SendAsync(request, TestContext.Current.CancellationToken));
 
         Assert.DoesNotContain(
             apiKey,
