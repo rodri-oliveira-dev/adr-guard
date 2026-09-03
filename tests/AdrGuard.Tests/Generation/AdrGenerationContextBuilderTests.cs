@@ -19,6 +19,94 @@ public sealed class AdrGenerationContextBuilderTests
     }
 
     [Fact]
+    public void BuildAcceptsInlineContextExactlyAtLimit()
+    {
+        var inlineContext = new string(
+            'x',
+            AdrGenerationContextLimits
+                .MaximumInlineContextCharacters);
+
+        var result = AdrGenerationContextBuilder.Build(
+            inlineContext,
+            [],
+            [],
+            includeExistingAdrs: false);
+
+        Assert.Equal(inlineContext, result);
+    }
+
+    [Fact]
+    public void BuildRejectsInlineContextOneCharacterOverLimit()
+    {
+        var inlineContext = new string(
+            'x',
+            AdrGenerationContextLimits
+                .MaximumInlineContextCharacters
+            + 1);
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => AdrGenerationContextBuilder.Build(
+                inlineContext,
+                [],
+                [],
+                includeExistingAdrs: false));
+
+        Assert.Contains(
+            "Inline --context",
+            exception.Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            AdrGenerationContextLimits
+                .MaximumInlineContextCharacters
+                .ToString(),
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BuildRejectsComposedContextOverFinalLimit()
+    {
+        var inlineContext = new string(
+            'i',
+            AdrGenerationContextLimits
+                .MaximumInlineContextCharacters);
+
+        var contextFiles = new[]
+        {
+            new ExplicitContextFile(
+                "/tmp/first.txt",
+                new string(
+                    'a',
+                    AdrGenerationContextLimits
+                        .MaximumContextFileCharacters)),
+            new ExplicitContextFile(
+                "/tmp/second.txt",
+                new string(
+                    'b',
+                    AdrGenerationContextLimits
+                        .MaximumContextFileCharacters)),
+        };
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => AdrGenerationContextBuilder.Build(
+                inlineContext,
+                contextFiles,
+                [],
+                includeExistingAdrs: false));
+
+        Assert.Contains(
+            "Composed AI generation context",
+            exception.Message,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            AdrGenerationContextLimits
+                .MaximumComposedContextCharacters
+                .ToString(),
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BuildCombinesExplicitFilesBeforeExistingAdrContext()
     {
         var contextFilePath = Path.Combine(
