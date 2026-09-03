@@ -11,11 +11,18 @@ internal sealed class AdrGenerationService
     private const int MaximumAdrId = 9999;
 
     private readonly IAdrGenerationProvider _provider;
+    private readonly IAdrDraftFilePersistence _persistence;
 
-    internal AdrGenerationService(IAdrGenerationProvider provider)
+    internal AdrGenerationService(
+        IAdrGenerationProvider provider,
+        IAdrDraftFilePersistence? persistence = null)
     {
         ArgumentNullException.ThrowIfNull(provider);
+
         _provider = provider;
+        _persistence =
+            persistence
+            ?? new AtomicAdrDraftFilePersistence();
     }
 
     internal async Task<AdrGenerationOutcome> GenerateAsync(
@@ -34,8 +41,20 @@ internal sealed class AdrGenerationService
         ArgumentException.ThrowIfNullOrWhiteSpace(cultureName);
         ArgumentNullException.ThrowIfNull(contextFilePaths);
 
-        var documents = AdrDocumentLoader.LoadDirectory(directoryPath);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        AdrGenerationContextLimits
+            .NormalizeAndValidateInlineContext(context);
+
+        var documents = AdrDocumentLoader.LoadDirectory(
+            directoryPath,
+            cancellationToken);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
         var existingValidation = AdrValidator.Validate(documents);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!existingValidation.IsValid)
         {
@@ -55,6 +74,8 @@ internal sealed class AdrGenerationService
             explicitContextFiles,
             documents,
             includeExistingAdrs);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var id = GetNextId(documents);
         var slug = AdrSlug.Create(title);
@@ -84,13 +105,21 @@ internal sealed class AdrGenerationService
             .ConfigureAwait(false);
 
         ArgumentNullException.ThrowIfNull(generated);
+        GeneratedAdrStructureGuard.Validate(generated);
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var content = BuildMarkdown(title, generated);
         var candidate = AdrMarkdownParser.Parse(filePath, content);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
         var validation = AdrValidator.Validate(
             documents
                 .Append(candidate)
                 .ToArray());
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!validation.IsValid)
         {
@@ -103,7 +132,11 @@ internal sealed class AdrGenerationService
 
         if (!dryRun)
         {
-            await WriteNewFileAsync(filePath, content, cancellationToken)
+            await _persistence
+                .WriteNewAsync(
+                    filePath,
+                    content,
+                    cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -160,21 +193,5 @@ internal sealed class AdrGenerationService
         return builder.ToString();
     }
 
-    private static async Task WriteNewFileAsync(
-        string filePath,
-        string content,
-        CancellationToken cancellationToken)
-    {
-        await using var stream = new FileStream(
-            filePath,
-            FileMode.CreateNew,
-            FileAccess.Write,
-            FileShare.None,
-            bufferSize: 4096,
-            useAsync: true);
-        await using var writer = new StreamWriter(stream);
 
-        await writer.WriteAsync(content.AsMemory(), cancellationToken)
-            .ConfigureAwait(false);
-    }
 }

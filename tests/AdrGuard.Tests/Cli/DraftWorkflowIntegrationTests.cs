@@ -138,6 +138,14 @@ public sealed class DraftWorkflowIntegrationTests
                 "already exists",
                 error.ToString(),
                 StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(
+                Directory.EnumerateFiles(root),
+                filePath =>
+                    Path.GetFileName(filePath)
+                        .EndsWith(
+                            AtomicAdrDraftFilePersistence
+                                .TemporaryFileSuffix,
+                            StringComparison.Ordinal));
         }
         finally
         {

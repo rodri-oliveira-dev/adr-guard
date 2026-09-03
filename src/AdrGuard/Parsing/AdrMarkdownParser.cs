@@ -70,7 +70,12 @@ internal static class AdrMarkdownParser
         FlushSection(sections, currentHeading, currentLevel, currentContent);
 
         var status = sections
-            .FirstOrDefault(section => string.Equals(section.Heading, "Status", StringComparison.OrdinalIgnoreCase))
+            .FirstOrDefault(section =>
+                section.Level == 2
+                && string.Equals(
+                    section.Heading,
+                    "Status",
+                    StringComparison.OrdinalIgnoreCase))
             ?.Content
             .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .FirstOrDefault();

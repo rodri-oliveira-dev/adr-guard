@@ -43,6 +43,39 @@ public sealed class OpenAiCompatibleProviderOptionsTests
     }
 
     [Fact]
+    public void ConstructorAllowsHttpsWhenApiKeyIsConfigured()
+    {
+        var options = new OpenAiCompatibleProviderOptions(
+            new Uri("https://example.test/v1"),
+            "model",
+            "secret-api-key");
+
+        Assert.Equal(
+            new Uri("https://example.test/v1/chat/completions"),
+            options.Endpoint);
+        Assert.Equal("secret-api-key", options.ApiKey);
+    }
+
+    [Fact]
+    public void ConstructorRejectsHttpWhenApiKeyIsConfigured()
+    {
+        var exception = Assert.Throws<ArgumentException>(
+            () => new OpenAiCompatibleProviderOptions(
+                new Uri("http://example.test/v1"),
+                "model",
+                "secret-api-key"));
+
+        Assert.Contains(
+            "must use HTTPS",
+            exception.Message,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "secret-api-key",
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ConstructorRejectsRelativeOrUnsupportedEndpoint()
     {
         Assert.Throws<ArgumentException>(

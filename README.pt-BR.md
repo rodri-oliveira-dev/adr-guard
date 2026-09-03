@@ -20,7 +20,7 @@ A proposta é permitir que convenções de ADR sejam explícitas, revisáveis e 
 - exige um link válido em `Superseded by` para decisões substituídas;
 - gera um índice Markdown determinístico;
 - evita reescrever um índice que já está atualizado;
-- fornece códigos de validação estáveis (`ADR001` até `ADR008`);
+- fornece códigos de validação estáveis (`ADR001` até `ADR009`);
 - fornece exit codes previsíveis para CI/CD;
 - oferece criação assistida por IA de ADRs `Proposed`, com revisão humana, providers e contexto explícitos;
 - é distribuído como .NET Tool sem dependências externas em runtime.
@@ -154,7 +154,9 @@ adr-guard draft docs/adr \
   --model <modelo-openai>
 ```
 
-O fluxo normal de persistência aloca deterministicamente o próximo ID de ADR, cria um filename compatível, valida o candidato gerado com o parser/validator normal de ADRs e grava usando semântica de criação de arquivo novo, impedindo a sobrescrita de um arquivo existente.
+O fluxo normal de persistência aloca deterministicamente o próximo ID de ADR, cria um filename compatível e valida o candidato gerado com o parser/validator normal de ADRs. Na persistência, o candidato completo é escrito em um arquivo temporário dentro do diretório de ADRs, passa por flush e somente então é promovido atomicamente para o filename final sem sobrescrita. Se houver cancelamento, falha do provider, falha de validação, erro de I/O ou corrida concorrente pelo mesmo filename, o ADR Guard não deixa um ADR final parcial e remove seu arquivo temporário.
+
+A CLI de produção propaga cancelamento por todo o fluxo de draft. Pressionar `Ctrl+C` solicita cancelamento gracioso durante carregamento de contexto, chamadas HTTP ao provider, pontos de validação e persistência.
 
 ### Providers, modelos e autenticação
 
@@ -183,6 +185,8 @@ adr-guard draft docs/adr --title "Decisão" --context "Contexto" \
 
 A autenticação é lida de variáveis de ambiente, e não de argumentos da CLI, evitando expor credenciais no histórico do comando ou no conteúdo dos ADRs. A CLI informa provider e modelo selecionados, mas não exibe valores de autenticação.
 
+Para `openai-compatible`, HTTP sem TLS é permitido somente quando nenhuma API key está configurada. Se `ADR_GUARD_OPENAI_COMPATIBLE_API_KEY` estiver definida, o endpoint deve usar HTTPS para que a credencial Bearer e o contexto arquitetural não sejam enviados em texto puro. As requisições oficiais da OpenAI definem explicitamente `store: false`.
+
 ### Idioma e contexto inline
 
 `--context` fornece diretamente o problema arquitetural ou suas restrições e continua obrigatório. O texto gerado usa `en-US` por padrão; para outro idioma, informe um culture name do padrão de globalization do .NET, como `pt-BR`:
@@ -196,7 +200,21 @@ adr-guard draft docs/adr \
   --model <modelo-openai>
 ```
 
-Os headings canônicos do ADR e o status `Proposed` permanecem inalterados independentemente da culture selecionada.
+Os headings canônicos do ADR e o status `Proposed` permanecem inalterados independentemente da culture selecionada. A prose gerada pelo provider é rejeitada se tentar introduzir outro título de nível um ou duplicar as seções canônicas de nível dois `Status`, `Context`, `Decision` ou `Consequences`. Headings dentro de blocos de código cercados por fences continuam sendo tratados como conteúdo da seção.
+
+### Limites de tamanho do contexto
+
+O ADR Guard limita deterministicamente o conteúdo enviado antes de invocar o provider de IA configurado:
+
+| Fonte de contexto | Máximo |
+| --- | ---: |
+| `--context` inline | 20.000 caracteres |
+| Cada `--context-file` | 50.000 caracteres |
+| Todos os context files explícitos somados | 100.000 caracteres |
+| Contexto parseado dos ADRs existentes | 12.000 caracteres |
+| Contexto final composto para geração | 120.000 caracteres |
+
+Arquivos explícitos são lidos somente até o limite individual mais um caractere, evitando carregar arquivos arbitrariamente grandes por inteiro apenas para detectar excesso. Contexto inline, arquivo individual, soma dos arquivos ou contexto final acima do limite é rejeitado com erro acionável antes da chamada ao provider. Arquivos explícitos nunca são truncados silenciosamente.
 
 ### Contexto de ADRs existentes
 
@@ -274,6 +292,7 @@ Esse fluxo não realiza varredura de código-fonte, ingestão automática do rep
 | `ADR006` | ID de ADR duplicado |
 | `ADR007` | Referência relativa para ADR quebrada |
 | `ADR008` | ADR substituído sem link válido em `Superseded by` |
+| `ADR009` | Seção canônica de nível dois do ADR está duplicada |
 
 A numeração não precisa ser contínua. Lacunas são aceitas porque ADRs podem ser arquivados, migrados ou removidos sem renumerar decisões históricas.
 

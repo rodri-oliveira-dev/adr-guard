@@ -118,6 +118,36 @@ public sealed class AdrValidatorTests
         Assert.Contains(missingSections, issue => issue.Message.Contains("Consequences", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("Status", "Accepted")]
+    [InlineData("Context", "Duplicate context.")]
+    [InlineData("Decision", "Duplicate decision.")]
+    [InlineData("Consequences", "Duplicate consequences.")]
+    public void ValidateReportsDuplicateCanonicalLevelTwoSections(
+        string sectionName,
+        string duplicateContent)
+    {
+        var markdown =
+            ValidMarkdown("Decision", "Accepted")
+            + $"{Environment.NewLine}{Environment.NewLine}"
+            + $"## {sectionName}{Environment.NewLine}"
+            + duplicateContent;
+
+        var result = AdrValidator.Validate(
+            [Parse("0001-decision.md", markdown)]);
+
+        var issue = Assert.Single(
+            result.Issues,
+            issue =>
+                issue.Code
+                == ValidationCodes.DuplicateCanonicalSection);
+
+        Assert.Contains(
+            sectionName,
+            issue.Message,
+            StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ValidateReportsDuplicateIdsForEveryConflictingAdr()
     {

@@ -20,7 +20,7 @@ It is designed for repositories that want ADR conventions to be explicit, review
 - enforces a valid `Superseded by` link for superseded decisions;
 - generates a deterministic Markdown index;
 - avoids rewriting an index that is already current;
-- exposes stable validation codes (`ADR001` through `ADR008`);
+- exposes stable validation codes (`ADR001` through `ADR009`);
 - exposes predictable exit codes for CI/CD;
 - supports human-reviewed AI-assisted `Proposed` ADR drafting through explicit providers and context;
 - ships as a .NET Tool with no third-party runtime dependencies.
@@ -154,7 +154,9 @@ adr-guard draft docs/adr \
   --model <openai-model>
 ```
 
-The normal persistence workflow allocates the next ADR ID deterministically, creates a compliant filename, validates the generated candidate with the normal ADR parser/validator, and writes it with create-new semantics so an existing file is never overwritten.
+The normal persistence workflow allocates the next ADR ID deterministically, creates a compliant filename, and validates the generated candidate with the normal ADR parser/validator. Persistence writes the complete candidate to a temporary file in the ADR directory, flushes it, and only then atomically promotes it to the final filename without overwrite. If cancellation, provider failure, validation failure, an I/O error, or a concurrent filename race occurs, ADR Guard does not leave a partial final ADR and cleans up its temporary file.
+
+The production CLI propagates cancellation through the draft workflow. Pressing `Ctrl+C` requests graceful cancellation across context loading, provider HTTP calls, validation boundaries, and persistence.
 
 ### Providers, models, and authentication
 
@@ -183,6 +185,8 @@ adr-guard draft docs/adr --title "Decision" --context "Context" \
 
 Authentication is read from environment variables rather than CLI arguments, which keeps credentials out of command history and ADR content. The CLI reports provider and model selection but does not print authentication values.
 
+For `openai-compatible`, plain HTTP is allowed only when no API key is configured. If `ADR_GUARD_OPENAI_COMPATIBLE_API_KEY` is set, the endpoint must use HTTPS so the Bearer credential and architectural context are not sent over plaintext transport. Official OpenAI requests explicitly set `store: false`.
+
 ### Language and inline context
 
 `--context` supplies the architectural problem or constraints directly and remains required. Generated prose defaults to `en-US`; use a .NET globalization culture name such as `pt-BR` when another language is desired:
@@ -196,7 +200,21 @@ adr-guard draft docs/adr \
   --model <openai-model>
 ```
 
-Canonical ADR headings and the `Proposed` status remain unchanged regardless of the selected culture.
+Canonical ADR headings and the `Proposed` status remain unchanged regardless of the selected culture. Provider-generated prose is rejected if it attempts to introduce another level-one title or duplicate canonical level-two `Status`, `Context`, `Decision`, or `Consequences` sections. Headings inside fenced code blocks remain ordinary section content.
+
+### Context size limits
+
+ADR Guard bounds provider input deterministically before invoking the configured AI provider:
+
+| Context source | Maximum |
+| --- | ---: |
+| Inline `--context` | 20,000 characters |
+| Each `--context-file` | 50,000 characters |
+| All explicit context files combined | 100,000 characters |
+| Parsed existing ADR context | 12,000 characters |
+| Final composed generation context | 120,000 characters |
+
+Explicit files are read only up to the per-file limit plus one character so arbitrarily large files are not loaded fully just to detect overflow. Oversized inline, per-file, aggregate, or composed context is rejected with an actionable error before provider invocation. Explicit files are never silently truncated.
 
 ### Existing ADR context
 
@@ -274,6 +292,7 @@ This workflow does not perform source-code scanning, repository-wide context ing
 | `ADR006` | ADR ID is duplicated |
 | `ADR007` | Relative ADR reference is broken |
 | `ADR008` | Superseded ADR has no valid `Superseded by` link |
+| `ADR009` | Canonical level-two ADR section is duplicated |
 
 ADR IDs do not need to be contiguous. Gaps are allowed because ADRs may be archived, migrated, or removed without renumbering historical decisions.
 

@@ -73,14 +73,24 @@ internal static class CliApplication
                                   ADRs are ordered deterministically and bounded to 12000 characters.
           --dry-run, --preview      Generate and validate the ADR without writing a file.
 
+        Context limits:
+          --context               20000 characters maximum.
+          each --context-file     50000 characters maximum.
+          all --context-file      100000 characters maximum in aggregate.
+          composed context        120000 characters maximum.
+          existing ADR context    12000 characters maximum.
+
         Authentication is read only from environment variables:
           openai                  OPENAI_API_KEY
           anthropic               ANTHROPIC_API_KEY
           gemini                  GEMINI_API_KEY
           openai-compatible       ADR_GUARD_OPENAI_COMPATIBLE_API_KEY (optional)
 
+        Oversized context is rejected before provider invocation and is never silently truncated.
         ADR structural headings and the Proposed status remain canonical.
         Generated content is validated before a new ADR file is written.
+        Ctrl+C cancels the draft workflow through context loading, provider calls, validation, and persistence.
+        Persisted drafts are written to a temporary file and atomically promoted without overwrite.
         Dry-run/preview uses the same deterministic ID and filename calculation,
         validates the generated ADR, prints it, and does not write any file.
         """;
@@ -91,7 +101,41 @@ internal static class CliApplication
         TextWriter error,
         IAdrGenerationProvider? generationProvider = null,
         Func<HttpClient>? httpClientFactory = null,
-        Func<string, string?>? environmentVariableReader = null)
+        Func<string, string?>? environmentVariableReader = null) =>
+        RunCore(
+            args,
+            output,
+            error,
+            generationProvider,
+            httpClientFactory,
+            environmentVariableReader,
+            default);
+
+    internal static int Run(
+        IReadOnlyList<string> args,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken,
+        IAdrGenerationProvider? generationProvider = null,
+        Func<HttpClient>? httpClientFactory = null,
+        Func<string, string?>? environmentVariableReader = null) =>
+        RunCore(
+            args,
+            output,
+            error,
+            generationProvider,
+            httpClientFactory,
+            environmentVariableReader,
+            cancellationToken);
+
+    private static int RunCore(
+        IReadOnlyList<string> args,
+        TextWriter output,
+        TextWriter error,
+        IAdrGenerationProvider? generationProvider,
+        Func<HttpClient>? httpClientFactory,
+        Func<string, string?>? environmentVariableReader,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(output);
@@ -119,7 +163,8 @@ internal static class CliApplication
                 error,
                 generationProvider,
                 httpClientFactory,
-                environmentVariableReader),
+                environmentVariableReader,
+                cancellationToken),
             _ => WriteUsageError(args, error),
         };
     }
@@ -182,7 +227,8 @@ internal static class CliApplication
         TextWriter error,
         IAdrGenerationProvider? injectedProvider,
         Func<HttpClient>? httpClientFactory,
-        Func<string, string?>? environmentVariableReader)
+        Func<string, string?>? environmentVariableReader,
+        CancellationToken cancellationToken)
     {
         if (args.Count == 2 && IsHelpOption(args[1]))
         {
@@ -207,7 +253,8 @@ internal static class CliApplication
                 draftArguments,
                 injectedProvider,
                 output,
-                error);
+                error,
+                cancellationToken);
         }
 
         if (string.IsNullOrWhiteSpace(
@@ -242,7 +289,8 @@ internal static class CliApplication
                 draftArguments,
                 provider,
                 output,
-                error);
+                error,
+                cancellationToken);
         }
         catch (ArgumentException exception)
         {
@@ -262,7 +310,8 @@ internal static class CliApplication
         DraftArguments arguments,
         IAdrGenerationProvider provider,
         TextWriter output,
-        TextWriter error) =>
+        TextWriter error,
+        CancellationToken cancellationToken) =>
         DraftCommand.Run(
             arguments.DirectoryPath,
             arguments.Title,
@@ -273,7 +322,8 @@ internal static class CliApplication
             arguments.DryRun,
             provider,
             output,
-            error);
+            error,
+            cancellationToken);
 
     private static void WriteProviderSelection(
         DraftArguments arguments,

@@ -1,5 +1,6 @@
 using AdrGuard.Cli;
 using AdrGuard.Generation.Providers.Gemini;
+using AdrGuard.Generation.Providers.OpenAiCompatible;
 using System.Net;
 using System.Text.Json;
 using Xunit;
@@ -143,6 +144,70 @@ public sealed class DraftProviderSelectionIntegrationTests
                 exitCode);
             Assert.Contains(
                 "--endpoint is required",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsAuthenticatedHttpCompatibleEndpointBeforeHttpRequest()
+    {
+        var root = CreateTempDirectory();
+        var callCount = 0;
+
+        try
+        {
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var args = BaseArguments(
+                    root,
+                    "openai-compatible",
+                    "model")
+                .Concat(
+                    [
+                        "--endpoint",
+                        "http://example.test/v1",
+                    ])
+                .ToArray();
+
+            var exitCode = CliApplication.Run(
+                args,
+                output,
+                error,
+                generationProvider: null,
+                httpClientFactory: () =>
+                    new HttpClient(
+                        new StubHttpMessageHandler(
+                            (_, _) =>
+                            {
+                                callCount++;
+                                return Task.FromResult(
+                                    new HttpResponseMessage(
+                                        HttpStatusCode.OK));
+                            })),
+                environmentVariableReader:
+                    variableName =>
+                        variableName
+                            == OpenAiCompatibleProviderOptions
+                                .ApiKeyEnvironmentVariableName
+                            ? "compatible-secret"
+                            : null);
+
+            Assert.Equal(
+                ExitCodes.UsageError,
+                exitCode);
+            Assert.Equal(0, callCount);
+            Assert.Contains(
+                "must use HTTPS",
+                error.ToString(),
+                StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "compatible-secret",
                 error.ToString(),
                 StringComparison.Ordinal);
         }

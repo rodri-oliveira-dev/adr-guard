@@ -27,12 +27,18 @@ public sealed class DraftCommandIntegrationTests
         Assert.Contains("--dry-run", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--preview", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--include-existing-adrs", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("20000", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("50000", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("100000", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("120000", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("12000", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("OPENAI_API_KEY", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("ANTHROPIC_API_KEY", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("GEMINI_API_KEY", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("ADR_GUARD_OPENAI_COMPATIBLE_API_KEY", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("en-US", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("Ctrl+C", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("atomically", output.ToString(), StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
     }
 
@@ -599,6 +605,243 @@ public sealed class DraftCommandIntegrationTests
     }
 
     [Fact]
+    public void DraftRejectsOversizedInlineContextBeforeInvokingProvider()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    new string(
+                        'x',
+                        AdrGenerationContextLimits
+                            .MaximumInlineContextCharacters
+                        + 1),
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                "Inline --context",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsOversizedContextFileBeforeInvokingProvider()
+    {
+        var root = CreateTempDirectory();
+        var contextRoot = CreateTempDirectory();
+
+        try
+        {
+            var contextPath = Path.Combine(
+                contextRoot,
+                "oversized.txt");
+
+            File.WriteAllText(
+                contextPath,
+                new string(
+                    'x',
+                    AdrGenerationContextLimits
+                        .MaximumContextFileCharacters
+                    + 1));
+
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    "We need distributed caching.",
+                    "--context-file",
+                    contextPath,
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                Path.GetFullPath(contextPath),
+                error.ToString(),
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "per-file limit",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+            DeleteDirectory(contextRoot);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsAggregateContextFileOverflowBeforeInvokingProvider()
+    {
+        var root = CreateTempDirectory();
+        var contextRoot = CreateTempDirectory();
+
+        try
+        {
+            var firstPath = Path.Combine(contextRoot, "first.txt");
+            var secondPath = Path.Combine(contextRoot, "second.txt");
+            var thirdPath = Path.Combine(contextRoot, "third.txt");
+
+            File.WriteAllText(firstPath, new string('a', 40000));
+            File.WriteAllText(secondPath, new string('b', 40000));
+            File.WriteAllText(thirdPath, new string('c', 20001));
+
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    "We need distributed caching.",
+                    "--context-file",
+                    firstPath,
+                    "--context-file",
+                    secondPath,
+                    "--context-file",
+                    thirdPath,
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                "aggregate limit",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+            DeleteDirectory(contextRoot);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsComposedContextOverflowBeforeInvokingProvider()
+    {
+        var root = CreateTempDirectory();
+        var contextRoot = CreateTempDirectory();
+
+        try
+        {
+            var firstPath = Path.Combine(contextRoot, "first.txt");
+            var secondPath = Path.Combine(contextRoot, "second.txt");
+
+            File.WriteAllText(
+                firstPath,
+                new string(
+                    'a',
+                    AdrGenerationContextLimits
+                        .MaximumContextFileCharacters));
+            File.WriteAllText(
+                secondPath,
+                new string(
+                    'b',
+                    AdrGenerationContextLimits
+                        .MaximumContextFileCharacters));
+
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    new string(
+                        'i',
+                        AdrGenerationContextLimits
+                            .MaximumInlineContextCharacters),
+                    "--context-file",
+                    firstPath,
+                    "--context-file",
+                    secondPath,
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                "Composed AI generation context",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+            DeleteDirectory(contextRoot);
+        }
+    }
+
+    [Fact]
     public void DraftPropagatesExplicitCultureWithoutChangingAdrStructure()
     {
         var root = CreateTempDirectory();
@@ -680,6 +923,156 @@ public sealed class DraftCommandIntegrationTests
             Assert.Equal(0, provider.CallCount);
             Assert.Empty(Directory.EnumerateFiles(root, "*.md"));
             Assert.Contains("Invalid culture", error.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsGeneratedLevelOneTitleWithoutWritingFile()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var provider = new FakeAdrGenerationProvider(
+                new AdrGenerationResult(
+                    "Context is present.\n\n# Injected title",
+                    "Use PostgreSQL.",
+                    "Operate PostgreSQL."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use PostgreSQL",
+                    "--context",
+                    "We need persistent relational storage.",
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                "structural Markdown",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsGeneratedCanonicalSectionWithoutWritingFile()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var provider = new FakeAdrGenerationProvider(
+                new AdrGenerationResult(
+                    "Context is present.\n\n## Status\nAccepted",
+                    "Use PostgreSQL.",
+                    "Operate PostgreSQL."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use PostgreSQL",
+                    "--context",
+                    "We need persistent relational storage.",
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                "canonical level-two ADR sections",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftAllowsCanonicalHeadingsInsideFencedCodeBlocks()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var provider = new FakeAdrGenerationProvider(
+                new AdrGenerationResult(
+                    """
+                    Context includes an example:
+
+                    ```markdown
+                    ## Status
+                    Accepted
+                    ```
+                    """,
+                    "Use PostgreSQL.",
+                    "Operate PostgreSQL."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use PostgreSQL",
+                    "--context",
+                    "We need persistent relational storage.",
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.Success,
+                exitCode);
+            Assert.Equal(
+                string.Empty,
+                error.ToString());
+
+            var draftPath = Path.Combine(
+                root,
+                "0001-use-postgresql.md");
+
+            Assert.True(File.Exists(draftPath));
+            Assert.Contains(
+                "```markdown",
+                File.ReadAllText(draftPath),
+                StringComparison.Ordinal);
         }
         finally
         {

@@ -15,7 +15,8 @@ internal static class DraftCommand
         bool dryRun,
         IAdrGenerationProvider? provider,
         TextWriter output,
-        TextWriter error)
+        TextWriter error,
+        CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -87,7 +88,7 @@ internal static class DraftCommand
                     contextFilePaths,
                     includeExistingAdrs,
                     dryRun,
-                    CancellationToken.None)
+                    cancellationToken)
                 .GetAwaiter()
                 .GetResult();
 

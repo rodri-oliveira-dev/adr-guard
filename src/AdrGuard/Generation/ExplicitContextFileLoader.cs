@@ -25,6 +25,7 @@ internal static class ExplicitContextFileLoader
         }
 
         var files = new List<ExplicitContextFile>(filePaths.Count);
+        long aggregateCharacterCount = 0;
 
         foreach (var filePath in filePaths)
         {
@@ -48,13 +49,71 @@ internal static class ExplicitContextFileLoader
                     fullPath);
             }
 
-            var content = await File
-                .ReadAllTextAsync(fullPath, cancellationToken)
+            var content = await ReadBoundedAsync(
+                    fullPath,
+                    cancellationToken)
                 .ConfigureAwait(false);
 
-            files.Add(new ExplicitContextFile(fullPath, content));
+            aggregateCharacterCount += content.Length;
+
+            AdrGenerationContextLimits
+                .ValidateAggregateContextFileCharacters(
+                    aggregateCharacterCount);
+
+            files.Add(new ExplicitContextFile(
+                fullPath,
+                content));
         }
 
         return files;
+    }
+
+    private static async Task<string> ReadBoundedAsync(
+        string fullPath,
+        CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(
+            fullPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            useAsync: true);
+
+        using var reader = new StreamReader(stream);
+
+        var buffer = new char[
+            AdrGenerationContextLimits
+                .MaximumContextFileCharacters
+            + 1];
+
+        var totalRead = 0;
+
+        while (totalRead < buffer.Length)
+        {
+            var read = await reader
+                .ReadAsync(
+                    buffer.AsMemory(totalRead),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (read == 0)
+            {
+                break;
+            }
+
+            totalRead += read;
+        }
+
+        if (totalRead
+            > AdrGenerationContextLimits
+                .MaximumContextFileCharacters)
+        {
+            throw new InvalidOperationException(
+                $"Context file '{fullPath}' exceeds the "
+                + $"{AdrGenerationContextLimits.MaximumContextFileCharacters}-character per-file limit.");
+        }
+
+        return new string(buffer, 0, totalRead);
     }
 }
