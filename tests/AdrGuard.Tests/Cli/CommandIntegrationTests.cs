@@ -136,7 +136,41 @@ public sealed class CommandIntegrationTests
     }
 
     [Fact]
-    public void IndexSupportsRelativeCustomOutput()
+    public void IndexSupportsCustomOutputOutsideAdrDirectory()
+    {
+        var root = CreateTempDirectory();
+        var outputPath = Path.Combine(
+            Path.GetTempPath(),
+            $"adr-guard-index-{Guid.NewGuid():N}.md");
+
+        try
+        {
+            WriteAdr(root, "0001-use-postgresql.md", ValidMarkdown("Use PostgreSQL", "Accepted"));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                ["index", root, "--output", outputPath],
+                output,
+                error);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.True(File.Exists(outputPath));
+            Assert.False(File.Exists(Path.Combine(root, "README.md")));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
+        }
+    }
+
+    [Fact]
+    public void IndexRejectsCustomMarkdownOutputInsideAdrDirectory()
     {
         var root = CreateTempDirectory();
 
@@ -147,13 +181,13 @@ public sealed class CommandIntegrationTests
             using var error = new StringWriter();
 
             var exitCode = CliApplication.Run(
-                ["index", root, "--output", "decisions.md"],
+                ["index", root, "--output", Path.Combine(root, "decisions.md")],
                 output,
                 error);
 
-            Assert.Equal(ExitCodes.Success, exitCode);
-            Assert.True(File.Exists(Path.Combine(root, "decisions.md")));
-            Assert.False(File.Exists(Path.Combine(root, "README.md")));
+            Assert.Equal(ExitCodes.UsageError, exitCode);
+            Assert.False(File.Exists(Path.Combine(root, "decisions.md")));
+            Assert.Contains("must be named 'README.md'", error.ToString(), StringComparison.Ordinal);
         }
         finally
         {
