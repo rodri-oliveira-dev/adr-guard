@@ -22,6 +22,7 @@ A proposta é permitir que convenções de ADR sejam explícitas, revisáveis e 
 - evita reescrever um índice que já está atualizado;
 - fornece códigos de validação estáveis (`ADR001` até `ADR008`);
 - fornece exit codes previsíveis para CI/CD;
+- oferece criação assistida por IA de ADRs `Proposed`, com revisão humana, providers e contexto explícitos;
 - é distribuído como .NET Tool sem dependências externas em runtime.
 
 ## Instalação
@@ -139,28 +140,84 @@ adr-guard index docs/adr --output adr-index.md
 
 Dentro da própria pasta de ADRs, Markdown gerado precisa se chamar `README.md`; caso contrário, ele seria interpretado como candidato a ADR na validação seguinte.
 
-## Contexto de ADRs existentes para rascunhos com IA
+## Criação assistida por IA de ADRs
 
-Os ADRs existentes **não** são enviados a um provedor de IA por padrão. Para incluir explicitamente dados parseados dos ADRs como contexto de geração, use:
+O ADR Guard pode solicitar a um provider externo de IA configurado que gere um rascunho de ADR, mantendo persistência, seleção de contexto e aceitação arquitetural sob controle humano. A saída da IA é sempre tratada como uma **proposta**: o ADR Guard força o status gerado para `Proposed`, valida a estrutura do documento e nunca aceita uma decisão arquitetural em nome do time.
+
+Um rascunho persistido mínimo usa somente o contexto arquitetural inline informado na linha de comando:
 
 ```bash
 adr-guard draft docs/adr \
   --title "Adotar um message broker" \
   --context "Precisamos de integração assíncrona." \
   --provider openai \
-  --model <modelo> \
-  --include-existing-adrs
+  --model <modelo-openai>
 ```
 
-Quando habilitado, o ADR Guard monta um contexto compacto a partir dos dados parseados dos ADRs, em vez de concatenar arquivos do repositório. Cada ADR selecionado contribui com ID, título, status, decisão e relacionamentos Markdown locais. Os ADRs são ordenados pelo ID numérico e, em seguida, pelo nome do arquivo.
+O fluxo normal de persistência aloca deterministicamente o próximo ID de ADR, cria um filename compatível, valida o candidato gerado com o parser/validator normal de ADRs e grava usando semântica de criação de arquivo novo, impedindo a sobrescrita de um arquivo existente.
 
-O contexto dos ADRs existentes é limitado de forma determinística a **12.000 caracteres**. O ADR Guard adiciona representações completas dos ADRs nessa ordem enquanto elas couberem no limite; quando o próximo ADR completo ultrapassaria o limite, ele e todos os ADRs seguintes são omitidos. Essa estratégia nunca trunca parcialmente os campos de um ADR.
+### Providers, modelos e autenticação
 
-A opção é propositalmente opt-in porque o conteúdo selecionado dos ADRs é enviado ao provedor externo de IA configurado.
+O ADR Guard não escolhe um modelo automaticamente. `--provider` e `--model` são obrigatórios em runtime.
 
-## Arquivos de contexto explícitos para rascunhos com IA
+| Provider | Valor na CLI | Autenticação | Endpoint |
+| --- | --- | --- | --- |
+| OpenAI | `openai` | `OPENAI_API_KEY` | endpoint oficial; `--endpoint` customizado é rejeitado |
+| Anthropic | `anthropic` | `ANTHROPIC_API_KEY` | endpoint oficial; `--endpoint` customizado é rejeitado |
+| Gemini | `gemini` | `GEMINI_API_KEY` | endpoint oficial; `--endpoint` customizado é rejeitado |
+| OpenAI-compatible | `openai-compatible` | `ADR_GUARD_OPENAI_COMPATIBLE_API_KEY` (opcional) | `--endpoint <uri>` obrigatório |
 
-É possível fornecer contexto arquitetural adicional a partir de um ou mais arquivos Markdown ou texto selecionados explicitamente usando a opção repetível `--context-file`:
+Exemplos:
+
+```bash
+adr-guard draft docs/adr --title "Decisão" --context "Contexto" \
+  --provider anthropic --model <modelo-anthropic>
+
+adr-guard draft docs/adr --title "Decisão" --context "Contexto" \
+  --provider gemini --model <modelo-gemini>
+
+adr-guard draft docs/adr --title "Decisão" --context "Contexto" \
+  --provider openai-compatible --model <modelo> \
+  --endpoint https://example.internal/v1
+```
+
+A autenticação é lida de variáveis de ambiente, e não de argumentos da CLI, evitando expor credenciais no histórico do comando ou no conteúdo dos ADRs. A CLI informa provider e modelo selecionados, mas não exibe valores de autenticação.
+
+### Idioma e contexto inline
+
+`--context` fornece diretamente o problema arquitetural ou suas restrições e continua obrigatório. O texto gerado usa `en-US` por padrão; para outro idioma, informe um culture name do padrão de globalization do .NET, como `pt-BR`:
+
+```bash
+adr-guard draft docs/adr \
+  --title "Adotar cache distribuído" \
+  --context "Precisamos reduzir a latência de leitura." \
+  --culture pt-BR \
+  --provider openai \
+  --model <modelo-openai>
+```
+
+Os headings canônicos do ADR e o status `Proposed` permanecem inalterados independentemente da culture selecionada.
+
+### Contexto de ADRs existentes
+
+Os ADRs existentes **não** são enviados a um provider de IA por padrão. Use `--include-existing-adrs` para habilitar explicitamente esse contexto:
+
+```bash
+adr-guard draft docs/adr \
+  --title "Adotar um message broker" \
+  --context "Precisamos de integração assíncrona." \
+  --include-existing-adrs \
+  --provider openai \
+  --model <modelo-openai>
+```
+
+O ADR Guard constrói esse contexto a partir dos dados parseados dos ADRs, em vez de concatenar arquivos do repositório. Cada ADR selecionado contribui com ID, título, status, decisão e relacionamentos Markdown locais. A ordenação é determinística pelo ID numérico e, em seguida, pelo filename.
+
+O contexto dos ADRs existentes é limitado a **12.000 caracteres**. Representações completas dos ADRs são adicionadas em ordem determinística enquanto couberem no limite; quando a próxima representação completa ultrapassaria o limite, esse ADR e todos os seguintes são omitidos. Essa estratégia não trunca parcialmente os campos de um ADR. A CLI avisa explicitamente quando conteúdo de ADRs existentes será enviado ao provider.
+
+### Arquivos de contexto explícitos
+
+Use opções repetíveis `--context-file <path>` para adicionar arquivos Markdown ou texto selecionados explicitamente:
 
 ```bash
 adr-guard draft docs/adr \
@@ -169,35 +226,41 @@ adr-guard draft docs/adr \
   --context-file ./architecture/constraints.md \
   --context-file ./notes/runtime.txt \
   --provider openai \
-  --model <modelo>
+  --model <modelo-openai>
 ```
 
-Somente os paths exatos informados em `--context-file` são lidos. O ADR Guard não faz varredura recursiva do repositório, da árvore de código-fonte, de arquivos vizinhos nem dos diretórios pai dos arquivos selecionados. As extensões de arquivo de contexto suportadas são `.md` e `.txt`.
+Somente os paths `.md` e `.txt` exatos informados pelo usuário são lidos. O ADR Guard não faz varredura recursiva do repositório, da árvore de código-fonte, de arquivos vizinhos nem de diretórios pai. Quando há vários arquivos, eles são compostos na mesma ordem em que aparecem na linha de comando.
 
-Quando vários arquivos são informados, eles são compostos na mesma ordem em que `--context-file` aparece na linha de comando. Paths relativos são resolvidos a partir do diretório de trabalho atual. Antes da geração, o ADR Guard exibe os paths locais resolvidos que serão utilizados.
+Antes da geração, a CLI exibe os paths locais resolvidos que serão utilizados. O request enviado ao provider contém o nome e o conteúdo de cada arquivo selecionado, mas não o path local completo do filesystem.
 
-O request enviado ao provider contém o nome e o conteúdo de cada arquivo selecionado, mas não o path local completo do filesystem. O conteúdo dos arquivos selecionados é enviado ao provedor externo de IA configurado; portanto, revise os arquivos antes de incluí-los para evitar o envio de informações sensíveis.
+A composição do contexto é determinística:
 
-Arquivos de contexto explícitos podem ser combinados com `--include-existing-adrs`. O contexto dos ADRs existentes continua sendo opt-in separadamente e mantém seu limite determinístico de 12.000 caracteres.
+1. `--context` inline;
+2. conteúdo dos `--context-file` explícitos na ordem da linha de comando;
+3. contexto parseado dos ADRs existentes quando `--include-existing-adrs` está habilitado.
 
-## Visualizar rascunhos com IA sem gravar arquivos
+### Preview sem persistência
 
-Use `--dry-run` (ou o alias `--preview`) para executar o fluxo normal de geração e validação sem persistir o ADR gerado:
+Use `--dry-run` ou o alias `--preview` para executar o caminho normal de geração e validação sem criar arquivo:
 
 ```bash
 adr-guard draft docs/adr \
   --title "Adotar um message broker" \
   --context "Precisamos de integração assíncrona." \
   --provider openai \
-  --model <modelo> \
+  --model <modelo-openai> \
   --dry-run
 ```
 
-O dry-run calcula o mesmo próximo ID determinístico e o mesmo filename compatível que seriam usados na persistência, gera o candidato por meio do provider selecionado, força o status canônico `Proposed`, faz o parse do Markdown resultante e executa o validador normal de ADRs. Se a validação for bem-sucedida, o ADR completo gerado é exibido na saída padrão junto com o path candidato.
+O preview calcula o mesmo ID e filename candidatos de forma determinística, gera o ADR, força `Proposed`, faz parse e validação e então exibe o path candidato e o Markdown completo gerado. Apenas a etapa final de escrita é pulada: o diretório de ADRs e o índice gerado permanecem inalterados.
 
-Nenhum arquivo de ADR é criado, nenhum ADR existente é sobrescrito e o índice de ADRs não é gerado nem modificado. Saída gerada inválida continua falhando na validação e nunca é persistida.
+### Privacidade, limitações e revisão humana
 
-Para transparência em produção, a CLI informa o provider de IA e o modelo selecionados antes da criação do provider ou da geração. Valores de autenticação continuam sendo obtidos pelo ambiente e nunca são exibidos por esse fluxo.
+Todo contexto inline, conteúdo dos context files explicitamente selecionados e contexto de ADRs existentes habilitado via opt-in é enviado ao provider externo configurado. Revise o material selecionado para identificar credenciais, dados pessoais, informações confidenciais de negócio e outros conteúdos sensíveis antes da geração. Armazenamento, retenção, treinamento e processamento realizados pelo provider seguem as políticas do provider configurado.
+
+A criação assistida por IA permanece deliberadamente human-in-the-loop. Um ADR gerado pode ser estruturalmente válido e ainda conter premissas incorretas, trade-offs fracos, problemas de segurança ou informações inventadas. **Um arquiteto ou revisor responsável deve revisar o raciocínio arquitetural antes de alterar um ADR de `Proposed` para qualquer outro status.**
+
+Esse fluxo não realiza varredura de código-fonte, ingestão automática do repositório inteiro, análise de Git diff, detecção automática de necessidade de ADR, alteração automática dos status de ADRs existentes, commits ou pull requests, RAG/busca vetorial/embeddings, fallback entre providers nem roteamento automático de modelos.
 
 ## Regras de validação
 
