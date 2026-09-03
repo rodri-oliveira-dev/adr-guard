@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-and-package:
+    name: Build, test, and package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "true"
+      NUGET_XMLDOC_MODE: skip
+      ADR_GUARD_VERSION: "0.1.0"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.400"
+
+      - name: Restore
+        run: dotnet restore AdrGuard.slnx
+
+      - name: Build
+        run: dotnet build AdrGuard.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test AdrGuard.slnx --configuration Release --no-build
+
+      - name: Pack .NET Tool
+        run: dotnet pack src/AdrGuard/AdrGuard.csproj --configuration Release --no-build --output artifacts/package
+
+      - name: Install packaged tool
+        run: >
+          dotnet tool install
+          --tool-path ./.tools
+          RodriOliveira.AdrGuard
+          --version "${ADR_GUARD_VERSION}"
+          --add-source ./artifacts/package
+          --ignore-failed-sources
+
+      - name: Dogfood ADR validation
+        run: ./.tools/adr-guard check docs/adr
+
+      - name: Verify generated ADR index
+        run: |
+          ./.tools/adr-guard index docs/adr
+          git diff --exit-code -- docs/adr/README.md
+
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: adr-guard-package
+          path: artifacts/package/*.nupkg
+          if-no-files-found: error
