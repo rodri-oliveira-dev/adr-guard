@@ -22,6 +22,8 @@ public sealed class DraftCommandIntegrationTests
         Assert.Contains("--provider", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--model", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--endpoint", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--context-file", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("May be repeated", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--include-existing-adrs", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("12000", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("OPENAI_API_KEY", output.ToString(), StringComparison.Ordinal);
@@ -245,6 +247,201 @@ public sealed class DraftCommandIntegrationTests
         finally
         {
             DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftCanUseExplicitContextFilesWithoutReadingUnselectedFiles()
+    {
+        var root = CreateTempDirectory();
+        var contextRoot = CreateTempDirectory();
+
+        try
+        {
+            var secondPath = Path.Combine(contextRoot, "runtime.txt");
+            var firstPath = Path.Combine(contextRoot, "architecture.md");
+            var unselectedPath = Path.Combine(contextRoot, "private-notes.txt");
+
+            File.WriteAllText(secondPath, "Runtime requirement: deploy as a stateless service.");
+            File.WriteAllText(firstPath, "Architecture requirement: use asynchronous messaging.");
+            File.WriteAllText(unselectedPath, "UNSELECTED-SENSITIVE-CONTENT");
+
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Adopt a Message Broker",
+                    "--context",
+                    "Inline architectural context.",
+                    "--context-file",
+                    secondPath,
+                    "--context-file",
+                    firstPath,
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.Equal(string.Empty, error.ToString());
+            Assert.NotNull(provider.LastRequest);
+
+            var requestContext = provider.LastRequest.Context;
+            Assert.Contains(
+                "User-supplied architectural context:",
+                requestContext,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "Inline architectural context.",
+                requestContext,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "Context file 1 (runtime.txt):",
+                requestContext,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "Runtime requirement: deploy as a stateless service.",
+                requestContext,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "Context file 2 (architecture.md):",
+                requestContext,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "Architecture requirement: use asynchronous messaging.",
+                requestContext,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "UNSELECTED-SENSITIVE-CONTENT",
+                requestContext,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                Path.GetFullPath(secondPath),
+                requestContext,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                Path.GetFullPath(firstPath),
+                requestContext,
+                StringComparison.Ordinal);
+
+            var secondIndex = requestContext.IndexOf(
+                "Context file 1 (runtime.txt):",
+                StringComparison.Ordinal);
+            var firstIndex = requestContext.IndexOf(
+                "Context file 2 (architecture.md):",
+                StringComparison.Ordinal);
+
+            Assert.True(secondIndex >= 0);
+            Assert.True(firstIndex > secondIndex);
+            Assert.Contains(
+                Path.GetFullPath(secondPath),
+                output.ToString(),
+                StringComparison.Ordinal);
+            Assert.Contains(
+                Path.GetFullPath(firstPath),
+                output.ToString(),
+                StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                Path.GetFullPath(unselectedPath),
+                output.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+            DeleteDirectory(contextRoot);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsUnsupportedContextFileBeforeInvokingProvider()
+    {
+        var root = CreateTempDirectory();
+        var contextRoot = CreateTempDirectory();
+
+        try
+        {
+            var contextPath = Path.Combine(contextRoot, "context.json");
+            File.WriteAllText(contextPath, "{}");
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    "We need distributed caching.",
+                    "--context-file",
+                    contextPath,
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(ExitCodes.OperationalError, exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Empty(Directory.EnumerateFiles(root, "*.md"));
+            Assert.Contains(
+                "Only .md and .txt files are supported",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+            DeleteDirectory(contextRoot);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsMissingContextFileBeforeInvokingProvider()
+    {
+        var root = CreateTempDirectory();
+        var contextRoot = CreateTempDirectory();
+
+        try
+        {
+            var contextPath = Path.Combine(contextRoot, "missing.md");
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    "We need distributed caching.",
+                    "--context-file",
+                    contextPath,
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(ExitCodes.OperationalError, exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Empty(Directory.EnumerateFiles(root, "*.md"));
+            Assert.Contains(
+                "Context file does not exist",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+            DeleteDirectory(contextRoot);
         }
     }
 
