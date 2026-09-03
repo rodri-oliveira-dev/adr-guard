@@ -74,6 +74,38 @@ public sealed class AdrGenerationContextBuilderTests
     }
 
     [Fact]
+    public void BuildNormalizesSourceLineEndingsToLf()
+    {
+        var contextFiles = new[]
+        {
+            new ExplicitContextFile(
+                Path.Combine(
+                    Path.GetTempPath(),
+                    "context.md"),
+                "File line one.\r\nFile line two.\rFile line three."),
+        };
+
+        var result = AdrGenerationContextBuilder.Build(
+            "Inline line one.\r\nInline line two.",
+            contextFiles,
+            [],
+            includeExistingAdrs: false);
+
+        Assert.DoesNotContain(
+            "\r",
+            result,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "Inline line one.\nInline line two.",
+            result,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "File line one.\nFile line two.\nFile line three.",
+            result,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void BuildWithExistingAdrOptInButNoExistingAdrsPreservesInlineOnlyContext()
     {
         var result = AdrGenerationContextBuilder.Build(
