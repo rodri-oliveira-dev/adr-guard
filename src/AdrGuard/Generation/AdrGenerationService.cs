@@ -34,6 +34,9 @@ internal sealed class AdrGenerationService
         ArgumentException.ThrowIfNullOrWhiteSpace(cultureName);
         ArgumentNullException.ThrowIfNull(contextFilePaths);
 
+        AdrGenerationContextLimits
+            .NormalizeAndValidateInlineContext(context);
+
         var documents = AdrDocumentLoader.LoadDirectory(directoryPath);
         var existingValidation = AdrValidator.Validate(documents);
 
