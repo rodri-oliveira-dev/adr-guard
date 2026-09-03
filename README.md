@@ -22,6 +22,7 @@ It is designed for repositories that want ADR conventions to be explicit, review
 - avoids rewriting an index that is already current;
 - exposes stable validation codes (`ADR001` through `ADR008`);
 - exposes predictable exit codes for CI/CD;
+- supports human-reviewed AI-assisted `Proposed` ADR drafting through explicit providers and context;
 - ships as a .NET Tool with no third-party runtime dependencies.
 
 ## Install
@@ -139,28 +140,84 @@ adr-guard index docs/adr --output adr-index.md
 
 Inside the ADR directory, generated Markdown must be named `README.md`; otherwise it would become an ADR candidate on the next validation.
 
-## Existing ADR context for AI drafts
+## AI-assisted ADR drafting
 
-Existing ADRs are **not** sent to an AI provider by default. To explicitly include parsed ADR data as generation context, use:
+ADR Guard can ask a configured external AI provider to draft an ADR while keeping persistence, context selection, and architectural acceptance under human control. AI output is always treated as a **proposal**: ADR Guard forces the generated status to `Proposed`, validates the document structure, and never accepts an architectural decision on behalf of the team.
+
+A minimal persisted draft uses only the inline architectural context supplied on the command line:
 
 ```bash
 adr-guard draft docs/adr \
   --title "Adopt a message broker" \
   --context "We need asynchronous integration." \
   --provider openai \
-  --model <model> \
-  --include-existing-adrs
+  --model <openai-model>
 ```
 
-When enabled, ADR Guard builds a compact context from parsed ADR data instead of concatenating repository files. Each selected ADR contributes its ID, title, status, decision, and local Markdown relationships. ADRs are ordered by numeric ID and then filename.
+The normal persistence workflow allocates the next ADR ID deterministically, creates a compliant filename, validates the generated candidate with the normal ADR parser/validator, and writes it with create-new semantics so an existing file is never overwritten.
 
-Existing ADR context is bounded deterministically to **12,000 characters**. ADR Guard appends complete ADR representations in that order while they fit within the limit; when the next complete ADR would exceed the limit, that ADR and all following ADRs are omitted. Individual ADR fields are never partially truncated by this strategy.
+### Providers, models, and authentication
 
-The option is intentionally opt-in because the selected ADR content is sent to the configured external AI provider.
+ADR Guard does not choose a model automatically. Both `--provider` and `--model` are required at runtime.
 
-## Explicit context files for AI drafts
+| Provider | CLI value | Authentication | Endpoint |
+| --- | --- | --- | --- |
+| OpenAI | `openai` | `OPENAI_API_KEY` | official endpoint; custom `--endpoint` rejected |
+| Anthropic | `anthropic` | `ANTHROPIC_API_KEY` | official endpoint; custom `--endpoint` rejected |
+| Gemini | `gemini` | `GEMINI_API_KEY` | official endpoint; custom `--endpoint` rejected |
+| OpenAI-compatible | `openai-compatible` | `ADR_GUARD_OPENAI_COMPATIBLE_API_KEY` (optional) | `--endpoint <uri>` required |
 
-Additional architectural context can be supplied from one or more explicitly selected Markdown or text files with the repeatable `--context-file` option:
+Examples:
+
+```bash
+adr-guard draft docs/adr --title "Decision" --context "Context" \
+  --provider anthropic --model <anthropic-model>
+
+adr-guard draft docs/adr --title "Decision" --context "Context" \
+  --provider gemini --model <gemini-model>
+
+adr-guard draft docs/adr --title "Decision" --context "Context" \
+  --provider openai-compatible --model <model> \
+  --endpoint https://example.internal/v1
+```
+
+Authentication is read from environment variables rather than CLI arguments, which keeps credentials out of command history and ADR content. The CLI reports provider and model selection but does not print authentication values.
+
+### Language and inline context
+
+`--context` supplies the architectural problem or constraints directly and remains required. Generated prose defaults to `en-US`; use a .NET globalization culture name such as `pt-BR` when another language is desired:
+
+```bash
+adr-guard draft docs/adr \
+  --title "Adotar cache distribuído" \
+  --context "Precisamos reduzir a latência de leitura." \
+  --culture pt-BR \
+  --provider openai \
+  --model <openai-model>
+```
+
+Canonical ADR headings and the `Proposed` status remain unchanged regardless of the selected culture.
+
+### Existing ADR context
+
+Existing ADRs are **not** sent to an AI provider by default. Add `--include-existing-adrs` to opt in:
+
+```bash
+adr-guard draft docs/adr \
+  --title "Adopt a message broker" \
+  --context "We need asynchronous integration." \
+  --include-existing-adrs \
+  --provider openai \
+  --model <openai-model>
+```
+
+ADR Guard builds this context from parsed ADR data rather than concatenating repository files. Each selected ADR contributes its ID, title, status, decision, and local Markdown relationships. Ordering is deterministic by numeric ID and then filename.
+
+Existing ADR context is bounded to **12,000 characters**. Complete ADR representations are appended in deterministic order while they fit; when the next complete representation would exceed the limit, that ADR and all following ADRs are omitted. Individual ADR fields are not partially truncated by this strategy. The CLI explicitly warns when existing ADR content will be sent to the provider.
+
+### Explicit context files
+
+Use repeatable `--context-file <path>` options to add explicitly selected Markdown or text files:
 
 ```bash
 adr-guard draft docs/adr \
@@ -169,35 +226,41 @@ adr-guard draft docs/adr \
   --context-file ./architecture/constraints.md \
   --context-file ./notes/runtime.txt \
   --provider openai \
-  --model <model>
+  --model <openai-model>
 ```
 
-Only the exact paths supplied through `--context-file` are read. ADR Guard does not recursively scan the repository, source tree, sibling files, or the parent directories of selected files. Supported context file extensions are `.md` and `.txt`.
+Only the exact `.md` and `.txt` paths supplied by the user are read. ADR Guard does not recursively scan the repository, source tree, sibling files, or parent directories. Multiple files are composed in the same order in which they appear on the command line.
 
-Multiple files are composed in the same order in which `--context-file` appears on the command line. Relative paths are resolved from the current working directory. Before generation, ADR Guard prints the resolved local paths that will be used.
+Before generation, the CLI prints the resolved local paths being used. The provider request contains each selected file's name and content, not its resolved local filesystem path.
 
-The provider request contains each selected file's name and content, but not its resolved local filesystem path. Selected file contents are sent to the configured external AI provider, so review files for sensitive information before including them.
+Context composition is deterministic:
 
-Explicit context files can be combined with `--include-existing-adrs`. Existing ADR context remains separately opt-in and keeps its deterministic 12,000-character bound.
+1. inline `--context`;
+2. explicit `--context-file` content in command-line order;
+3. parsed existing ADR context when `--include-existing-adrs` is enabled.
 
-## Preview AI drafts without writing files
+### Preview without persistence
 
-Use `--dry-run` (or its alias `--preview`) to run the normal generation and validation workflow without persisting the generated ADR:
+Use `--dry-run` or its alias `--preview` to exercise the normal generation and validation path without creating a file:
 
 ```bash
 adr-guard draft docs/adr \
   --title "Adopt a message broker" \
   --context "We need asynchronous integration." \
   --provider openai \
-  --model <model> \
+  --model <openai-model> \
   --dry-run
 ```
 
-Dry-run calculates the same deterministic next ADR ID and compliant filename that persistence would use, generates the candidate through the selected provider, forces the canonical `Proposed` status, parses the resulting Markdown, and runs the normal ADR validator. If validation succeeds, the complete generated ADR is printed to standard output together with its candidate path.
+Preview calculates the same deterministic candidate ID and filename, generates the ADR, forces `Proposed`, parses and validates it, then prints the candidate path and complete generated Markdown. It skips only the final write step: the ADR directory and generated index remain unchanged.
 
-No ADR file is created, no existing ADR is overwritten, and the ADR index is not generated or modified. Invalid generated output still fails validation and is never persisted.
+### Privacy, limitations, and human review
 
-For production transparency, the CLI reports the selected AI provider and model before provider creation or generation. Authentication values remain environment-based and are never printed by this workflow.
+Any inline context, explicitly selected context-file content, and opted-in existing ADR context is sent to the configured external provider. Review selected material for credentials, personal data, confidential business information, and other sensitive content before generation. Provider-side storage, retention, training, and processing behavior is governed by the provider you configure.
+
+AI-assisted drafting deliberately remains human-in-the-loop. Generated ADRs can be structurally valid while still containing incorrect assumptions, weak trade-offs, security problems, or fabricated details. **A human architect or responsible reviewer must review the architectural reasoning before changing an ADR from `Proposed` to another status.**
+
+This workflow does not perform source-code scanning, repository-wide context ingestion, Git diff analysis, automatic detection that an ADR is required, automatic modification of existing ADR statuses, commits or pull requests, RAG/vector search/embeddings, provider fallback, or automatic model routing.
 
 ## Validation rules
 
