@@ -25,6 +25,7 @@ internal sealed class AdrGenerationService
         string cultureName,
         IReadOnlyList<string> contextFilePaths,
         bool includeExistingAdrs,
+        bool dryRun,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
@@ -100,14 +101,17 @@ internal sealed class AdrGenerationService
                 Written: false);
         }
 
-        await WriteNewFileAsync(filePath, content, cancellationToken)
-            .ConfigureAwait(false);
+        if (!dryRun)
+        {
+            await WriteNewFileAsync(filePath, content, cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         return new AdrGenerationOutcome(
             filePath,
             content,
             validation,
-            Written: true);
+            Written: !dryRun);
     }
 
     private static int GetNextId(IReadOnlyList<AdrDocument> documents)

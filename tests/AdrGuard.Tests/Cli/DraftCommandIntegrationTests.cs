@@ -24,6 +24,8 @@ public sealed class DraftCommandIntegrationTests
         Assert.Contains("--endpoint", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--context-file", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("May be repeated", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--dry-run", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--preview", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--include-existing-adrs", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("12000", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("OPENAI_API_KEY", output.ToString(), StringComparison.Ordinal);
@@ -99,6 +101,157 @@ public sealed class DraftCommandIntegrationTests
         {
             DeleteDirectory(root);
         }
+    }
+
+    [Fact]
+    public void DraftDryRunGeneratesAndValidatesWithoutChangingAdrDirectory()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            WriteAdr(root, "0001-use-postgresql.md", ValidMarkdown("Use PostgreSQL", "Accepted"));
+            var indexPath = Path.Combine(root, "README.md");
+            File.WriteAllText(indexPath, "# Existing index");
+            var before = SnapshotDirectory(root);
+
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Adopt a Message Broker",
+                    "--context",
+                    "We need asynchronous integration.",
+                    "--dry-run",
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.Equal(string.Empty, error.ToString());
+            Assert.NotNull(provider.LastRequest);
+            Assert.Equal(before, SnapshotDirectory(root));
+
+            var preview = output.ToString();
+            Assert.Contains(
+                "Dry-run enabled",
+                preview,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                $"ADR draft preview path: {Path.Combine(Path.GetFullPath(root), "0002-adopt-a-message-broker.md")}",
+                preview,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "# Adopt a Message Broker",
+                preview,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "## Status",
+                preview,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "Proposed",
+                preview,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "## Context",
+                preview,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "## Decision",
+                preview,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "## Consequences",
+                preview,
+                StringComparison.Ordinal);
+            Assert.False(
+                File.Exists(
+                    Path.Combine(
+                        root,
+                        "0002-adopt-a-message-broker.md")));
+            Assert.Equal(
+                "# Existing index",
+                File.ReadAllText(indexPath));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftPreviewAliasUsesTheSameNonPersistingWorkflow()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    "We need distributed caching.",
+                    "--preview",
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.Equal(string.Empty, error.ToString());
+            Assert.Contains(
+                "ADR draft preview path:",
+                output.ToString(),
+                StringComparison.Ordinal);
+            Assert.False(
+                File.Exists(
+                    Path.Combine(root, "0001-use-redis.md")));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsDuplicateDryRunAliases()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = CliApplication.Run(
+            [
+                "draft",
+                "--title",
+                "Use Redis",
+                "--context",
+                "We need distributed caching.",
+                "--dry-run",
+                "--preview",
+            ],
+            output,
+            error,
+            CreateValidProvider());
+
+        Assert.Equal(ExitCodes.UsageError, exitCode);
+        Assert.Contains(
+            "Invalid arguments for 'draft'",
+            error.ToString(),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -672,6 +825,15 @@ public sealed class DraftCommandIntegrationTests
         Directory.CreateDirectory(path);
         return path;
     }
+
+    private static string SnapshotDirectory(string path) =>
+        string.Join(
+            "\n---\n",
+            Directory
+                .EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                .OrderBy(filePath => filePath, StringComparer.Ordinal)
+                .Select(filePath =>
+                    $"{Path.GetRelativePath(path, filePath)}\n{File.ReadAllText(filePath)}"));
 
     private static void DeleteDirectory(string path)
     {

@@ -188,6 +188,14 @@ public sealed class DraftProviderSelectionIntegrationTests
                 exitCode);
             Assert.Equal(0, callCount);
             Assert.Contains(
+                "AI provider: gemini",
+                output.ToString(),
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "AI model: gemini-test",
+                output.ToString(),
+                StringComparison.Ordinal);
+            Assert.Contains(
                 GeminiProviderOptions.ApiKeyEnvironmentVariableName,
                 error.ToString(),
                 StringComparison.Ordinal);
@@ -271,6 +279,18 @@ public sealed class DraftProviderSelectionIntegrationTests
             Assert.Equal(
                 "gemini-secret",
                 capturedApiKey);
+            Assert.Contains(
+                "AI provider: GEMINI",
+                output.ToString(),
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "AI model: gemini-test",
+                output.ToString(),
+                StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "gemini-secret",
+                output.ToString(),
+                StringComparison.Ordinal);
             Assert.True(
                 File.Exists(
                     Path.Combine(
