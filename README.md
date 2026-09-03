@@ -180,6 +180,25 @@ The provider request contains each selected file's name and content, but not its
 
 Explicit context files can be combined with `--include-existing-adrs`. Existing ADR context remains separately opt-in and keeps its deterministic 12,000-character bound.
 
+## Preview AI drafts without writing files
+
+Use `--dry-run` (or its alias `--preview`) to run the normal generation and validation workflow without persisting the generated ADR:
+
+```bash
+adr-guard draft docs/adr \
+  --title "Adopt a message broker" \
+  --context "We need asynchronous integration." \
+  --provider openai \
+  --model <model> \
+  --dry-run
+```
+
+Dry-run calculates the same deterministic next ADR ID and compliant filename that persistence would use, generates the candidate through the selected provider, forces the canonical `Proposed` status, parses the resulting Markdown, and runs the normal ADR validator. If validation succeeds, the complete generated ADR is printed to standard output together with its candidate path.
+
+No ADR file is created, no existing ADR is overwritten, and the ADR index is not generated or modified. Invalid generated output still fails validation and is never persisted.
+
+For production transparency, the CLI reports the selected AI provider and model before provider creation or generation. Authentication values remain environment-based and are never printed by this workflow.
+
 ## Validation rules
 
 | Code | Validation |
