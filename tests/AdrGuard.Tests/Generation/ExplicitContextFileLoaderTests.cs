@@ -228,6 +228,38 @@ public sealed class ExplicitContextFileLoaderTests
     }
 
     [Fact]
+    public async Task LoadAsyncObservesCallerCancellation()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var filePath = Path.Combine(
+                root,
+                "context.txt");
+
+            await File.WriteAllTextAsync(
+                filePath,
+                "context",
+                TestContext.Current.CancellationToken);
+
+            using var cancellationSource =
+                new CancellationTokenSource();
+
+            cancellationSource.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => ExplicitContextFileLoader.LoadAsync(
+                    [filePath],
+                    cancellationSource.Token));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
     public async Task LoadAsyncRejectsUnsupportedExtensionsBeforeReading()
     {
         var root = CreateTempDirectory();
