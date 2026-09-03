@@ -2,11 +2,14 @@
 
 ADR Guard is a .NET command-line tool for validating and maintaining Architecture Decision Records (ADRs).
 
-> **Status:** foundation phase. ADR parsing, validation rules, and index generation are intentionally outside this first implementation step.
+> **Status:** incremental implementation. ADR discovery and Markdown parsing are available; validation rules and index generation are intentionally reserved for the next phases.
 
 ## Current foundation
 
 - .NET 10 CLI application
+- recursive Markdown ADR discovery
+- ADR metadata and ATX-heading parsing (title, status, sections, ID, and slug)
+- fenced-code-aware Markdown parsing
 - unit tests with xUnit.net v3 and Microsoft Testing Platform
 - centralized package version management
 - shared compiler and analyzer conventions
