@@ -20,7 +20,7 @@ A proposta é permitir que convenções de ADR sejam explícitas, revisáveis e 
 - exige um link válido em `Superseded by` para decisões substituídas;
 - gera um índice Markdown determinístico;
 - evita reescrever um índice que já está atualizado;
-- fornece códigos de validação estáveis (`ADR001` até `ADR008`);
+- fornece códigos de validação estáveis (`ADR001` até `ADR009`);
 - fornece exit codes previsíveis para CI/CD;
 - oferece criação assistida por IA de ADRs `Proposed`, com revisão humana, providers e contexto explícitos;
 - é distribuído como .NET Tool sem dependências externas em runtime.
@@ -198,7 +198,7 @@ adr-guard draft docs/adr \
   --model <modelo-openai>
 ```
 
-Os headings canônicos do ADR e o status `Proposed` permanecem inalterados independentemente da culture selecionada.
+Os headings canônicos do ADR e o status `Proposed` permanecem inalterados independentemente da culture selecionada. A prose gerada pelo provider é rejeitada se tentar introduzir outro título de nível um ou duplicar as seções canônicas de nível dois `Status`, `Context`, `Decision` ou `Consequences`. Headings dentro de blocos de código cercados por fences continuam sendo tratados como conteúdo da seção.
 
 ### Contexto de ADRs existentes
 
@@ -276,6 +276,7 @@ Esse fluxo não realiza varredura de código-fonte, ingestão automática do rep
 | `ADR006` | ID de ADR duplicado |
 | `ADR007` | Referência relativa para ADR quebrada |
 | `ADR008` | ADR substituído sem link válido em `Superseded by` |
+| `ADR009` | Seção canônica de nível dois do ADR está duplicada |
 
 A numeração não precisa ser contínua. Lacunas são aceitas porque ADRs podem ser arquivados, migrados ou removidos sem renumerar decisões históricas.
 
