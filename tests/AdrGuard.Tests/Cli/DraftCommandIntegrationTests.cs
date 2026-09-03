@@ -599,6 +599,243 @@ public sealed class DraftCommandIntegrationTests
     }
 
     [Fact]
+    public void DraftRejectsOversizedInlineContextBeforeInvokingProvider()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    new string(
+                        'x',
+                        AdrGenerationContextLimits
+                            .MaximumInlineContextCharacters
+                        + 1),
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                "Inline --context",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsOversizedContextFileBeforeInvokingProvider()
+    {
+        var root = CreateTempDirectory();
+        var contextRoot = CreateTempDirectory();
+
+        try
+        {
+            var contextPath = Path.Combine(
+                contextRoot,
+                "oversized.txt");
+
+            File.WriteAllText(
+                contextPath,
+                new string(
+                    'x',
+                    AdrGenerationContextLimits
+                        .MaximumContextFileCharacters
+                    + 1));
+
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    "We need distributed caching.",
+                    "--context-file",
+                    contextPath,
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                Path.GetFullPath(contextPath),
+                error.ToString(),
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "per-file limit",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+            DeleteDirectory(contextRoot);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsAggregateContextFileOverflowBeforeInvokingProvider()
+    {
+        var root = CreateTempDirectory();
+        var contextRoot = CreateTempDirectory();
+
+        try
+        {
+            var firstPath = Path.Combine(contextRoot, "first.txt");
+            var secondPath = Path.Combine(contextRoot, "second.txt");
+            var thirdPath = Path.Combine(contextRoot, "third.txt");
+
+            File.WriteAllText(firstPath, new string('a', 40000));
+            File.WriteAllText(secondPath, new string('b', 40000));
+            File.WriteAllText(thirdPath, new string('c', 20001));
+
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    "We need distributed caching.",
+                    "--context-file",
+                    firstPath,
+                    "--context-file",
+                    secondPath,
+                    "--context-file",
+                    thirdPath,
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                "aggregate limit",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+            DeleteDirectory(contextRoot);
+        }
+    }
+
+    [Fact]
+    public void DraftRejectsComposedContextOverflowBeforeInvokingProvider()
+    {
+        var root = CreateTempDirectory();
+        var contextRoot = CreateTempDirectory();
+
+        try
+        {
+            var firstPath = Path.Combine(contextRoot, "first.txt");
+            var secondPath = Path.Combine(contextRoot, "second.txt");
+
+            File.WriteAllText(
+                firstPath,
+                new string(
+                    'a',
+                    AdrGenerationContextLimits
+                        .MaximumContextFileCharacters));
+            File.WriteAllText(
+                secondPath,
+                new string(
+                    'b',
+                    AdrGenerationContextLimits
+                        .MaximumContextFileCharacters));
+
+            var provider = CreateValidProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "draft",
+                    root,
+                    "--title",
+                    "Use Redis",
+                    "--context",
+                    new string(
+                        'i',
+                        AdrGenerationContextLimits
+                            .MaximumInlineContextCharacters),
+                    "--context-file",
+                    firstPath,
+                    "--context-file",
+                    secondPath,
+                ],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Empty(
+                Directory.EnumerateFiles(
+                    root,
+                    "*.md"));
+            Assert.Contains(
+                "Composed AI generation context",
+                error.ToString(),
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+            DeleteDirectory(contextRoot);
+        }
+    }
+
+    [Fact]
     public void DraftPropagatesExplicitCultureWithoutChangingAdrStructure()
     {
         var root = CreateTempDirectory();
