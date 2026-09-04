@@ -70,8 +70,25 @@ jobs:
           path: artifacts/package/*.nupkg
           if-no-files-found: error
 
+  dockerfile-lint:
+    name: Lint Dockerfile
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+          trusted-registries: mcr.microsoft.com
+
   container-smoke:
     name: Build and smoke test container
+    needs: dockerfile-lint
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
