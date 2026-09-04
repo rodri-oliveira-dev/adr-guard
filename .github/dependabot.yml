@@ -58,8 +58,7 @@ updates:
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
       time: "09:45"
       timezone: "America/Sao_Paulo"
     open-pull-requests-limit: 2
