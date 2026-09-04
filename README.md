@@ -49,6 +49,28 @@ The installed command is:
 adr-guard
 ```
 
+## Container images
+
+ADR Guard is also distributed as the same release version through GHCR and Docker Hub:
+
+```text
+ghcr.io/rodri-oliveira-dev/adr-guard
+docker.io/rodrigodotnet/adr-guard
+```
+
+Images support `linux/amd64` and `linux/arm64` and publish exact SemVer, minor, major, and `latest` tags. For example:
+
+```bash
+docker run --rm \
+  -v "$PWD:/workspace:ro" \
+  ghcr.io/rodri-oliveira-dev/adr-guard:latest \
+  check docs/adr
+```
+
+The image runs as a non-root user. Release images include OCI metadata, SBOM and provenance attestations, and the CI path is gated by Hadolint, smoke tests, Dependabot base-image updates, and a Trivy vulnerability scan.
+
+See the [container image and supply-chain guide](docs/container.md) for writable mounts, AI-provider credentials, immutable digest pinning, tags, and verification details.
+
 ## ADR format
 
 ADR Guard expects Markdown files named with a four-digit ID followed by a lowercase kebab-case slug:
@@ -343,7 +365,7 @@ dotnet tool install --tool-path ./.tools RodriOliveira.AdrGuard --version 0.1.0 
 
 ADR Guard validates its own architecture decisions. See [docs/adr](docs/adr/README.md).
 
-The repository CI builds and tests the solution, packages the .NET Tool, installs that package locally, runs the packaged `adr-guard` against `docs/adr`, regenerates the ADR index, and verifies that no documentation drift was introduced.
+The repository CI builds and tests the solution, packages the .NET Tool, installs that package locally, runs the packaged `adr-guard` against `docs/adr`, regenerates the ADR index, and verifies that no documentation drift was introduced. The container path additionally lints the `Dockerfile`, builds and smoke-tests the image, and blocks fixable `HIGH` or `CRITICAL` vulnerabilities detected by Trivy.
 
 ## Additional resources
 
@@ -359,8 +381,10 @@ After a pull request is merged into `main`, the release workflow waits for the `
 2. packs `RodriOliveira.AdrGuard` with that version;
 3. authenticates to NuGet.org through Trusted Publishing (OIDC) and publishes the package;
 4. publishes the same package to GitHub Packages;
-5. creates the corresponding `vMAJOR.MINOR.PATCH` tag and GitHub Release;
-6. attaches the `.nupkg` to the GitHub Release.
+5. creates or verifies the corresponding `vMAJOR.MINOR.PATCH` tag;
+6. publishes the multi-platform OCI image to GHCR and Docker Hub with SemVer tags, OCI metadata, SBOM, and provenance attestations;
+7. verifies the published architectures and attestation manifests;
+8. creates the GitHub Release and attaches the `.nupkg`.
 
 The workflow is idempotent for a commit that already has a release tag.
 
