@@ -1,0 +1,15 @@
+.git
+.github
+.vs
+.vscode
+.idea
+artifacts
+docs
+tests
+**/bin
+**/obj
+*.user
+*.suo
+README.md
+README.pt-BR.md
+LICENSE

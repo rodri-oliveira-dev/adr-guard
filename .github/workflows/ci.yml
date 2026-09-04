@@ -69,3 +69,48 @@ jobs:
           name: adr-guard-package
           path: artifacts/package/*.nupkg
           if-no-files-found: error
+
+  dockerfile-lint:
+    name: Lint Dockerfile
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Run Hadolint
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+          trusted-registries: mcr.microsoft.com
+
+  container-smoke:
+    name: Build, smoke test, and scan container
+    needs: dockerfile-lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build container image
+        run: docker build --tag adr-guard:ci .
+
+      - name: Smoke test container image
+        run: bash scripts/docker-smoke-test.sh adr-guard:ci
+
+      - name: Scan container image with Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: adr-guard:ci
+          scanners: vuln
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
+          timeout: 10m

@@ -175,7 +175,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          dotnet tool install             --tool-path ./.release-tools             RodriOliveira.AdrGuard             --version "${PACKAGE_VERSION}"             --add-source ./artifacts/packages             --ignore-failed-sources
+          dotnet tool install \
+            --tool-path ./.release-tools \
+            RodriOliveira.AdrGuard \
+            --version "${PACKAGE_VERSION}" \
+            --add-source ./artifacts/packages \
+            --ignore-failed-sources
 
           ./.release-tools/adr-guard check docs/adr
           ./.release-tools/adr-guard index docs/adr
@@ -301,6 +306,133 @@ jobs:
           --api-key "${GITHUB_PACKAGE_TOKEN}"
           --skip-duplicate
 
+  publish-container:
+    name: Publish container images
+    needs:
+      - build-and-pack
+      - ensure-release-tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    env:
+      GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/adr-guard
+      DOCKERHUB_IMAGE: docker.io/rodrigodotnet/adr-guard
+
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build-and-pack.outputs.validated-sha }}
+          persist-credentials: false
+
+      - name: Validate Docker Hub credentials
+        shell: bash
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "::error::Repository secret DOCKERHUB_TOKEN is required to publish to Docker Hub."
+            exit 1
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: docker.io
+          username: rodrigodotnet
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate container metadata
+        id: metadata
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+        with:
+          images: |
+            ${{ env.GHCR_IMAGE }}
+            ${{ env.DOCKERHUB_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.build-and-pack.outputs.release-tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.build-and-pack.outputs.release-tag }}
+            type=semver,pattern={{major}},value=${{ needs.build-and-pack.outputs.release-tag }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=ADR Guard
+            org.opencontainers.image.description=A lightweight .NET CLI for validating, maintaining, indexing, and drafting Architecture Decision Records (ADRs).
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}#readme
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.authors=Rodrigo de Oliveira
+            org.opencontainers.image.version=${{ needs.build-and-pack.outputs.package-version }}
+            org.opencontainers.image.revision=${{ needs.build-and-pack.outputs.validated-sha }}
+          annotations: |
+            org.opencontainers.image.title=ADR Guard
+            org.opencontainers.image.description=A lightweight .NET CLI for validating, maintaining, indexing, and drafting Architecture Decision Records (ADRs).
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.version=${{ needs.build-and-pack.outputs.package-version }}
+            org.opencontainers.image.revision=${{ needs.build-and-pack.outputs.validated-sha }}
+
+      - name: Build, attest, and push multi-platform image
+        id: build-container
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          pull: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          annotations: ${{ steps.metadata.outputs.annotations }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=adr-guard-release-container
+          cache-to: type=gha,mode=max,scope=adr-guard-release-container
+
+      - name: Verify published platforms and attestations
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+        run: |
+          set -euo pipefail
+
+          for image in "${GHCR_IMAGE}" "${DOCKERHUB_IMAGE}"; do
+            echo "Verifying ${image}:${PACKAGE_VERSION}"
+            manifest="$(docker buildx imagetools inspect --raw "${image}:${PACKAGE_VERSION}")"
+
+            jq -e '
+              [.manifests[].platform | "\(.os)/\(.architecture)"] as $platforms
+              | [.manifests[] | select(.annotations["vnd.docker.reference.type"] == "attestation-manifest")] as $attestations
+              | (($platforms | index("linux/amd64")) != null)
+                and (($platforms | index("linux/arm64")) != null)
+                and (($attestations | length) >= 2)
+            ' <<< "${manifest}" >/dev/null
+          done
+
+      - name: Show published image digest
+        env:
+          IMAGE_DIGEST: ${{ steps.build-container.outputs.digest }}
+        run: echo "Published container digest ${IMAGE_DIGEST}"
+
   github-release:
     name: Create GitHub Release
     needs:
@@ -308,6 +440,7 @@ jobs:
       - ensure-release-tag
       - publish-nuget
       - publish-github-packages
+      - publish-container
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -331,9 +464,17 @@ jobs:
           if gh release view "${RELEASE_TAG}" --repo "${GH_REPO}" >/dev/null 2>&1; then
             echo "GitHub Release '${RELEASE_TAG}' already exists; refreshing package artifact."
 
-            gh release upload "${RELEASE_TAG}"               artifacts/packages/*.nupkg               --repo "${GH_REPO}"               --clobber
+            gh release upload "${RELEASE_TAG}" \
+              artifacts/packages/*.nupkg \
+              --repo "${GH_REPO}" \
+              --clobber
 
             exit 0
           fi
 
-          gh release create "${RELEASE_TAG}"             artifacts/packages/*.nupkg             --repo "${GH_REPO}"             --verify-tag             --generate-notes             --title "${RELEASE_TAG}"
+          gh release create "${RELEASE_TAG}" \
+            artifacts/packages/*.nupkg \
+            --repo "${GH_REPO}" \
+            --verify-tag \
+            --generate-notes \
+            --title "${RELEASE_TAG}"
