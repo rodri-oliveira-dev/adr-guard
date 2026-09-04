@@ -69,3 +69,18 @@ jobs:
           name: adr-guard-package
           path: artifacts/package/*.nupkg
           if-no-files-found: error
+
+  container-smoke:
+    name: Build and smoke test container
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build container image
+        run: docker build --tag adr-guard:ci .
+
+      - name: Smoke test container image
+        run: bash scripts/docker-smoke-test.sh adr-guard:ci
