@@ -96,9 +96,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Inspect runtime base image digest
-        run: docker buildx imagetools inspect mcr.microsoft.com/dotnet/runtime:10.0.11-noble-chiseled-extra
-
       - name: Build container image
         run: docker build --pull --tag adr-guard:ci .
 
