@@ -391,7 +391,7 @@ jobs:
             org.opencontainers.image.version=${{ needs.build-and-pack.outputs.package-version }}
             org.opencontainers.image.revision=${{ needs.build-and-pack.outputs.validated-sha }}
 
-      - name: Build and push multi-platform image
+      - name: Build, attest, and push multi-platform image
         id: build-container
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
         with:
@@ -403,10 +403,12 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           annotations: ${{ steps.metadata.outputs.annotations }}
+          provenance: mode=max
+          sbom: true
           cache-from: type=gha,scope=adr-guard-release-container
           cache-to: type=gha,mode=max,scope=adr-guard-release-container
 
-      - name: Verify published multi-platform manifests
+      - name: Verify published platforms and attestations
         shell: bash
         env:
           PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
@@ -419,8 +421,10 @@ jobs:
 
             jq -e '
               [.manifests[].platform | "\(.os)/\(.architecture)"] as $platforms
+              | [.manifests[] | select(.annotations["vnd.docker.reference.type"] == "attestation-manifest")] as $attestations
               | (($platforms | index("linux/amd64")) != null)
                 and (($platforms | index("linux/arm64")) != null)
+                and (($attestations | length) >= 2)
             ' <<< "${manifest}" >/dev/null
           done
 
