@@ -17,7 +17,7 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     --no-self-contained \
     /p:UseAppHost=true
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0-noble-chiseled-extra AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0.11-noble-chiseled-extra AS final
 WORKDIR /workspace
 
 LABEL org.opencontainers.image.title="ADR Guard" \
