@@ -20,6 +20,14 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
 FROM mcr.microsoft.com/dotnet/runtime:10.0-noble-chiseled-extra AS final
 WORKDIR /workspace
 
+LABEL org.opencontainers.image.title="ADR Guard" \
+      org.opencontainers.image.description="A lightweight .NET CLI for validating, maintaining, indexing, and drafting Architecture Decision Records (ADRs)." \
+      org.opencontainers.image.url="https://github.com/rodri-oliveira-dev/adr-guard" \
+      org.opencontainers.image.source="https://github.com/rodri-oliveira-dev/adr-guard" \
+      org.opencontainers.image.documentation="https://github.com/rodri-oliveira-dev/adr-guard#readme" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.authors="Rodrigo de Oliveira"
+
 COPY --from=build /app/publish /app
 
 USER $APP_UID
