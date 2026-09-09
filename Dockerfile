@@ -17,7 +17,7 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     --no-self-contained \
     /p:UseAppHost=true
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0.11-azurelinux3.0-distroless-extra AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0.12-azurelinux3.0-distroless-extra AS final
 WORKDIR /workspace
 
 LABEL org.opencontainers.image.title="ADR Guard" \
