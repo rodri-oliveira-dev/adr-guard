@@ -243,3 +243,6 @@ jobs:
 
       - name: Verify annotations, summaries, and hostile diagnostic handling
         run: bash scripts/github-action-report-test.sh
+
+      - name: Verify consumer documentation and workflow examples
+        run: bash scripts/github-action-docs-test.sh
