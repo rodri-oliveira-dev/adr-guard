@@ -9,7 +9,7 @@
     <ToolCommandName>adr-guard</ToolCommandName>
 
     <PackageId>RodriOliveira.AdrGuard</PackageId>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionPrefix>1.0.0</VersionPrefix>
     <Title>ADR Guard - Architecture Decision Records Validator</Title>
     <Authors>Rodrigo de Oliveira</Authors>
     <Description>Validate and maintain Architecture Decision Records from the command line. ADR Guard checks naming conventions, required sections, statuses, duplicate IDs, ADR references, and supersession links, and generates deterministic Markdown indexes.</Description>
