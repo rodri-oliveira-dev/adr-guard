@@ -25,10 +25,13 @@ run_wrapper() {
   env \
     GITHUB_WORKSPACE="${WORKSPACE}" \
     RUNNER_OS=Linux \
-    ADR_GUARD_PATH="${ADR_GUARD_PATH:-docs/adr}" \
-    ADR_GUARD_COMMAND="${ADR_GUARD_COMMAND:-check}" \
-    ADR_GUARD_VERSION="${ADR_GUARD_VERSION:-${IMAGE_VERSION}}" \
-    ADR_GUARD_ACTION_REF="${ADR_GUARD_ACTION_REF:-feature-branch}" \
+    PATH="${PATH}" \
+    DOCKER_CAPTURE="${DOCKER_CAPTURE:-}" \
+    DOCKER_EXIT_CODE="${DOCKER_EXIT_CODE:-0}" \
+    ADR_GUARD_PATH="${ADR_GUARD_PATH-docs/adr}" \
+    ADR_GUARD_COMMAND="${ADR_GUARD_COMMAND-check}" \
+    ADR_GUARD_VERSION="${ADR_GUARD_VERSION-${IMAGE_VERSION}}" \
+    ADR_GUARD_ACTION_REF="${ADR_GUARD_ACTION_REF-feature-branch}" \
     bash "${ROOT_DIR}/scripts/github-action.sh"
 }
 
@@ -62,6 +65,8 @@ test -s "${WORKSPACE}/docs/adr/README.md"
 grep -q "# Architecture Decision Records" "${WORKSPACE}/docs/adr/README.md"
 
 ADR_GUARD_COMMAND=unsupported assert_exit_code 2 run_wrapper
+ADR_GUARD_COMMAND="" assert_exit_code 2 run_wrapper
+ADR_GUARD_PATH="" assert_exit_code 2 run_wrapper
 ADR_GUARD_PATH="../outside" assert_exit_code 2 run_wrapper
 ADR_GUARD_PATH="/tmp" assert_exit_code 2 run_wrapper
 ADR_GUARD_PATH="docs/missing" assert_exit_code 2 run_wrapper
