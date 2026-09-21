@@ -47,6 +47,8 @@ docker run --rm \
 
 A validação pode usar um volume somente leitura porque `check` não altera arquivos do repositório.
 
+A GitHub Action reutilizável aplica restrições adicionais sobre essa imagem: filesystem raiz somente leitura, workspace do consumidor somente leitura no `check`, remoção de todas as capabilities Linux, `no-new-privileges` e rede desabilitada. Consulte o [modelo de segurança da GitHub Action](github-action-security.pt-BR.md).
+
 ## Gerar o índice de ADRs
 
 `index` escreve no repositório montado. Em Linux e macOS, usar o UID/GID do host evita diferenças de ownership nos arquivos gerados:
