@@ -132,6 +132,10 @@ The `check` command mounts the checked-out workspace read-only, so validation ca
 
 All user inputs are passed as discrete process arguments rather than executable shell fragments. Paths are resolved against the checked-out workspace before Docker starts, including symlink resolution, and the CLI exit-code contract remains unchanged: `0` success, `1` validation failure, `2` usage/input error, and `3` operational error.
 
+When a `check` or `index` run returns exit code `1`, the action converts recognized `ADR001`–`ADR009` CLI diagnostics into GitHub **file-level error annotations** for existing ADR files within the validated directory. The CLI does not provide reliable line numbers, so annotations deliberately do not include a line number. Diagnostic paths and messages are validated and escaped before emitting workflow commands; unexpected output or operational failures are not annotated as ADR rules.
+
+The action writes a compact `GITHUB_STEP_SUMMARY` with the outcome, exit code, and (for validation failures with recognized output) total and per-rule diagnostic counts. **At most 50 file annotations** are emitted per run; all diagnostics remain available in the raw CLI log. Raw output is replayed with GitHub workflow-command processing temporarily suspended to prevent untrusted ADR content from injecting annotations or other workflow commands. Reporting errors never replace the original CLI exit code.
+
 Windows, macOS, and Linux runners without a working Docker daemon are not supported.
 
 ## ADR format
