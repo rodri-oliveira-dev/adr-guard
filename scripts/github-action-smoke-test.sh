@@ -106,15 +106,26 @@ chmod +x "${FAKE_BIN}/docker"
 PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" \
   ADR_GUARD_COMMAND=check assert_exit_code 0 run_wrapper
 grep -Fxq "type=bind,src=${WORKSPACE},dst=/workspace,readonly" "${DOCKER_CAPTURE}"
+grep -Fxq -- "--cap-drop=ALL" "${DOCKER_CAPTURE}"
+grep -Fxq -- "--security-opt=no-new-privileges" "${DOCKER_CAPTURE}"
+grep -Fxq -- "--network=none" "${DOCKER_CAPTURE}"
+if grep -Fxq -- "--privileged" "${DOCKER_CAPTURE}" || grep -Fxq -- "-e" "${DOCKER_CAPTURE}" || grep -Fxq -- "--env" "${DOCKER_CAPTURE}"; then
+  echo "Action containers must not be privileged or implicitly forward environment variables." >&2
+  exit 1
+fi
 
 PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" \
   ADR_GUARD_COMMAND=index assert_exit_code 0 run_wrapper
-grep -Fxq "type=bind,src=${WORKSPACE},dst=/workspace" "${DOCKER_CAPTURE}"
-if grep -Fxq "type=bind,src=${WORKSPACE},dst=/workspace,readonly" "${DOCKER_CAPTURE}"; then
-  echo "Index mount must be writable." >&2
+grep -Fxq "type=bind,src=${WORKSPACE},dst=/workspace,readonly" "${DOCKER_CAPTURE}"
+grep -Fxq "type=bind,src=${WORKSPACE}/docs/adr,dst=/workspace/docs/adr" "${DOCKER_CAPTURE}"
+grep -Fxq -- "--user" "${DOCKER_CAPTURE}"
+grep -Fxq -- "--cap-drop=ALL" "${DOCKER_CAPTURE}"
+grep -Fxq -- "--security-opt=no-new-privileges" "${DOCKER_CAPTURE}"
+grep -Fxq -- "--network=none" "${DOCKER_CAPTURE}"
+if grep -Fxq "type=bind,src=${WORKSPACE},dst=/workspace" "${DOCKER_CAPTURE}"; then
+  echo "Index must not make the entire consumer workspace writable." >&2
   exit 1
 fi
-grep -Fxq -- "--user" "${DOCKER_CAPTURE}"
 
 PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" DOCKER_EXIT_CODE=125 \
   ADR_GUARD_COMMAND=check ADR_GUARD_VERSION=999.999.999 assert_exit_code 3 run_wrapper
