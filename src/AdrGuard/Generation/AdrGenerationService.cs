@@ -1,7 +1,6 @@
 using AdrGuard.Model;
 using AdrGuard.Parsing;
 using AdrGuard.Validation;
-using System.Text;
 
 namespace AdrGuard.Generation;
 
@@ -97,7 +96,7 @@ internal sealed class AdrGenerationService
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var content = BuildMarkdown(title, generated);
+        var content = AdrMarkdownRenderer.RenderDefaultDraft(title, generated);
         var preview = AdrCreationService.Prepare(
             directoryPath,
             title,
@@ -129,34 +128,6 @@ internal sealed class AdrGenerationService
             Written: persisted.ValidationResult.IsValid);
     }
 
-    private static string BuildMarkdown(
-        string title,
-        AdrGenerationResult generated)
-    {
-        var builder = new StringBuilder();
-
-        builder
-            .Append("# ")
-            .AppendLine(title.Trim())
-            .AppendLine()
-            .AppendLine("## Status")
-            .AppendLine()
-            .AppendLine("Proposed")
-            .AppendLine()
-            .AppendLine("## Context")
-            .AppendLine()
-            .AppendLine(generated.Context?.Trim() ?? string.Empty)
-            .AppendLine()
-            .AppendLine("## Decision")
-            .AppendLine()
-            .AppendLine(generated.Decision?.Trim() ?? string.Empty)
-            .AppendLine()
-            .AppendLine("## Consequences")
-            .AppendLine()
-            .AppendLine(generated.Consequences?.Trim() ?? string.Empty);
-
-        return builder.ToString();
-    }
 
 
 }

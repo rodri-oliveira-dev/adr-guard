@@ -20,9 +20,17 @@ internal static class GeneratedAdrStructureGuard
         ValidateField("consequences", generated.Consequences);
     }
 
+    // Template content is data, not a way to introduce structural sections.
+    // The default AI draft keeps its existing, narrower structural contract.
+    internal static void ValidateTemplateContent(
+        string sectionName,
+        string? content) =>
+        ValidateField(sectionName, content, rejectAllHeadings: true);
+
     private static void ValidateField(
         string fieldName,
-        string? content)
+        string? content,
+        bool rejectAllHeadings = false)
     {
         if (string.IsNullOrEmpty(content))
         {
@@ -68,9 +76,16 @@ internal static class GeneratedAdrStructureGuard
 
             if (level == 1
                 || (level == 2
-                    && CanonicalLevelTwoHeadings.Contains(
-                        heading)))
+                    && (rejectAllHeadings
+                        || CanonicalLevelTwoHeadings.Contains(heading))))
             {
+                if (rejectAllHeadings)
+                {
+                    throw new InvalidOperationException(
+                        $"Template content in the {fieldName} section must not define "
+                        + "level-one or level-two Markdown headings.");
+                }
+
                 throw new InvalidOperationException(
                     $"AI provider generated structural Markdown in the {fieldName} field. "
                     + "Generated prose must not define level-one titles or canonical level-two ADR sections.");
