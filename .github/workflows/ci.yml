@@ -124,12 +124,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Invoke local composite action
+      - name: Invoke local composite action with check
         uses: ./
-        env:
-          ADR_GUARD_ACTION_REF_OVERRIDE: v0.1.12
         with:
-          adr-directory: docs/adr
+          path: docs/adr
+          command: check
+          version: 0.1.12
 
-      - name: Verify exit codes and workspace paths with spaces
-        run: bash scripts/github-action-smoke-test.sh v0.1.12
+      - name: Invoke local composite action with index
+        uses: ./
+        with:
+          path: docs/adr
+          command: index
+          version: 0.1.12
+
+      - name: Verify index remains deterministic
+        run: git diff --exit-code -- docs/adr/README.md
+
+      - name: Verify inputs, exit codes, mount modes, and paths with spaces
+        run: bash scripts/github-action-smoke-test.sh 0.1.12
