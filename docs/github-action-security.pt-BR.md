@@ -65,7 +65,7 @@ A criação assistida por IA continua sendo um fluxo separado e explícito do CL
 
 ## Confiança em versão e digest
 
-Use uma tag exata da Action, como `@v1.2.3`. O ADR Guard associa essa release à tag exata correspondente do container `:1.2.3` e nunca faz fallback silencioso para `latest`. Ao fixar a Action por SHA de commit, informe também o input `version` exato.
+Use uma tag exata da Action, como `@v1.2.3`, para manter source/runtime imutáveis, ou a tag móvel de compatibilidade `@v1` para receber releases bem-sucedidas mais novas da major 1. O ADR Guard associa `@v1.2.3` à tag `:1.2.3` do container e `@v1` à tag `:1`; nunca há fallback silencioso para `latest`. Ao fixar a Action por SHA de commit, informe também o input `version` exato. Consulte a [política de release da GitHub Action](github-action-release.pt-BR.md) para ordem de publicação e verificação.
 
 Em ambientes que exigem identidade imutável do container, resolva o digest publicado e use o fluxo direto de container documentado em [container.pt-BR.md](container.pt-BR.md):
 
