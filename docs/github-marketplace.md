@@ -61,6 +61,8 @@ The Marketplace listing must select a release-tagged Action version. Do not publ
 
 The first supported Marketplace consumer reference is intended to be `@v1`. Until a real `v1` tag exists and is verified, documentation must continue to describe it as forthcoming.
 
+Independent pre-release consumer verification has already passed in `rodri-oliveira-dev/poc-arquitetura`; see [github-action-external-verification.md](github-action-external-verification.md). That evidence is intentionally not a substitute for the required post-release `@v1` rerun.
+
 ## Manual owner gates
 
 The following steps require the repository/account owner in GitHub's web UI and are intentionally not automated:
