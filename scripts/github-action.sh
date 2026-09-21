@@ -84,8 +84,10 @@ if [[ -n "${requested_version}" ]]; then
   fi
 elif [[ "${action_ref}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
   version="${BASH_REMATCH[1]}"
+elif [[ "${action_ref}" =~ ^v([0-9]+)$ ]]; then
+  version="${BASH_REMATCH[1]}"
 else
-  usage_error "Unable to select an image version from action ref '${action_ref:-<empty>}'. Reference ADR Guard with @vX.Y.Z or set the exact 'version' input."
+  usage_error "Unable to select an image version from action ref '${action_ref:-<empty>}'. Reference ADR Guard with @vX.Y.Z or @vX, or set the exact 'version' input when pinning by commit SHA."
 fi
 
 image="ghcr.io/rodri-oliveira-dev/adr-guard:${version}"
