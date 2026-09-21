@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace AdrGuard.Generation;
@@ -44,6 +45,8 @@ internal static class AdrMarkdownRenderer
     internal static IReadOnlyList<string> SupportedPlaceholders { get; } =
     [
         "title",
+        "id",
+        "status",
         "context",
         "decision",
         "consequences",
@@ -66,10 +69,18 @@ internal static class AdrMarkdownRenderer
                 nameof(request));
         }
 
+        if (request.Id is <= 0 or > 9999)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(request),
+                "An ADR template ID must be between 1 and 9999.");
+        }
+
         var guidance = GetGuidance(request.Template.CultureName);
         var values = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["title"] = EscapeInlineMarkdown(request.Title.Trim()),
+            ["status"] = "Proposed",
             ["context"] = string.Empty,
             ["decision"] = string.Empty,
             ["consequences"] = string.Empty,
@@ -78,11 +89,16 @@ internal static class AdrMarkdownRenderer
             ["guidance-consequences"] = guidance.Consequences,
         };
 
+        if (request.Id is { } id)
+        {
+            values["id"] = id.ToString("D4", CultureInfo.InvariantCulture);
+        }
+
         foreach (var pair in request.Substitutions)
         {
             if (!SupportedPlaceholders.Contains(pair.Key, StringComparer.Ordinal)
                 || pair.Key.StartsWith("guidance-", StringComparison.Ordinal)
-                || pair.Key == "title")
+                || pair.Key is "title" or "id" or "status")
             {
                 throw new ArgumentException(
                     $"Unsupported or reserved template substitution '{pair.Key}'.",

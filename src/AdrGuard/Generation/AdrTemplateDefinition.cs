@@ -16,4 +16,5 @@ internal sealed record AdrTemplateSection(
 internal sealed record AdrTemplateRenderRequest(
     string Title,
     AdrTemplateDefinition Template,
-    IReadOnlyDictionary<string, string> Substitutions);
+    IReadOnlyDictionary<string, string> Substitutions,
+    int? Id = null);
