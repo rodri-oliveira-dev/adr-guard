@@ -26,7 +26,7 @@ public sealed class AdrCustomTemplateLoaderTests
                 "custom.md");
             File.Copy(Fixture(culture), source);
 
-            var selected = AdrTemplateSelection.Resolve(
+            var selected = Select(
                 builtInName: null,
                 templateFilePath: source,
                 cultureName: culture);
@@ -102,11 +102,11 @@ public sealed class AdrCustomTemplateLoaderTests
                 Path.Combine(config, "unrelated.md"),
                 "# Invalid extra file\n## Status\nAccepted");
 
-            var loaded = AdrCustomTemplateLoader.Load(
+            var loaded = Load(
                 Path.Combine("config", "adr-template.md"),
                 "en-US",
                 root);
-            var selected = AdrTemplateSelection.Resolve(
+            var selected = Select(
                 builtInName: null,
                 templateFilePath: Path.Combine("config", "adr-template.md"),
                 cultureName: "en-US",
@@ -160,25 +160,25 @@ public sealed class AdrCustomTemplateLoaderTests
                 AdrMarkdownRenderer.RenderTemplate(
                     new AdrTemplateRenderRequest(
                         "Adopt Cache",
-                        AdrTemplateSelection.Resolve(null, null, "en-US"),
+                        Select(null, null, "en-US"),
                         new Dictionary<string, string>())));
 
             var conflict = Assert.Throws<ArgumentException>(
-                () => AdrTemplateSelection.Resolve("extended", path, "en-US"));
+                () => Select("extended", path, "en-US"));
             Assert.Contains("--template and --template-file", conflict.Message, StringComparison.Ordinal);
 
             var explicitDefaultConflict = Assert.Throws<ArgumentException>(
-                () => AdrTemplateSelection.Resolve("minimal", path, "en-US"));
+                () => Select("minimal", path, "en-US"));
             Assert.Contains("mutually exclusive", explicitDefaultConflict.Message, StringComparison.Ordinal);
 
             var unknown = Assert.Throws<ArgumentException>(
-                () => AdrTemplateSelection.Resolve("unexpected", null, "en-US"));
+                () => Select("unexpected", null, "en-US"));
             Assert.Contains("minimal", unknown.Message, StringComparison.Ordinal);
 
             Assert.Throws<ArgumentException>(
-                () => AdrTemplateSelection.Resolve(null, " ", "en-US"));
+                () => Select(null, " ", "en-US"));
             Assert.Throws<ArgumentException>(
-                () => AdrTemplateSelection.Resolve(null, "plain.txt", "en-US", root));
+                () => Select(null, "plain.txt", "en-US", root));
         }
         finally
         {
@@ -193,14 +193,14 @@ public sealed class AdrCustomTemplateLoaderTests
         try
         {
             var missing = Assert.Throws<IOException>(
-                () => AdrCustomTemplateLoader.Load(
+                () => Load(
                     "missing.md",
                     "en-US",
                     root));
             Assert.Contains("--template-file", missing.Message, StringComparison.Ordinal);
 
             var invalidDirectory = Assert.Throws<IOException>(
-                () => AdrCustomTemplateLoader.Load(
+                () => Load(
                     Path.Combine("not-created", "missing.md"),
                     "en-US",
                     root));
@@ -224,7 +224,7 @@ public sealed class AdrCustomTemplateLoaderTests
                 new string('a', AdrCustomTemplateLoader.MaximumTemplateBytes + 1));
 
             var error = Assert.Throws<InvalidDataException>(
-                () => AdrCustomTemplateLoader.Load(path, "en-US"));
+                () => Load(path, "en-US"));
 
             Assert.Contains("65536-byte", error.Message, StringComparison.Ordinal);
             Assert.Single(Directory.GetFiles(root));
@@ -245,14 +245,14 @@ public sealed class AdrCustomTemplateLoaderTests
             File.WriteAllBytes(path, [0x23, 0x20, 0xC3, 0x28]);
 
             var encoding = Assert.Throws<InvalidDataException>(
-                () => AdrCustomTemplateLoader.Load(path, "en-US"));
+                () => Load(path, "en-US"));
             Assert.Contains("UTF-8", encoding.Message, StringComparison.Ordinal);
 
             File.WriteAllText(
                 path,
                 "# {{title}}\n\0\n## Status\n\n{{status}}");
             var nul = Assert.Throws<InvalidDataException>(
-                () => AdrCustomTemplateLoader.Load(path, "en-US"));
+                () => Load(path, "en-US"));
             Assert.Contains("NUL", nul.Message, StringComparison.Ordinal);
         }
         finally
@@ -275,7 +275,7 @@ public sealed class AdrCustomTemplateLoaderTests
                 source,
                 new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
 
-            var template = AdrCustomTemplateLoader.Load(path, "en-US");
+            var template = Load(path, "en-US");
             var output = AdrMarkdownRenderer.RenderTemplate(
                 new AdrTemplateRenderRequest(
                     "Adopt Cache",
@@ -311,7 +311,7 @@ public sealed class AdrCustomTemplateLoaderTests
             File.WriteAllText(templatePath, "# {{title}}\n\n" + sections);
 
             var error = Assert.Throws<InvalidDataException>(
-                () => AdrCustomTemplateLoader.Load(templatePath, "en-US"));
+                () => Load(templatePath, "en-US"));
 
             Assert.Contains(expected, error.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Single(Directory.GetFiles(root));
@@ -335,7 +335,7 @@ public sealed class AdrCustomTemplateLoaderTests
             File.WriteAllText(path, source);
 
             Assert.Throws<InvalidDataException>(
-                () => AdrCustomTemplateLoader.Load(path, "en-US"));
+                () => Load(path, "en-US"));
         }
         finally
         {
@@ -364,7 +364,7 @@ public sealed class AdrCustomTemplateLoaderTests
             File.WriteAllText(path, source);
 
             var error = Assert.Throws<InvalidDataException>(
-                () => AdrCustomTemplateLoader.Load(path, "en-US"));
+                () => Load(path, "en-US"));
 
             Assert.Contains("placeholder", error.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -377,7 +377,7 @@ public sealed class AdrCustomTemplateLoaderTests
     [Fact]
     public void AuthorContentCannotInjectHeadingsOrReplaceReservedIdStatus()
     {
-        var template = AdrCustomTemplateLoader.Load(
+        var template = Load(
             Fixture("en-US"),
             "en-US");
         var attack = new AdrTemplateRenderRequest(
@@ -433,7 +433,7 @@ public sealed class AdrCustomTemplateLoaderTests
             var templatePath = Path.Combine(root, "template.md");
             File.WriteAllText(templatePath, source);
 
-            var loaded = AdrCustomTemplateLoader.Load(templatePath, "en-US");
+            var loaded = Load(templatePath, "en-US");
             var rendered = AdrMarkdownRenderer.RenderTemplate(
                 new AdrTemplateRenderRequest(
                     "Adopt Cache",
@@ -450,6 +450,28 @@ public sealed class AdrCustomTemplateLoaderTests
             DeleteDirectory(root);
         }
     }
+
+    private static AdrTemplateDefinition Load(
+        string templateFilePath,
+        string cultureName,
+        string? invocationDirectory = null) =>
+        AdrCustomTemplateLoader.Load(
+            templateFilePath,
+            cultureName,
+            invocationDirectory,
+            TestContext.Current.CancellationToken);
+
+    private static AdrTemplateDefinition Select(
+        string? builtInName,
+        string? templateFilePath,
+        string cultureName,
+        string? invocationDirectory = null) =>
+        AdrTemplateSelection.Resolve(
+            builtInName,
+            templateFilePath,
+            cultureName,
+            invocationDirectory,
+            TestContext.Current.CancellationToken);
 
     private static string Fixture(string cultureName) =>
         Path.Combine(
