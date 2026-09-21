@@ -93,11 +93,17 @@ fi
 image="ghcr.io/rodri-oliveira-dev/adr-guard:${version}"
 container_path="/workspace${resolved_path#"${workspace}"}"
 
+echo "Pulling ADR Guard runtime ${image}."
+if ! docker pull "${image}"; then
+  operational_error "Unable to pull ADR Guard image '${image}'. The requested version is not replaced with 'latest'."
+fi
+
 echo "Running ADR Guard ${version}: ${command} '${adr_path}' using ${image}."
 
 docker_args=(
   run
   --rm
+  --pull=never
   --read-only
   --cap-drop=ALL
   --security-opt=no-new-privileges
