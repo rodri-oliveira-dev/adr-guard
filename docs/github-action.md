@@ -144,4 +144,4 @@ If a SHA or branch ref is used, provide an exact `version` input. If `@v1` is us
 
 Release notes are published on the repository's [Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) page.
 
-**Marketplace listing: forthcoming.** This guide must not claim Marketplace availability or link to a listing until one is actually published and verified.
+**Marketplace listing: forthcoming.** This guide must not claim Marketplace availability or link to a listing until one is actually published and verified. Publication prerequisites, the proposed listing identity, and the owner-only web UI gates are tracked in the [Marketplace publication checklist](github-marketplace.md). For support and vulnerability reporting, see [../SUPPORT.md](../SUPPORT.md) and [../SECURITY.md](../SECURITY.md).
