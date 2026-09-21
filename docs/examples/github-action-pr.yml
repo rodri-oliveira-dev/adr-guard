@@ -1,0 +1,26 @@
+# Forthcoming consumer example: @v1 is not published yet.
+name: ADR validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  adr-guard:
+    name: ADR Guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Validate ADRs
+        uses: rodri-oliveira-dev/adr-guard@v1
+        with:
+          path: docs/adr
+          command: check
