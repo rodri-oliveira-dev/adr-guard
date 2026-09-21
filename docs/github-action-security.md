@@ -65,7 +65,7 @@ AI-assisted drafting remains a separate, explicit CLI/container workflow. Consum
 
 ## Version and digest trust
 
-Use an exact Action release tag such as `@v1.2.3`. ADR Guard maps that release to the matching exact container tag `:1.2.3` and never silently falls back to `latest`. When the Action is pinned by commit SHA, specify the exact `version` input.
+Use an exact Action release tag such as `@v1.2.3` for immutable source/runtime pairing, or the moving compatibility tag `@v1` to receive newer successful releases in major version 1. ADR Guard maps `@v1.2.3` to container tag `:1.2.3` and `@v1` to container tag `:1`; it never silently falls back to `latest`. When the Action is pinned by commit SHA, specify the exact `version` input. See the [GitHub Action release policy](github-action-release.md) for publication ordering and verification.
 
 For environments that require immutable container identity, resolve the published image digest and use the direct container workflow documented in [container.md](container.md):
 
