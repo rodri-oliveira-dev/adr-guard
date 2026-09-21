@@ -143,3 +143,6 @@ jobs:
 
       - name: Verify inputs, exit codes, mount modes, and paths with spaces
         run: bash scripts/github-action-smoke-test.sh 0.1.12
+
+      - name: Verify annotations, summaries, and hostile diagnostic handling
+        run: bash scripts/github-action-report-test.sh
