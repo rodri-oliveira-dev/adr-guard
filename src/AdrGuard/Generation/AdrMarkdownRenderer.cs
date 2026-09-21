@@ -197,7 +197,7 @@ internal static class AdrMarkdownRenderer
 
     private static string Substitute(
         string template,
-        IReadOnlyDictionary<string, string> values)
+        Dictionary<string, string> values)
     {
         var builder = new StringBuilder();
         var cursor = 0;
