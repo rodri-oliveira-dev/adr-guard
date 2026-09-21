@@ -21,11 +21,12 @@ for input in path command version; do
     echo "action.yml no longer exposes expected input '${input}'." >&2
     exit 1
   }
-  grep -Fq "`\${input}`" "${GUIDE_EN}" || {
+  input_token="`${input}`"
+  grep -Fq "${input_token}" "${GUIDE_EN}" || {
     echo "English guide does not document input '${input}'." >&2
     exit 1
   }
-  grep -Fq "`\${input}`" "${GUIDE_PT}" || {
+  grep -Fq "${input_token}" "${GUIDE_PT}" || {
     echo "pt-BR guide does not document input '${input}'." >&2
     exit 1
   }
@@ -60,11 +61,11 @@ grep -Fq 'push:' "${EXAMPLE_MAIN}"
 
 # Both languages must cover the same observable contract.
 for term in 'ADR001' 'ADR009' 'GITHUB_STEP_SUMMARY' '50' 'exit code `2`' 'exit code `3`' '`check`' '`index`' '`@v1.2.3`' '`@v1`' '`@<commit-sha>`' 'contents: read' 'Docker'; do
-  grep -Fq "${term}" "${GUIDE_EN}" || {
+  grep -Fiq "${term}" "${GUIDE_EN}" || {
     echo "English guide is missing contract term: ${term}" >&2
     exit 1
   }
-  grep -Fq "${term}" "${GUIDE_PT}" || {
+  grep -Fiq "${term}" "${GUIDE_PT}" || {
     echo "pt-BR guide is missing contract term: ${term}" >&2
     exit 1
   }
