@@ -135,6 +135,10 @@ internal static class NewCommand
         {
             return UsageError(exception.Message, error);
         }
+        catch (InvalidDataException exception)
+        {
+            return OperationalError(exception, error);
+        }
         catch (IOException exception)
         {
             return OperationalError(exception, error);

@@ -181,7 +181,9 @@ public sealed class NewCommandIntegrationTests
         foreach (var arguments in invalidCases)
         {
             var result = Run(arguments);
-            Assert.Equal(ExitCodes.UsageError, result.Code);
+            Assert.True(
+                result.Code == ExitCodes.UsageError,
+                $"Arguments: {string.Join(" / ", arguments)}. Exit: {result.Code}. Error: {result.Error}");
             Assert.NotEqual(string.Empty, result.Error);
         }
     }
