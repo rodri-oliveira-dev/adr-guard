@@ -8,7 +8,7 @@
 
 [English](README.md)
 
-**Consumidores da GitHub Action:** consulte o [guia de consumo](docs/github-action.pt-BR.md), a [política de release](docs/github-action-release.pt-BR.md) e o [modelo de segurança](docs/github-action-security.pt-BR.md). A tag de compatibilidade `@v1` é **futura** e ainda não foi publicada.
+**Consumidores da GitHub Action:** consulte o [guia de consumo](docs/github-action.pt-BR.md), a [política de release](docs/github-action-release.pt-BR.md), o [modelo de segurança](docs/github-action-security.pt-BR.md) e o [checklist de publicação no Marketplace](docs/github-marketplace.pt-BR.md). A tag de compatibilidade `@v1` e a listagem no Marketplace são **futuras** e ainda não foram publicadas. O suporte está em [SUPPORT.md](SUPPORT.md) e relatos de segurança seguem [SECURITY.md](SECURITY.md).
 
 ADR Guard é uma ferramenta de linha de comando para .NET focada em validar e indexar Architecture Decision Records (ADRs).
 
