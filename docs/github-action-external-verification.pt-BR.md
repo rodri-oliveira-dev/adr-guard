@@ -8,7 +8,7 @@ Este documento registra as evidências de consumidor independente da issue #49 d
 
 **Verificação de produção no Marketplace: pendente.**
 
-A implementação técnica da Action já foi exercitada a partir de outro repositório, mas os critérios finais da #49 não podem ser considerados completos até esta branch entrar na `main`, existir uma release/tag real da Action, a listagem no Marketplace ser publicada pelo proprietário e o mesmo teste externo ser repetido usando a tag publicada.
+A Action já foi publicada como `v1.0.0`, e a tag de compatibilidade `v1` está publicada. As evidências de consumidor independente abaixo são anteriores a essa release; os critérios finais da #49 relativos ao Marketplace continuam pendentes até o proprietário publicar e verificar a listagem e os workflows consumidores externos serem executados novamente contra o `@v1` publicado.
 
 ## Consumidor independente
 
@@ -41,7 +41,7 @@ e seleciona explicitamente a imagem de runtime:
 
 `ghcr.io/rodri-oliveira-dev/adr-guard:0.1.12`
 
-Isso **não** é apresentado como adoção de produção. O SHA com versão explícita é usado porque `@v1` ainda não existe.
+Essa execução histórica **não** é apresentada como verificação de produção do `@v1`. Ela usou um SHA de commit com versão de imagem explícita porque a tag `@v1` ainda não havia sido publicada naquela ocasião. A tag já está publicada; os workflows consumidores externos ainda precisam ser executados novamente contra ela.
 
 ## Evidência do consumidor válido
 
@@ -98,14 +98,14 @@ A Action foi reforçada para:
 
 No rerun externo corrigido, a annotation `ADR005` foi emitida como esperado.
 
-Isso também melhora o comportamento da major móvel em runners self-hosted, pois `@v1` atualizará ativamente a imagem `:1` em vez de usar silenciosamente uma imagem local antiga.
+Isso também melhora o comportamento da major móvel em runners self-hosted, pois o `@v1` publicado atualiza ativamente a imagem `:1` em vez de usar silenciosamente uma imagem local antiga.
 
 ## Gate final de verificação de produção
 
-Depois que esta branch entrar na `main` e o pipeline publicar a primeira release de produção da Action:
+A release `v1.0.0` e a tag de compatibilidade `v1` já estão publicadas. Para concluir a verificação de produção do consumidor e do Marketplace:
 
-1. verificar a existência da tag imutável da release e da tag móvel `v1`;
-2. verificar que as imagens exata e major correspondentes no GHCR podem ser baixadas publicamente;
+1. confirmar que as tags publicadas imutável `v1.0.0` e móvel `v1` da Action resolvem conforme esperado;
+2. confirmar que as imagens exata (`:1.0.0`) e major (`:1`) correspondentes no GHCR podem ser baixadas publicamente;
 3. publicar a listagem no Marketplace pelo fluxo autorizado descrito em [github-marketplace.pt-BR.md](github-marketplace.pt-BR.md);
 4. registrar na issue #49 a URL real do Marketplace e a referência publicada da Action;
 5. alterar os workflows externos da referência SHA + `version: 0.1.12` para:

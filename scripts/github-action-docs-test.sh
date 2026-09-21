@@ -9,8 +9,10 @@ README_EN="${ROOT_DIR}/README.md"
 README_PT="${ROOT_DIR}/README.pt-BR.md"
 EXAMPLE_PR="${ROOT_DIR}/docs/examples/github-action-pr.yml"
 EXAMPLE_MAIN="${ROOT_DIR}/docs/examples/github-action-main.yml"
+EXTERNAL_EN="${ROOT_DIR}/docs/github-action-external-verification.md"
+EXTERNAL_PT="${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
 
-for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}"; do
+for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXTERNAL_EN}" "${EXTERNAL_PT}"; do
   test -s "${file}" || {
     echo "Required GitHub Action consumer documentation is missing: ${file}" >&2
     exit 1
@@ -99,6 +101,26 @@ if grep -Eq 'github\.com/marketplace/actions/' "${GUIDE_EN}" "${GUIDE_PT}"; then
   echo "Marketplace URL must not be published before a verified listing exists." >&2
   exit 1
 fi
+
+# Historical external-consumer evidence must not imply that the published @v1 tag is still pending.
+grep -Fq 'the `v1` compatibility tag is published' "${EXTERNAL_EN}" || {
+  echo "English external-verification guide must describe the published v1 tag." >&2
+  exit 1
+}
+grep -Fq 'a tag de compatibilidade `v1` está publicada' "${EXTERNAL_PT}" || {
+  echo "pt-BR external-verification guide must describe the published v1 tag." >&2
+  exit 1
+}
+for stale_claim in \
+  '`@v1` does not exist yet' \
+  '`@v1` ainda não existe' \
+  'until this branch is merged, a real Action release/tag exists' \
+  'até esta branch entrar na `main`, existir uma release/tag real'; do
+  if grep -Fiq "${stale_claim}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}"; then
+    echo "Documentation contains an obsolete pre-v1 availability claim: ${stale_claim}" >&2
+    exit 1
+  fi
+done
 
 # Release notes are real today and should remain linked.
 grep -Fq 'https://github.com/rodri-oliveira-dev/adr-guard/releases' "${GUIDE_EN}"

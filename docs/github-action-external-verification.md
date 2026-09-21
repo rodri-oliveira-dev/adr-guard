@@ -8,7 +8,7 @@ This document records the independent-consumer evidence for ADR Guard issue #49.
 
 **Production Marketplace verification: pending.**
 
-The technical Action implementation has been exercised from a repository other than `adr-guard`, but the final #49 acceptance criteria cannot be marked complete until this branch is merged, a real Action release/tag exists, the Marketplace listing is published by the repository owner, and the same external test is rerun using the published tag.
+The Action has been released as `v1.0.0`, and the `v1` compatibility tag is published. The independent-consumer evidence below predates that release; the final #49 Marketplace acceptance criteria remain pending until the owner publishes and verifies the listing and the external consumer workflows are rerun against the published `@v1`.
 
 ## Independent consumer
 
@@ -41,7 +41,7 @@ and explicitly selects runtime image:
 
 `ghcr.io/rodri-oliveira-dev/adr-guard:0.1.12`
 
-This is intentionally **not** presented as production adoption. A commit SHA plus explicit image version is used because `@v1` does not exist yet.
+This historical run is intentionally **not** presented as production `@v1` verification. It used a commit SHA plus an explicit image version because the `@v1` tag had not been published at the time. The tag is published now; the external consumer workflows still need to be rerun against it.
 
 ## Valid consumer evidence
 
@@ -98,14 +98,14 @@ The Action was hardened to:
 
 The corrected external invalid run then emitted the expected `ADR005` annotation.
 
-This also improves moving-major behavior on self-hosted runners because `@v1` will actively refresh image tag `:1` rather than silently using a stale local image.
+This also improves moving-major behavior on self-hosted runners because the published `@v1` actively refreshes image tag `:1` rather than silently using a stale local image.
 
 ## Final production verification gate
 
-After this branch is merged and the release pipeline publishes the first production Action release:
+The `v1.0.0` release and `v1` compatibility tag are already published. To complete production consumer and Marketplace verification:
 
-1. verify the immutable release tag and moving `v1` tag exist;
-2. verify the corresponding exact and major GHCR images are publicly pullable;
+1. confirm that the published immutable `v1.0.0` and moving `v1` Action tags resolve as expected;
+2. confirm that the corresponding exact (`:1.0.0`) and major (`:1`) GHCR images are publicly pullable;
 3. publish the Marketplace listing through the authorized owner flow described in [github-marketplace.md](github-marketplace.md);
 4. record the real Marketplace URL and released Action ref in issue #49;
 5. update the external consumer workflows from the pre-release SHA + `version: 0.1.12` to:
