@@ -1,6 +1,6 @@
 # GitHub Action consumer guide
 
-> **Publication status:** the reusable Action is implemented, but the compatibility tag `v1` has not been published yet. Examples using `rodri-oliveira-dev/adr-guard@v1` below are **forthcoming** and become copy-and-paste ready only after the first release that creates that tag. Until then, do not treat `@v1` as available.
+> **Publication status:** the reusable Action and compatibility tag `v1` are published. Examples using `rodri-oliveira-dev/adr-guard@v1` below are ready to use. The Marketplace listing is tracked separately and remains forthcoming until it is manually published and verified.
 
 ADR Guard's composite Action runs the published ADR Guard container. Consumers do not need the .NET SDK, but they do need a Linux runner with Docker and must check out the repository first.
 
@@ -16,7 +16,7 @@ The CLI exit contract is preserved: `0` success, `1` ADR validation failure, `2`
 
 ## Pull-request validation
 
-**Forthcoming `@v1` example** — use after the `v1` Action tag exists:
+**Published `@v1` example:**
 
 ```yaml
 name: ADR validation
@@ -80,7 +80,7 @@ jobs:
           command: check
 ```
 
-This `@v1` example is also forthcoming until the tag is published. A file copy lives at [examples/github-action-main.yml](examples/github-action-main.yml).
+A file copy of this workflow lives at [examples/github-action-main.yml](examples/github-action-main.yml).
 
 ## Validation output and annotations
 
@@ -105,7 +105,7 @@ The Action also writes a compact `GITHUB_STEP_SUMMARY` with the outcome, exit co
   run: git diff --exit-code -- docs/adr/README.md
 ```
 
-The `@v1` reference above is forthcoming until published.
+The `@v1` reference above uses the published moving major compatibility tag.
 
 ## Version pinning
 
@@ -138,10 +138,10 @@ Exit code `3` means an operational failure such as Docker being unavailable or t
 
 For `index`, the runner must be non-root because the Action deliberately refuses to execute the writable container as UID 0.
 
-If a SHA or branch ref is used, provide an exact `version` input. If `@v1` is used before the tag is published, GitHub cannot resolve the Action.
+If a SHA or branch ref is used, provide an exact `version` input. When `@v1` is used, the Action source follows the published `v1` compatibility tag and resolves the matching `:1` runtime image.
 
 ## Releases and Marketplace
 
 Release notes are published on the repository's [Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) page.
 
-**Marketplace listing: forthcoming.** Independent pre-release consumer verification has passed and is recorded in [external verification evidence](github-action-external-verification.md), but production adoption is not complete until the same consumer workflows pass against a real published `@v1`. Publication prerequisites, the proposed listing identity, and the owner-only web UI gates are tracked in the [Marketplace publication checklist](github-marketplace.md). For support and vulnerability reporting, see [../SUPPORT.md](../SUPPORT.md) and [../SECURITY.md](../SECURITY.md).
+**Marketplace listing: forthcoming.** The `v1` compatibility tag is published. Independent pre-release consumer verification has passed and is recorded in [external verification evidence](github-action-external-verification.md); production Marketplace verification remains pending until the external consumer workflows are rerun against the published `@v1` and the listing is manually published and verified. Publication prerequisites, the proposed listing identity, and the owner-only web UI gates are tracked in the [Marketplace publication checklist](github-marketplace.md). For support and vulnerability reporting, see [../SUPPORT.md](../SUPPORT.md) and [../SECURITY.md](../SECURITY.md).
