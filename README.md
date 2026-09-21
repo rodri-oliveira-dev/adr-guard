@@ -109,9 +109,9 @@ Inputs are deliberately small and map directly to supported CLI behavior:
 | --- | --- | --- |
 | `path` | `docs/adr` | Repository-relative ADR directory. Absolute paths, `..` traversal, missing directories, and paths resolving outside `GITHUB_WORKSPACE` are rejected. |
 | `command` | `check` | `check` or `index`. |
-| `version` | empty | Optional exact image version in `X.Y.Z` or `vX.Y.Z` form. When omitted, the action must itself be referenced by an exact `@vX.Y.Z` release tag. |
+| `version` | empty | Optional exact image version in `X.Y.Z` or `vX.Y.Z` form. When omitted, `@vX.Y.Z` selects the exact image tag and `@vX` selects the matching moving major image tag. SHA/branch pins require an explicit exact version. |
 
-Version selection never falls back to `latest`. For `uses: rodri-oliveira-dev/adr-guard@v1.2.3`, the action invokes `ghcr.io/rodri-oliveira-dev/adr-guard:1.2.3`. If the action is pinned by commit SHA or a branch, specify the image explicitly:
+Version selection never falls back to `latest`. For `uses: rodri-oliveira-dev/adr-guard@v1.2.3`, the Action invokes `ghcr.io/rodri-oliveira-dev/adr-guard:1.2.3`. For `uses: rodri-oliveira-dev/adr-guard@v1`, it invokes the matching moving major image tag `:1`. Exact Action tags are immutable; major tags move only to newer successful releases in that major line. If the Action is pinned by commit SHA or a branch, specify the image explicitly:
 
 ```yaml
 - name: Validate ADRs from a pinned action commit
@@ -121,6 +121,8 @@ Version selection never falls back to `latest`. For `uses: rodri-oliveira-dev/ad
     command: check
     version: 1.2.3
 ```
+
+See the [GitHub Action release policy](docs/github-action-release.md) for exact versus major tag semantics, idempotency guarantees, release ordering, and the verification procedure.
 
 The `check` command mounts the checked-out workspace read-only, so validation cannot mutate repository files. For `index`, the workspace remains read-only and only the selected ADR directory is over-mounted as writable because the CLI generates or refreshes `README.md` there:
 
