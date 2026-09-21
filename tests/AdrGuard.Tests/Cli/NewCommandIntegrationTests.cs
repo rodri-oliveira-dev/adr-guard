@@ -161,17 +161,17 @@ public sealed class NewCommandIntegrationTests
     }
 
     [Theory]
-    [InlineData(new[] { "new" })]
-    [InlineData(new[] { "new", "--title", "" })]
-    [InlineData(new[] { "new", "--title", " " })]
-    [InlineData(new[] { "new", "--title", "💥" })]
-    [InlineData(new[] { "new", "--title", "Hello\n## Decision" })]
-    [InlineData(new[] { "new", "--title", "Use Redis", "--template", "unknown" })]
-    [InlineData(new[] { "new", "--title", "Use Redis", "--culture", "fr-FR" })]
-    [InlineData(new[] { "new", "--title", "Use Redis", "--template", "extended", "--template-file", "custom.md" })]
-    [InlineData(new[] { "new", "--title", "Use Redis", "--title", "Again" })]
-    [InlineData(new[] { "new", "--title", "Use Redis", "--dry-run", "--preview" })]
-    [InlineData(new[] { "new", "--title", "Use Redis", "--invalid" })]
+    [InlineData(new string[] { "new" })]
+    [InlineData(new string[] { "new", "--title", "" })]
+    [InlineData(new string[] { "new", "--title", " " })]
+    [InlineData(new string[] { "new", "--title", "💥" })]
+    [InlineData(new string[] { "new", "--title", "Hello\n## Decision" })]
+    [InlineData(new string[] { "new", "--title", "Use Redis", "--template", "unknown" })]
+    [InlineData(new string[] { "new", "--title", "Use Redis", "--culture", "fr-FR" })]
+    [InlineData(new string[] { "new", "--title", "Use Redis", "--template", "extended", "--template-file", "custom.md" })]
+    [InlineData(new string[] { "new", "--title", "Use Redis", "--title", "Again" })]
+    [InlineData(new string[] { "new", "--title", "Use Redis", "--dry-run", "--preview" })]
+    [InlineData(new string[] { "new", "--title", "Use Redis", "--invalid" })]
     public void InvalidCliArgumentsReturnUsageErrorWithoutCreatingAnything(
         string[] arguments)
     {
