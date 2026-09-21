@@ -32,6 +32,7 @@ jobs:
     outputs:
       package-version: ${{ steps.version.outputs.package_version }}
       release-tag: ${{ steps.version.outputs.release_tag }}
+      reservation-tag: ${{ steps.version.outputs.reservation_tag }}
       validated-sha: ${{ steps.version.outputs.validated_sha }}
 
     steps:
@@ -57,11 +58,910 @@ jobs:
 
           git fetch --tags --force
 
-          existing_tag="$(git tag --points-at "${VALIDATED_SHA}" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)"
+          existing_tag="$(git tag --points-at "${VALIDATED_SHA}" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+
+      - name: Restore
+        run: dotnet restore AdrGuard.slnx
+
+      - name: Validate resolved MSBuild version
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package_version }}
+        run: |
+          set -euo pipefail
+
+          resolved_version="$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:Version -p:Version="${PACKAGE_VERSION}" | tr -d '\r' | sed '/^[[:space:]]*$/d' | tail -n 1)"
+          resolved_package_version="$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:PackageVersion -p:Version="${PACKAGE_VERSION}" -p:PackageVersion="${PACKAGE_VERSION}" | tr -d '\r' | sed '/^[[:space:]]*$/d' | tail -n 1)"
+
+          if [[ "${resolved_version}" != "${PACKAGE_VERSION}" ]]; then
+            echo "::error::Resolved Version '${resolved_version}' differs from release version '${PACKAGE_VERSION}'."
+            exit 1
+          fi
+
+          if [[ "${resolved_package_version}" != "${PACKAGE_VERSION}" ]]; then
+            echo "::error::Resolved PackageVersion '${resolved_package_version}' differs from release version '${PACKAGE_VERSION}'."
+            exit 1
+          fi
+
+      - name: Build release
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package_version }}
+        run: >-
+          dotnet build AdrGuard.slnx
+          --configuration Release
+          --no-restore
+          -p:Version="${PACKAGE_VERSION}"
+          -p:PackageVersion="${PACKAGE_VERSION}"
+          -p:ContinuousIntegrationBuild=true
+
+      - name: Run tests
+        run: dotnet test AdrGuard.slnx --configuration Release --no-build
+
+      - name: Pack ADR Guard
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package_version }}
+          VALIDATED_SHA: ${{ steps.version.outputs.validated_sha }}
+        run: >-
+          dotnet pack src/AdrGuard/AdrGuard.csproj
+          --configuration Release
+          --no-build
+          --output artifacts/packages
+          -p:Version="${PACKAGE_VERSION}"
+          -p:PackageVersion="${PACKAGE_VERSION}"
+          -p:RepositoryCommit="${VALIDATED_SHA}"
+          -p:ContinuousIntegrationBuild=true
+
+      - name: Validate package output
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package_version }}
+        run: |
+          set -euo pipefail
+
+          expected="artifacts/packages/RodriOliveira.AdrGuard.${PACKAGE_VERSION}.nupkg"
+
+          if [[ ! -f "${expected}" ]]; then
+            echo "::error::Expected package '${expected}' was not produced."
+            find artifacts/packages -maxdepth 1 -type f -print || true
+            exit 1
+          fi
+
+          resolved_package_id="$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:PackageId | tr -d '\r' | sed '/^[[:space:]]*$/d' | tail -n 1)"
+
+          if [[ "${resolved_package_id}" != "RodriOliveira.AdrGuard" ]]; then
+            echo "::error::Unexpected PackageId '${resolved_package_id}'."
+            exit 1
+          fi
+
+      - name: Install and smoke-test packaged tool
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package_version }}
+        run: |
+          set -euo pipefail
+
+          dotnet tool install \
+            --tool-path ./.release-tools \
+            RodriOliveira.AdrGuard \
+            --version "${PACKAGE_VERSION}" \
+            --add-source ./artifacts/packages \
+            --ignore-failed-sources
+
+          ./.release-tools/adr-guard check docs/adr
+          ./.release-tools/adr-guard index docs/adr
+          git diff --exit-code -- docs/adr/README.md
+
+      - name: Upload release package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-package
+          path: artifacts/packages/*.nupkg
+          if-no-files-found: error
+          retention-days: 7
+
+  reserve-release-version:
+    name: Reserve release version
+    needs: build-and-pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build-and-pack.outputs.validated-sha }}
+          fetch-depth: 0
+
+      - name: Reserve SemVer for the validated commit
+        shell: bash
+        env:
+          RESERVATION_TAG: ${{ needs.build-and-pack.outputs.reservation-tag }}
+          RELEASE_TAG: ${{ needs.build-and-pack.outputs.release-tag }}
+          VALIDATED_SHA: ${{ needs.build-and-pack.outputs.validated-sha }}
+        run: >-
+          bash scripts/reserve-release-version.sh
+          "${RESERVATION_TAG}"
+          "${RELEASE_TAG}"
+          "${VALIDATED_SHA}"
+
+  publish-nuget:
+    name: Publish to NuGet.org
+    needs:
+      - build-and-pack
+      - reserve-release-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Download release package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: release-package
+          path: artifacts/packages
+
+      - name: Exchange GitHub OIDC token for temporary NuGet API key
+        id: nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: rodri-oliveira-dev
+
+      - name: Publish ADR Guard to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+          PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+        run: >-
+          dotnet nuget push
+          "artifacts/packages/RodriOliveira.AdrGuard.${PACKAGE_VERSION}.nupkg"
+          --source https://api.nuget.org/v3/index.json
+          --api-key "${NUGET_API_KEY}"
+          --skip-duplicate
+
+  publish-github-packages:
+    name: Publish to GitHub Packages
+    needs:
+      - build-and-pack
+      - reserve-release-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Download release package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: release-package
+          path: artifacts/packages
+
+      - name: Publish ADR Guard to GitHub Packages
+        env:
+          GITHUB_PACKAGE_SOURCE: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+          GITHUB_PACKAGE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+        run: >-
+          dotnet nuget push
+          "artifacts/packages/RodriOliveira.AdrGuard.${PACKAGE_VERSION}.nupkg"
+          --source "${GITHUB_PACKAGE_SOURCE}"
+          --api-key "${GITHUB_PACKAGE_TOKEN}"
+          --skip-duplicate
+
+  publish-container:
+    name: Publish container images
+    needs:
+      - build-and-pack
+      - reserve-release-version
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-digest: ${{ steps.build-container.outputs.digest }}
+    env:
+      GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/adr-guard
+      DOCKERHUB_IMAGE: docker.io/rodrigodotnet/adr-guard
+
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build-and-pack.outputs.validated-sha }}
+          persist-credentials: false
+
+      - name: Validate Docker Hub credentials
+        shell: bash
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "::error::Repository secret DOCKERHUB_TOKEN is required to publish to Docker Hub."
+            exit 1
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: docker.io
+          username: rodrigodotnet
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate container metadata
+        id: metadata
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+        with:
+          images: |
+            ${{ env.GHCR_IMAGE }}
+            ${{ env.DOCKERHUB_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.build-and-pack.outputs.release-tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.build-and-pack.outputs.release-tag }}
+            type=semver,pattern={{major}},value=${{ needs.build-and-pack.outputs.release-tag }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=ADR Guard
+            org.opencontainers.image.description=A lightweight .NET CLI for validating, maintaining, indexing, and drafting Architecture Decision Records (ADRs).
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}#readme
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.authors=Rodrigo de Oliveira
+            org.opencontainers.image.version=${{ needs.build-and-pack.outputs.package-version }}
+            org.opencontainers.image.revision=${{ needs.build-and-pack.outputs.validated-sha }}
+          annotations: |
+            org.opencontainers.image.title=ADR Guard
+            org.opencontainers.image.description=A lightweight .NET CLI for validating, maintaining, indexing, and drafting Architecture Decision Records (ADRs).
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.version=${{ needs.build-and-pack.outputs.package-version }}
+            org.opencontainers.image.revision=${{ needs.build-and-pack.outputs.validated-sha }}
+
+      - name: Build, attest, and push multi-platform image
+        id: build-container
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          pull: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          annotations: ${{ steps.metadata.outputs.annotations }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=adr-guard-release-container
+          cache-to: type=gha,mode=max,scope=adr-guard-release-container
+
+      - name: Verify published platforms and attestations
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+        run: |
+          set -euo pipefail
+
+          for image in "${GHCR_IMAGE}" "${DOCKERHUB_IMAGE}"; do
+            echo "Verifying ${image}:${PACKAGE_VERSION}"
+            manifest="$(docker buildx imagetools inspect --raw "${image}:${PACKAGE_VERSION}")"
+
+            jq -e '
+              [.manifests[].platform | "\(.os)/\(.architecture)"] as $platforms
+              | [.manifests[] | select(.annotations["vnd.docker.reference.type"] == "attestation-manifest")] as $attestations
+              | (($platforms | index("linux/amd64")) != null)
+                and (($platforms | index("linux/arm64")) != null)
+                and (($attestations | length) >= 2)
+            ' <<< "${manifest}" >/dev/null
+          done
+
+      - name: Show published image digest
+        env:
+          IMAGE_DIGEST: ${{ steps.build-container.outputs.digest }}
+        run: echo "Published container digest ${IMAGE_DIGEST}"
+
+  publish-action-tags:
+    name: Publish GitHub Action tags
+    needs:
+      - build-and-pack
+      - publish-nuget
+      - publish-github-packages
+      - publish-container
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/adr-guard
+      PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+      RELEASE_TAG: ${{ needs.build-and-pack.outputs.release-tag }}
+      VALIDATED_SHA: ${{ needs.build-and-pack.outputs.validated-sha }}
+      RESERVATION_TAG: ${{ needs.build-and-pack.outputs.reservation-tag }}
+      EXPECTED_IMAGE_DIGEST: ${{ needs.publish-container.outputs.image-digest }}
+
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build-and-pack.outputs.validated-sha }}
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Verify exact and major runtime images
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          major="${PACKAGE_VERSION%%.*}"
+
+          for image_ref in "${PACKAGE_VERSION}" "${major}"; do
+            echo "Verifying ${GHCR_IMAGE}:${image_ref} resolves to ${EXPECTED_IMAGE_DIGEST}"
+            inspection="$(docker buildx imagetools inspect "${GHCR_IMAGE}:${image_ref}")"
+
+            if ! grep -Fq "Digest:    ${EXPECTED_IMAGE_DIGEST}" <<< "${inspection}" \
+              && ! grep -Fq "Digest: ${EXPECTED_IMAGE_DIGEST}" <<< "${inspection}"; then
+              echo "::error::${GHCR_IMAGE}:${image_ref} does not resolve to the container digest published by this release."
+              echo "${inspection}"
+              exit 1
+            fi
+          done
+
+      - name: Smoke-test exact and major Action runtime resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          major="${PACKAGE_VERSION%%.*}"
+
+          for action_ref in "${RELEASE_TAG}" "v${major}"; do
+            echo "Testing Action runtime resolution for ${action_ref}"
+
+            env \
+              GITHUB_WORKSPACE="${PWD}" \
+              RUNNER_OS=Linux \
+              ADR_GUARD_PATH=docs/adr \
+              ADR_GUARD_COMMAND=check \
+              ADR_GUARD_VERSION="" \
+              ADR_GUARD_ACTION_REF="${action_ref}" \
+              bash scripts/github-action.sh
+          done
+
+      - name: Publish immutable and compatibility Action tags
+        shell: bash
+        run: >-
+          bash scripts/publish-action-tags.sh
+          "${RELEASE_TAG}"
+          "${VALIDATED_SHA}"
+          origin
+          "${RESERVATION_TAG}"
+
+  github-release:
+    name: Create GitHub Release
+    needs:
+      - build-and-pack
+      - publish-action-tags
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: release-package
+          path: artifacts/packages
+
+      - name: Create or update GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.build-and-pack.outputs.release-tag }}
+          PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+          VALIDATED_SHA: ${{ needs.build-and-pack.outputs.validated-sha }}
+        run: |
+          set -euo pipefail
+
+          package_asset="RodriOliveira.AdrGuard.${PACKAGE_VERSION}.nupkg"
+
+          if gh release view "${RELEASE_TAG}" --repo "${GH_REPO}" >/dev/null 2>&1; then
+            echo "GitHub Release '${RELEASE_TAG}' already exists; verifying immutable release assets."
+
+            tag_sha="$(git ls-remote --tags "https://github.com/${GH_REPO}.git" "refs/tags/${RELEASE_TAG}" | awk 'NR == 1 { print $1 }')"
+            if [[ "${tag_sha}" != "${VALIDATED_SHA}" ]]; then
+              echo "::error::Existing release tag '${RELEASE_TAG}' does not point to validated commit ${VALIDATED_SHA}."
+              exit 1
+            fi
+
+            if gh release view "${RELEASE_TAG}" --repo "${GH_REPO}" --json assets \
+              --jq '.assets[].name' | grep -Fxq "${package_asset}"; then
+              echo "Release asset '${package_asset}' already exists; leaving immutable release unchanged."
+              exit 0
+            fi
+
+            gh release upload "${RELEASE_TAG}" \
+              "artifacts/packages/${package_asset}" \
+              --repo "${GH_REPO}"
+
+            echo "Completed missing release asset '${package_asset}' without replacing existing assets."
+            exit 0
+          fi
+
+          gh release create "${RELEASE_TAG}" \
+            artifacts/packages/*.nupkg \
+            --repo "${GH_REPO}" \
+            --verify-tag \
+            --generate-notes \
+            --title "${RELEASE_TAG}"
+ | sort -V | tail -n 1 || true)"
+          existing_reservation="$(
+            git tag --points-at "${VALIDATED_SHA}" \
+              | grep -E '^release-reservation/v[0-9]+\.[0-9]+\.[0-9]+
+      - name: Restore
+        run: dotnet restore AdrGuard.slnx
+
+      - name: Validate resolved MSBuild version
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package_version }}
+        run: |
+          set -euo pipefail
+
+          resolved_version="$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:Version -p:Version="${PACKAGE_VERSION}" | tr -d '\r' | sed '/^[[:space:]]*$/d' | tail -n 1)"
+          resolved_package_version="$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:PackageVersion -p:Version="${PACKAGE_VERSION}" -p:PackageVersion="${PACKAGE_VERSION}" | tr -d '\r' | sed '/^[[:space:]]*$/d' | tail -n 1)"
+
+          if [[ "${resolved_version}" != "${PACKAGE_VERSION}" ]]; then
+            echo "::error::Resolved Version '${resolved_version}' differs from release version '${PACKAGE_VERSION}'."
+            exit 1
+          fi
+
+          if [[ "${resolved_package_version}" != "${PACKAGE_VERSION}" ]]; then
+            echo "::error::Resolved PackageVersion '${resolved_package_version}' differs from release version '${PACKAGE_VERSION}'."
+            exit 1
+          fi
+
+      - name: Build release
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package_version }}
+        run: >-
+          dotnet build AdrGuard.slnx
+          --configuration Release
+          --no-restore
+          -p:Version="${PACKAGE_VERSION}"
+          -p:PackageVersion="${PACKAGE_VERSION}"
+          -p:ContinuousIntegrationBuild=true
+
+      - name: Run tests
+        run: dotnet test AdrGuard.slnx --configuration Release --no-build
+
+      - name: Pack ADR Guard
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package_version }}
+          VALIDATED_SHA: ${{ steps.version.outputs.validated_sha }}
+        run: >-
+          dotnet pack src/AdrGuard/AdrGuard.csproj
+          --configuration Release
+          --no-build
+          --output artifacts/packages
+          -p:Version="${PACKAGE_VERSION}"
+          -p:PackageVersion="${PACKAGE_VERSION}"
+          -p:RepositoryCommit="${VALIDATED_SHA}"
+          -p:ContinuousIntegrationBuild=true
+
+      - name: Validate package output
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package_version }}
+        run: |
+          set -euo pipefail
+
+          expected="artifacts/packages/RodriOliveira.AdrGuard.${PACKAGE_VERSION}.nupkg"
+
+          if [[ ! -f "${expected}" ]]; then
+            echo "::error::Expected package '${expected}' was not produced."
+            find artifacts/packages -maxdepth 1 -type f -print || true
+            exit 1
+          fi
+
+          resolved_package_id="$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:PackageId | tr -d '\r' | sed '/^[[:space:]]*$/d' | tail -n 1)"
+
+          if [[ "${resolved_package_id}" != "RodriOliveira.AdrGuard" ]]; then
+            echo "::error::Unexpected PackageId '${resolved_package_id}'."
+            exit 1
+          fi
+
+      - name: Install and smoke-test packaged tool
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.package_version }}
+        run: |
+          set -euo pipefail
+
+          dotnet tool install \
+            --tool-path ./.release-tools \
+            RodriOliveira.AdrGuard \
+            --version "${PACKAGE_VERSION}" \
+            --add-source ./artifacts/packages \
+            --ignore-failed-sources
+
+          ./.release-tools/adr-guard check docs/adr
+          ./.release-tools/adr-guard index docs/adr
+          git diff --exit-code -- docs/adr/README.md
+
+      - name: Upload release package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-package
+          path: artifacts/packages/*.nupkg
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-nuget:
+    name: Publish to NuGet.org
+    needs: build-and-pack
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Download release package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: release-package
+          path: artifacts/packages
+
+      - name: Exchange GitHub OIDC token for temporary NuGet API key
+        id: nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: rodri-oliveira-dev
+
+      - name: Publish ADR Guard to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+          PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+        run: >-
+          dotnet nuget push
+          "artifacts/packages/RodriOliveira.AdrGuard.${PACKAGE_VERSION}.nupkg"
+          --source https://api.nuget.org/v3/index.json
+          --api-key "${NUGET_API_KEY}"
+          --skip-duplicate
+
+  publish-github-packages:
+    name: Publish to GitHub Packages
+    needs: build-and-pack
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Download release package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: release-package
+          path: artifacts/packages
+
+      - name: Publish ADR Guard to GitHub Packages
+        env:
+          GITHUB_PACKAGE_SOURCE: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+          GITHUB_PACKAGE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+        run: >-
+          dotnet nuget push
+          "artifacts/packages/RodriOliveira.AdrGuard.${PACKAGE_VERSION}.nupkg"
+          --source "${GITHUB_PACKAGE_SOURCE}"
+          --api-key "${GITHUB_PACKAGE_TOKEN}"
+          --skip-duplicate
+
+  publish-container:
+    name: Publish container images
+    needs: build-and-pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-digest: ${{ steps.build-container.outputs.digest }}
+    env:
+      GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/adr-guard
+      DOCKERHUB_IMAGE: docker.io/rodrigodotnet/adr-guard
+
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build-and-pack.outputs.validated-sha }}
+          persist-credentials: false
+
+      - name: Validate Docker Hub credentials
+        shell: bash
+        env:
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${DOCKERHUB_TOKEN}" ]]; then
+            echo "::error::Repository secret DOCKERHUB_TOKEN is required to publish to Docker Hub."
+            exit 1
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: docker.io
+          username: rodrigodotnet
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate container metadata
+        id: metadata
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+        with:
+          images: |
+            ${{ env.GHCR_IMAGE }}
+            ${{ env.DOCKERHUB_IMAGE }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.build-and-pack.outputs.release-tag }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.build-and-pack.outputs.release-tag }}
+            type=semver,pattern={{major}},value=${{ needs.build-and-pack.outputs.release-tag }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=ADR Guard
+            org.opencontainers.image.description=A lightweight .NET CLI for validating, maintaining, indexing, and drafting Architecture Decision Records (ADRs).
+            org.opencontainers.image.url=https://github.com/${{ github.repository }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}#readme
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.authors=Rodrigo de Oliveira
+            org.opencontainers.image.version=${{ needs.build-and-pack.outputs.package-version }}
+            org.opencontainers.image.revision=${{ needs.build-and-pack.outputs.validated-sha }}
+          annotations: |
+            org.opencontainers.image.title=ADR Guard
+            org.opencontainers.image.description=A lightweight .NET CLI for validating, maintaining, indexing, and drafting Architecture Decision Records (ADRs).
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.version=${{ needs.build-and-pack.outputs.package-version }}
+            org.opencontainers.image.revision=${{ needs.build-and-pack.outputs.validated-sha }}
+
+      - name: Build, attest, and push multi-platform image
+        id: build-container
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          pull: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          annotations: ${{ steps.metadata.outputs.annotations }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=adr-guard-release-container
+          cache-to: type=gha,mode=max,scope=adr-guard-release-container
+
+      - name: Verify published platforms and attestations
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+        run: |
+          set -euo pipefail
+
+          for image in "${GHCR_IMAGE}" "${DOCKERHUB_IMAGE}"; do
+            echo "Verifying ${image}:${PACKAGE_VERSION}"
+            manifest="$(docker buildx imagetools inspect --raw "${image}:${PACKAGE_VERSION}")"
+
+            jq -e '
+              [.manifests[].platform | "\(.os)/\(.architecture)"] as $platforms
+              | [.manifests[] | select(.annotations["vnd.docker.reference.type"] == "attestation-manifest")] as $attestations
+              | (($platforms | index("linux/amd64")) != null)
+                and (($platforms | index("linux/arm64")) != null)
+                and (($attestations | length) >= 2)
+            ' <<< "${manifest}" >/dev/null
+          done
+
+      - name: Show published image digest
+        env:
+          IMAGE_DIGEST: ${{ steps.build-container.outputs.digest }}
+        run: echo "Published container digest ${IMAGE_DIGEST}"
+
+  publish-action-tags:
+    name: Publish GitHub Action tags
+    needs:
+      - build-and-pack
+      - publish-nuget
+      - publish-github-packages
+      - publish-container
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/adr-guard
+      PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+      RELEASE_TAG: ${{ needs.build-and-pack.outputs.release-tag }}
+      VALIDATED_SHA: ${{ needs.build-and-pack.outputs.validated-sha }}
+      EXPECTED_IMAGE_DIGEST: ${{ needs.publish-container.outputs.image-digest }}
+
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build-and-pack.outputs.validated-sha }}
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Verify exact and major runtime images
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          major="${PACKAGE_VERSION%%.*}"
+
+          for image_ref in "${PACKAGE_VERSION}" "${major}"; do
+            echo "Verifying ${GHCR_IMAGE}:${image_ref} resolves to ${EXPECTED_IMAGE_DIGEST}"
+            inspection="$(docker buildx imagetools inspect "${GHCR_IMAGE}:${image_ref}")"
+
+            if ! grep -Fq "Digest:    ${EXPECTED_IMAGE_DIGEST}" <<< "${inspection}" \
+              && ! grep -Fq "Digest: ${EXPECTED_IMAGE_DIGEST}" <<< "${inspection}"; then
+              echo "::error::${GHCR_IMAGE}:${image_ref} does not resolve to the container digest published by this release."
+              echo "${inspection}"
+              exit 1
+            fi
+          done
+
+      - name: Smoke-test exact and major Action runtime resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          major="${PACKAGE_VERSION%%.*}"
+
+          for action_ref in "${RELEASE_TAG}" "v${major}"; do
+            echo "Testing Action runtime resolution for ${action_ref}"
+
+            env \
+              GITHUB_WORKSPACE="${PWD}" \
+              RUNNER_OS=Linux \
+              ADR_GUARD_PATH=docs/adr \
+              ADR_GUARD_COMMAND=check \
+              ADR_GUARD_VERSION="" \
+              ADR_GUARD_ACTION_REF="${action_ref}" \
+              bash scripts/github-action.sh
+          done
+
+      - name: Publish immutable and compatibility Action tags
+        shell: bash
+        run: bash scripts/publish-action-tags.sh "${RELEASE_TAG}" "${VALIDATED_SHA}"
+
+  github-release:
+    name: Create GitHub Release
+    needs:
+      - build-and-pack
+      - publish-action-tags
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: release-package
+          path: artifacts/packages
+
+      - name: Create or update GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ needs.build-and-pack.outputs.release-tag }}
+          PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+          VALIDATED_SHA: ${{ needs.build-and-pack.outputs.validated-sha }}
+        run: |
+          set -euo pipefail
+
+          package_asset="RodriOliveira.AdrGuard.${PACKAGE_VERSION}.nupkg"
+
+          if gh release view "${RELEASE_TAG}" --repo "${GH_REPO}" >/dev/null 2>&1; then
+            echo "GitHub Release '${RELEASE_TAG}' already exists; verifying immutable release assets."
+
+            tag_sha="$(git ls-remote --tags "https://github.com/${GH_REPO}.git" "refs/tags/${RELEASE_TAG}" | awk 'NR == 1 { print $1 }')"
+            if [[ "${tag_sha}" != "${VALIDATED_SHA}" ]]; then
+              echo "::error::Existing release tag '${RELEASE_TAG}' does not point to validated commit ${VALIDATED_SHA}."
+              exit 1
+            fi
+
+            if gh release view "${RELEASE_TAG}" --repo "${GH_REPO}" --json assets \
+              --jq '.assets[].name' | grep -Fxq "${package_asset}"; then
+              echo "Release asset '${package_asset}' already exists; leaving immutable release unchanged."
+              exit 0
+            fi
+
+            gh release upload "${RELEASE_TAG}" \
+              "artifacts/packages/${package_asset}" \
+              --repo "${GH_REPO}"
+
+            echo "Completed missing release asset '${package_asset}' without replacing existing assets."
+            exit 0
+          fi
+
+          gh release create "${RELEASE_TAG}" \
+            artifacts/packages/*.nupkg \
+            --repo "${GH_REPO}" \
+            --verify-tag \
+            --generate-notes \
+            --title "${RELEASE_TAG}"
+ \
+              | sort -V \
+              | tail -n 1 \
+              || true
+          )"
 
           if [[ -n "${existing_tag}" ]]; then
             package_version="${existing_tag#v}"
             release_tag="${existing_tag}"
+          elif [[ -n "${existing_reservation}" ]]; then
+            release_tag="${existing_reservation#release-reservation/}"
+            package_version="${release_tag#v}"
           else
             base_version="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' src/AdrGuard/AdrGuard.csproj | head -n 1)"
 
@@ -70,12 +970,21 @@ jobs:
               exit 1
             fi
 
-            latest_tag="$(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)"
+            latest_version="$(
+              {
+                git tag --list 'v*' \
+                  | sed -nE 's/^v([0-9]+\.[0-9]+\.[0-9]+)$/\1/p'
+                git tag --list 'release-reservation/v*' \
+                  | sed -nE 's#^release-reservation/v([0-9]+\.[0-9]+\.[0-9]+)$#\1#p'
+              } \
+                | sort -V \
+                | tail -n 1 \
+                || true
+            )"
 
-            if [[ -z "${latest_tag}" ]]; then
+            if [[ -z "${latest_version}" ]]; then
               package_version="${base_version}"
             else
-              latest_version="${latest_tag#v}"
               highest="$(printf '%s\n%s\n' "${base_version}" "${latest_version}" | sort -V | tail -n 1)"
 
               if [[ "${highest}" == "${base_version}" && "${base_version}" != "${latest_version}" ]]; then
@@ -89,11 +998,15 @@ jobs:
             release_tag="v${package_version}"
           fi
 
+          reservation_tag="release-reservation/${release_tag}"
+
           echo "package_version=${package_version}" >> "${GITHUB_OUTPUT}"
           echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+          echo "reservation_tag=${reservation_tag}" >> "${GITHUB_OUTPUT}"
           echo "validated_sha=${VALIDATED_SHA}" >> "${GITHUB_OUTPUT}"
           echo "Release version: ${package_version}"
           echo "Release tag: ${release_tag}"
+          echo "Reservation tag: ${reservation_tag}"
 
       - name: Restore
         run: dotnet restore AdrGuard.slnx
