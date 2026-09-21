@@ -3,6 +3,12 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKFLOW="${ROOT_DIR}/.github/workflows/release.yml"
+PROJECT="${ROOT_DIR}/src/AdrGuard/AdrGuard.csproj"
+
+grep -Fq '<VersionPrefix>1.0.0</VersionPrefix>' "${PROJECT}" || {
+  echo "The first public GitHub Action line must start at 1.0.0 so the release publishes @v1 instead of @v0." >&2
+  exit 1
+}
 
 job_block() {
   local job="$1"
