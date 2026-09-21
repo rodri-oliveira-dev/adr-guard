@@ -11,6 +11,11 @@ internal sealed record AdrCreationResult(
     string FilePath,
     ValidationResult ValidationResult);
 
+internal sealed record AdrRenderedCreationResult(
+    string FilePath,
+    string Content,
+    ValidationResult ValidationResult);
+
 /// <summary>
 /// Shared creation boundary for AI drafts and future offline templates. A named,
 /// OS-managed mutex serializes cooperating writers across processes on the same
@@ -72,35 +77,61 @@ internal sealed class AdrCreationService
         return new AdrCreationResult(filePath, validation);
     }
 
-    internal Task<AdrCreationResult> PersistAsync(
+    internal async Task<AdrCreationResult> PersistAsync(
         string directoryPath,
         string title,
         string content,
         string previewPath,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(content);
+
+        // Preserve the default draft contract by using its original content.
+        var result = await PersistRenderedAsync(
+                directoryPath,
+                title,
+                _ => content,
+                previewPath,
+                cancellationToken)
+            .ConfigureAwait(false);
+
+        return new AdrCreationResult(
+            result.FilePath,
+            result.ValidationResult);
+    }
+
+    /// <summary>
+    /// Calls the renderer with the final allocated ID while holding the same
+    /// creation mutex used by draft. No provider work may run in the callback.
+    /// The callback's exact content is validated and atomically persisted.
+    /// </summary>
+    internal Task<AdrRenderedCreationResult> PersistRenderedAsync(
+        string directoryPath,
+        string title,
+        Func<int, string> renderForId,
+        string previewPath,
+        CancellationToken cancellationToken)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(previewPath);
-        ArgumentNullException.ThrowIfNull(content);
+        ArgumentNullException.ThrowIfNull(renderForId);
         cancellationToken.ThrowIfCancellationRequested();
 
-        // System.Threading.Mutex is thread-affine: both WaitOne and ReleaseMutex
-        // must run on the same worker thread, including the async file write.
-        // The provider call and all dry-runs happen before reaching this worker.
+        // Mutex ownership is thread-affine on all supported platforms.
         return Task.Run(
             () => PersistUnderLock(
                 directoryPath,
                 title,
-                content,
+                renderForId,
                 previewPath,
                 cancellationToken),
             CancellationToken.None);
     }
 
-    private AdrCreationResult PersistUnderLock(
+    private AdrRenderedCreationResult PersistUnderLock(
         string directoryPath,
         string title,
-        string content,
+        Func<int, string> renderForId,
         string previewPath,
         CancellationToken cancellationToken)
     {
@@ -158,6 +189,10 @@ internal sealed class AdrCreationService
                     + "Run 'adr-guard check' and resolve its diagnostics before retrying creation.");
             }
 
+            var finalId = AdrIdAllocator.NextId(documents);
+            var content = renderForId(finalId);
+            ArgumentNullException.ThrowIfNull(content);
+
             var candidate = Prepare(
                 directoryPath,
                 title,
@@ -167,7 +202,10 @@ internal sealed class AdrCreationService
 
             if (!candidate.ValidationResult.IsValid)
             {
-                return candidate;
+                return new AdrRenderedCreationResult(
+                    candidate.FilePath,
+                    content,
+                    candidate.ValidationResult);
             }
 
             if (File.Exists(candidate.FilePath))
@@ -185,7 +223,10 @@ internal sealed class AdrCreationService
                 .GetAwaiter()
                 .GetResult();
 
-            return candidate;
+            return new AdrRenderedCreationResult(
+                candidate.FilePath,
+                content,
+                candidate.ValidationResult);
         }
         finally
         {

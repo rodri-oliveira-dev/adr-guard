@@ -16,12 +16,14 @@ internal static class CliApplication
         Usage:
           adr-guard check [directory]
           adr-guard index [directory] [--output <file>]
+          adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
           adr-guard [options]
 
         Commands:
           check    Validate ADR files. Defaults to the current directory.
           index    Validate ADR files and generate an index. Defaults to README.md.
+          new      Create a Proposed ADR from an offline Markdown template.
           draft    Generate a Proposed ADR draft through a configured AI provider.
 
         Options:
@@ -157,6 +159,7 @@ internal static class CliApplication
         {
             "check" => RunCheck(args, output, error),
             "index" => RunIndex(args, output, error),
+            "new" => NewCommand.Run(args, output, error, cancellationToken),
             "draft" => RunDraft(
                 args,
                 output,
