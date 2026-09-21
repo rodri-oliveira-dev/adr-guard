@@ -114,3 +114,22 @@ jobs:
           format: table
           exit-code: "1"
           timeout: 10m
+
+  github-action-smoke:
+    name: Smoke test GitHub Action
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Invoke local composite action
+        uses: ./
+        env:
+          ADR_GUARD_ACTION_REF_OVERRIDE: v0.1.12
+        with:
+          adr-directory: docs/adr
+
+      - name: Verify exit codes and workspace paths with spaces
+        run: bash scripts/github-action-smoke-test.sh v0.1.12
