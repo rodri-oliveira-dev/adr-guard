@@ -18,11 +18,23 @@ if grep -Fq '  ensure-release-tag:' "${WORKFLOW}"; then
   exit 1
 fi
 
+reservation_block="$(job_block reserve-release-version)"
+nuget_block="$(job_block publish-nuget)"
+packages_block="$(job_block publish-github-packages)"
 container_block="$(job_block publish-container)"
 action_block="$(job_block publish-action-tags)"
 release_block="$(job_block github-release)"
 
 grep -Fq 'image-digest: ${{ steps.build-container.outputs.digest }}' <<<"${container_block}"
+
+grep -Fq 'scripts/reserve-release-version.sh' <<<"${reservation_block}"
+
+for publication_block in "${nuget_block}" "${packages_block}" "${container_block}"; do
+  grep -Fq -- '- reserve-release-version' <<<"${publication_block}" || {
+    echo "Artifact publication must wait for the release version reservation." >&2
+    exit 1
+  }
+done
 
 for dependency in build-and-pack publish-nuget publish-github-packages publish-container; do
   grep -Fq -- "- ${dependency}" <<<"${action_block}" || {
@@ -33,6 +45,7 @@ done
 
 grep -Fq 'EXPECTED_IMAGE_DIGEST: ${{ needs.publish-container.outputs.image-digest }}' <<<"${action_block}"
 grep -Fq 'scripts/publish-action-tags.sh' <<<"${action_block}"
+grep -Fq 'RESERVATION_TAG: ${{ needs.build-and-pack.outputs.reservation-tag }}' <<<"${action_block}"
 grep -Fq -- '- publish-action-tags' <<<"${release_block}"
 
 # Exact and major image refs must be verified before Git tags become visible.
