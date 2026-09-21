@@ -61,6 +61,8 @@ A listagem deve selecionar uma versão da Action associada a uma release. Não p
 
 A primeira referência de consumo pretendida para o Marketplace é `@v1`. Enquanto uma tag `v1` real não existir e não tiver sido verificada, a documentação deve continuar marcando-a como futura.
 
+A verificação externa pré-release já passou em `rodri-oliveira-dev/poc-arquitetura`; consulte [github-action-external-verification.pt-BR.md](github-action-external-verification.pt-BR.md). Essa evidência não substitui o rerun obrigatório com `@v1` depois da release.
+
 ## Gates manuais do proprietário
 
 As etapas abaixo dependem do proprietário da conta/repositório na interface web do GitHub e não são automatizadas:
