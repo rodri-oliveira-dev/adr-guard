@@ -36,15 +36,16 @@ with:
 O workflow de release executado após o CI preserva o commit validado pelo workflow `CI` bem-sucedido e segue esta ordem:
 
 1. faz build, testes e empacotamento do commit validado;
-2. publica a .NET Tool no NuGet.org;
-3. publica o pacote no GitHub Packages;
-4. publica o container multi-plataforma no GHCR e Docker Hub, incluindo tags exata, minor, major e `latest`, além de attestations de SBOM/provenance;
-5. verifica que as referências exata e major do GHCR resolvem para o digest OCI produzido pela release;
-6. executa smoke test da resolução de runtime da Action pelas referências exata e major;
-7. cria ou verifica a tag Git imutável `vMAJOR.MINOR.PATCH` e atualiza `vMAJOR`;
-8. cria a GitHub Release.
+2. reserva o SemVer resolvido com uma tag interna `release-reservation/vMAJOR.MINOR.PATCH` vinculada ao commit validado;
+3. publica a .NET Tool no NuGet.org;
+4. publica o pacote no GitHub Packages;
+5. publica o container multi-plataforma no GHCR e Docker Hub, incluindo tags exata, minor, major e `latest`, além de attestations de SBOM/provenance;
+6. verifica que as referências exata e major do GHCR resolvem para o digest OCI produzido pela release;
+7. executa smoke test da resolução de runtime da Action pelas referências exata e major;
+8. cria ou verifica a tag Git imutável `vMAJOR.MINOR.PATCH`, atualiza `vMAJOR` e remove a reserva concluída;
+9. cria a GitHub Release.
 
-As tags da Action só são publicadas depois que o job de container termina com sucesso. Assim, uma falha na publicação do container não consegue expor uma nova tag da Action cujo runtime ainda não exista.
+As tags da Action só são publicadas depois que o job de container termina com sucesso. Assim, uma falha na publicação do container não consegue expor uma nova tag da Action cujo runtime ainda não exista. A tag interna de reserva não é uma referência suportada da Action e impede que um commit posterior reutilize um SemVer que possa ter artefatos parcialmente publicados.
 
 ## Idempotência e conflitos
 
