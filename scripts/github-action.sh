@@ -97,15 +97,24 @@ docker_args=(
   run
   --rm
   --read-only
+  --cap-drop=ALL
+  --security-opt=no-new-privileges
+  --network=none
   --workdir /workspace
+  --mount "type=bind,src=${workspace},dst=/workspace,readonly"
 )
 
-if [[ "${command}" == "check" ]]; then
-  docker_args+=(--mount "type=bind,src=${workspace},dst=/workspace,readonly")
-else
+if [[ "${command}" == "index" ]]; then
+  host_uid="$(id -u)"
+  host_gid="$(id -g)"
+
+  if [[ "${host_uid}" == "0" ]]; then
+    operational_error "The 'index' command refuses to run the container as root. Use a non-root Linux runner."
+  fi
+
   docker_args+=(
-    --user "$(id -u):$(id -g)"
-    --mount "type=bind,src=${workspace},dst=/workspace"
+    --user "${host_uid}:${host_gid}"
+    --mount "type=bind,src=${resolved_path},dst=${container_path}"
   )
 fi
 
