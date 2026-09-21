@@ -144,4 +144,4 @@ Ao usar SHA ou branch, informe o input `version` exato. Se `@v1` for usado antes
 
 As release notes são publicadas na página de [Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases).
 
-**Listagem no Marketplace: futura.** Este guia não deve afirmar disponibilidade no Marketplace nem apontar para uma listagem antes que ela seja realmente publicada e verificada.
+**Listagem no Marketplace: futura.** Este guia não deve afirmar disponibilidade no Marketplace nem apontar para uma listagem antes que ela seja realmente publicada e verificada. Os pré-requisitos, a identidade proposta da listagem e os gates manuais do proprietário estão no [checklist de publicação no Marketplace](github-marketplace.pt-BR.md). Para suporte e relato de vulnerabilidades, consulte [../SUPPORT.md](../SUPPORT.md) e [../SECURITY.md](../SECURITY.md).
