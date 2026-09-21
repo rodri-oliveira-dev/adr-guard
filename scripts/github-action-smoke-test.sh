@@ -65,6 +65,11 @@ ADR_GUARD_COMMAND=unsupported assert_exit_code 2 run_wrapper
 ADR_GUARD_PATH="../outside" assert_exit_code 2 run_wrapper
 ADR_GUARD_PATH="/tmp" assert_exit_code 2 run_wrapper
 ADR_GUARD_PATH="docs/missing" assert_exit_code 2 run_wrapper
+
+mkdir -p "${TEMP_DIR}/outside-workspace"
+ln -s "${TEMP_DIR}/outside-workspace" "${WORKSPACE}/docs/escape"
+ADR_GUARD_PATH="docs/escape" assert_exit_code 2 run_wrapper
+
 ADR_GUARD_VERSION="latest" assert_exit_code 2 run_wrapper
 
 # When version is omitted, an exact action release ref selects the matching image.
@@ -81,6 +86,7 @@ if [[ "${1:-}" == "info" ]]; then
   exit 0
 fi
 printf '%s\n' "$@" >"${DOCKER_CAPTURE:?}"
+exit "${DOCKER_EXIT_CODE:-0}"
 EOF
 chmod +x "${FAKE_BIN}/docker"
 
@@ -96,5 +102,8 @@ if grep -Fxq "type=bind,src=${WORKSPACE},dst=/workspace,readonly" "${DOCKER_CAPT
   exit 1
 fi
 grep -Fxq -- "--user" "${DOCKER_CAPTURE}"
+
+PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" DOCKER_EXIT_CODE=125 \
+  ADR_GUARD_COMMAND=check ADR_GUARD_VERSION=999.999.999 assert_exit_code 3 run_wrapper
 
 echo "GitHub Action wrapper smoke tests passed."
