@@ -455,14 +455,14 @@ After a pull request is merged into `main`, the release workflow waits for the `
 
 1. resolves a stable SemVer version, starting from `VersionPrefix` and incrementing the patch for subsequent releases;
 2. packs `RodriOliveira.AdrGuard` with that version;
-3. authenticates to NuGet.org through Trusted Publishing (OIDC) and publishes the package;
-4. publishes the same package to GitHub Packages;
-5. creates or verifies the corresponding `vMAJOR.MINOR.PATCH` tag;
-6. publishes the multi-platform OCI image to GHCR and Docker Hub with SemVer tags, OCI metadata, SBOM, and provenance attestations;
-7. verifies the published architectures and attestation manifests;
-8. creates the GitHub Release and attaches the `.nupkg`.
+3. publishes the package to NuGet.org through Trusted Publishing (OIDC) and to GitHub Packages;
+4. publishes the multi-platform OCI image to GHCR and Docker Hub with exact/minor/major/`latest` tags, OCI metadata, SBOM, and provenance attestations;
+5. verifies the published architectures, attestations, exact image digest, and moving major image digest;
+6. smoke-tests Action runtime resolution for the exact `vMAJOR.MINOR.PATCH` and moving `vMAJOR` references;
+7. creates or verifies the immutable exact Action tag and advances the moving major Action tag only after all runtime/package publication jobs succeed;
+8. creates the GitHub Release and attaches the `.nupkg` without overwriting an existing immutable asset.
 
-The workflow is idempotent for a commit that already has a release tag.
+A failed container publication cannot expose a new Action tag. Reruns preserve immutable SemVer tags and never move a major compatibility tag backwards. See the [GitHub Action release policy](docs/github-action-release.md) for the full verification and idempotency rules.
 
 ## License
 
