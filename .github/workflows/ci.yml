@@ -115,34 +115,105 @@ jobs:
           exit-code: "1"
           timeout: 10m
 
-  github-action-smoke:
-    name: Smoke test GitHub Action
+  github-action-contract:
+    name: GitHub Action contract
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    env:
+      ADR_GUARD_ACTION_IMAGE_VERSION: "0.1.12"
+      ACTION_FIXTURE_ROOT: .tmp/adr-action-contract
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Invoke local composite action with check
+      - name: Prepare isolated consumer fixtures
+        run: bash scripts/github-action-fixtures.sh "${ACTION_FIXTURE_ROOT}"
+
+      - name: Consumer check succeeds on valid ADRs
         uses: ./
         with:
-          path: docs/adr
+          path: .tmp/adr-action-contract/valid ADRs
           command: check
-          version: 0.1.12
+          version: ${{ env.ADR_GUARD_ACTION_IMAGE_VERSION }}
 
-      - name: Invoke local composite action with index
+      - name: Consumer check supports custom paths with spaces
         uses: ./
         with:
-          path: docs/adr
+          path: .tmp/adr-action-contract/custom path/adr records
+          command: check
+          version: ${{ env.ADR_GUARD_ACTION_IMAGE_VERSION }}
+
+      - name: Consumer check fails on an invalid ADR
+        id: invalid-adr
+        continue-on-error: true
+        uses: ./
+        with:
+          path: .tmp/adr-action-contract/invalid ADRs
+          command: check
+          version: ${{ env.ADR_GUARD_ACTION_IMAGE_VERSION }}
+
+      - name: Consumer check fails on a missing path
+        id: missing-path
+        continue-on-error: true
+        uses: ./
+        with:
+          path: .tmp/adr-action-contract/does not exist
+          command: check
+          version: ${{ env.ADR_GUARD_ACTION_IMAGE_VERSION }}
+
+      - name: Consumer check fails on an invalid command
+        id: invalid-command
+        continue-on-error: true
+        uses: ./
+        with:
+          path: .tmp/adr-action-contract/valid ADRs
+          command: unsupported
+          version: ${{ env.ADR_GUARD_ACTION_IMAGE_VERSION }}
+
+      - name: Assert expected consumer failures
+        env:
+          INVALID_ADR_OUTCOME: ${{ steps.invalid-adr.outcome }}
+          MISSING_PATH_OUTCOME: ${{ steps.missing-path.outcome }}
+          INVALID_COMMAND_OUTCOME: ${{ steps.invalid-command.outcome }}
+        run: |
+          test "${INVALID_ADR_OUTCOME}" = failure
+          test "${MISSING_PATH_OUTCOME}" = failure
+          test "${INVALID_COMMAND_OUTCOME}" = failure
+
+      - name: Snapshot fixture filesystem before index
+        run: |
+          find "${ACTION_FIXTURE_ROOT}" -type f -print0             | sort -z             | xargs -0 sha256sum > "${RUNNER_TEMP}/action-fixtures-before.sha256"
+
+      - name: Consumer index writes the selected fixture
+        uses: ./
+        with:
+          path: .tmp/adr-action-contract/index ADRs
           command: index
-          version: 0.1.12
+          version: ${{ env.ADR_GUARD_ACTION_IMAGE_VERSION }}
 
-      - name: Verify index remains deterministic
-        run: git diff --exit-code -- docs/adr/README.md
+      - name: Assert index changes only the intended output
+        run: |
+          test -s "${ACTION_FIXTURE_ROOT}/index ADRs/README.md"
 
-      - name: Verify inputs, exit codes, mount modes, and paths with spaces
-        run: bash scripts/github-action-smoke-test.sh 0.1.12
+          find "${ACTION_FIXTURE_ROOT}" -type f             ! -path "${ACTION_FIXTURE_ROOT}/index ADRs/README.md"             -print0             | sort -z             | xargs -0 sha256sum > "${RUNNER_TEMP}/action-fixtures-after.sha256"
+
+          cmp             "${RUNNER_TEMP}/action-fixtures-before.sha256"             "${RUNNER_TEMP}/action-fixtures-after.sha256"
+
+          mapfile -d '' generated_indexes < <(
+            find "${ACTION_FIXTURE_ROOT}" -type f -name README.md -print0
+          )
+          test "${#generated_indexes[@]}" -eq 1
+          test "${generated_indexes[0]}" = "${ACTION_FIXTURE_ROOT}/index ADRs/README.md"
+
+      - name: Compare Action with the published CLI diagnostic matrix
+        run: >-
+          bash scripts/github-action-contract-test.sh
+          "${ADR_GUARD_ACTION_IMAGE_VERSION}"
+          "${ACTION_FIXTURE_ROOT}"
+
+      - name: Verify low-level input, exit-code, mount, and workspace behavior
+        run: bash scripts/github-action-smoke-test.sh "${ADR_GUARD_ACTION_IMAGE_VERSION}"
 
       - name: Verify annotations, summaries, and hostile diagnostic handling
         run: bash scripts/github-action-report-test.sh
