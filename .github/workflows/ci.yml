@@ -246,3 +246,8 @@ jobs:
 
       - name: Verify consumer documentation and workflow examples
         run: bash scripts/github-action-docs-test.sh
+
+      - name: Verify GitHub Marketplace readiness
+        env:
+          REPOSITORY_VISIBILITY: ${{ github.event.repository.visibility }}
+        run: bash scripts/github-marketplace-readiness-test.sh
