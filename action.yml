@@ -1,0 +1,26 @@
+name: ADR Guard
+description: Validate Architecture Decision Records (ADRs) with the version-matched ADR Guard container image.
+author: Rodrigo de Oliveira
+
+inputs:
+  adr-directory:
+    description: Repository-relative directory containing ADR Markdown files.
+    required: false
+    default: docs/adr
+
+runs:
+  using: composite
+  steps:
+    - name: Validate ADRs
+      shell: bash
+      env:
+        ADR_GUARD_DIRECTORY: ${{ inputs.adr-directory }}
+        ADR_GUARD_ACTION_REF: ${{ github.action_ref }}
+      run: >-
+        bash "${{ github.action_path }}/scripts/github-action.sh"
+        "${ADR_GUARD_DIRECTORY}"
+        "${ADR_GUARD_ACTION_REF}"
+
+branding:
+  icon: shield
+  color: purple
