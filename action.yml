@@ -1,5 +1,5 @@
-name: ADR Guard
-description: Validate or index Architecture Decision Records (ADRs) with a version-pinned ADR Guard container image.
+name: ADR Guard - Architecture Decision Validator
+description: Validate and index Architecture Decision Records (ADRs) with deterministic checks and GitHub file annotations.
 author: Rodrigo de Oliveira
 
 inputs:
