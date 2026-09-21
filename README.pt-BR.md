@@ -109,9 +109,9 @@ As entradas são pequenas e correspondem diretamente ao comportamento suportado 
 | --- | --- | --- |
 | `path` | `docs/adr` | Diretório de ADRs relativo ao repositório. Caminhos absolutos, travessia com `..`, diretórios inexistentes e caminhos que resolvam para fora de `GITHUB_WORKSPACE` são rejeitados. |
 | `command` | `check` | `check` ou `index`. |
-| `version` | vazio | Versão exata opcional da imagem, no formato `X.Y.Z` ou `vX.Y.Z`. Quando omitida, a própria Action deve ser referenciada por uma tag exata `@vX.Y.Z`. |
+| `version` | vazio | Versão exata opcional da imagem, no formato `X.Y.Z` ou `vX.Y.Z`. Quando omitida, `@vX.Y.Z` seleciona a imagem exata e `@vX` seleciona a tag major móvel correspondente. Pins por SHA/branch exigem versão exata explícita. |
 
-A seleção de versão nunca faz fallback para `latest`. Com `uses: rodri-oliveira-dev/adr-guard@v1.2.3`, a Action executa `ghcr.io/rodri-oliveira-dev/adr-guard:1.2.3`. Se a Action estiver fixada por SHA de commit ou por uma branch, informe a versão da imagem explicitamente:
+A seleção de versão nunca faz fallback para `latest`. Com `uses: rodri-oliveira-dev/adr-guard@v1.2.3`, a Action executa `ghcr.io/rodri-oliveira-dev/adr-guard:1.2.3`. Com `uses: rodri-oliveira-dev/adr-guard@v1`, ela usa a tag major móvel correspondente da imagem, `:1`. Tags exatas da Action são imutáveis; tags major avançam apenas para releases bem-sucedidas mais novas daquela major. Se a Action estiver fixada por SHA de commit ou por uma branch, informe a versão da imagem explicitamente:
 
 ```yaml
 - name: Validar ADRs com a Action fixada por commit
@@ -121,6 +121,8 @@ A seleção de versão nunca faz fallback para `latest`. Com `uses: rodri-olivei
     command: check
     version: 1.2.3
 ```
+
+Consulte a [política de release da GitHub Action](docs/github-action-release.pt-BR.md) para semântica de tags exatas e major, garantias de idempotência, ordem de publicação e procedimento de verificação.
 
 O comando `check` monta o checkout como somente leitura, impedindo que a validação altere arquivos do repositório. No `index`, o workspace continua somente leitura e apenas o diretório de ADRs selecionado é sobreposto como gravável, pois é nele que o CLI gera ou atualiza o `README.md`:
 
