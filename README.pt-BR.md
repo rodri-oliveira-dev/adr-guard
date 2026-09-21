@@ -8,6 +8,8 @@
 
 [English](README.md)
 
+**Consumidores da GitHub Action:** consulte o [guia de consumo](docs/github-action.pt-BR.md), a [política de release](docs/github-action-release.pt-BR.md) e o [modelo de segurança](docs/github-action-security.pt-BR.md). A tag de compatibilidade `@v1` é **futura** e ainda não foi publicada.
+
 ADR Guard é uma ferramenta de linha de comando para .NET focada em validar e indexar Architecture Decision Records (ADRs).
 
 A proposta é permitir que convenções de ADR sejam explícitas, revisáveis e verificáveis tanto no desenvolvimento local quanto no CI, sem adicionar dependências pesadas em runtime.
@@ -74,6 +76,10 @@ Consulte o [guia de container e supply chain](docs/container.pt-BR.md) para volu
 ## GitHub Action
 
 O ADR Guard fornece uma composite GitHub Action que executa diretamente a imagem publicada no GHCR, portanto o repositório consumidor não precisa instalar o .NET SDK. O checkout deve acontecer antes da Action, que suporta runners Linux com Docker funcional, como `ubuntu-latest`.
+
+> A referência móvel `@v1` ainda não foi publicada. Trate exemplos com `uses: rodri-oliveira-dev/adr-guard@v1` como futuros até que o workflow de release crie e verifique essa tag.
+
+Para workflows completos de pull request/main, inputs, annotations, configuração de checks obrigatórios, troubleshooting e status de release/Marketplace, consulte o [guia de consumo da GitHub Action](docs/github-action.pt-BR.md).
 
 A operação padrão valida `docs/adr`:
 
