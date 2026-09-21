@@ -21,7 +21,7 @@ for input in path command version; do
     echo "action.yml no longer exposes expected input '${input}'." >&2
     exit 1
   }
-  input_token="`${input}`"
+  input_token="$(printf '\140%s\140' "${input}")"
   grep -Fq "${input_token}" "${GUIDE_EN}" || {
     echo "English guide does not document input '${input}'." >&2
     exit 1
