@@ -84,12 +84,17 @@ on:
   pull_request:
   push:
 
+permissions:
+  contents: read
+
 jobs:
   adr-guard:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Validar ADRs
         uses: rodri-oliveira-dev/adr-guard@vX.Y.Z
@@ -117,7 +122,7 @@ A seleção de versão nunca faz fallback para `latest`. Com `uses: rodri-olivei
     version: 1.2.3
 ```
 
-O comando `check` monta o checkout como somente leitura, impedindo que a validação altere arquivos do repositório. O comando `index` é explicitamente gravável porque o CLI gera ou atualiza o `README.md` dentro do diretório de ADRs selecionado:
+O comando `check` monta o checkout como somente leitura, impedindo que a validação altere arquivos do repositório. No `index`, o workspace continua somente leitura e apenas o diretório de ADRs selecionado é sobreposto como gravável, pois é nele que o CLI gera ou atualiza o `README.md`:
 
 ```yaml
 - name: Gerar índice de ADRs
@@ -136,7 +141,9 @@ Quando um comando `check` ou `index` termina com exit code `1`, a Action convert
 
 A Action grava um `GITHUB_STEP_SUMMARY` compacto com resultado, exit code e, nas falhas de validação reconhecidas, quantidade total e contagem por regra. São emitidas **no máximo 50 anotações por execução**; todos os diagnósticos continuam disponíveis no log bruto do CLI. A interpretação de workflow commands fica temporariamente suspensa durante a exibição desse log, evitando que conteúdo não confiável dos ADRs injete anotações ou outros comandos. Uma falha no relatório não altera o exit code original do CLI.
 
-Windows, macOS e runners Linux sem um daemon Docker funcional não são suportados.
+A própria Action não precisa de `GITHUB_TOKEN`, permissão de escrita no repositório, chaves de API de providers ou acesso de rede. Os containers executam com filesystem raiz somente leitura, todas as capabilities Linux removidas, `no-new-privileges` e rede desabilitada. O `draft` assistido por IA e as credenciais dos providers ficam deliberadamente fora do contrato da Action padrão. Consulte o [modelo de segurança da GitHub Action](docs/github-action-security.pt-BR.md) para detalhes sobre registry, secrets, execução não-root e pinning por versão/digest.
+
+Windows, macOS, runners Linux sem Docker funcional e execução como root para `index` gravável não são suportados.
 
 ## Formato dos ADRs
 
