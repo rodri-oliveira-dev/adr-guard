@@ -2,6 +2,8 @@
 
 ADR Guard publishes its GitHub Action from the same validated commit and release version used for the .NET Tool and container images.
 
+The public GitHub Action release line starts at **1.0.0**. This intentionally promotes the package baseline from the previous 0.1.x CLI releases so the first Marketplace-compatible release publishes both `v1.0.0` and the consumer compatibility reference `v1`.
+
 ## Published Action references
 
 Each successful release publishes two Action references:
