@@ -47,6 +47,8 @@ docker run --rm \
 
 Validation can use a read-only mount because `check` does not write repository files.
 
+The reusable GitHub Action applies stricter defaults on top of this image: read-only root filesystem, read-only consumer workspace for `check`, all Linux capabilities dropped, `no-new-privileges`, and networking disabled. See the [GitHub Action security model](github-action-security.md).
+
 ## Generate the ADR index
 
 `index` writes to the mounted repository. On Linux and macOS, using the host UID/GID avoids ownership mismatches on generated files:
