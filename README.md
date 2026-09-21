@@ -84,12 +84,17 @@ on:
   pull_request:
   push:
 
+permissions:
+  contents: read
+
 jobs:
   adr-guard:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Validate ADRs
         uses: rodri-oliveira-dev/adr-guard@vX.Y.Z
@@ -117,7 +122,7 @@ Version selection never falls back to `latest`. For `uses: rodri-oliveira-dev/ad
     version: 1.2.3
 ```
 
-The `check` command mounts the checked-out workspace read-only, so validation cannot mutate repository files. The `index` command is explicitly writable because the CLI generates or refreshes `README.md` in the selected ADR directory:
+The `check` command mounts the checked-out workspace read-only, so validation cannot mutate repository files. For `index`, the workspace remains read-only and only the selected ADR directory is over-mounted as writable because the CLI generates or refreshes `README.md` there:
 
 ```yaml
 - name: Generate ADR index
@@ -136,7 +141,9 @@ When a `check` or `index` run returns exit code `1`, the action converts recogni
 
 The action writes a compact `GITHUB_STEP_SUMMARY` with the outcome, exit code, and (for validation failures with recognized output) total and per-rule diagnostic counts. **At most 50 file annotations** are emitted per run; all diagnostics remain available in the raw CLI log. Raw output is replayed with GitHub workflow-command processing temporarily suspended to prevent untrusted ADR content from injecting annotations or other workflow commands. Reporting errors never replace the original CLI exit code.
 
-Windows, macOS, and Linux runners without a working Docker daemon are not supported.
+The Action itself does not require `GITHUB_TOKEN`, repository write permissions, provider API keys, or network access. It runs containers with a read-only root filesystem, all Linux capabilities dropped, `no-new-privileges`, and networking disabled. AI-assisted `draft` and provider credentials are intentionally outside the default Action contract. See the [GitHub Action security model](docs/github-action-security.md) for registry access, secret handling, non-root execution, and version/digest pinning guidance.
+
+Windows, macOS, Linux runners without a working Docker daemon, and root execution for writable `index` are not supported.
 
 ## ADR format
 
