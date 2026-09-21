@@ -12,7 +12,7 @@ inputs:
     required: false
     default: check
   version:
-    description: Optional exact ADR Guard image version (X.Y.Z or vX.Y.Z). When omitted, an exact action ref such as @vX.Y.Z is required.
+    description: Optional exact ADR Guard image version (X.Y.Z or vX.Y.Z). When omitted, @vX.Y.Z selects the exact image and @vX selects the matching moving major image.
     required: false
     default: ""
 
