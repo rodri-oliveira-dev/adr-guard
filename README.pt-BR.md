@@ -71,6 +71,36 @@ A imagem executa como usuário não-root. Releases incluem metadados OCI, attest
 
 Consulte o [guia de container e supply chain](docs/container.pt-BR.md) para volumes graváveis, credenciais de providers de IA, pin por digest imutável, tags e detalhes de verificação.
 
+## GitHub Action
+
+O ADR Guard também fornece uma composite action na raiz do repositório para validar ADRs sem instalar o .NET SDK no workflow consumidor. A action exige que o repositório tenha sido previamente baixado e roda apenas em Linux com Docker disponível, como no `ubuntu-latest`.
+
+Use uma tag exata de release publicada para que a action execute a imagem correspondente no GHCR:
+
+```yaml
+name: Validação de ADRs
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  adr-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Validar ADRs
+        uses: rodri-oliveira-dev/adr-guard@vX.Y.Z
+        with:
+          adr-directory: docs/adr
+```
+
+Substitua `vX.Y.Z` por uma tag de release do ADR Guard. Neste momento, a action oferece somente o comando `check`. Ela monta `GITHUB_WORKSPACE` como somente leitura em `/workspace`, trata com segurança caminhos relativos do repositório (inclusive caminhos com espaços) e preserva o contrato de exit codes do CLI: `0` para sucesso, `1` para falha de validação, `2` para erro de uso e `3` para erro operacional.
+
+Windows, macOS e runners Linux sem um daemon Docker funcional não são suportados.
+
 ## Formato dos ADRs
 
 O ADR Guard espera arquivos Markdown com um ID de quatro dígitos seguido por um slug em lowercase kebab-case:
