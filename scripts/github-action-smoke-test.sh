@@ -88,6 +88,10 @@ ADR_GUARD_VERSION="latest" assert_exit_code 2 run_wrapper
 # When version is omitted, an exact action release ref selects the matching image.
 ADR_GUARD_VERSION="" ADR_GUARD_ACTION_REF="v${IMAGE_VERSION}" assert_exit_code 0 run_wrapper
 
+# A moving major Action ref selects the corresponding moving major image tag.
+MAJOR_VERSION="${IMAGE_VERSION%%.*}"
+ADR_GUARD_VERSION="" ADR_GUARD_ACTION_REF="v${MAJOR_VERSION}" assert_exit_code 0 run_wrapper
+
 # Verify mount permissions without relying on ADR Guard behavior.
 FAKE_BIN="${TEMP_DIR}/fake-bin"
 DOCKER_CAPTURE="${TEMP_DIR}/docker-args.txt"
