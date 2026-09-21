@@ -132,6 +132,10 @@ O comando `check` monta o checkout como somente leitura, impedindo que a valida�
 
 Todas as entradas do usuário são passadas como argumentos separados de processo, e não como fragmentos executáveis de shell. Os caminhos são resolvidos em relação ao checkout antes da execução do Docker, incluindo resolução de symlinks, e o contrato de exit codes do CLI permanece inalterado: `0` para sucesso, `1` para falha de validação, `2` para erro de uso/entrada e `3` para erro operacional.
 
+Quando um comando `check` ou `index` termina com exit code `1`, a Action converte os diagnósticos reconhecidos `ADR001`–`ADR009` do CLI em **anotações de erro associadas ao arquivo** no GitHub, apenas para ADRs existentes dentro do diretório validado. Como o CLI não fornece números de linha confiáveis, as anotações não informam uma linha inventada. Caminhos e mensagens são validados e escapados antes da emissão de workflow commands; saídas inesperadas e erros operacionais não geram anotações de regras ADR.
+
+A Action grava um `GITHUB_STEP_SUMMARY` compacto com resultado, exit code e, nas falhas de validação reconhecidas, quantidade total e contagem por regra. São emitidas **no máximo 50 anotações por execução**; todos os diagnósticos continuam disponíveis no log bruto do CLI. A interpretação de workflow commands fica temporariamente suspensa durante a exibição desse log, evitando que conteúdo não confiável dos ADRs injete anotações ou outros comandos. Uma falha no relatório não altera o exit code original do CLI.
+
 Windows, macOS e runners Linux sem um daemon Docker funcional não são suportados.
 
 ## Formato dos ADRs
