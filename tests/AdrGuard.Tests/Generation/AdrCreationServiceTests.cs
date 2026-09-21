@@ -168,11 +168,9 @@ public sealed class AdrCreationServiceTests
         var root = CreateDirectory();
         try
         {
-            var creation = new AdrCreationService(
-                new AtomicAdrDraftFilePersistence());
             var documents = AdrDocumentLoader.LoadDirectory(root);
             const string invalid = "# Invalid\n\n## Status\n\nProposed\n";
-            var preview = creation.Prepare(
+            var preview = AdrCreationService.Prepare(
                 root,
                 "Invalid",
                 invalid,

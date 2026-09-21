@@ -50,7 +50,7 @@ internal sealed class AdrCreationService
                 $"{id.ToString("D4", CultureInfo.InvariantCulture)}-{slug}.md"));
     }
 
-    internal AdrCreationResult Prepare(
+    internal static AdrCreationResult Prepare(
         string directoryPath,
         string title,
         string content,

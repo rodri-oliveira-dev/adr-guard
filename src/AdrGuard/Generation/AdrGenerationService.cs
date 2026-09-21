@@ -1,4 +1,5 @@
 using AdrGuard.Model;
+using AdrGuard.Parsing;
 using AdrGuard.Validation;
 using System.Text;
 
@@ -97,7 +98,7 @@ internal sealed class AdrGenerationService
         cancellationToken.ThrowIfCancellationRequested();
 
         var content = BuildMarkdown(title, generated);
-        var preview = _creation.Prepare(
+        var preview = AdrCreationService.Prepare(
             directoryPath,
             title,
             content,
