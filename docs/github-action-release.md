@@ -36,15 +36,16 @@ with:
 The post-CI release workflow preserves the validated commit from the successful `CI` run and performs the release in this order:
 
 1. build, test, and package the validated commit;
-2. publish the .NET Tool to NuGet.org;
-3. publish the package to GitHub Packages;
-4. publish the multi-platform container to GHCR and Docker Hub, including exact, minor, major, and `latest` image tags plus SBOM/provenance attestations;
-5. verify the exact and major GHCR image references resolve to the OCI digest produced by that release;
-6. smoke-test Action runtime resolution for both the exact and major references;
-7. create or verify the immutable `vMAJOR.MINOR.PATCH` Git tag and update `vMAJOR`;
-8. create the GitHub Release.
+2. reserve the resolved SemVer with an internal `release-reservation/vMAJOR.MINOR.PATCH` tag tied to that validated commit;
+3. publish the .NET Tool to NuGet.org;
+4. publish the package to GitHub Packages;
+5. publish the multi-platform container to GHCR and Docker Hub, including exact, minor, major, and `latest` image tags plus SBOM/provenance attestations;
+6. verify the exact and major GHCR image references resolve to the OCI digest produced by that release;
+7. smoke-test Action runtime resolution for both the exact and major references;
+8. create or verify the immutable `vMAJOR.MINOR.PATCH` Git tag, update `vMAJOR`, and remove the completed reservation;
+9. create the GitHub Release.
 
-The Action tags are intentionally published after the container job succeeds. A failed container publication therefore cannot expose a new Action tag whose runtime artifact is missing.
+The Action tags are intentionally published after the container job succeeds. A failed container publication therefore cannot expose a new Action tag whose runtime artifact is missing. The internal reservation tag is not a supported Action reference and prevents a later commit from reusing a SemVer that may already have partially published artifacts.
 
 ## Idempotency and conflicts
 
