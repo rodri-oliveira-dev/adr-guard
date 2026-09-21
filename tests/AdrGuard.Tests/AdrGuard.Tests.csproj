@@ -13,4 +13,8 @@
   <ItemGroup>
     <ProjectReference Include="../../src/AdrGuard/AdrGuard.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Fixtures/Templates/*.md" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
