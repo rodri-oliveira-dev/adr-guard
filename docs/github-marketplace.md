@@ -67,7 +67,7 @@ The following steps require the repository/account owner in GitHub's web UI and 
 
 - Confirm that the proposed Action name passes GitHub's live Marketplace uniqueness validation.
 - Accept the **GitHub Marketplace Developer Agreement** for the account that owns the repository if it has not already been accepted.
-- Ensure the publishing account satisfies GitHub's release authentication requirements, including two-factor authentication.
+- Ensure the publishing account satisfies GitHub's release authentication requirements, including two-factor authentication (2FA).
 - Open the root `action.yml` after a release tag exists and use the Marketplace publication banner / draft release flow.
 - Select **Publish this Action to the GitHub Marketplace**.
 - Resolve every metadata warning until GitHub displays its successful validation state.
