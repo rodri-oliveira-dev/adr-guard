@@ -8,7 +8,7 @@
 
 [English](README.md)
 
-**Consumidores da GitHub Action:** consulte o [guia de consumo](docs/github-action.pt-BR.md), a [política de release](docs/github-action-release.pt-BR.md), o [modelo de segurança](docs/github-action-security.pt-BR.md), as [evidências de verificação externa](docs/github-action-external-verification.pt-BR.md) e o [checklist de publicação no Marketplace](docs/github-marketplace.pt-BR.md). A verificação externa pré-release passou, mas a tag `@v1` e a listagem no Marketplace ainda são **futuras**. O suporte está em [SUPPORT.md](SUPPORT.md) e relatos de segurança seguem [SECURITY.md](SECURITY.md).
+**Consumidores da GitHub Action:** consulte o [guia de consumo](docs/github-action.pt-BR.md), a [política de release](docs/github-action-release.pt-BR.md), o [modelo de segurança](docs/github-action-security.pt-BR.md), as [evidências de verificação externa](docs/github-action-external-verification.pt-BR.md) e o [checklist de publicação no Marketplace](docs/github-marketplace.pt-BR.md). A verificação externa pré-release passou, a tag de compatibilidade `@v1` está publicada e a listagem no Marketplace ainda é **futura**. O suporte está em [SUPPORT.md](SUPPORT.md) e relatos de segurança seguem [SECURITY.md](SECURITY.md).
 
 ADR Guard é uma ferramenta de linha de comando para .NET focada em validar e indexar Architecture Decision Records (ADRs).
 
@@ -77,7 +77,7 @@ Consulte o [guia de container e supply chain](docs/container.pt-BR.md) para volu
 
 O ADR Guard fornece uma composite GitHub Action que executa diretamente a imagem publicada no GHCR, portanto o repositório consumidor não precisa instalar o .NET SDK. O checkout deve acontecer antes da Action, que suporta runners Linux com Docker funcional, como `ubuntu-latest`.
 
-> A referência móvel `@v1` ainda não foi publicada. Trate exemplos com `uses: rodri-oliveira-dev/adr-guard@v1` como futuros até que o workflow de release crie e verifique essa tag.
+> A tag móvel de compatibilidade `@v1` está publicada. Consumidores podem usar `uses: rodri-oliveira-dev/adr-guard@v1`; a listagem no Marketplace é acompanhada separadamente.
 
 Para workflows completos de pull request/main, inputs, annotations, configuração de checks obrigatórios, troubleshooting e status de release/Marketplace, consulte o [guia de consumo da GitHub Action](docs/github-action.pt-BR.md).
 
