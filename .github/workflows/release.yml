@@ -194,50 +194,9 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  ensure-release-tag:
-    name: Create release tag
-    needs: build-and-pack
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout validated commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ needs.build-and-pack.outputs.validated-sha }}
-          fetch-depth: 0
-
-      - name: Create or verify tag
-        shell: bash
-        env:
-          RELEASE_TAG: ${{ needs.build-and-pack.outputs.release-tag }}
-          VALIDATED_SHA: ${{ needs.build-and-pack.outputs.validated-sha }}
-        run: |
-          set -euo pipefail
-
-          git fetch --tags --force
-
-          if git rev-parse -q --verify "refs/tags/${RELEASE_TAG}" >/dev/null; then
-            tag_sha="$(git rev-list -n 1 "${RELEASE_TAG}")"
-
-            if [[ "${tag_sha}" != "${VALIDATED_SHA}" ]]; then
-              echo "::error::Tag '${RELEASE_TAG}' points to ${tag_sha} instead of ${VALIDATED_SHA}."
-              exit 1
-            fi
-
-            echo "Tag '${RELEASE_TAG}' already exists on the validated commit."
-            exit 0
-          fi
-
-          git tag "${RELEASE_TAG}" "${VALIDATED_SHA}"
-          git push origin "refs/tags/${RELEASE_TAG}"
-
   publish-nuget:
     name: Publish to NuGet.org
-    needs:
-      - build-and-pack
-      - ensure-release-tag
+    needs: build-and-pack
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -274,9 +233,7 @@ jobs:
 
   publish-github-packages:
     name: Publish to GitHub Packages
-    needs:
-      - build-and-pack
-      - ensure-release-tag
+    needs: build-and-pack
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -308,14 +265,14 @@ jobs:
 
   publish-container:
     name: Publish container images
-    needs:
-      - build-and-pack
-      - ensure-release-tag
+    needs: build-and-pack
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
       packages: write
+    outputs:
+      image-digest: ${{ steps.build-container.outputs.digest }}
     env:
       GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/adr-guard
       DOCKERHUB_IMAGE: docker.io/rodrigodotnet/adr-guard
@@ -433,14 +390,82 @@ jobs:
           IMAGE_DIGEST: ${{ steps.build-container.outputs.digest }}
         run: echo "Published container digest ${IMAGE_DIGEST}"
 
+  publish-action-tags:
+    name: Publish GitHub Action tags
+    needs:
+      - build-and-pack
+      - publish-nuget
+      - publish-github-packages
+      - publish-container
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GHCR_IMAGE: ghcr.io/${{ github.repository_owner }}/adr-guard
+      PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+      RELEASE_TAG: ${{ needs.build-and-pack.outputs.release-tag }}
+      VALIDATED_SHA: ${{ needs.build-and-pack.outputs.validated-sha }}
+      EXPECTED_IMAGE_DIGEST: ${{ needs.publish-container.outputs.image-digest }}
+
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build-and-pack.outputs.validated-sha }}
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Verify exact and major runtime images
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          major="${PACKAGE_VERSION%%.*}"
+
+          for image_ref in "${PACKAGE_VERSION}" "${major}"; do
+            echo "Verifying ${GHCR_IMAGE}:${image_ref} resolves to ${EXPECTED_IMAGE_DIGEST}"
+            inspection="$(docker buildx imagetools inspect "${GHCR_IMAGE}:${image_ref}")"
+
+            if ! grep -Fq "Digest:    ${EXPECTED_IMAGE_DIGEST}" <<< "${inspection}" \
+              && ! grep -Fq "Digest: ${EXPECTED_IMAGE_DIGEST}" <<< "${inspection}"; then
+              echo "::error::${GHCR_IMAGE}:${image_ref} does not resolve to the container digest published by this release."
+              echo "${inspection}"
+              exit 1
+            fi
+          done
+
+      - name: Smoke-test exact and major Action runtime resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          major="${PACKAGE_VERSION%%.*}"
+
+          for action_ref in "${RELEASE_TAG}" "v${major}"; do
+            echo "Testing Action runtime resolution for ${action_ref}"
+
+            env \
+              GITHUB_WORKSPACE="${PWD}" \
+              RUNNER_OS=Linux \
+              ADR_GUARD_PATH=docs/adr \
+              ADR_GUARD_COMMAND=check \
+              ADR_GUARD_VERSION="" \
+              ADR_GUARD_ACTION_REF="${action_ref}" \
+              bash scripts/github-action.sh
+          done
+
+      - name: Publish immutable and compatibility Action tags
+        shell: bash
+        run: bash scripts/publish-action-tags.sh "${RELEASE_TAG}" "${VALIDATED_SHA}"
+
   github-release:
     name: Create GitHub Release
     needs:
       - build-and-pack
-      - ensure-release-tag
-      - publish-nuget
-      - publish-github-packages
-      - publish-container
+      - publish-action-tags
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -458,17 +483,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.build-and-pack.outputs.release-tag }}
+          PACKAGE_VERSION: ${{ needs.build-and-pack.outputs.package-version }}
+          VALIDATED_SHA: ${{ needs.build-and-pack.outputs.validated-sha }}
         run: |
           set -euo pipefail
 
+          package_asset="RodriOliveira.AdrGuard.${PACKAGE_VERSION}.nupkg"
+
           if gh release view "${RELEASE_TAG}" --repo "${GH_REPO}" >/dev/null 2>&1; then
-            echo "GitHub Release '${RELEASE_TAG}' already exists; refreshing package artifact."
+            echo "GitHub Release '${RELEASE_TAG}' already exists; verifying immutable release assets."
+
+            tag_sha="$(git ls-remote --tags "https://github.com/${GH_REPO}.git" "refs/tags/${RELEASE_TAG}" | awk 'NR == 1 { print $1 }')"
+            if [[ "${tag_sha}" != "${VALIDATED_SHA}" ]]; then
+              echo "::error::Existing release tag '${RELEASE_TAG}' does not point to validated commit ${VALIDATED_SHA}."
+              exit 1
+            fi
+
+            if gh release view "${RELEASE_TAG}" --repo "${GH_REPO}" --json assets \
+              --jq '.assets[].name' | grep -Fxq "${package_asset}"; then
+              echo "Release asset '${package_asset}' already exists; leaving immutable release unchanged."
+              exit 0
+            fi
 
             gh release upload "${RELEASE_TAG}" \
-              artifacts/packages/*.nupkg \
-              --repo "${GH_REPO}" \
-              --clobber
+              "artifacts/packages/${package_asset}" \
+              --repo "${GH_REPO}"
 
+            echo "Completed missing release asset '${package_asset}' without replacing existing assets."
             exit 0
           fi
 
