@@ -1,6 +1,6 @@
 # GitHub Action consumer guide
 
-> **Publication status:** the reusable Action and compatibility tag `v1` are published. Examples using `rodri-oliveira-dev/adr-guard@v1` below are ready to use. The Marketplace listing is tracked separately and remains forthcoming until it is manually published and verified.
+> **Publication status:** the reusable Action is published, and the compatibility tag `v1` is published. Examples using `rodri-oliveira-dev/adr-guard@v1` below are ready to use. The Marketplace listing is tracked separately and remains forthcoming until it is manually published and verified.
 
 ADR Guard's composite Action runs the published ADR Guard container. Consumers do not need the .NET SDK, but they do need a Linux runner with Docker and must check out the repository first.
 
