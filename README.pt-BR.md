@@ -73,9 +73,9 @@ Consulte o [guia de container e supply chain](docs/container.pt-BR.md) para volu
 
 ## GitHub Action
 
-O ADR Guard também fornece uma composite action na raiz do repositório para validar ADRs sem instalar o .NET SDK no workflow consumidor. A action exige que o repositório tenha sido previamente baixado e roda apenas em Linux com Docker disponível, como no `ubuntu-latest`.
+O ADR Guard fornece uma composite GitHub Action que executa diretamente a imagem publicada no GHCR, portanto o repositório consumidor não precisa instalar o .NET SDK. O checkout deve acontecer antes da Action, que suporta runners Linux com Docker funcional, como `ubuntu-latest`.
 
-Use uma tag exata de release publicada para que a action execute a imagem correspondente no GHCR:
+A operação padrão valida `docs/adr`:
 
 ```yaml
 name: Validação de ADRs
@@ -94,10 +94,43 @@ jobs:
       - name: Validar ADRs
         uses: rodri-oliveira-dev/adr-guard@vX.Y.Z
         with:
-          adr-directory: docs/adr
+          path: docs/adr
+          command: check
 ```
 
-Substitua `vX.Y.Z` por uma tag de release do ADR Guard. Neste momento, a action oferece somente o comando `check`. Ela monta `GITHUB_WORKSPACE` como somente leitura em `/workspace`, trata com segurança caminhos relativos do repositório (inclusive caminhos com espaços) e preserva o contrato de exit codes do CLI: `0` para sucesso, `1` para falha de validação, `2` para erro de uso e `3` para erro operacional.
+As entradas são pequenas e correspondem diretamente ao comportamento suportado pelo CLI:
+
+| Entrada | Padrão | Valores permitidos / política |
+| --- | --- | --- |
+| `path` | `docs/adr` | Diretório de ADRs relativo ao repositório. Caminhos absolutos, travessia com `..`, diretórios inexistentes e caminhos que resolvam para fora de `GITHUB_WORKSPACE` são rejeitados. |
+| `command` | `check` | `check` ou `index`. |
+| `version` | vazio | Versão exata opcional da imagem, no formato `X.Y.Z` ou `vX.Y.Z`. Quando omitida, a própria Action deve ser referenciada por uma tag exata `@vX.Y.Z`. |
+
+A seleção de versão nunca faz fallback para `latest`. Com `uses: rodri-oliveira-dev/adr-guard@v1.2.3`, a Action executa `ghcr.io/rodri-oliveira-dev/adr-guard:1.2.3`. Se a Action estiver fixada por SHA de commit ou por uma branch, informe a versão da imagem explicitamente:
+
+```yaml
+- name: Validar ADRs com a Action fixada por commit
+  uses: rodri-oliveira-dev/adr-guard@<commit-sha>
+  with:
+    path: architecture/adr
+    command: check
+    version: 1.2.3
+```
+
+O comando `check` monta o checkout como somente leitura, impedindo que a validação altere arquivos do repositório. O comando `index` é explicitamente gravável porque o CLI gera ou atualiza o `README.md` dentro do diretório de ADRs selecionado:
+
+```yaml
+- name: Gerar índice de ADRs
+  uses: rodri-oliveira-dev/adr-guard@vX.Y.Z
+  with:
+    path: docs/adr
+    command: index
+
+- name: Falhar se o índice gerado não estiver commitado
+  run: git diff --exit-code -- docs/adr/README.md
+```
+
+Todas as entradas do usuário são passadas como argumentos separados de processo, e não como fragmentos executáveis de shell. Os caminhos são resolvidos em relação ao checkout antes da execução do Docker, incluindo resolução de symlinks, e o contrato de exit codes do CLI permanece inalterado: `0` para sucesso, `1` para falha de validação, `2` para erro de uso/entrada e `3` para erro operacional.
 
 Windows, macOS e runners Linux sem um daemon Docker funcional não são suportados.
 
