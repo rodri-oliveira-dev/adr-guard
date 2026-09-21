@@ -59,7 +59,7 @@ The Action release flow implemented in this repository:
 
 The Marketplace listing must select a release-tagged Action version. Do not publish from a development branch.
 
-The first supported Marketplace consumer reference is intended to be `@v1`. Until a real `v1` tag exists and is verified, documentation must continue to describe it as forthcoming.
+The first supported Marketplace consumer reference is `@v1`. The real `v1` compatibility tag is now published; before Marketplace publication, rerun the external consumer verification against the published `@v1` and record the production evidence.
 
 Independent pre-release consumer verification has already passed in `rodri-oliveira-dev/poc-arquitetura`; see [github-action-external-verification.md](github-action-external-verification.md). That evidence is intentionally not a substitute for the required post-release `@v1` rerun.
 
