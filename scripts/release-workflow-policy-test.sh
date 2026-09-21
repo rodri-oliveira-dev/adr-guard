@@ -18,6 +18,16 @@ if grep -Fq '  ensure-release-tag:' "${WORKFLOW}"; then
   exit 1
 fi
 
+grep -Fq "git tag --list 'release-reservation/v*'" "${WORKFLOW}" || {
+  echo "Release version resolution must account for unfinished version reservations." >&2
+  exit 1
+}
+
+grep -Fq 'reservation-tag: ${{ steps.version.outputs.reservation_tag }}' "${WORKFLOW}" || {
+  echo "Resolved release reservation must be exposed to downstream jobs." >&2
+  exit 1
+}
+
 reservation_block="$(job_block reserve-release-version)"
 nuget_block="$(job_block publish-nuget)"
 packages_block="$(job_block publish-github-packages)"
