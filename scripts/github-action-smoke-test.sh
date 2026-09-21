@@ -88,65 +88,7 @@ ADR_GUARD_VERSION="latest" assert_exit_code 2 run_wrapper
 
 # Untrusted inputs must never be able to inject additional GitHub workflow commands.
 HOSTILE_INPUT_LOG="${TEMP_DIR}/hostile-input.log"
-ADR_GUARD_COMMAND=
-ADR_GUARD_VERSION="" ADR_GUARD_ACTION_REF="v${IMAGE_VERSION}" assert_exit_code 0 run_wrapper
-
-# A moving major Action ref selects the corresponding moving major image tag.
-MAJOR_VERSION="${IMAGE_VERSION%%.*}"
-ADR_GUARD_VERSION="" ADR_GUARD_ACTION_REF="v${MAJOR_VERSION}" assert_exit_code 0 run_wrapper
-
-# Verify mount permissions without relying on ADR Guard behavior.
-FAKE_BIN="${TEMP_DIR}/fake-bin"
-DOCKER_CAPTURE="${TEMP_DIR}/docker-args.txt"
-mkdir -p "${FAKE_BIN}"
-cat >"${FAKE_BIN}/docker" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-if [[ "${1:-}" == "info" ]]; then
-  exit 0
-fi
-if [[ "${1:-}" == "pull" ]]; then
-  exit "${DOCKER_PULL_EXIT_CODE:-0}"
-fi
-printf '%s\n' "$@" >"${DOCKER_CAPTURE:?}"
-exit "${DOCKER_EXIT_CODE:-0}"
-EOF
-chmod +x "${FAKE_BIN}/docker"
-
-PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" \
-  ADR_GUARD_COMMAND=check assert_exit_code 0 run_wrapper
-grep -Fxq "type=bind,src=${WORKSPACE},dst=/workspace,readonly" "${DOCKER_CAPTURE}"
-grep -Fxq -- "--pull=never" "${DOCKER_CAPTURE}"
-grep -Fxq -- "--cap-drop=ALL" "${DOCKER_CAPTURE}"
-grep -Fxq -- "--security-opt=no-new-privileges" "${DOCKER_CAPTURE}"
-grep -Fxq -- "--network=none" "${DOCKER_CAPTURE}"
-if grep -Fxq -- "--privileged" "${DOCKER_CAPTURE}" || grep -Fxq -- "-e" "${DOCKER_CAPTURE}" || grep -Fxq -- "--env" "${DOCKER_CAPTURE}"; then
-  echo "Action containers must not be privileged or implicitly forward environment variables." >&2
-  exit 1
-fi
-
-PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" \
-  ADR_GUARD_COMMAND=index assert_exit_code 0 run_wrapper
-grep -Fxq "type=bind,src=${WORKSPACE},dst=/workspace,readonly" "${DOCKER_CAPTURE}"
-grep -Fxq "type=bind,src=${WORKSPACE}/docs/adr,dst=/workspace/docs/adr" "${DOCKER_CAPTURE}"
-grep -Fxq -- "--user" "${DOCKER_CAPTURE}"
-grep -Fxq -- "--pull=never" "${DOCKER_CAPTURE}"
-grep -Fxq -- "--cap-drop=ALL" "${DOCKER_CAPTURE}"
-grep -Fxq -- "--security-opt=no-new-privileges" "${DOCKER_CAPTURE}"
-grep -Fxq -- "--network=none" "${DOCKER_CAPTURE}"
-if grep -Fxq "type=bind,src=${WORKSPACE},dst=/workspace" "${DOCKER_CAPTURE}"; then
-  echo "Index must not make the entire consumer workspace writable." >&2
-  exit 1
-fi
-
-PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" DOCKER_EXIT_CODE=125 \
-  ADR_GUARD_COMMAND=check ADR_GUARD_VERSION=999.999.999 assert_exit_code 3 run_wrapper
-
-PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" DOCKER_PULL_EXIT_CODE=1 \
-  ADR_GUARD_COMMAND=check ADR_GUARD_VERSION=999.999.998 assert_exit_code 3 run_wrapper
-
-echo "GitHub Action wrapper smoke tests passed."
-unsupported%payload\n::warning::forged' \
+ADR_GUARD_COMMAND=$'unsupported%payload\n::warning::forged' \
   assert_exit_code 2 run_wrapper >"${HOSTILE_INPUT_LOG}" 2>&1
 grep -Fq "Unsupported command 'unsupported%25payload%0A::warning::forged'." "${HOSTILE_INPUT_LOG}"
 if grep -Fxq '::warning::forged' "${HOSTILE_INPUT_LOG}"; then
