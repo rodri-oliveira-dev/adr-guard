@@ -160,24 +160,30 @@ public sealed class NewCommandIntegrationTests
         }
     }
 
-    [Theory]
-    [InlineData(new string[] { "new" })]
-    [InlineData(new string[] { "new", "--title", "" })]
-    [InlineData(new string[] { "new", "--title", " " })]
-    [InlineData(new string[] { "new", "--title", "💥" })]
-    [InlineData(new string[] { "new", "--title", "Hello\n## Decision" })]
-    [InlineData(new string[] { "new", "--title", "Use Redis", "--template", "unknown" })]
-    [InlineData(new string[] { "new", "--title", "Use Redis", "--culture", "fr-FR" })]
-    [InlineData(new string[] { "new", "--title", "Use Redis", "--template", "extended", "--template-file", "custom.md" })]
-    [InlineData(new string[] { "new", "--title", "Use Redis", "--title", "Again" })]
-    [InlineData(new string[] { "new", "--title", "Use Redis", "--dry-run", "--preview" })]
-    [InlineData(new string[] { "new", "--title", "Use Redis", "--invalid" })]
-    public void InvalidCliArgumentsReturnUsageErrorWithoutCreatingAnything(
-        string[] arguments)
+    [Fact]
+    public void InvalidCliArgumentsReturnUsageErrorWithoutCreatingAnything()
     {
-        var result = Run(arguments);
-        Assert.Equal(ExitCodes.UsageError, result.Code);
-        Assert.NotEqual(string.Empty, result.Error);
+        string[][] invalidCases =
+        [
+            ["new"],
+            ["new", "--title", ""],
+            ["new", "--title", " "],
+            ["new", "--title", "💥"],
+            ["new", "--title", "Hello\\n## Decision"],
+            ["new", "--title", "Use Redis", "--template", "unknown"],
+            ["new", "--title", "Use Redis", "--culture", "fr-FR"],
+            ["new", "--title", "Use Redis", "--template", "extended", "--template-file", "custom.md"],
+            ["new", "--title", "Use Redis", "--title", "Again"],
+            ["new", "--title", "Use Redis", "--dry-run", "--preview"],
+            ["new", "--title", "Use Redis", "--invalid"],
+        ];
+
+        foreach (var arguments in invalidCases)
+        {
+            var result = Run(arguments);
+            Assert.Equal(ExitCodes.UsageError, result.Code);
+            Assert.NotEqual(string.Empty, result.Error);
+        }
     }
 
     [Fact]
