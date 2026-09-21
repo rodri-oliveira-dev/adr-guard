@@ -115,13 +115,38 @@ docker_args+=(
   "${container_path}"
 )
 
-docker "${docker_args[@]}"
+# Capture both streams before replaying them so a hostile ADR diagnostic cannot
+# issue arbitrary GitHub workflow commands through the raw CLI log.
+log_directory="$(mktemp -d)" || operational_error "Unable to create temporary log directory."
+trap 'rm -rf -- "${log_directory}"' EXIT
+stdout_log="${log_directory}/stdout"
+stderr_log="${log_directory}/stderr"
+
+docker "${docker_args[@]}" >"${stdout_log}" 2>"${stderr_log}"
 status=$?
+
+# The stop token is unpredictable and printed only outside the untrusted CLI
+# output. Replay the original output for troubleshooting without interpreting
+# any embedded workflow commands.
+stop_token="$(od -An -N16 -tx1 /dev/urandom | tr -d '[:space:]')"
+if [[ ! "${stop_token}" =~ ^[0-9a-f]{32}$ ]]; then
+  operational_error "Unable to generate a safe workflow-command suspension token."
+fi
+printf '::stop-commands::%s\n' "${stop_token}"
+cat -- "${stdout_log}" "${stderr_log}"
+printf '::%s::\n' "${stop_token}"
 
 # Docker reserves 125-127 for engine/invocation failures. Normalize those to
 # ADR Guard's operational-error contract while preserving CLI exit codes 0-3.
 if (( status >= 125 )); then
-  operational_error "ADR Guard image '${image}' could not be executed (Docker exit code ${status}). The requested version is not replaced with 'latest'."
+  echo "::error::ADR Guard image '${image}' could not be executed (Docker exit code ${status}). The requested version is not replaced with 'latest'." >&2
+  status=3
+fi
+
+# Reporting is best-effort: never replace the original validator exit code.
+if ! bash "$(dirname "${BASH_SOURCE[0]}")/github-action-report.sh" \
+  "${status}" "${workspace}" "${resolved_path}" "${stderr_log}" "${command}"; then
+  echo "::warning::ADR Guard annotation reporting failed; inspect the raw CLI log." >&2
 fi
 
 exit "${status}"
