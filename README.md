@@ -71,6 +71,36 @@ The image runs as a non-root user. Release images include OCI metadata, SBOM and
 
 See the [container image and supply-chain guide](docs/container.md) for writable mounts, AI-provider credentials, immutable digest pinning, tags, and verification details.
 
+## GitHub Action
+
+ADR Guard also provides a root composite action for repository validation without installing the .NET SDK in the consuming workflow. The action requires a checked-out repository and a Linux runner with Docker available, such as `ubuntu-latest`.
+
+Use an exact published release tag so the action invokes the matching published GHCR image:
+
+```yaml
+name: ADR validation
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  adr-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Validate ADRs
+        uses: rodri-oliveira-dev/adr-guard@vX.Y.Z
+        with:
+          adr-directory: docs/adr
+```
+
+Replace `vX.Y.Z` with an ADR Guard release tag. The action currently supports the `check` command only. It mounts `GITHUB_WORKSPACE` read-only at `/workspace`, safely passes repository-relative directory paths (including paths with spaces), and preserves the CLI exit-code contract: `0` success, `1` validation failure, `2` usage error, and `3` operational error.
+
+Windows, macOS, and Linux runners without a working Docker daemon are not supported.
+
 ## ADR format
 
 ADR Guard expects Markdown files named with a four-digit ID followed by a lowercase kebab-case slug:
