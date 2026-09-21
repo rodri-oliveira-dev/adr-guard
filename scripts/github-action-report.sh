@@ -113,8 +113,8 @@ if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
   {
     printf '### ADR Guard — %s\n\n' "$outcome"
     printf '| Item | Result |\n| --- | --- |\n'
-    printf '| Command | \`%s\` |\n' "$command"
-    printf '| Exit code | \`%s\` |\n' "$status"
+    printf '| Command | `%s` |\n' "$command"
+    printf '| Exit code | `%s` |\n' "$status"
     if [[ "$trusted" == true ]]; then
       printf '| Validated diagnostic count | %s |\n' "$diagnostic_count"
       printf '| File annotations | %s (cap: %s) |\n' "${#annotation_paths[@]}" "$annotation_limit"
