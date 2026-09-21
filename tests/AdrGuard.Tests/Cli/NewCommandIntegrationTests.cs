@@ -169,7 +169,7 @@ public sealed class NewCommandIntegrationTests
             ["new", "--title", ""],
             ["new", "--title", " "],
             ["new", "--title", "💥"],
-            ["new", "--title", "Hello\\n## Decision"],
+            ["new", "--title", "Hello\n## Decision"],
             ["new", "--title", "Use Redis", "--template", "unknown"],
             ["new", "--title", "Use Redis", "--culture", "fr-FR"],
             ["new", "--title", "Use Redis", "--template", "extended", "--template-file", "custom.md"],
