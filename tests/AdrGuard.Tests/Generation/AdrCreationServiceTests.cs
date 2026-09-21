@@ -37,8 +37,8 @@ public sealed class AdrCreationServiceTests
             var redis = new AdrGenerationService(provider);
             var kafka = new AdrGenerationService(provider);
 
-            var first = GenerateAsync(redis, root, "Use Redis");
-            var second = GenerateAsync(kafka, root, "Use Kafka");
+            var first = GenerateAsync(redis, root, "Use Redis", TestContext.Current.CancellationToken);
+            var second = GenerateAsync(kafka, root, "Use Kafka", TestContext.Current.CancellationToken);
             var outcomes = await Task.WhenAll(first, second);
 
             Assert.All(outcomes, outcome => Assert.True(outcome.Written));
@@ -50,7 +50,7 @@ public sealed class AdrCreationServiceTests
                     .ToArray());
             Assert.Equal(2, Directory.GetFiles(root, "*.md").Length);
             Assert.True(AdrValidator.Validate(
-                AdrDocumentLoader.LoadDirectory(root)).IsValid);
+                AdrDocumentLoader.LoadDirectory(root, TestContext.Current.CancellationToken)).IsValid);
             Assert.False(File.Exists(Path.Combine(root, "README.md")));
             AssertNoCreationArtifacts(root);
         }
@@ -68,9 +68,9 @@ public sealed class AdrCreationServiceTests
         {
             var provider = new RendezvousProvider(expectedCalls: 2);
             var first = GenerateAsync(
-                new AdrGenerationService(provider), root, "Use Redis");
+                new AdrGenerationService(provider), root, "Use Redis", TestContext.Current.CancellationToken);
             var second = GenerateAsync(
-                new AdrGenerationService(provider), root, "Use Redis");
+                new AdrGenerationService(provider), root, "Use Redis", TestContext.Current.CancellationToken);
 
             var results = await Task.WhenAll(
                 ObserveAsync(first),
@@ -78,14 +78,14 @@ public sealed class AdrCreationServiceTests
 
             Assert.Single(results, result => result.Written);
             var conflict = Assert.Single(
-                results.Where(result => result.Error is not null)).Error;
+                results, result => result.Error is not null).Error;
             var io = Assert.IsType<IOException>(conflict);
             Assert.Contains(
                 "already exists", io.Message,
                 StringComparison.OrdinalIgnoreCase);
             Assert.Single(Directory.GetFiles(root, "*.md"));
             Assert.True(AdrValidator.Validate(
-                AdrDocumentLoader.LoadDirectory(root)).IsValid);
+                AdrDocumentLoader.LoadDirectory(root, TestContext.Current.CancellationToken)).IsValid);
             AssertNoCreationArtifacts(root);
         }
         finally
@@ -105,9 +105,10 @@ public sealed class AdrCreationServiceTests
             var first = GenerateAsync(
                 new AdrGenerationService(new FixedProvider(), blocking),
                 root,
-                "Use Redis");
+                "Use Redis",
+                TestContext.Current.CancellationToken);
 
-            await blocking.Entered.WaitAsync(TimeSpan.FromSeconds(10));
+            await blocking.Entered.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
             using var cancellation = new CancellationTokenSource();
             var second = GenerateAsync(
@@ -123,7 +124,7 @@ public sealed class AdrCreationServiceTests
                 () => second);
 
             blocking.Release();
-            var completed = await first.WaitAsync(TimeSpan.FromSeconds(10));
+            var completed = await first.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
             Assert.True(completed.Written);
             Assert.Single(Directory.GetFiles(root, "*.md"));
             AssertNoCreationArtifacts(root);
@@ -142,17 +143,17 @@ public sealed class AdrCreationServiceTests
         try
         {
             var existing = Path.Combine(root, "9999-final-decision.md");
-            await File.WriteAllTextAsync(existing, ValidContent);
-            var before = await File.ReadAllTextAsync(existing);
+            await File.WriteAllTextAsync(existing, ValidContent, TestContext.Current.CancellationToken);
+            var before = await File.ReadAllTextAsync(existing, TestContext.Current.CancellationToken);
             var provider = new RecordingProvider();
 
             var failure = await Assert.ThrowsAsync<InvalidOperationException>(
                 () => GenerateAsync(
-                    new AdrGenerationService(provider), root, "Use Redis"));
+                    new AdrGenerationService(provider), root, "Use Redis", TestContext.Current.CancellationToken));
 
             Assert.Contains("9999", failure.Message, StringComparison.Ordinal);
             Assert.Equal(0, provider.Calls);
-            Assert.Equal(before, await File.ReadAllTextAsync(existing));
+            Assert.Equal(before, await File.ReadAllTextAsync(existing, TestContext.Current.CancellationToken));
             Assert.Single(Directory.GetFiles(root, "*.md"));
             AssertNoCreationArtifacts(root);
         }
@@ -168,7 +169,7 @@ public sealed class AdrCreationServiceTests
         var root = CreateDirectory();
         try
         {
-            var documents = AdrDocumentLoader.LoadDirectory(root);
+            var documents = AdrDocumentLoader.LoadDirectory(root, TestContext.Current.CancellationToken);
             const string invalid = "# Invalid\n\n## Status\n\nProposed\n";
             var preview = AdrCreationService.Prepare(
                 root,
