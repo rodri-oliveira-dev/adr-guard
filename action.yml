@@ -1,25 +1,32 @@
 name: ADR Guard
-description: Validate Architecture Decision Records (ADRs) with the version-matched ADR Guard container image.
+description: Validate or index Architecture Decision Records (ADRs) with a version-pinned ADR Guard container image.
 author: Rodrigo de Oliveira
 
 inputs:
-  adr-directory:
-    description: Repository-relative directory containing ADR Markdown files.
+  path:
+    description: Repository-relative ADR directory. Must stay inside GITHUB_WORKSPACE.
     required: false
     default: docs/adr
+  command:
+    description: ADR Guard command to run. Allowed values are 'check' and 'index'.
+    required: false
+    default: check
+  version:
+    description: Optional exact ADR Guard image version (X.Y.Z or vX.Y.Z). When omitted, an exact action ref such as @vX.Y.Z is required.
+    required: false
+    default: ""
 
 runs:
   using: composite
   steps:
-    - name: Validate ADRs
+    - name: Run ADR Guard
       shell: bash
       env:
-        ADR_GUARD_DIRECTORY: ${{ inputs.adr-directory }}
+        ADR_GUARD_PATH: ${{ inputs.path }}
+        ADR_GUARD_COMMAND: ${{ inputs.command }}
+        ADR_GUARD_VERSION: ${{ inputs.version }}
         ADR_GUARD_ACTION_REF: ${{ github.action_ref }}
-      run: >-
-        bash "${{ github.action_path }}/scripts/github-action.sh"
-        "${ADR_GUARD_DIRECTORY}"
-        "${ADR_GUARD_ACTION_REF}"
+      run: bash "${{ github.action_path }}/scripts/github-action.sh"
 
 branding:
   icon: shield
