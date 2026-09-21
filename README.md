@@ -8,7 +8,7 @@
 
 [Português (Brasil)](README.pt-BR.md)
 
-**GitHub Action consumers:** see the [consumer guide](docs/github-action.md), [release policy](docs/github-action-release.md), [security model](docs/github-action-security.md), [external verification evidence](docs/github-action-external-verification.md), and [Marketplace publication checklist](docs/github-marketplace.md). Independent pre-release consumer verification has passed, but the `@v1` compatibility tag and Marketplace listing are still **forthcoming**. Support is available through [SUPPORT.md](SUPPORT.md); security reports follow [SECURITY.md](SECURITY.md).
+**GitHub Action consumers:** see the [consumer guide](docs/github-action.md), [release policy](docs/github-action-release.md), [security model](docs/github-action-security.md), [external verification evidence](docs/github-action-external-verification.md), and [Marketplace publication checklist](docs/github-marketplace.md). Independent pre-release consumer verification has passed, the `@v1` compatibility tag is published, and the Marketplace listing is still **forthcoming**. Support is available through [SUPPORT.md](SUPPORT.md); security reports follow [SECURITY.md](SECURITY.md).
 
 ADR Guard is a lightweight .NET command-line tool for validating and indexing Architecture Decision Records (ADRs).
 
@@ -77,7 +77,7 @@ See the [container image and supply-chain guide](docs/container.md) for writable
 
 ADR Guard provides a composite GitHub Action that invokes the published GHCR image directly, so consuming repositories do not need to install the .NET SDK. The repository must be checked out first, and the action supports Linux runners with a working Docker daemon, such as `ubuntu-latest`.
 
-> The moving `@v1` consumer reference is not published yet. Treat `uses: rodri-oliveira-dev/adr-guard@v1` examples as forthcoming until the release workflow creates and verifies that tag.
+> The moving `@v1` compatibility tag is published. Consumers can use `uses: rodri-oliveira-dev/adr-guard@v1`; the Marketplace listing is tracked separately.
 
 For complete pull-request/main workflows, inputs, annotations, required-check configuration, troubleshooting, and release/Marketplace status, use the [GitHub Action consumer guide](docs/github-action.md).
 

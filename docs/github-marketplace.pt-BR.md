@@ -59,7 +59,7 @@ O fluxo de release da Action:
 
 A listagem deve selecionar uma versão da Action associada a uma release. Não publique a partir de branch de desenvolvimento.
 
-A primeira referência de consumo pretendida para o Marketplace é `@v1`. Enquanto uma tag `v1` real não existir e não tiver sido verificada, a documentação deve continuar marcando-a como futura.
+A primeira referência de consumo do Marketplace é `@v1`. A tag de compatibilidade `v1` real já está publicada; antes da publicação no Marketplace, execute novamente a verificação do consumidor externo contra o `@v1` publicado e registre a evidência de produção.
 
 A verificação externa pré-release já passou em `rodri-oliveira-dev/poc-arquitetura`; consulte [github-action-external-verification.pt-BR.md](github-action-external-verification.pt-BR.md). Essa evidência não substitui o rerun obrigatório com `@v1` depois da release.
 
