@@ -115,6 +115,25 @@ jobs:
           exit-code: "1"
           timeout: 10m
 
+  action-release-policy:
+    name: GitHub Action release policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Verify immutable and moving tag behavior
+        run: bash scripts/publish-action-tags-test.sh
+
+      - name: Verify release publication ordering
+        run: bash scripts/release-workflow-policy-test.sh
+
   github-action-contract:
     name: GitHub Action contract
     runs-on: ubuntu-latest
