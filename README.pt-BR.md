@@ -457,14 +457,14 @@ Depois que um pull request é integrado à `main`, o workflow de release aguarda
 
 1. resolve uma versão SemVer estável, começando pelo `VersionPrefix` e incrementando o patch nas releases seguintes;
 2. empacota `RodriOliveira.AdrGuard` com essa versão;
-3. autentica no NuGet.org via Trusted Publishing (OIDC) e publica o pacote;
-4. publica o mesmo pacote no GitHub Packages;
-5. cria ou verifica a tag correspondente `vMAJOR.MINOR.PATCH`;
-6. publica a imagem OCI multi-plataforma no GHCR e no Docker Hub com tags SemVer, metadados OCI, SBOM e attestations de provenance;
-7. valida as arquiteturas e os manifests de attestation publicados;
-8. cria a GitHub Release e anexa o `.nupkg`.
+3. publica o pacote no NuGet.org via Trusted Publishing (OIDC) e no GitHub Packages;
+4. publica a imagem OCI multi-plataforma no GHCR e Docker Hub com tags exata/minor/major/`latest`, metadados OCI, SBOM e attestations de provenance;
+5. verifica arquiteturas, attestations, digest da imagem exata e digest da imagem major móvel;
+6. executa smoke test da resolução de runtime da Action pelas referências exata `vMAJOR.MINOR.PATCH` e major móvel `vMAJOR`;
+7. cria ou verifica a tag exata imutável da Action e avança a tag major móvel somente depois que todos os jobs de publicação de runtime/pacotes terminarem com sucesso;
+8. cria a GitHub Release e anexa o `.nupkg` sem sobrescrever um asset imutável já existente.
 
-O workflow é idempotente para um commit que já possua uma tag de release.
+Uma falha na publicação do container não consegue expor uma nova tag da Action. Reexecuções preservam tags SemVer imutáveis e nunca movem uma tag major de compatibilidade para trás. Consulte a [política de release da GitHub Action](docs/github-action-release.pt-BR.md) para as regras completas de verificação e idempotência.
 
 ## Licença
 
