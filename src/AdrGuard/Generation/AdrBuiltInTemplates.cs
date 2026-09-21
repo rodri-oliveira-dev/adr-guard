@@ -68,7 +68,8 @@ internal static class AdrBuiltInTemplates
                 "{{guidance-context}}\n\n"
                 + Edit(ptBr,
                     "Replace this guidance with the problem, relevant constraints, and stakeholders. This template is only a starting point, not an approved architectural decision.",
-                    "Substitua esta orientação pelo problema, pelas restrições relevantes e pelas partes interessadas. Este modelo é apenas um ponto de partida, não uma decisão arquitetural aprovada.")),
+                    "Substitua esta orientação pelo problema, pelas restrições relevantes e pelas partes interessadas. Este modelo é apenas um ponto de partida, não uma decisão arquitetural aprovada.")
+                + "\n\n{{context}}"),
         };
 
         if (name == Extended)
@@ -94,7 +95,8 @@ internal static class AdrBuiltInTemplates
                     : "State the proposed option, its scope, and the reasons it was selected over the alternatives.",
                 name == Minimal
                     ? "Substitua esta orientação pela escolha proposta e explique como ela resolve o problema."
-                    : "Descreva a opção proposta, seu escopo e os motivos para escolhê-la em vez das alternativas.")));
+                    : "Descreva a opção proposta, seu escopo e os motivos para escolhê-la em vez das alternativas.")
+            + "\n\n{{decision}}"));
 
         if (name == Extended)
         {
@@ -114,7 +116,8 @@ internal static class AdrBuiltInTemplates
                     : "Summarize the expected impact, including operational and migration implications.",
                 name == Minimal
                     ? "Substitua esta orientação pelos benefícios, custos e compromissos esperados."
-                    : "Resuma o impacto esperado, incluindo implicações operacionais e de migração.")));
+                    : "Resuma o impacto esperado, incluindo implicações operacionais e de migração.")
+            + "\n\n{{consequences}}"));
 
         if (name == Extended)
         {
