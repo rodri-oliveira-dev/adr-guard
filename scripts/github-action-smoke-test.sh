@@ -28,6 +28,7 @@ run_wrapper() {
     PATH="${PATH}" \
     DOCKER_CAPTURE="${DOCKER_CAPTURE:-}" \
     DOCKER_EXIT_CODE="${DOCKER_EXIT_CODE:-0}" \
+    DOCKER_PULL_EXIT_CODE="${DOCKER_PULL_EXIT_CODE:-0}" \
     ADR_GUARD_PATH="${ADR_GUARD_PATH-docs/adr}" \
     ADR_GUARD_COMMAND="${ADR_GUARD_COMMAND-check}" \
     ADR_GUARD_VERSION="${ADR_GUARD_VERSION-${IMAGE_VERSION}}" \
@@ -102,6 +103,9 @@ set -euo pipefail
 if [[ "${1:-}" == "info" ]]; then
   exit 0
 fi
+if [[ "${1:-}" == "pull" ]]; then
+  exit "${DOCKER_PULL_EXIT_CODE:-0}"
+fi
 printf '%s\n' "$@" >"${DOCKER_CAPTURE:?}"
 exit "${DOCKER_EXIT_CODE:-0}"
 EOF
@@ -110,6 +114,7 @@ chmod +x "${FAKE_BIN}/docker"
 PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" \
   ADR_GUARD_COMMAND=check assert_exit_code 0 run_wrapper
 grep -Fxq "type=bind,src=${WORKSPACE},dst=/workspace,readonly" "${DOCKER_CAPTURE}"
+grep -Fxq -- "--pull=never" "${DOCKER_CAPTURE}"
 grep -Fxq -- "--cap-drop=ALL" "${DOCKER_CAPTURE}"
 grep -Fxq -- "--security-opt=no-new-privileges" "${DOCKER_CAPTURE}"
 grep -Fxq -- "--network=none" "${DOCKER_CAPTURE}"
@@ -123,6 +128,7 @@ PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" \
 grep -Fxq "type=bind,src=${WORKSPACE},dst=/workspace,readonly" "${DOCKER_CAPTURE}"
 grep -Fxq "type=bind,src=${WORKSPACE}/docs/adr,dst=/workspace/docs/adr" "${DOCKER_CAPTURE}"
 grep -Fxq -- "--user" "${DOCKER_CAPTURE}"
+grep -Fxq -- "--pull=never" "${DOCKER_CAPTURE}"
 grep -Fxq -- "--cap-drop=ALL" "${DOCKER_CAPTURE}"
 grep -Fxq -- "--security-opt=no-new-privileges" "${DOCKER_CAPTURE}"
 grep -Fxq -- "--network=none" "${DOCKER_CAPTURE}"
@@ -133,5 +139,8 @@ fi
 
 PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" DOCKER_EXIT_CODE=125 \
   ADR_GUARD_COMMAND=check ADR_GUARD_VERSION=999.999.999 assert_exit_code 3 run_wrapper
+
+PATH="${FAKE_BIN}:${PATH}" DOCKER_CAPTURE="${DOCKER_CAPTURE}" DOCKER_PULL_EXIT_CODE=1 \
+  ADR_GUARD_COMMAND=check ADR_GUARD_VERSION=999.999.998 assert_exit_code 3 run_wrapper
 
 echo "GitHub Action wrapper smoke tests passed."
