@@ -73,9 +73,9 @@ See the [container image and supply-chain guide](docs/container.md) for writable
 
 ## GitHub Action
 
-ADR Guard also provides a root composite action for repository validation without installing the .NET SDK in the consuming workflow. The action requires a checked-out repository and a Linux runner with Docker available, such as `ubuntu-latest`.
+ADR Guard provides a composite GitHub Action that invokes the published GHCR image directly, so consuming repositories do not need to install the .NET SDK. The repository must be checked out first, and the action supports Linux runners with a working Docker daemon, such as `ubuntu-latest`.
 
-Use an exact published release tag so the action invokes the matching published GHCR image:
+The default operation validates `docs/adr`:
 
 ```yaml
 name: ADR validation
@@ -94,10 +94,43 @@ jobs:
       - name: Validate ADRs
         uses: rodri-oliveira-dev/adr-guard@vX.Y.Z
         with:
-          adr-directory: docs/adr
+          path: docs/adr
+          command: check
 ```
 
-Replace `vX.Y.Z` with an ADR Guard release tag. The action currently supports the `check` command only. It mounts `GITHUB_WORKSPACE` read-only at `/workspace`, safely passes repository-relative directory paths (including paths with spaces), and preserves the CLI exit-code contract: `0` success, `1` validation failure, `2` usage error, and `3` operational error.
+Inputs are deliberately small and map directly to supported CLI behavior:
+
+| Input | Default | Allowed values / policy |
+| --- | --- | --- |
+| `path` | `docs/adr` | Repository-relative ADR directory. Absolute paths, `..` traversal, missing directories, and paths resolving outside `GITHUB_WORKSPACE` are rejected. |
+| `command` | `check` | `check` or `index`. |
+| `version` | empty | Optional exact image version in `X.Y.Z` or `vX.Y.Z` form. When omitted, the action must itself be referenced by an exact `@vX.Y.Z` release tag. |
+
+Version selection never falls back to `latest`. For `uses: rodri-oliveira-dev/adr-guard@v1.2.3`, the action invokes `ghcr.io/rodri-oliveira-dev/adr-guard:1.2.3`. If the action is pinned by commit SHA or a branch, specify the image explicitly:
+
+```yaml
+- name: Validate ADRs from a pinned action commit
+  uses: rodri-oliveira-dev/adr-guard@<commit-sha>
+  with:
+    path: architecture/adr
+    command: check
+    version: 1.2.3
+```
+
+The `check` command mounts the checked-out workspace read-only, so validation cannot mutate repository files. The `index` command is explicitly writable because the CLI generates or refreshes `README.md` in the selected ADR directory:
+
+```yaml
+- name: Generate ADR index
+  uses: rodri-oliveira-dev/adr-guard@vX.Y.Z
+  with:
+    path: docs/adr
+    command: index
+
+- name: Fail if the generated index was not committed
+  run: git diff --exit-code -- docs/adr/README.md
+```
+
+All user inputs are passed as discrete process arguments rather than executable shell fragments. Paths are resolved against the checked-out workspace before Docker starts, including symlink resolution, and the CLI exit-code contract remains unchanged: `0` success, `1` validation failure, `2` usage/input error, and `3` operational error.
 
 Windows, macOS, and Linux runners without a working Docker daemon are not supported.
 
