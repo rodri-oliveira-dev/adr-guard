@@ -55,9 +55,17 @@ This fixture intentionally omits the Decision section.
 Validation must fail.
 EOF
 
-assert_exit_code 0 run_wrapper
+VALID_SUMMARY="${TEMP_DIR}/valid-summary.md"
+INVALID_SUMMARY="${TEMP_DIR}/invalid-summary.md"
+INVALID_LOG="${TEMP_DIR}/invalid.log"
+GITHUB_STEP_SUMMARY="${VALID_SUMMARY}" assert_exit_code 0 run_wrapper
+grep -Fq '### ADR Guard — Success' "${VALID_SUMMARY}"
 
-ADR_GUARD_PATH="docs/invalid ADRs" assert_exit_code 1 run_wrapper
+GITHUB_STEP_SUMMARY="${INVALID_SUMMARY}" ADR_GUARD_PATH="docs/invalid ADRs" \
+  assert_exit_code 1 run_wrapper >"${INVALID_LOG}"
+grep -Fq '::error file=docs/invalid ADRs/0001-invalid.md,title=ADR005::' "${INVALID_LOG}"
+grep -Fq 'Validation failed with 1 issue(s).' "${INVALID_LOG}"
+grep -Fq '| ADR005 | 1 |' "${INVALID_SUMMARY}"
 
 rm -f "${WORKSPACE}/docs/adr/README.md"
 ADR_GUARD_COMMAND=index assert_exit_code 0 run_wrapper
