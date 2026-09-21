@@ -1,6 +1,6 @@
 # Guia de consumo da GitHub Action
 
-> **Status da publicação:** a Action reutilizável está implementada, mas a tag de compatibilidade `v1` ainda não foi publicada. Os exemplos abaixo com `rodri-oliveira-dev/adr-guard@v1` são **futuros** e só se tornam prontos para copiar e colar depois da primeira release que criar essa tag. Até lá, não considere `@v1` disponível.
+> **Status da publicação:** a Action reutilizável e a tag de compatibilidade `v1` estão publicadas. Os exemplos abaixo com `rodri-oliveira-dev/adr-guard@v1` estão prontos para uso. A listagem no Marketplace é acompanhada separadamente e continua futura até ser publicada e verificada manualmente.
 
 A composite Action do ADR Guard executa o container publicado do ADR Guard. O consumidor não precisa do .NET SDK, mas precisa de um runner Linux com Docker e deve fazer checkout do repositório antes.
 
@@ -16,7 +16,7 @@ O contrato de exit codes do CLI é preservado: `0` sucesso, `1` falha de valida�
 
 ## Validação de pull request
 
-**Exemplo futuro com `@v1`** — use depois que a tag `v1` da Action existir:
+**Exemplo publicado com `@v1`:**
 
 ```yaml
 name: Validação de ADRs
@@ -80,7 +80,7 @@ jobs:
           command: check
 ```
 
-Esse exemplo com `@v1` também é futuro até a tag ser publicada. Uma cópia está em [examples/github-action-main.yml](examples/github-action-main.yml).
+Uma cópia desse workflow está em [examples/github-action-main.yml](examples/github-action-main.yml).
 
 ## Saída da validação e annotations
 
@@ -105,7 +105,7 @@ A Action também grava um `GITHUB_STEP_SUMMARY` compacto com resultado, exit cod
   run: git diff --exit-code -- docs/adr/README.md
 ```
 
-A referência `@v1` acima é futura até ser publicada.
+A referência `@v1` acima usa a tag major móvel de compatibilidade já publicada.
 
 ## Pinning de versão
 
@@ -138,10 +138,10 @@ Exit code `3` indica falha operacional, como Docker indisponível ou imagem sele
 
 No `index`, o runner precisa ser non-root porque a Action recusa deliberadamente executar o container gravável como UID 0.
 
-Ao usar SHA ou branch, informe o input `version` exato. Se `@v1` for usado antes da publicação da tag, o GitHub não conseguirá resolver a Action.
+Ao usar SHA ou branch, informe o input `version` exato. Ao usar `@v1`, o source da Action acompanha a tag de compatibilidade `v1` publicada e resolve a imagem de runtime `:1` correspondente.
 
 ## Releases e Marketplace
 
 As release notes são publicadas na página de [Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases).
 
-**Listagem no Marketplace: futura.** A verificação externa pré-release passou e está registrada nas [evidências de verificação externa](github-action-external-verification.pt-BR.md), mas a adoção de produção só estará completa quando os mesmos workflows consumidores passarem com um `@v1` realmente publicado. Os pré-requisitos, a identidade proposta da listagem e os gates manuais do proprietário estão no [checklist de publicação no Marketplace](github-marketplace.pt-BR.md). Para suporte e relato de vulnerabilidades, consulte [../SUPPORT.md](../SUPPORT.md) e [../SECURITY.md](../SECURITY.md).
+**Listagem no Marketplace: futura.** A tag de compatibilidade `v1` está publicada. A verificação externa pré-release passou e está registrada nas [evidências de verificação externa](github-action-external-verification.pt-BR.md); a verificação de produção no Marketplace continua pendente até os workflows consumidores externos serem executados novamente contra o `@v1` publicado e a listagem ser publicada e verificada manualmente. Os pré-requisitos, a identidade proposta da listagem e os gates manuais do proprietário estão no [checklist de publicação no Marketplace](github-marketplace.pt-BR.md). Para suporte e relato de vulnerabilidades, consulte [../SUPPORT.md](../SUPPORT.md) e [../SECURITY.md](../SECURITY.md).
