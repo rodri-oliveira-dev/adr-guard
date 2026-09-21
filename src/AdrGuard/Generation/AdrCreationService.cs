@@ -117,18 +117,11 @@ internal sealed class AdrCreationService
 
                 try
                 {
-                    var signaled = WaitHandle.WaitAny(
-                        [mutex, cancellationToken.WaitHandle],
-                        millisecondsTimeout: 100);
-
-                    if (signaled == 0)
-                    {
-                        acquired = true;
-                    }
-                    else if (signaled == 1)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                    }
+                    // WaitAny with named mutexes is unsupported on Unix.
+                    // Bounded polling keeps cancellation responsive while
+                    // WaitOne remains portable across supported hosts.
+                    acquired = mutex.WaitOne(
+                        TimeSpan.FromMilliseconds(100));
                 }
                 catch (AbandonedMutexException)
                 {
