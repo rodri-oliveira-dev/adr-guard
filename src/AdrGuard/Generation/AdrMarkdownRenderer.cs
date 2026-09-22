@@ -37,6 +37,7 @@ internal static class AdrMarkdownRenderer
             .AppendLine()
             .AppendLine(generated.Consequences?.Trim() ?? string.Empty);
 
+        AdrGenerationContextLimits.ValidateRenderedAdrLength(builder.Length);
         return builder.ToString();
     }
 
@@ -156,6 +157,8 @@ internal static class AdrMarkdownRenderer
                 .Append("\n\n")
                 .Append(body.Trim())
                 .Append('\n');
+
+            AdrGenerationContextLimits.ValidateRenderedAdrLength(builder.Length);
         }
 
         foreach (var required in new[] { "Context", "Decision", "Consequences" })
@@ -167,6 +170,7 @@ internal static class AdrMarkdownRenderer
             }
         }
 
+        AdrGenerationContextLimits.ValidateRenderedAdrLength(builder.Length);
         return builder.ToString();
     }
 
@@ -231,11 +235,15 @@ internal static class AdrMarkdownRenderer
 
             if (open < 0)
             {
-                builder.Append(template, cursor, template.Length - cursor);
+                AppendBounded(
+                    builder,
+                    template.AsSpan(cursor, template.Length - cursor));
                 break;
             }
 
-            builder.Append(template, cursor, open - cursor);
+            AppendBounded(
+                builder,
+                template.AsSpan(cursor, open - cursor));
 
             if (close < 0 || template.IndexOf("{{", open + 2, close - open - 2, StringComparison.Ordinal) >= 0)
             {
@@ -251,11 +259,20 @@ internal static class AdrMarkdownRenderer
             }
 
             // Single pass: substitution values containing {{...}} remain literal.
-            builder.Append(value);
+            AppendBounded(builder, value.AsSpan());
             cursor = close + 2;
         }
 
         return NormalizeNewlines(builder.ToString());
+    }
+
+    private static void AppendBounded(
+        StringBuilder builder,
+        ReadOnlySpan<char> value)
+    {
+        AdrGenerationContextLimits.ValidateRenderedAdrLength(
+            (long)builder.Length + value.Length);
+        builder.Append(value);
     }
 
     private static string NormalizeNewlines(string text) =>
