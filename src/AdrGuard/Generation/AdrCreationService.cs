@@ -18,8 +18,9 @@ internal sealed record AdrRenderedCreationResult(
 
 /// <summary>
 /// Shared creation boundary for AI drafts and future offline templates. A named,
-/// OS-managed mutex serializes cooperating writers across processes on the same
-/// host without leaving lock/reservation files in the ADR directory.
+/// OS-managed mutex serializes cooperating writers across processes and login
+/// sessions for the same OS user on the same host, without leaving
+/// lock/reservation files in the ADR directory.
 /// </summary>
 internal sealed class AdrCreationService
 {
@@ -136,8 +137,12 @@ internal sealed class AdrCreationService
         CancellationToken cancellationToken)
     {
         using var mutex = new Mutex(
-            initiallyOwned: false,
-            name: CreateMutexName(directoryPath));
+            CreateMutexName(directoryPath),
+            new NamedWaitHandleOptions
+            {
+                CurrentSessionOnly = false,
+                CurrentUserOnly = true,
+            });
 
         var acquired = false;
         try
