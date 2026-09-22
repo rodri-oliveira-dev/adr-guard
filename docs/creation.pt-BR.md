@@ -49,7 +49,7 @@ adr-guard check docs/examples/generated/custom
 adr-guard check docs/examples/generated/custom-pt-BR
 ```
 
-No CI, a ferramenta empacotada e instalada gera os três exemplos separadamente, compara o conteúdo byte a byte e executa os comandos de validação. Não copie os três exemplos para o mesmo diretório de ADRs: cada um usa intencionalmente o ID `0001`.
+No CI, a ferramenta empacotada e instalada gera os quatro exemplos separadamente, compara o conteúdo byte a byte e executa os comandos de validação. Não copie os quatro exemplos para o mesmo diretório de ADRs: cada um usa intencionalmente o ID `0001`.
 
 ## Formato personalizado e placeholders
 
