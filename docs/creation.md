@@ -49,7 +49,7 @@ adr-guard check docs/examples/generated/custom
 adr-guard check docs/examples/generated/custom-pt-BR
 ```
 
-The repository CI generates the three examples independently with the **installed packaged tool**, compares their content byte-for-byte and runs these validation commands. Do not place all three samples in the same ADR directory: they each use ID `0001` intentionally.
+The repository CI generates the four examples independently with the **installed packaged tool**, compares their content byte-for-byte and runs these validation commands. Do not place all four samples in the same ADR directory: they each use ID `0001` intentionally.
 
 ## Custom source grammar and placeholders
 
