@@ -294,6 +294,40 @@ public sealed class DraftTemplateIntegrationTests
     }
 
     [Fact]
+    public void TemplateDraftRejectsOversizedProviderFieldWithoutWriting()
+    {
+        var root = CreateDirectory();
+        try
+        {
+            var provider = new RecordingProvider(
+                new AdrGenerationResult(
+                    new string(
+                        'x',
+                        AdrGenerationContextLimits.MaximumGeneratedFieldCharacters + 1),
+                    "Provider decision.",
+                    "Provider consequences."));
+
+            var result = Run(
+                provider,
+                "draft", root, "--title", "Adopt Cache",
+                "--context", "Context for provider.",
+                "--template", "minimal");
+
+            Assert.Equal(ExitCodes.OperationalError, result.Code);
+            Assert.Equal(1, provider.CallCount);
+            Assert.Empty(Directory.EnumerateFiles(root));
+            Assert.Contains(
+                AdrGenerationContextLimits.MaximumGeneratedFieldCharacters.ToString(),
+                result.Error,
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
     public void CancellationOfTemplateDraftDoesNotPersistOrCallProvider()
     {
         var root = CreateDirectory();
