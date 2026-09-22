@@ -17,7 +17,7 @@ internal static class CliApplication
           adr-guard check [directory]
           adr-guard index [directory] [--output <file>]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
-          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
+          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
           adr-guard [options]
 
         Commands:
@@ -56,7 +56,7 @@ internal static class CliApplication
 
     private const string DraftHelpText = """
         Usage:
-          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
+          adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
 
         Generate a Proposed ADR draft through a configured AI provider.
         The directory defaults to the current directory.
@@ -67,7 +67,11 @@ internal static class CliApplication
 
         Optional options:
           --culture <name>        .NET globalization culture name such as en-US or pt-BR.
-                                  Defaults to en-US.
+                                  Defaults to en-US. Template selection supports only en-US/pt-BR.
+          --template <name>       Optional offline Markdown template: minimal | extended.
+          --template-file <path>  Optional explicit local .md file, exclusive with --template.
+                                  Resolved from the invocation working directory.
+                                  Template bodies and guidance are not sent to the AI provider.
           --endpoint <uri>        Required only for openai-compatible; rejected for official providers.
           --context-file <path>    Add an explicit .md or .txt context file. May be repeated.
                                   Relative paths are resolved from the current working directory.
@@ -248,6 +252,67 @@ internal static class CliApplication
                 error);
         }
 
+        // Selected templates are validated before constructing or invoking a
+        // provider. Unselected draft keeps its existing culture and output.
+        AdrTemplateDefinition? selectedTemplate = null;
+        if (draftArguments.TemplateName is not null
+            || draftArguments.TemplateFilePath is not null)
+        {
+            if (draftArguments.TemplateName is not null
+                && draftArguments.TemplateFilePath is not null)
+            {
+                error.WriteLine("--template and --template-file are mutually exclusive.");
+                error.WriteLine("Run 'adr-guard draft --help' for usage.");
+                return ExitCodes.UsageError;
+            }
+
+            if (!string.Equals(draftArguments.CultureName, "en-US", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(draftArguments.CultureName, "pt-BR", StringComparison.OrdinalIgnoreCase))
+            {
+                error.WriteLine("Selected templates support --culture en-US or pt-BR only; unselected draft retains all supported .NET cultures.");
+                error.WriteLine("Run 'adr-guard draft --help' for usage.");
+                return ExitCodes.UsageError;
+            }
+
+            if (draftArguments.TemplateName is not null
+                && !AdrBuiltInTemplates.Names.Contains(draftArguments.TemplateName, StringComparer.Ordinal))
+            {
+                error.WriteLine($"Unknown template '{draftArguments.TemplateName}'. Use minimal or extended.");
+                error.WriteLine("Run 'adr-guard draft --help' for usage.");
+                return ExitCodes.UsageError;
+            }
+
+            try
+            {
+                var templateCultureName = string.Equals(
+                    draftArguments.CultureName,
+                    "pt-BR",
+                    StringComparison.OrdinalIgnoreCase)
+                    ? "pt-BR"
+                    : "en-US";
+
+                selectedTemplate = AdrTemplateSelection.Resolve(
+                    draftArguments.TemplateName,
+                    draftArguments.TemplateFilePath,
+                    templateCultureName,
+                    cancellationToken: cancellationToken);
+            }
+            catch (ArgumentException exception)
+            {
+                error.WriteLine(exception.Message);
+                error.WriteLine("Run 'adr-guard draft --help' for usage.");
+                return ExitCodes.UsageError;
+            }
+            catch (Exception exception) when (exception is IOException
+                or UnauthorizedAccessException
+                or InvalidOperationException
+                or OperationCanceledException)
+            {
+                error.WriteLine($"Unable to load ADR draft template: {exception.Message}");
+                return ExitCodes.OperationalError;
+            }
+        }
+
         if (injectedProvider is not null)
         {
             WriteProviderSelection(draftArguments, output);
@@ -257,7 +322,8 @@ internal static class CliApplication
                 injectedProvider,
                 output,
                 error,
-                cancellationToken);
+                cancellationToken,
+                selectedTemplate);
         }
 
         if (string.IsNullOrWhiteSpace(
@@ -293,7 +359,8 @@ internal static class CliApplication
                 provider,
                 output,
                 error,
-                cancellationToken);
+                cancellationToken,
+                selectedTemplate);
         }
         catch (ArgumentException exception)
         {
@@ -314,7 +381,8 @@ internal static class CliApplication
         IAdrGenerationProvider provider,
         TextWriter output,
         TextWriter error,
-        CancellationToken cancellationToken) =>
+        CancellationToken cancellationToken,
+        AdrTemplateDefinition? template) =>
         DraftCommand.Run(
             arguments.DirectoryPath,
             arguments.Title,
@@ -326,7 +394,8 @@ internal static class CliApplication
             provider,
             output,
             error,
-            cancellationToken);
+            cancellationToken,
+            template);
 
     private static void WriteProviderSelection(
         DraftArguments arguments,
@@ -398,6 +467,8 @@ internal static class CliApplication
         string? providerName = null;
         string? model = null;
         string? endpoint = null;
+        string? templateName = null;
+        string? templateFilePath = null;
         var contextFilePaths = new List<string>();
         var includeExistingAdrs = false;
         var dryRun = false;
@@ -409,6 +480,8 @@ internal static class CliApplication
         var providerAssigned = false;
         var modelAssigned = false;
         var endpointAssigned = false;
+        var templateAssigned = false;
+        var templateFileAssigned = false;
         var includeExistingAdrsAssigned = false;
         var dryRunAssigned = false;
 
@@ -448,7 +521,9 @@ internal static class CliApplication
                 or "--provider"
                 or "--model"
                 or "--endpoint"
-                or "--context-file")
+                or "--context-file"
+                or "--template"
+                or "--template-file")
             {
                 if (index + 1 >= args.Count)
                 {
@@ -535,6 +610,28 @@ internal static class CliApplication
                     case "--context-file":
                         contextFilePaths.Add(value);
                         break;
+
+                    case "--template":
+                        if (templateAssigned)
+                        {
+                            draftArguments = DraftArguments.Empty;
+                            return false;
+                        }
+
+                        templateName = value;
+                        templateAssigned = true;
+                        break;
+
+                    case "--template-file":
+                        if (templateFileAssigned)
+                        {
+                            draftArguments = DraftArguments.Empty;
+                            return false;
+                        }
+
+                        templateFilePath = value;
+                        templateFileAssigned = true;
+                        break;
                 }
 
                 continue;
@@ -561,7 +658,9 @@ internal static class CliApplication
             endpoint,
             contextFilePaths,
             includeExistingAdrs,
-            dryRun);
+            dryRun,
+            templateName,
+            templateFilePath);
 
         return titleAssigned && contextAssigned;
     }
@@ -625,7 +724,9 @@ internal static class CliApplication
         string? Endpoint,
         IReadOnlyList<string> ContextFilePaths,
         bool IncludeExistingAdrs,
-        bool DryRun)
+        bool DryRun,
+        string? TemplateName,
+        string? TemplateFilePath)
     {
         internal static DraftArguments Empty { get; } =
             new(
@@ -638,6 +739,8 @@ internal static class CliApplication
                 null,
                 [],
                 false,
-                false);
+                false,
+                null,
+                null);
     }
 }

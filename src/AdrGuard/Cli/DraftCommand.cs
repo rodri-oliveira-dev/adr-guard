@@ -16,7 +16,8 @@ internal static class DraftCommand
         IAdrGenerationProvider? provider,
         TextWriter output,
         TextWriter error,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        AdrTemplateDefinition? template = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -38,6 +39,13 @@ internal static class DraftCommand
             error.WriteLine(
                 $"Invalid culture '{cultureName}'. "
                 + "Use a known .NET globalization culture name such as 'en-US' or 'pt-BR'.");
+            return ExitCodes.UsageError;
+        }
+
+        if (template is not null
+            && !string.Equals(template.CultureName, normalizedCultureName, StringComparison.Ordinal))
+        {
+            error.WriteLine("Selected template culture must match --culture (en-US or pt-BR).");
             return ExitCodes.UsageError;
         }
 
@@ -88,7 +96,8 @@ internal static class DraftCommand
                     contextFilePaths,
                     includeExistingAdrs,
                     dryRun,
-                    cancellationToken)
+                    cancellationToken,
+                    template)
                 .GetAwaiter()
                 .GetResult();
 

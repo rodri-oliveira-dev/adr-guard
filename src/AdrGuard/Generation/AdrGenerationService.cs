@@ -28,7 +28,8 @@ internal sealed class AdrGenerationService
         IReadOnlyList<string> contextFilePaths,
         bool includeExistingAdrs,
         bool dryRun,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AdrTemplateDefinition? template = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -96,7 +97,23 @@ internal sealed class AdrGenerationService
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        var content = AdrMarkdownRenderer.RenderDefaultDraft(title, generated);
+        // The provider receives exactly the existing composed architectural context;
+        // template bodies and localized guidance are rendered locally after its call.
+        // Never call the provider in the shared creation critical section.
+        var substitutions = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["context"] = generated.Context ?? string.Empty,
+            ["decision"] = generated.Decision ?? string.Empty,
+            ["consequences"] = generated.Consequences ?? string.Empty,
+        };
+
+        string RenderForId(int id) => template is null
+            ? AdrMarkdownRenderer.RenderDefaultDraft(title, generated)
+            : AdrMarkdownRenderer.RenderTemplate(
+                new AdrTemplateRenderRequest(title, template, substitutions, id));
+
+        var previewId = AdrIdAllocator.NextId(documents);
+        var content = RenderForId(previewId);
         var preview = AdrCreationService.Prepare(
             directoryPath,
             title,
@@ -113,17 +130,35 @@ internal sealed class AdrGenerationService
                 Written: false);
         }
 
-        var persisted = await _creation.PersistAsync(
+        if (template is null)
+        {
+            // Preserve the unselected draft's existing rendering and persistence.
+            var defaultPersisted = await _creation.PersistAsync(
+                    directoryPath,
+                    title,
+                    content,
+                    filePath,
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            return new AdrGenerationOutcome(
+                defaultPersisted.FilePath,
+                content,
+                defaultPersisted.ValidationResult,
+                Written: defaultPersisted.ValidationResult.IsValid);
+        }
+
+        var persisted = await _creation.PersistRenderedAsync(
                 directoryPath,
                 title,
-                content,
+                RenderForId,
                 filePath,
                 cancellationToken)
             .ConfigureAwait(false);
 
         return new AdrGenerationOutcome(
             persisted.FilePath,
-            content,
+            persisted.Content,
             persisted.ValidationResult,
             Written: persisted.ValidationResult.IsValid);
     }
