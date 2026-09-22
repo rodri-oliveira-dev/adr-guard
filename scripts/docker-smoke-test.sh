@@ -86,11 +86,13 @@ grep -q "# Architecture Decision Records" "${TEMP_DIR}/writable/README.md"
 mkdir -p "${TEMP_DIR}/generated"
 assert_exit_code 0 \
   docker run --rm --read-only \
+    --tmpfs /tmp:rw,nosuid,nodev,mode=1777,size=16m \
     --user "$(id -u):$(id -g)" \
     --mount "type=bind,src=${TEMP_DIR}/generated,dst=/workspace/adrs" \
     "${IMAGE}" new adrs --title "Adopt Redis" --template minimal
 assert_exit_code 0 \
   docker run --rm --read-only \
+    --tmpfs /tmp:rw,nosuid,nodev,mode=1777,size=16m \
     --user "$(id -u):$(id -g)" \
     --mount "type=bind,src=${TEMP_DIR}/generated,dst=/workspace/adrs" \
     --mount "type=bind,src=${ROOT_DIR}/docs/examples/templates/team.en-US.md,dst=/workspace/team.md,readonly" \
