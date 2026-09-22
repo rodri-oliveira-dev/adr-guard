@@ -55,6 +55,9 @@ jobs:
           --add-source ./artifacts/package
           --ignore-failed-sources
 
+      - name: Installed .NET Tool template and compatibility regressions
+        run: bash scripts/template-regression-test.sh
+
       - name: Dogfood ADR validation
         run: ./.tools/adr-guard check docs/adr
 
@@ -231,6 +234,41 @@ jobs:
           )
           test "${#generated_indexes[@]}" -eq 1
           test "${generated_indexes[0]}" = "${ACTION_FIXTURE_ROOT}/index ADRs/README.md"
+
+      # Exercise the actual published moving @v1 entrypoint (not just ./ with
+      # a pinned published image). The public Action must expose check/index only.
+      - name: Prepare isolated published @v1 consumer fixtures
+        run: |
+          mkdir -p "${ACTION_FIXTURE_ROOT}/published-v1 ADRs"
+          cp -R "${ACTION_FIXTURE_ROOT}/valid ADRs/." "${ACTION_FIXTURE_ROOT}/published-v1 ADRs/"
+
+      - name: Published @v1 consumer check remains compatible
+        uses: rodri-oliveira-dev/adr-guard@v1
+        with:
+          path: .tmp/adr-action-contract/published-v1 ADRs
+          command: check
+
+      - name: Published @v1 consumer index remains compatible
+        uses: rodri-oliveira-dev/adr-guard@v1
+        with:
+          path: .tmp/adr-action-contract/published-v1 ADRs
+          command: index
+
+      - name: Published @v1 consumer cannot invoke new
+        id: published-v1-unsupported-new
+        continue-on-error: true
+        uses: rodri-oliveira-dev/adr-guard@v1
+        with:
+          path: .tmp/adr-action-contract/published-v1 ADRs
+          command: new
+
+      - name: Assert published @v1 consumer outputs and command restriction
+        env:
+          NEW_OUTCOME: ${{ steps.published-v1-unsupported-new.outcome }}
+        run: |
+          test -s "${ACTION_FIXTURE_ROOT}/published-v1 ADRs/README.md"
+          test "${NEW_OUTCOME}" = failure
+          test "$(find "${ACTION_FIXTURE_ROOT}/published-v1 ADRs" -maxdepth 1 -name '[0-9]*.md' | wc -l)" -eq 1
 
       - name: Compare Action with the published CLI diagnostic matrix
         run: >-
