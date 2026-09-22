@@ -204,7 +204,16 @@ internal static class GeneratedAdrStructureGuard
             markerLength++;
         }
 
-        return markerLength >= 3;
+        if (markerLength < 3)
+        {
+            return false;
+        }
+
+        // CommonMark forbids backticks in the info string of a backtick
+        // fence. If present, this line is ordinary text and must not suppress
+        // structural heading parsing on following lines.
+        return marker != '`'
+            || trimmed[markerLength..].IndexOf('`') < 0;
     }
 
     private static bool IsClosingFence(
