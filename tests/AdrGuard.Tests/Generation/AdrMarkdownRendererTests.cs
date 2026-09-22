@@ -109,7 +109,7 @@ public sealed class AdrMarkdownRendererTests
             () => AdrMarkdownRenderer.RenderTemplate(request));
 
         Assert.Contains(
-            AdrGenerationContextLimits.MaximumRenderedAdrCharacters.ToString(),
+            AdrGenerationContextLimits.MaximumRenderedAdrCharacters.ToString(System.Globalization.CultureInfo.InvariantCulture),
             error.Message,
             StringComparison.Ordinal);
     }
