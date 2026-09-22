@@ -79,4 +79,49 @@ assert_code 1 "${BIN}" check "${TMP}/invalid"
 assert_code 1 "${BIN}" index "${TMP}/invalid"
 test ! -e "${TMP}/invalid/README.md"
 
+# Documentation examples are canonical, actual CLI output — not hand-waved snippets.
+# Each sample has its own directory because every example starts at ID 0001.
+run_documented_example() {
+  local name="$1"
+  local title="$2"
+  local fixture="$3"
+  shift 3
+  local output_dir="${TMP}/documented-${name}"
+  mkdir -p "${output_dir}"
+  assert_code 0 "${BIN}" new "${output_dir}" --title "${title}" "$@"
+  cmp "${output_dir}/${fixture}" "${ROOT}/docs/examples/generated/${name}/${fixture}"
+  assert_code 0 "${BIN}" check "${output_dir}"
+  assert_code 0 "${BIN}" check "${ROOT}/docs/examples/generated/${name}"
+}
+run_documented_example minimal "Adopt Redis" 0001-adopt-redis.md --template minimal --culture en-US
+run_documented_example extended "Adotar Redis" 0001-adotar-redis.md --template extended --culture pt-BR
+run_documented_example custom "Adopt Cache" 0001-adopt-cache.md --template-file "${ROOT}/docs/examples/templates/team.en-US.md" --culture en-US
+run_documented_example custom-pt-BR "Adotar Cache" 0001-adotar-cache.md --template-file "${ROOT}/docs/examples/templates/team.pt-BR.md" --culture pt-BR
+
+# Documentation parity and live-reference guard: both entrypoints must link the
+# runnable guides/examples without claiming new/draft are Action commands.
+for guide in "${ROOT}/README.md" "${ROOT}/README.pt-BR.md"; do
+  grep -Fq 'docs/examples/generated/minimal/0001-adopt-redis.md' "${guide}"
+  grep -Fq 'docs/examples/generated/extended/0001-adotar-redis.md' "${guide}"
+  grep -Fq 'docs/examples/generated/custom/0001-adopt-cache.md' "${guide}"
+  grep -Fq 'docs/examples/generated/custom-pt-BR/0001-adotar-cache.md' "${guide}"
+  grep -Fq -- '--template-file' "${guide}"
+  grep -Fq -- '--culture' "${guide}"
+  grep -Fq -- '--preview' "${guide}"
+  grep -Fq -- '--dry-run' "${guide}"
+  grep -Fq -- '--include-existing-adrs' "${guide}"
+  grep -Fq 'adr-guard check docs/adr' "${guide}"
+  grep -Fq 'adr-guard index docs/adr' "${guide}"
+done
+for guide in "${ROOT}/docs/creation.md" "${ROOT}/docs/creation.pt-BR.md"; do
+  grep -Fq -- '--template-file' "${guide}"
+  grep -Fq -- '--dry-run' "${guide}"
+  grep -Fq -- '--preview' "${guide}"
+  grep -Fq '65,536' "${guide}" || grep -Fq '65.536' "${guide}"
+  grep -Fq 'docs/examples/generated/minimal' "${guide}" || grep -Fq 'examples/generated/minimal' "${guide}"
+  grep -Fq 'docs/examples/generated/custom' "${guide}" || grep -Fq 'examples/generated/custom' "${guide}"
+done
+
+echo 'Documented EN/pt-BR Minimal, Extended and Custom outputs match installed CLI exactly and pass check.'
+
 echo 'Installed .NET Tool template/CLI/check/index regression passed (no AI credentials).'

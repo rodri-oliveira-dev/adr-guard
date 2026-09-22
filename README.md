@@ -10,6 +10,8 @@
 
 **GitHub Action consumers:** see the [consumer guide](docs/github-action.md), [release policy](docs/github-action-release.md), [security model](docs/github-action-security.md), [external verification evidence](docs/github-action-external-verification.md), and [Marketplace publication checklist](docs/github-marketplace.md). Independent pre-release consumer verification has passed, the `@v1` compatibility tag is published, and the Marketplace listing is still **forthcoming**. Support is available through [SUPPORT.md](SUPPORT.md); security reports follow [SECURITY.md](SECURITY.md).
 
+> **Release availability:** The published v1.0.0 tool and public GitHub Action @v1 support the existing check/index contract. Offline `new` and optional template-enabled `draft` are implemented in `feature/issues-59` for the planned v1.1.0 release. Build this branch to try them before release. The published Action remains check/index only.
+
 ADR Guard is a lightweight .NET command-line tool for validating and indexing Architecture Decision Records (ADRs).
 
 It is designed for repositories that want ADR conventions to be explicit, reviewable, and enforceable in local development and CI without introducing a heavy runtime dependency.
@@ -24,6 +26,7 @@ It is designed for repositories that want ADR conventions to be explicit, review
 - avoids rewriting an index that is already current;
 - exposes stable validation codes (`ADR001` through `ADR009`);
 - exposes predictable exit codes for CI/CD;
+- creates human-editable `Proposed` ADRs offline using built-in or custom Markdown templates;
 - supports human-reviewed AI-assisted `Proposed` ADR drafting through explicit providers and context;
 - ships as a .NET Tool with no third-party runtime dependencies.
 
@@ -153,6 +156,8 @@ The Action itself does not require `GITHUB_TOKEN`, repository write permissions,
 
 Windows, macOS, Linux runners without a working Docker daemon, and root execution for writable `index` are not supported.
 
+The public `rodri-oliveira-dev/adr-guard@v1` Action offers **only `check` and `index`**. Run `new` or AI `draft` separately via the CLI/.NET Tool or a versioned container, not as Action inputs.
+
 ## ADR format
 
 ADR Guard expects Markdown files named with a four-digit ID followed by a lowercase kebab-case slug:
@@ -191,6 +196,24 @@ Supported statuses:
 - `Superseded`
 
 The required sections are `Context`, `Decision`, and `Consequences`. A `Superseded` ADR must also contain a `Superseded by` section linking to an existing ADR.
+
+## Create Proposed ADRs offline
+
+The new `adr-guard new` command on this development branch creates an editable ADR **without AI, credentials, or network access**. The destination directory must exist. Minimal and `en-US` are the defaults; Extended and Custom are opt-in.
+
+```bash
+mkdir -p docs/adr
+adr-guard new docs/adr --title "Adopt Redis"
+adr-guard new docs/adr --title "Adopt Kafka" --template extended --culture pt-BR
+adr-guard new docs/adr --title "Adopt Cache" --template-file docs/examples/templates/team.en-US.md
+adr-guard new docs/adr --title "Preview only" --template minimal --preview
+adr-guard check docs/adr
+adr-guard index docs/adr
+```
+
+`--dry-run` is an alias for `--preview`; neither writes an ADR, updates the index, or reserves an ID. `new` never updates the index automatically: run `check` and then `index` explicitly. `--template minimal|extended` and `--template-file <path>` are mutually exclusive. `--culture en-US|pt-BR` localizes instructional text, **not** the invariant headings `Status`, `Context`, `Decision`, `Consequences` or initial `Proposed` status. Custom files must be UTF-8 `.md`, at most 65,536 bytes, selected individually and resolved relative to the invocation directory; store templates outside the ADR directory. Creating uses the next ID after the highest existing ID, locks cooperating same-host creators and writes atomically without overwrite; `{{id}}` is regenerated using the final allocated ID. Structural validation is **not architectural approval**; an architect must review and replace the editable notes.
+
+**Validator-compliant samples:** [Minimal EN](docs/examples/generated/minimal/0001-adopt-redis.md), [Extended pt-BR](docs/examples/generated/extended/0001-adotar-redis.md), [Custom EN](docs/examples/generated/custom/0001-adopt-cache.md), [Custom pt-BR](docs/examples/generated/custom-pt-BR/0001-adotar-cache.md). Read the [full offline creation and exit-code guide](docs/creation.md) and [custom placeholder rules](docs/custom-templates.md). Native MADR/alternate-format validation is not supported.
 
 ## Validate ADRs
 
@@ -261,6 +284,10 @@ adr-guard draft docs/adr \
 The normal persistence workflow allocates the next ADR ID deterministically, creates a compliant filename, and validates the generated candidate with the normal ADR parser/validator. Persistence writes the complete candidate to a temporary file in the ADR directory, flushes it, and only then atomically promotes it to the final filename without overwrite. If cancellation, provider failure, validation failure, an I/O error, or a concurrent filename race occurs, ADR Guard does not leave a partial final ADR and cleans up its temporary file.
 
 The production CLI propagates cancellation through the draft workflow. Pressing `Ctrl+C` requests graceful cancellation across context loading, provider HTTP calls, validation boundaries, and persistence.
+
+### Optional templates for AI-assisted drafts
+
+Without `--template` or `--template-file`, `draft` retains its original rendering, supported .NET cultures, provider contract and explicit context selection. With a selected template, only the final rendering changes locally: template source, guidance and path are **never sent to the AI provider**. Use `--template minimal|extended` or `--template-file docs/examples/templates/team.en-US.md` alongside the existing `--provider`, `--model`, `--title` and `--context`. Existing ADRs are shared only with explicit `--include-existing-adrs`; context files only with explicit `--context-file`. Unlike offline `new --preview`, `draft --preview` still calls the provider but skips persistence. See the [AI template/privacy guide](docs/draft-templates.md).
 
 ### Providers, models, and authentication
 
@@ -439,7 +466,7 @@ dotnet pack src/AdrGuard/AdrGuard.csproj --configuration Release --no-build --ou
 Install the locally built package:
 
 ```bash
-dotnet tool install --tool-path ./.tools RodriOliveira.AdrGuard --version 0.1.0 --add-source ./artifacts/package
+dotnet tool install --tool-path ./.tools RodriOliveira.AdrGuard --version 1.0.0 --add-source ./artifacts/package
 ./.tools/adr-guard check docs/adr
 ```
 

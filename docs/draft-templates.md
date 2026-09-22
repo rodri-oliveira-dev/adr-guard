@@ -1,6 +1,8 @@
 # Optional templates for AI-assisted `draft`
 
-The template-enabled `draft` workflow is implemented on `feature/issues-59` for the coordinated v1.1.0 release. The existing command with **no** `--template` or `--template-file` keeps its exact historical rendering and accepts its previous set of .NET culture names.
+[Português (Brasil)](draft-templates.pt-BR.md) · [Offline creation](creation.md) · [Custom template contract](custom-templates.md)
+
+The template-enabled `draft` workflow is implemented on `feature/issues-59` for the planned v1.1.0 release; the published v1.0.0 CLI does not yet provide its template flags. The existing command with **no** `--template` or `--template-file` keeps its exact historical rendering and accepts its previous set of .NET culture names.
 
 ```bash
 adr-guard draft ./docs/adr --title "Adopt Redis" --context "We need bounded caching." \
@@ -10,7 +12,7 @@ adr-guard draft ./docs/adr --title "Adopt Redis" --context "We need bounded cach
   --provider openai --model YOUR_MODEL --template extended --culture pt-BR
 
 adr-guard draft ./docs/adr --title "Adopt Redis" --context "We need bounded caching." \
-  --provider openai --model YOUR_MODEL --template-file ./templates/team-template.md
+  --provider openai --model YOUR_MODEL --template-file ./docs/examples/templates/team.en-US.md
 ```
 
 **Selection.** `--template minimal|extended` and `--template-file <path>` are optional, mutually exclusive and must not be repeated. Template guidance supports `en-US` and `pt-BR` only; omitting `--culture` defaults to `en-US`. A relative file path resolves from the working directory when the command starts, **not** from the ADR output directory. A missing, inaccessible, malformed, invalid-UTF-8 or oversized custom template is rejected before provider construction or invocation. File templates obey the 65,536-byte limit and strict placeholders documented in [custom-templates.md](custom-templates.md). Use `--preview` / `--dry-run` to inspect the proposed Markdown without writing anything.

@@ -1,6 +1,8 @@
 # Templates opcionais no `draft` assistido por IA
 
-O fluxo `draft` com seleção de templates está implementado na branch `feature/issues-59` para a entrega coordenada da v1.1.0. O comando **sem** `--template` ou `--template-file` mantém a renderização histórica exata e aceita os mesmos nomes de culturas .NET anteriormente suportados.
+[English](draft-templates.md) · [Criação offline](creation.pt-BR.md) · [Templates personalizados](custom-templates.pt-BR.md)
+
+O fluxo `draft` com seleção de templates está implementado na branch `feature/issues-59` para a futura release v1.1.0; a CLI pública v1.0.0 ainda não oferece essas opções. O comando **sem** `--template` ou `--template-file` mantém a renderização histórica exata e aceita os mesmos nomes de culturas .NET anteriormente suportados.
 
 ```bash
 adr-guard draft ./docs/adr --title "Adotar Redis" --context "Precisamos de cache limitado." \
@@ -10,7 +12,7 @@ adr-guard draft ./docs/adr --title "Adotar Redis" --context "Precisamos de cache
   --provider openai --model SEU_MODELO --template extended --culture pt-BR
 
 adr-guard draft ./docs/adr --title "Adotar Redis" --context "Precisamos de cache limitado." \
-  --provider openai --model SEU_MODELO --template-file ./templates/equipe.md
+  --provider openai --model SEU_MODELO --template-file ./docs/examples/templates/team.pt-BR.md --culture pt-BR
 ```
 
 **Seleção.** `--template minimal|extended` e `--template-file <caminho>` são opcionais, mutuamente exclusivos e não podem se repetir. A orientação do template suporta apenas `en-US` e `pt-BR`; quando `--culture` é omitido, usa-se `en-US`. Caminhos relativos são resolvidos a partir do diretório de trabalho da invocação, **não** do diretório de saída das ADRs. Arquivo personalizado ausente, inacessível, malformado, sem UTF-8 válido ou grande demais é rejeitado antes de construir ou chamar o provedor. O arquivo tem limite de 65.536 bytes e placeholders estritos descritos em [custom-templates.pt-BR.md](custom-templates.pt-BR.md). Use `--preview` / `--dry-run` para inspecionar o Markdown proposto sem gravar arquivos.

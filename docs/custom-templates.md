@@ -1,10 +1,12 @@
 # Custom ADR template contract
 
-This document specifies the offline, data-only Markdown template format implemented in #54. The selection infrastructure is available internally on the shared feature branch. The public `adr-guard new --template-file` interface is delivered by #51, and optional AI `draft --template-file` selection by #57; these flags are **not available in the current v1 CLI**.
+[Português (Brasil)](custom-templates.pt-BR.md) · [Offline creation](creation.md) · [AI draft integration](draft-templates.md)
+
+This document specifies the offline, data-only Markdown template format implemented in #54. The `adr-guard new --template-file` CLI and optional `draft --template-file` selection are implemented on `feature/issues-59` for the planned `v1.1.0` release. **The published v1.0.0 CLI and the public GitHub Action `@v1` do not provide these commands/options yet.** Build the development branch to try these examples before release. The Action remains limited to `check` and `index`.
 
 ## Template sources and selection
 
-The built-in names are `minimal` (the default if no source is specified) and `extended`. A custom source uses one explicitly selected local `.md` file. `--template <name>` and `--template-file <path>` cannot be supplied together, even if the built-in name is `minimal`. Unknown built-in names and conflicting selections are usage errors in future consuming commands; missing, inaccessible, too-large or malformed files fail before any new ADR is persisted.
+The built-in names are `minimal` (the default if no source is specified) and `extended`. A custom source uses one explicitly selected local `.md` file. `--template <name>` and `--template-file <path>` cannot be supplied together, even if the built-in name is `minimal`. Unknown built-in names and conflicting selections are CLI usage errors; missing, inaccessible, too-large or malformed files fail before any new ADR is persisted.
 
 A relative template file path resolves against the invocation working directory, **not** the ADR output directory. Keep template files outside the selected ADR directory: `check` and creation validate Markdown ADRs in that directory, not template sources. The loader does not discover or recursively read other files.
 
@@ -60,7 +62,7 @@ Placeholders are case-sensitive, exact `{{name}}` tokens:
 
 Unknown tokens, nested/unclosed delimiters and alternate interpolation syntax such as `{title}`, `${title}`, or `{% expression %}` are rejected. Placeholder values are inserted **once**, never recursively evaluated as templates or interpreted as shell/program code. Literal shell-looking text is just Markdown. Template content cannot supply an output path or alter the allocator's deterministic filename, output directory, no-overwrite policy or atomic persistence.
 
-**Concurrency integration:** if creation reallocates an ADR ID after another writer commits, the consuming command must re-render `{{id}}` using the ID actually persisted, within the shared creation lock. #51 owns this integration; simply persisting the stale preview content would be incorrect.
+**Concurrency integration:** if another cooperating creator commits after preview, `new` and template-enabled `draft` re-render `{{id}}` using the final ID under the shared creation lock and validate the exact persisted Markdown. The lock coordinates cooperative writers on the same host; it is not a cross-host distributed lock.
 
 ## Fixtures
 

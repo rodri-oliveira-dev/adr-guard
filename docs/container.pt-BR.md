@@ -63,6 +63,31 @@ docker run --rm \
 
 A imagem já executa como usuário não-root por padrão. O `--user` explícito acima serve apenas para alinhar o ownership de volumes graváveis do host quando necessário.
 
+## `new` offline e templates personalizados (branch de desenvolvimento / futura v1.1.0)
+
+O container publicado na `v1.0.0` **não** inclui `new`. Para testar a branch antes de publicar `v1.1.0`, crie uma imagem local a partir de `feature/issues-59`:
+
+```bash
+docker build -t adr-guard:templates .
+mkdir -p docs/adr
+docker run --rm --user "$(id -u):$(id -g)" \
+  -v "$PWD:/workspace" adr-guard:templates \
+  new docs/adr --title "Adotar Redis" --template minimal --culture pt-BR
+
+docker run --rm --user "$(id -u):$(id -g)" \
+  -v "$PWD:/workspace" adr-guard:templates \
+  new docs/adr --title "Adotar Cache" \
+  --template-file docs/examples/templates/team.pt-BR.md --culture pt-BR
+
+docker run --rm -v "$PWD:/workspace:ro" adr-guard:templates check docs/adr
+docker run --rm --user "$(id -u):$(id -g)" \
+  -v "$PWD:/workspace" adr-guard:templates index docs/adr
+```
+
+`new` é **offline e não usa secrets**: não forneça `OPENAI_API_KEY` ou outras credenciais de IA. O diretório de destino precisa existir e ser gravável pelo usuário do container; o caminho do template é resolvido a partir de `/workspace`, diretório de trabalho do container, e o arquivo precisa ser legível. Uma montagem somente leitura é suficiente para `new --preview`/`--dry-run`, que imprime o Markdown proposto sem gravar. A criação efetiva com `new` não atualiza o índice automaticamente. As mesmas opções estarão disponíveis na **imagem versionada de GHCR/Docker Hub após a publicação da v1.1.0**; antes disso, não suponha que a v1.0.0 ou a tag móvel `:1` já contenha os templates.
+
+Consulte o [guia de criação offline, exemplos válidos e códigos de saída](creation.pt-BR.md), [placeholders personalizados](custom-templates.pt-BR.md) e [draft com IA e privacidade](draft-templates.pt-BR.md). A GitHub Action pública `@v1` aceita **somente `check`/`index`**, embora a CLI/container executados separadamente possam usar `new` e `draft`.
+
 ## Criação assistida por IA
 
 As credenciais dos providers devem ser fornecidas em runtime por variáveis de ambiente. Elas nunca são incorporadas à imagem.
