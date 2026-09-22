@@ -239,15 +239,63 @@ internal sealed class AdrCreationService
 
     private static string CreateMutexName(string directoryPath)
     {
-        var fullPath = Path.GetFullPath(directoryPath);
-        var canonicalPath = OperatingSystem.IsWindows()
-            ? fullPath.ToUpperInvariant()
-            : fullPath;
-        canonicalPath = Path.TrimEndingDirectorySeparator(canonicalPath);
+        var canonicalPath = ResolveDirectoryIdentity(directoryPath);
 
         var hash = SHA256.HashData(
             Encoding.UTF8.GetBytes(canonicalPath));
 
         return "adr-guard-create-" + Convert.ToHexString(hash);
+    }
+
+    private static string ResolveDirectoryIdentity(string directoryPath)
+    {
+        var fullPath = Path.GetFullPath(directoryPath);
+        var root = Path.GetPathRoot(fullPath)
+            ?? throw new InvalidOperationException(
+                $"Unable to resolve filesystem root for '{fullPath}'.");
+
+        var current = root;
+        var relative = Path.GetRelativePath(root, fullPath);
+
+        if (!string.Equals(relative, ".", StringComparison.Ordinal))
+        {
+            var segments = relative.Split(
+                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
+                StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var segment in segments)
+            {
+                current = Path.Combine(current, segment);
+                var directory = new DirectoryInfo(current);
+
+                if (!directory.Exists)
+                {
+                    throw new DirectoryNotFoundException(
+                        $"ADR directory does not exist while resolving its canonical identity: '{current}'.");
+                }
+
+                var target = directory.ResolveLinkTarget(
+                    returnFinalTarget: true);
+                if (target is not null)
+                {
+                    current = target.FullName;
+                }
+            }
+        }
+
+        var canonicalPath = Path.TrimEndingDirectorySeparator(
+            Path.GetFullPath(current));
+
+        // Windows is case-insensitive for the supported path semantics. macOS
+        // commonly is as well; folding case there may serialize two distinct
+        // directories on a case-sensitive volume, which is safe and preferable
+        // to allowing aliases of one directory to bypass the creation mutex.
+        if (OperatingSystem.IsWindows()
+            || OperatingSystem.IsMacOS())
+        {
+            canonicalPath = canonicalPath.ToUpperInvariant();
+        }
+
+        return canonicalPath;
     }
 }
