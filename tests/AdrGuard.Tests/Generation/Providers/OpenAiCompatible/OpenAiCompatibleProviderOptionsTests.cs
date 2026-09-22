@@ -56,12 +56,43 @@ public sealed class OpenAiCompatibleProviderOptionsTests
         Assert.Equal("secret-api-key", options.ApiKey);
     }
 
+    [Theory]
+    [InlineData("http://example.test/v1")]
+    [InlineData("http://10.0.0.10:1234/v1")]
+    public void ConstructorRejectsRemoteHttpEvenWithoutApiKey(string endpoint)
+    {
+        var exception = Assert.Throws<ArgumentException>(
+            () => new OpenAiCompatibleProviderOptions(
+                new Uri(endpoint),
+                "model"));
+
+        Assert.Contains(
+            "remote endpoints must use HTTPS",
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("http://localhost:1234/v1")]
+    [InlineData("http://127.0.0.1:1234/v1")]
+    [InlineData("http://[::1]:1234/v1")]
+    public void ConstructorAllowsLoopbackHttpWithoutApiKey(string endpoint)
+    {
+        var options = new OpenAiCompatibleProviderOptions(
+            new Uri(endpoint),
+            "local-model");
+
+        Assert.Equal("http", options.BaseUri.Scheme);
+        Assert.True(options.BaseUri.IsLoopback);
+        Assert.Null(options.ApiKey);
+    }
+
     [Fact]
     public void ConstructorRejectsHttpWhenApiKeyIsConfigured()
     {
         var exception = Assert.Throws<ArgumentException>(
             () => new OpenAiCompatibleProviderOptions(
-                new Uri("http://example.test/v1"),
+                new Uri("http://localhost:1234/v1"),
                 "model",
                 "secret-api-key"));
 
