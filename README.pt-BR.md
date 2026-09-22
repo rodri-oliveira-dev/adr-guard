@@ -316,7 +316,7 @@ adr-guard draft docs/adr --title "Decisão" --context "Contexto" \
 
 A autenticação é lida de variáveis de ambiente, e não de argumentos da CLI, evitando expor credenciais no histórico do comando ou no conteúdo dos ADRs. A CLI informa provider e modelo selecionados, mas não exibe valores de autenticação.
 
-Para `openai-compatible`, HTTP sem TLS é permitido somente quando nenhuma API key está configurada. Se `ADR_GUARD_OPENAI_COMPATIBLE_API_KEY` estiver definida, o endpoint deve usar HTTPS para que a credencial Bearer e o contexto arquitetural não sejam enviados em texto puro. As requisições oficiais da OpenAI definem explicitamente `store: false`.
+Para `openai-compatible`, endpoints remotos devem usar HTTPS mesmo quando nenhuma API key estiver configurada, porque o próprio contexto arquitetural pode ser sensível. HTTP sem TLS é permitido somente para endpoints de loopback, como `localhost`, `127.0.0.1` ou `::1`, preservando fluxos locais com Ollama/LM Studio e similares. Se `ADR_GUARD_OPENAI_COMPATIBLE_API_KEY` estiver definida, HTTPS é obrigatório inclusive em loopback para que a credencial Bearer nunca seja enviada em texto puro. As requisições oficiais da OpenAI definem explicitamente `store: false`.
 
 ### Idioma e contexto inline
 
