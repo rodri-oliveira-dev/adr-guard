@@ -2,7 +2,7 @@
 
 [Português (Brasil)](draft-templates.pt-BR.md) · [Offline creation](creation.md) · [Custom template contract](custom-templates.md)
 
-The template-enabled `draft` workflow is implemented on `feature/issues-59` for the planned v1.1.0 release; the published v1.0.0 CLI does not yet provide its template flags. The existing command with **no** `--template` or `--template-file` keeps its exact historical rendering and accepts its previous set of .NET culture names.
+Optional template-enabled `draft` is introduced in version **1.1.0** of the CLI/container; older 1.0.x releases do not expose the template flags. The existing command with **no** `--template` or `--template-file` keeps its exact historical rendering and accepts its previous set of .NET culture names.
 
 ```bash
 adr-guard draft ./docs/adr --title "Adopt Redis" --context "We need bounded caching." \

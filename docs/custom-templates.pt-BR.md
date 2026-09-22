@@ -2,7 +2,7 @@
 
 [English](custom-templates.md) · [Criação offline](creation.pt-BR.md) · [Integração com IA](draft-templates.pt-BR.md)
 
-Este documento especifica o formato Markdown offline, tratado exclusivamente como dados, implementado na issue #54. A CLI `adr-guard new --template-file` e a seleção opcional em `draft --template-file` estão implementadas na branch `feature/issues-59` para a futura release `v1.1.0`. **A CLI pública v1.0.0 e a GitHub Action `@v1` ainda não oferecem esses comandos/opções.** Compile a branch de desenvolvimento para testar os exemplos antes da publicação. A Action permanece limitada a `check` e `index`.
+Templates ADR personalizados seguem um formato Markdown offline e estrito, tratado apenas como dados. `new --template-file` e `draft --template-file` opcional são introduzidos na versão **1.1.0** da CLI/container; as versões 1.0.x não os oferecem. Compile esta branch antes da publicação ou instale 1.1.0 ou superior depois. A GitHub Action pública `@v1` continua limitada a `check`/`index`.
 
 ## Origem e seleção
 

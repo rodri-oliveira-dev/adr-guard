@@ -2,7 +2,7 @@
 
 [Português (Brasil)](custom-templates.pt-BR.md) · [Offline creation](creation.md) · [AI draft integration](draft-templates.md)
 
-This document specifies the offline, data-only Markdown template format implemented in #54. The `adr-guard new --template-file` CLI and optional `draft --template-file` selection are implemented on `feature/issues-59` for the planned `v1.1.0` release. **The published v1.0.0 CLI and the public GitHub Action `@v1` do not provide these commands/options yet.** Build the development branch to try these examples before release. The Action remains limited to `check` and `index`.
+Custom ADR templates use a strict offline, data-only Markdown format. The `new --template-file` and optional `draft --template-file` commands are introduced in CLI/container **v1.1.0**; versions 1.0.x do not expose them. Build this branch for pre-release testing or install 1.1.0 or newer after publication. The public GitHub Action `@v1` remains `check`/`index` only.
 
 ## Template sources and selection
 

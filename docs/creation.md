@@ -2,11 +2,11 @@
 
 [Português (Brasil)](creation.pt-BR.md) · [README](../README.md) · [Custom template contract](custom-templates.md) · [AI template integration](draft-templates.md)
 
-> **Release status:** these commands are implemented on `feature/issues-59` as part of the planned `v1.1.0` release. The publicly published `v1.0.0` tool and GitHub Action `@v1` do not yet expose `new`. Build/install this branch to run the commands below before the final release. The published Action remains limited to `check` and `index`; `new` and `draft` belong to the CLI/.NET Tool or to a separately invoked container, not to Action inputs.
+> **Version availability:** `new` and optional template-aware `draft` are introduced in CLI/container version **1.1.0**. The older 1.0.x tools do not offer them. Before 1.1.0 is published, build this feature branch; afterward use the versioned .NET Tool or image. The public GitHub Action `@v1` remains limited to `check` and `index`, never `new` or AI `draft`.
 
 ## Quick start — no AI, account, API key, or network required
 
-Run from the repository root with the **branch-built** `adr-guard` command installed or on your `PATH`. The destination directory **must already exist**. The default template is `minimal` and the default guidance culture is `en-US`.
+Run from the repository root with the **v1.1.0 or newer (or branch-built before publication)** `adr-guard` command installed or on your `PATH`. The destination directory **must already exist**. The default template is `minimal` and the default guidance culture is `en-US`.
 
 ```bash
 mkdir -p docs/adr

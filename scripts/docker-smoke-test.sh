@@ -81,4 +81,25 @@ assert_exit_code 0 \
 test -s "${TEMP_DIR}/writable/README.md"
 grep -q "# Architecture Decision Records" "${TEMP_DIR}/writable/README.md"
 
+# Release images also expose offline new (not an Action input). Exercise both
+# built-in and custom modes against writable bind mounts without AI secrets.
+mkdir -p "${TEMP_DIR}/generated"
+assert_exit_code 0 \
+  docker run --rm --read-only \
+    --user "$(id -u):$(id -g)" \
+    --mount "type=bind,src=${TEMP_DIR}/generated,dst=/workspace/adrs" \
+    "${IMAGE}" new adrs --title "Adopt Redis" --template minimal
+assert_exit_code 0 \
+  docker run --rm --read-only \
+    --user "$(id -u):$(id -g)" \
+    --mount "type=bind,src=${TEMP_DIR}/generated,dst=/workspace/adrs" \
+    --mount "type=bind,src=${ROOT_DIR}/docs/examples/templates/team.en-US.md,dst=/workspace/team.md,readonly" \
+    "${IMAGE}" new adrs --title "Adopt Cache" --template-file team.md
+test -s "${TEMP_DIR}/generated/0001-adopt-redis.md"
+grep -Fq 'ADR 0002' "${TEMP_DIR}/generated/0002-adopt-cache.md"
+assert_exit_code 0 \
+  docker run --rm --read-only \
+    --mount "type=bind,src=${TEMP_DIR}/generated,dst=/workspace/adrs,readonly" \
+    "${IMAGE}" check adrs
+
 echo "Docker smoke tests passed."

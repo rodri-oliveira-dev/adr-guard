@@ -2,7 +2,7 @@
 
 [English](draft-templates.md) · [Criação offline](creation.pt-BR.md) · [Templates personalizados](custom-templates.pt-BR.md)
 
-O fluxo `draft` com seleção de templates está implementado na branch `feature/issues-59` para a futura release v1.1.0; a CLI pública v1.0.0 ainda não oferece essas opções. O comando **sem** `--template` ou `--template-file` mantém a renderização histórica exata e aceita os mesmos nomes de culturas .NET anteriormente suportados.
+O `draft` com seleção opcional de templates é introduzido na versão **1.1.0** da CLI/container; versões 1.0.x não disponibilizam essas opções. O comando **sem** `--template` ou `--template-file` mantém a renderização histórica exata e aceita os mesmos nomes de culturas .NET anteriormente suportados.
 
 ```bash
 adr-guard draft ./docs/adr --title "Adotar Redis" --context "Precisamos de cache limitado." \

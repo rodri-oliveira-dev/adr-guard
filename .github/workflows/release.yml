@@ -206,6 +206,7 @@ jobs:
             --add-source ./artifacts/packages \
             --ignore-failed-sources
 
+          ADR_GUARD_BIN="${PWD}/.release-tools/adr-guard" bash scripts/template-regression-test.sh
           ./.release-tools/adr-guard check docs/adr
           ./.release-tools/adr-guard index docs/adr
           git diff --exit-code -- docs/adr/README.md
@@ -533,6 +534,12 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout validated commit for release notes
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build-and-pack.outputs.validated-sha }}
+          persist-credentials: false
+
       - name: Download release package
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
         with:
@@ -575,9 +582,19 @@ jobs:
             exit 0
           fi
 
+          release_notes=(--generate-notes)
+          if [[ "${RELEASE_TAG}" == v1.1.0 ]]; then
+            if [[ ! -s docs/releases/v1.1.0.md ]]; then
+              echo "::error::Curated v1.1.0 release notes are missing from the validated commit."
+              exit 1
+            fi
+
+            release_notes=(--notes-file docs/releases/v1.1.0.md)
+          fi
+
           gh release create "${RELEASE_TAG}" \
             artifacts/packages/*.nupkg \
             --repo "${GH_REPO}" \
             --verify-tag \
-            --generate-notes \
+            "${release_notes[@]}" \
             --title "${RELEASE_TAG}"

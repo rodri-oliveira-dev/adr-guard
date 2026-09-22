@@ -5,8 +5,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKFLOW="${ROOT_DIR}/.github/workflows/release.yml"
 PROJECT="${ROOT_DIR}/src/AdrGuard/AdrGuard.csproj"
 
-grep -Fq '<VersionPrefix>1.0.0</VersionPrefix>' "${PROJECT}" || {
-  echo "The first public GitHub Action line must start at 1.0.0 so the release publishes @v1 instead of @v0." >&2
+grep -Fq '<VersionPrefix>1.1.0</VersionPrefix>' "${PROJECT}" || {
+  echo "The coordinated template release must start at 1.1.0 while retaining the existing @v1 compatibility line." >&2
   exit 1
 }
 
@@ -71,5 +71,19 @@ if [[ -z "${verify_line}" || -z "${publish_line}" || "${verify_line}" -ge "${pub
   echo "Runtime verification must happen before Action tags are published." >&2
   exit 1
 fi
+
+grep -Fq 'ADR_GUARD_BIN="${PWD}/.release-tools/adr-guard" bash scripts/template-regression-test.sh' "${WORKFLOW}" || {
+  echo "The release must smoke-test the installed versioned .NET Tool and its template modes." >&2
+  exit 1
+}
+
+# The coordinated feature release uses authored notes, while later patch releases
+# retain the existing generated-notes policy and all tags remain immutable.
+grep -Fq 'ref: ${{ needs.build-and-pack.outputs.validated-sha }}' <<<"${release_block}"
+grep -Fq 'release_notes=(--generate-notes)' <<<"${release_block}"
+grep -Fq 'if [[ "${RELEASE_TAG}" == v1.1.0 ]]; then' <<<"${release_block}"
+grep -Fq 'release_notes=(--notes-file docs/releases/v1.1.0.md)' <<<"${release_block}"
+test -s "${ROOT_DIR}/docs/releases/v1.1.0.md"
+test -s "${ROOT_DIR}/docs/releases/v1.1.0.pt-BR.md"
 
 echo "Release workflow Action publication policy checks passed."

@@ -10,7 +10,7 @@
 
 **GitHub Action consumers:** see the [consumer guide](docs/github-action.md), [release policy](docs/github-action-release.md), [security model](docs/github-action-security.md), [external verification evidence](docs/github-action-external-verification.md), and [Marketplace publication checklist](docs/github-marketplace.md). Independent pre-release consumer verification has passed, the `@v1` compatibility tag is published, and the Marketplace listing is still **forthcoming**. Support is available through [SUPPORT.md](SUPPORT.md); security reports follow [SECURITY.md](SECURITY.md).
 
-> **Release availability:** The published v1.0.0 tool and public GitHub Action @v1 support the existing check/index contract. Offline `new` and optional template-enabled `draft` are implemented in `feature/issues-59` for the planned v1.1.0 release. Build this branch to try them before release. The published Action remains check/index only.
+> **Version availability:** Offline `new` and optional template-based `draft` are introduced in version **1.1.0**; older 1.0.x packages do not include them. Before the 1.1.0 release is published, build `feature/issues-59` to try them; afterward install the versioned package or image. The public GitHub Action `@v1` continues to support only `check`/`index`.
 
 ADR Guard is a lightweight .NET command-line tool for validating and indexing Architecture Decision Records (ADRs).
 
@@ -466,7 +466,7 @@ dotnet pack src/AdrGuard/AdrGuard.csproj --configuration Release --no-build --ou
 Install the locally built package:
 
 ```bash
-dotnet tool install --tool-path ./.tools RodriOliveira.AdrGuard --version 1.0.0 --add-source ./artifacts/package
+dotnet tool install --tool-path ./.tools RodriOliveira.AdrGuard --version 1.1.0 --add-source ./artifacts/package
 ./.tools/adr-guard check docs/adr
 ```
 
@@ -475,6 +475,8 @@ dotnet tool install --tool-path ./.tools RodriOliveira.AdrGuard --version 1.0.0 
 ADR Guard validates its own architecture decisions. See [docs/adr](docs/adr/README.md).
 
 The repository CI builds and tests the solution, packages the .NET Tool, installs that package locally, runs the packaged `adr-guard` against `docs/adr`, regenerates the ADR index, and verifies that no documentation drift was introduced. The container path additionally lints the `Dockerfile`, builds and smoke-tests the image, and blocks fixable `HIGH` or `CRITICAL` vulnerabilities detected by Trivy.
+
+For release highlights, see the [v1.1.0 release notes](docs/releases/v1.1.0.md) ([pt-BR](docs/releases/v1.1.0.pt-BR.md)).
 
 ## Additional resources
 

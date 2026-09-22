@@ -2,11 +2,11 @@
 
 [English](creation.md) · [README](../README.pt-BR.md) · [Contrato de templates personalizados](custom-templates.pt-BR.md) · [Integração de templates com IA](draft-templates.pt-BR.md)
 
-> **Estado da entrega:** os comandos estão implementados na branch `feature/issues-59` para a futura release coordenada `v1.1.0`. A ferramenta pública `v1.0.0` e a GitHub Action `@v1` ainda não oferecem `new`. Para executar os exemplos antes da release final, compile/instale a ferramenta desta branch. A Action publicada continua limitada a `check` e `index`; `new` e `draft` pertencem à CLI/.NET Tool ou a um container executado separadamente, não aos inputs da Action.
+> **Disponibilidade por versão:** `new` e o `draft` opcional com templates são introduzidos na versão **1.1.0** da CLI/container; ferramentas 1.0.x não os oferecem. Antes da publicação, compile esta branch; depois, utilize a .NET Tool ou imagem versionada. A GitHub Action pública `@v1` permanece limitada a `check` e `index`, nunca a `new` ou `draft` com IA.
 
 ## Início rápido — sem IA, conta, chave de API ou rede
 
-Execute na raiz do repositório com o comando `adr-guard` **compilado desta branch** instalado ou disponível no `PATH`. O diretório de destino **precisa existir**. O modelo padrão é `minimal` e o idioma padrão das instruções é `en-US`.
+Execute na raiz do repositório com o comando `adr-guard` **v1.1.0 ou superior (ou compilado da branch antes da publicação)** instalado ou disponível no `PATH`. O diretório de destino **precisa existir**. O modelo padrão é `minimal` e o idioma padrão das instruções é `en-US`.
 
 ```bash
 mkdir -p docs/adr
