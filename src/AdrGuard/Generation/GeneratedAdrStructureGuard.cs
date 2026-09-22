@@ -40,6 +40,7 @@ internal static class GeneratedAdrStructureGuard
         using var reader = new StringReader(content);
         char? fenceMarker = null;
         var fenceLength = 0;
+        string? previousUnfencedLine = null;
 
         while (reader.ReadLine() is { } line)
         {
@@ -52,6 +53,7 @@ internal static class GeneratedAdrStructureGuard
                 {
                     fenceMarker = marker;
                     fenceLength = markerLength;
+                    previousUnfencedLine = null;
                     continue;
                 }
 
@@ -61,36 +63,108 @@ internal static class GeneratedAdrStructureGuard
                 {
                     fenceMarker = null;
                     fenceLength = 0;
+                    previousUnfencedLine = null;
                     continue;
                 }
             }
 
-            if (fenceMarker is not null
-                || !TryParseHeading(
-                    line,
-                    out var level,
-                    out var heading))
+            if (fenceMarker is not null)
             {
                 continue;
             }
 
-            if (level == 1
-                || (level == 2
-                    && (rejectAllHeadings
-                        || CanonicalLevelTwoHeadings.Contains(heading))))
+            if (TryParseHeading(
+                    line,
+                    out var level,
+                    out var heading))
             {
-                if (rejectAllHeadings)
-                {
-                    throw new InvalidOperationException(
-                        $"Template content in the {fieldName} section must not define "
-                        + "level-one or level-two Markdown headings.");
-                }
-
-                throw new InvalidOperationException(
-                    $"AI provider generated structural Markdown in the {fieldName} field. "
-                    + "Generated prose must not define level-one titles or canonical level-two ADR sections.");
+                RejectStructuralHeading(
+                    fieldName,
+                    rejectAllHeadings,
+                    level,
+                    heading);
+                previousUnfencedLine = null;
+                continue;
             }
+
+            if (TryParseSetextHeading(
+                    previousUnfencedLine,
+                    line,
+                    out level,
+                    out heading))
+            {
+                RejectStructuralHeading(
+                    fieldName,
+                    rejectAllHeadings,
+                    level,
+                    heading);
+                previousUnfencedLine = null;
+                continue;
+            }
+
+            previousUnfencedLine = string.IsNullOrWhiteSpace(line)
+                ? null
+                : line;
         }
+    }
+
+    private static void RejectStructuralHeading(
+        string fieldName,
+        bool rejectAllHeadings,
+        int level,
+        string heading)
+    {
+        if (level != 1
+            && (level != 2
+                || (!rejectAllHeadings
+                    && !CanonicalLevelTwoHeadings.Contains(heading))))
+        {
+            return;
+        }
+
+        if (rejectAllHeadings)
+        {
+            throw new InvalidOperationException(
+                $"Template content in the {fieldName} section must not define "
+                + "level-one or level-two Markdown headings.");
+        }
+
+        throw new InvalidOperationException(
+            $"AI provider generated structural Markdown in the {fieldName} field. "
+            + "Generated prose must not define level-one titles or canonical level-two ADR sections.");
+    }
+
+    private static bool TryParseSetextHeading(
+        string? previousLine,
+        string line,
+        out int level,
+        out string heading)
+    {
+        level = 0;
+        heading = string.Empty;
+
+        if (string.IsNullOrWhiteSpace(previousLine))
+        {
+            return false;
+        }
+
+        var indentation = line.Length - line.TrimStart().Length;
+        if (indentation > 3)
+        {
+            return false;
+        }
+
+        var underline = line.Trim();
+        if (underline.Length == 0
+            || underline[0] is not ('=' or '-')
+            || underline.Any(character => character != underline[0]))
+        {
+            return false;
+        }
+
+        level = underline[0] == '=' ? 1 : 2;
+        heading = previousLine.Trim();
+        return heading.Length > 0;
     }
 
     private static bool TryGetFence(
