@@ -20,7 +20,7 @@ internal sealed class AdrGenerationService
             persistence ?? new AtomicAdrDraftFilePersistence());
     }
 
-    internal async Task<AdrGenerationOutcome> GenerateAsync(
+    internal Task<AdrGenerationOutcome> GenerateAsync(
         string directoryPath,
         string title,
         string context,
