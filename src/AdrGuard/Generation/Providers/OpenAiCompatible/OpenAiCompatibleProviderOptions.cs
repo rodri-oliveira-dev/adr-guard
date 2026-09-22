@@ -38,10 +38,21 @@ internal sealed class OpenAiCompatibleProviderOptions
                 baseUri.Scheme,
                 Uri.UriSchemeHttp,
                 StringComparison.OrdinalIgnoreCase)
+            && !baseUri.IsLoopback)
+        {
+            throw new ArgumentException(
+                "OpenAI-compatible remote endpoints must use HTTPS. Plain HTTP is allowed only for loopback endpoints such as localhost, 127.0.0.1, or ::1.",
+                nameof(baseUri));
+        }
+
+        if (string.Equals(
+                baseUri.Scheme,
+                Uri.UriSchemeHttp,
+                StringComparison.OrdinalIgnoreCase)
             && normalizedApiKey is not null)
         {
             throw new ArgumentException(
-                "OpenAI-compatible endpoints must use HTTPS when an API key is configured.",
+                "OpenAI-compatible endpoints with an API key must use HTTPS, including loopback endpoints.",
                 nameof(baseUri));
         }
 
