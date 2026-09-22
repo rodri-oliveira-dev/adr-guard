@@ -59,6 +59,10 @@ Placeholders exatos e sensíveis a maiúsculas/minúsculas: `{{title}}` (título
 
 Tokens desconhecidos/malformados, headings estruturais duplicados e tentativa de sobrescrever o status são rejeitados. Substituições ocorrem **uma única vez**, sem executar shell, interpretar expressões ou expandir modelos recursivamente. O template não controla diretório de saída nem nome do arquivo.
 
+## Compatibilidade de renderização e quebras de linha
+
+A saída produzida por **templates** (`new` e `draft` com `--template`/`--template-file`) usa LF (`\n`) de forma determinística em Linux, Windows e macOS. Já o `draft` legado **sem template** preserva intencionalmente o contrato publicado antes deste roadmap, incluindo `Environment.NewLine` nativo do host. Essa exceção evita uma alteração byte a byte silenciosa no fluxo existente ao mesmo tempo em que mantém o novo contrato de templates reproduzível entre plataformas.
+
 ## Escrita concorrente, segurança e erros
 
 `new` offline e `draft` com IA compartilham a mesma infraestrutura de criação: escritores cooperantes no **mesmo host** serializam a alocação do ID com mutex nomeado; o template é renderizado novamente sob bloqueio com o **ID final**, validado, escrito em arquivo temporário e promovido atomicamente sem sobrescrever o destino. Falhas/cancelamentos limpam temporários; um ID não persistido pode ser reutilizado. Escritores externos não cooperantes e hosts diferentes em filesystem compartilhado exigem coordenação adicional.
