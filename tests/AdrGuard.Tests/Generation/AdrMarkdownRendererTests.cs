@@ -135,6 +135,7 @@ public sealed class AdrMarkdownRendererTests
     [InlineData("## Additional section")]
     [InlineData("Injected title\n================")]
     [InlineData("Decision\n--------")]
+    [InlineData("    ```\n## Additional section")]
     public void SubstitutionCannotInjectStructuralHeadings(string malicious)
     {
         var request = Request("en-US", context: "Valid.\n" + malicious);
