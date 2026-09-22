@@ -52,7 +52,7 @@ public sealed class AiHttpTransportTests
             AiProviderErrorKind.InvalidResponse,
             exception.ErrorKind);
         Assert.Contains(
-            AiHttpTransport.MaximumResponseBytes.ToString(),
+            AiHttpTransport.MaximumResponseBytes.ToString(System.Globalization.CultureInfo.InvariantCulture),
             exception.Message,
             StringComparison.Ordinal);
     }
