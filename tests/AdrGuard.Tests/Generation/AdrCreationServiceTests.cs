@@ -61,6 +61,70 @@ public sealed class AdrCreationServiceTests
     }
 
     [Fact]
+    public async Task ConcurrentSymlinkAliasesShareCreationMutex()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var parent = CreateDirectory();
+        var target = Path.Combine(parent, "target");
+        var alias = Path.Combine(parent, "alias");
+        var blocking = new BlockingPersistence();
+
+        try
+        {
+            Directory.CreateDirectory(target);
+            Directory.CreateSymbolicLink(alias, target);
+
+            var first = GenerateAsync(
+                new AdrGenerationService(new FixedProvider(), blocking),
+                target,
+                "Use Redis",
+                TestContext.Current.CancellationToken);
+
+            await blocking.Entered.WaitAsync(
+                TimeSpan.FromSeconds(10),
+                TestContext.Current.CancellationToken);
+
+            var second = GenerateAsync(
+                new AdrGenerationService(new FixedProvider()),
+                alias,
+                "Use Kafka",
+                TestContext.Current.CancellationToken);
+
+            await Task.Delay(100, TestContext.Current.CancellationToken);
+            Assert.False(second.IsCompleted);
+
+            blocking.Release();
+
+            var outcomes = await Task.WhenAll(first, second)
+                .WaitAsync(
+                    TimeSpan.FromSeconds(10),
+                    TestContext.Current.CancellationToken);
+
+            Assert.All(outcomes, outcome => Assert.True(outcome.Written));
+            Assert.Equal(
+                ["0001", "0002"],
+                outcomes.Select(outcome =>
+                        Path.GetFileName(outcome.FilePath!)[..4])
+                    .Order(StringComparer.Ordinal)
+                    .ToArray());
+            Assert.True(AdrValidator.Validate(
+                AdrDocumentLoader.LoadDirectory(
+                    target,
+                    TestContext.Current.CancellationToken)).IsValid);
+            AssertNoCreationArtifacts(target);
+        }
+        finally
+        {
+            blocking.Release();
+            DeleteDirectory(parent);
+        }
+    }
+
+    [Fact]
     public async Task ConcurrentSameTitleNeverOverwritesAndOnlyOneFileIsCommitted()
     {
         var root = CreateDirectory();
