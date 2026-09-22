@@ -59,6 +59,10 @@ Recognized exact case-sensitive placeholders: `{{title}}` (escaped single-line t
 
 Unknown or malformed placeholder syntax, duplicate structural headings and attempted status overrides fail validation. Substitutions occur **once**, never as shell commands, interpreted expressions or recursive templates. The template does not control the output directory or filename.
 
+## Rendering and newline compatibility
+
+**Template-rendered** output (`new` and `draft` with `--template`/`--template-file`) uses deterministic LF (`\n`) on Linux, Windows, and macOS. The legacy `draft` path **without a template** intentionally preserves the contract published before this roadmap, including the host-native `Environment.NewLine`. This exception avoids a silent byte-for-byte change to the existing workflow while keeping the new template contract reproducible across platforms.
+
 ## Concurrent writing, safety, and errors
 
 The same creation path is shared between offline `new` and AI `draft`: cooperating writers on the **same host** serialize ID allocation under a named mutex; the selected template is re-rendered with the **final allocated ID** while holding that lock, validated, written to a temporary file and atomically promoted without overwriting a destination. Failure/cancellation cleans up temporary files; retry may reuse an uncommitted ID. External non-cooperating writers and different hosts sharing the same filesystem require additional coordination.
