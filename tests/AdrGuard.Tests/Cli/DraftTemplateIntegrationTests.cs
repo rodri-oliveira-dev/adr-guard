@@ -317,7 +317,7 @@ public sealed class DraftTemplateIntegrationTests
             Assert.Equal(1, provider.CallCount);
             Assert.Empty(Directory.EnumerateFiles(root));
             Assert.Contains(
-                AdrGenerationContextLimits.MaximumGeneratedFieldCharacters.ToString(),
+                AdrGenerationContextLimits.MaximumGeneratedFieldCharacters.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 result.Error,
                 StringComparison.Ordinal);
         }
