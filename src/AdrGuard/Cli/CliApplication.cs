@@ -322,8 +322,8 @@ internal static class CliApplication
                 injectedProvider,
                 output,
                 error,
-                cancellationToken,
-                selectedTemplate);
+                selectedTemplate,
+                cancellationToken);
         }
 
         if (string.IsNullOrWhiteSpace(
@@ -359,8 +359,8 @@ internal static class CliApplication
                 provider,
                 output,
                 error,
-                cancellationToken,
-                selectedTemplate);
+                selectedTemplate,
+                cancellationToken);
         }
         catch (ArgumentException exception)
         {
@@ -381,8 +381,8 @@ internal static class CliApplication
         IAdrGenerationProvider provider,
         TextWriter output,
         TextWriter error,
-        CancellationToken cancellationToken,
-        AdrTemplateDefinition? template) =>
+        AdrTemplateDefinition? template,
+        CancellationToken cancellationToken) =>
         DraftCommand.Run(
             arguments.DirectoryPath,
             arguments.Title,
@@ -394,8 +394,8 @@ internal static class CliApplication
             provider,
             output,
             error,
-            cancellationToken,
-            template);
+            template,
+            cancellationToken);
 
     private static void WriteProviderSelection(
         DraftArguments arguments,

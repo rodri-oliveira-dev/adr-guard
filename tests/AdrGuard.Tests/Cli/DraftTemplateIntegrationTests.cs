@@ -313,8 +313,8 @@ public sealed class DraftTemplateIntegrationTests
                     [],
                     includeExistingAdrs: false,
                     dryRun: false,
-                    cancellation.Token,
-                    template);
+                    template,
+                    cancellation.Token);
 
             Assert.ThrowsAny<OperationCanceledException>(
                 () => task.GetAwaiter().GetResult());
@@ -378,8 +378,8 @@ public sealed class DraftTemplateIntegrationTests
                     [],
                     includeExistingAdrs: false,
                     dryRun: false,
-                    TestContext.Current.CancellationToken,
-                    template);
+                    template,
+                    TestContext.Current.CancellationToken);
 
             await blocking.Entered.WaitAsync(
                 TimeSpan.FromSeconds(10),
@@ -394,8 +394,8 @@ public sealed class DraftTemplateIntegrationTests
                     [],
                     includeExistingAdrs: false,
                     dryRun: false,
-                    TestContext.Current.CancellationToken,
-                    template);
+                    template,
+                    TestContext.Current.CancellationToken);
 
             await Task.Delay(100, TestContext.Current.CancellationToken);
             Assert.False(second.IsCompleted);

@@ -28,8 +28,28 @@ internal sealed class AdrGenerationService
         IReadOnlyList<string> contextFilePaths,
         bool includeExistingAdrs,
         bool dryRun,
-        CancellationToken cancellationToken,
-        AdrTemplateDefinition? template = null)
+        CancellationToken cancellationToken) =>
+        GenerateAsync(
+            directoryPath,
+            title,
+            context,
+            cultureName,
+            contextFilePaths,
+            includeExistingAdrs,
+            dryRun,
+            template: null,
+            cancellationToken);
+
+    internal async Task<AdrGenerationOutcome> GenerateAsync(
+        string directoryPath,
+        string title,
+        string context,
+        string cultureName,
+        IReadOnlyList<string> contextFilePaths,
+        bool includeExistingAdrs,
+        bool dryRun,
+        AdrTemplateDefinition? template,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);

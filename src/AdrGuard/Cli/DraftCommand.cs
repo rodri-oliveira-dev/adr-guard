@@ -16,8 +16,34 @@ internal static class DraftCommand
         IAdrGenerationProvider? provider,
         TextWriter output,
         TextWriter error,
-        CancellationToken cancellationToken = default,
-        AdrTemplateDefinition? template = null)
+        CancellationToken cancellationToken = default) =>
+        Run(
+            directoryPath,
+            title,
+            context,
+            cultureName,
+            contextFilePaths,
+            includeExistingAdrs,
+            dryRun,
+            provider,
+            output,
+            error,
+            template: null,
+            cancellationToken);
+
+    internal static int Run(
+        string directoryPath,
+        string title,
+        string context,
+        string cultureName,
+        IReadOnlyList<string> contextFilePaths,
+        bool includeExistingAdrs,
+        bool dryRun,
+        IAdrGenerationProvider? provider,
+        TextWriter output,
+        TextWriter error,
+        AdrTemplateDefinition? template,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -96,8 +122,8 @@ internal static class DraftCommand
                     contextFilePaths,
                     includeExistingAdrs,
                     dryRun,
-                    cancellationToken,
-                    template)
+                    template,
+                    cancellationToken)
                 .GetAwaiter()
                 .GetResult();
 
