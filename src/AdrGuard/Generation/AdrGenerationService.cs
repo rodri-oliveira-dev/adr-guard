@@ -113,6 +113,7 @@ internal sealed class AdrGenerationService
             .ConfigureAwait(false);
 
         ArgumentNullException.ThrowIfNull(generated);
+        AdrGenerationContextLimits.ValidateGeneratedResult(generated);
         GeneratedAdrStructureGuard.Validate(generated);
 
         cancellationToken.ThrowIfCancellationRequested();
