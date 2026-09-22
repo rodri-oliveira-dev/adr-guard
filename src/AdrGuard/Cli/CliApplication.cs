@@ -303,7 +303,8 @@ internal static class CliApplication
                 error.WriteLine("Run 'adr-guard draft --help' for usage.");
                 return ExitCodes.UsageError;
             }
-            catch (Exception exception) when (exception is IOException
+            catch (Exception exception) when (exception is InvalidDataException
+                or IOException
                 or UnauthorizedAccessException
                 or InvalidOperationException
                 or OperationCanceledException)
