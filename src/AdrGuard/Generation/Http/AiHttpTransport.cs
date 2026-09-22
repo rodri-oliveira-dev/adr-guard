@@ -6,6 +6,8 @@ internal sealed class AiHttpTransport
 {
     internal static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(100);
 
+    internal const long MaximumResponseBytes = 1024 * 1024;
+
     private readonly HttpClient _httpClient;
     private readonly TimeSpan _timeout;
 
@@ -43,12 +45,37 @@ internal sealed class AiHttpTransport
             var response = await _httpClient
                 .SendAsync(
                     request,
-                    HttpCompletionOption.ResponseContentRead,
+                    HttpCompletionOption.ResponseHeadersRead,
                     timeoutSource.Token)
                 .ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
+                if (response.Content.Headers.ContentLength is > MaximumResponseBytes)
+                {
+                    response.Dispose();
+                    throw ResponseTooLarge();
+                }
+
+                try
+                {
+                    await response.Content
+                        .LoadIntoBufferAsync(
+                            MaximumResponseBytes,
+                            timeoutSource.Token)
+                        .ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    response.Dispose();
+                    throw;
+                }
+                catch (HttpRequestException)
+                {
+                    response.Dispose();
+                    throw ResponseTooLarge();
+                }
+
                 return response;
             }
 
@@ -73,6 +100,11 @@ internal sealed class AiHttpTransport
                 "AI provider request failed due to a network or transport error.");
         }
     }
+
+    private static AiProviderException ResponseTooLarge() =>
+        new(
+            AiProviderErrorKind.InvalidResponse,
+            $"AI provider response exceeds the {MaximumResponseBytes}-byte safety limit.");
 
     private static AiProviderException CreateHttpFailure(HttpStatusCode statusCode)
     {
