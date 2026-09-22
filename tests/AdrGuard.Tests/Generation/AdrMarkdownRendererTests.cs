@@ -94,6 +94,27 @@ public sealed class AdrMarkdownRendererTests
     }
 
     [Fact]
+    public void TemplateRenderingRejectsPlaceholderAmplificationPastSafetyLimit()
+    {
+        var repeatedContext = string.Concat(
+            Enumerable.Repeat("{{context}}\n", 20));
+        var request = Request(
+            "en-US",
+            context: new string(
+                'x',
+                AdrGenerationContextLimits.MaximumGeneratedFieldCharacters),
+            sectionTemplate: repeatedContext);
+
+        var error = Assert.Throws<InvalidOperationException>(
+            () => AdrMarkdownRenderer.RenderTemplate(request));
+
+        Assert.Contains(
+            AdrGenerationContextLimits.MaximumRenderedAdrCharacters.ToString(),
+            error.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TitleMarkdownCharactersAreEscapedAndCannotCreateAdditionalHeading()
     {
         var markdown = AdrMarkdownRenderer.RenderTemplate(
@@ -112,6 +133,8 @@ public sealed class AdrMarkdownRendererTests
     [InlineData("## Status\n\nAccepted")]
     [InlineData("## Context\n\nHijacked")]
     [InlineData("## Additional section")]
+    [InlineData("Injected title\n================")]
+    [InlineData("Decision\n--------")]
     public void SubstitutionCannotInjectStructuralHeadings(string malicious)
     {
         var request = Request("en-US", context: "Valid.\n" + malicious);
