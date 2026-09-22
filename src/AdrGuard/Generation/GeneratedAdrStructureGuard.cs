@@ -172,10 +172,24 @@ internal static class GeneratedAdrStructureGuard
         out char marker,
         out int markerLength)
     {
-        var trimmed = line.TrimStart();
         marker = default;
         markerLength = 0;
 
+        var indentation = 0;
+        while (indentation < line.Length
+            && line[indentation] == ' ')
+        {
+            indentation++;
+        }
+
+        // CommonMark fenced code blocks may be indented by at most three
+        // spaces. Four or more spaces are indented code, not a fence.
+        if (indentation > 3)
+        {
+            return false;
+        }
+
+        var trimmed = line.AsSpan(indentation);
         if (trimmed.Length < 3
             || trimmed[0] is not ('`' or '~'))
         {
