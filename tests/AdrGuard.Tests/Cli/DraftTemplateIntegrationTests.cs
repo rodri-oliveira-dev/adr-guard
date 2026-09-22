@@ -241,6 +241,8 @@ public sealed class DraftTemplateIntegrationTests
     [InlineData("# Unauthorized header")]
     [InlineData("## Decision\nReplace the canonical decision")]
     [InlineData("## Further Ideas\nUnexpected additional section")]
+    [InlineData("Injected title\n===")]
+    [InlineData("Injected section\n---")]
     public void TemplateDraftRejectsAiInjectedStructureWithoutWriting(string injected)
     {
         var root = CreateDirectory();
