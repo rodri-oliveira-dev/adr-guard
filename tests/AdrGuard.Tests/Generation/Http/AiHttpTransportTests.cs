@@ -28,6 +28,35 @@ public sealed class AiHttpTransportTests
             await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
+    [Fact]
+    public async Task SendAsyncRejectsOversizedSuccessfulResponse()
+    {
+        var oversized = new string(
+            'x',
+            checked((int)AiHttpTransport.MaximumResponseBytes + 1));
+
+        using var client = CreateClient((_, _) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(oversized),
+            }));
+        var transport = new AiHttpTransport(client);
+        using var request = CreateRequest();
+
+        var exception = await Assert.ThrowsAsync<AiProviderException>(
+            () => transport.SendAsync(
+                request,
+                TestContext.Current.CancellationToken));
+
+        Assert.Equal(
+            AiProviderErrorKind.InvalidResponse,
+            exception.ErrorKind);
+        Assert.Contains(
+            AiHttpTransport.MaximumResponseBytes.ToString(),
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.Unauthorized)]
     [InlineData(HttpStatusCode.Forbidden)]
