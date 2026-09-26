@@ -85,6 +85,7 @@ internal static class ReviewCommand
             }
             catch (Exception exception) when (
                 exception is InvalidOperationException
+                    or InvalidDataException
                     or IOException
                     or UnauthorizedAccessException
                     or ArgumentException)
