@@ -2,6 +2,7 @@ using AdrGuard.Generation;
 using AdrGuard.Generation.Providers;
 using AdrGuard.Review;
 using AdrGuard.Review.Providers;
+using AdrGuard.Review.Reporting;
 using System.Reflection;
 
 namespace AdrGuard.Cli;
@@ -20,7 +21,7 @@ internal static class CliApplication
           adr-guard index [directory] [--output <file>]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
-          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs]
+          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--format text|json] [--output <path> [--overwrite]]
           adr-guard [options]
 
         Commands:
@@ -107,7 +108,7 @@ internal static class CliApplication
 
     private const string ReviewHelpText = """
         Usage:
-          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs]
+          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--format text|json] [--output <path> [--overwrite]]
 
         Request an AI-assisted technical review of one existing, structurally valid ADR.
         The command is advisory and read-only: it does not edit the ADR, change its status,
@@ -124,6 +125,19 @@ internal static class CliApplication
                                   Aggregate limits are 100000 characters and 300000 bytes.
           --include-existing-adrs  Opt in to bounded parsed ADR context from the target ADR directory.
                                   The selected target ADR is deduplicated from this set.
+          --format <format>         Report format: text | json. Defaults to text.
+                                  JSON writes one versioned report object to stdout.
+          --output <path>          Explicitly persist the rendered report. Text output requires .md/.txt;
+                                  JSON output requires .json. Parent directory must already exist.
+          --overwrite              Allow --output to replace an existing regular file atomically.
+                                  Rejected without --output; never permits replacing the ADR or README.md index.
+
+        Reporting:
+          Text output is Markdown-compatible and includes evidence, unknowns, follow-up priority and
+          the human-review caveat. JSON uses schemaVersion 1.0 with stable camelCase field names.
+          In --format json mode, pre-provider source disclosure is written to stderr so stdout stays valid JSON.
+          Report files are UTF-8 without BOM and are written only when --output is explicitly supplied.
+          Provider token usage/charges may apply; ADR Guard does not fabricate or estimate precise costs.
 
         Privacy and limits:
           Review sends only the selected ADR by default.
@@ -327,6 +341,11 @@ internal static class CliApplication
                     reviewArguments.TargetPath,
                     reviewArguments.ContextFilePaths,
                     reviewArguments.IncludeExistingAdrs,
+                    reviewArguments.ProviderName!,
+                    reviewArguments.Model!,
+                    reviewArguments.Format,
+                    reviewArguments.OutputPath,
+                    reviewArguments.OverwriteOutput,
                     injectedProvider,
                     output,
                     error,
@@ -348,6 +367,11 @@ internal static class CliApplication
                 reviewArguments.TargetPath,
                 reviewArguments.ContextFilePaths,
                 reviewArguments.IncludeExistingAdrs,
+                reviewArguments.ProviderName!,
+                reviewArguments.Model!,
+                reviewArguments.Format,
+                reviewArguments.OutputPath,
+                reviewArguments.OverwriteOutput,
                 provider,
                 output,
                 error,
@@ -603,8 +627,12 @@ internal static class CliApplication
         string? providerName = null;
         string? model = null;
         string? endpoint = null;
+        string? outputPath = null;
         var contextFilePaths = new List<string>();
         var includeExistingAdrs = false;
+        var format = AdrReviewOutputFormat.Text;
+        var formatAssigned = false;
+        var overwriteOutput = false;
 
         for (var index = 1; index < args.Count; index++)
         {
@@ -622,7 +650,25 @@ internal static class CliApplication
                 continue;
             }
 
-            if (argument is "--provider" or "--model" or "--endpoint" or "--context-file")
+            if (argument == "--overwrite")
+            {
+                if (overwriteOutput)
+                {
+                    reviewArguments = ReviewArguments.Empty;
+                    return false;
+                }
+
+                overwriteOutput = true;
+                continue;
+            }
+
+            if (argument is
+                "--provider"
+                or "--model"
+                or "--endpoint"
+                or "--context-file"
+                or "--format"
+                or "--output")
             {
                 if (index + 1 >= args.Count)
                 {
@@ -631,7 +677,9 @@ internal static class CliApplication
                 }
 
                 var value = args[++index];
-                if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-'))
+
+                if (string.IsNullOrWhiteSpace(value)
+                    || value.StartsWith('-'))
                 {
                     reviewArguments = ReviewArguments.Empty;
                     return false;
@@ -640,26 +688,78 @@ internal static class CliApplication
                 switch (argument)
                 {
                     case "--provider":
-                        if (providerName is not null) { reviewArguments = ReviewArguments.Empty; return false; }
+                        if (providerName is not null)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
                         providerName = value;
                         break;
+
                     case "--model":
-                        if (model is not null) { reviewArguments = ReviewArguments.Empty; return false; }
+                        if (model is not null)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
                         model = value;
                         break;
+
                     case "--endpoint":
-                        if (endpoint is not null) { reviewArguments = ReviewArguments.Empty; return false; }
+                        if (endpoint is not null)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
                         endpoint = value;
                         break;
+
                     case "--context-file":
                         contextFilePaths.Add(value);
+                        break;
+
+                    case "--format":
+                        if (formatAssigned)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
+                        format = value switch
+                        {
+                            "text" => AdrReviewOutputFormat.Text,
+                            "json" => AdrReviewOutputFormat.Json,
+                            _ => (AdrReviewOutputFormat)(-1),
+                        };
+
+                        if (!Enum.IsDefined(format))
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
+                        formatAssigned = true;
+                        break;
+
+                    case "--output":
+                        if (outputPath is not null)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
+                        outputPath = value;
                         break;
                 }
 
                 continue;
             }
 
-            if (argument.StartsWith('-') || targetPath is not null)
+            if (argument.StartsWith('-')
+                || targetPath is not null)
             {
                 reviewArguments = ReviewArguments.Empty;
                 return false;
@@ -668,13 +768,23 @@ internal static class CliApplication
             targetPath = argument;
         }
 
+        if (overwriteOutput
+            && outputPath is null)
+        {
+            reviewArguments = ReviewArguments.Empty;
+            return false;
+        }
+
         reviewArguments = new ReviewArguments(
             targetPath ?? string.Empty,
             providerName,
             model,
             endpoint,
             contextFilePaths,
-            includeExistingAdrs);
+            includeExistingAdrs,
+            format,
+            outputPath,
+            overwriteOutput);
 
         return !string.IsNullOrWhiteSpace(targetPath);
     }
@@ -943,10 +1053,22 @@ internal static class CliApplication
         string? Model,
         string? Endpoint,
         IReadOnlyList<string> ContextFilePaths,
-        bool IncludeExistingAdrs)
+        bool IncludeExistingAdrs,
+        AdrReviewOutputFormat Format,
+        string? OutputPath,
+        bool OverwriteOutput)
     {
         internal static ReviewArguments Empty { get; } =
-            new(string.Empty, null, null, null, [], false);
+            new(
+                string.Empty,
+                null,
+                null,
+                null,
+                [],
+                false,
+                AdrReviewOutputFormat.Text,
+                null,
+                false);
     }
 
     private sealed record DraftArguments(
