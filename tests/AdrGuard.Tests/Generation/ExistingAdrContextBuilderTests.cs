@@ -34,6 +34,9 @@ public sealed class ExistingAdrContextBuilderTests
         Assert.Equal(2, result.IncludedCount);
         Assert.Equal(2, result.TotalCount);
         Assert.False(result.IsBounded);
+        Assert.Equal(
+            ["0001-use-postgresql.md", "0002-use-redis.md"],
+            result.IncludedSourceNames);
 
         var firstIndex = result.Content.IndexOf("ADR 0001", StringComparison.Ordinal);
         var secondIndex = result.Content.IndexOf("ADR 0002", StringComparison.Ordinal);
@@ -108,6 +111,13 @@ public sealed class ExistingAdrContextBuilderTests
         Assert.InRange(first.Content.Length, 1, ExistingAdrContextBuilder.MaximumContextCharacters);
         Assert.Equal(first.Content, second.Content);
         Assert.Equal(first.IncludedCount, second.IncludedCount);
+        Assert.Equal(first.IncludedSourceNames, second.IncludedSourceNames);
+        Assert.Equal(
+            documents
+                .OrderBy(document => document.Id)
+                .Take(first.IncludedCount)
+                .Select(document => document.FileName),
+            first.IncludedSourceNames);
 
         var firstExcludedId = first.IncludedCount + 1;
         Assert.DoesNotContain(
