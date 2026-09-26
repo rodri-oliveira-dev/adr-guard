@@ -5,11 +5,17 @@ using System.Text;
 
 namespace AdrGuard.Review;
 
+internal sealed record AdrCrossAdrEvidence(
+    string Content,
+    IReadOnlyList<string> IncludedSourceNames,
+    int TotalCandidateCount,
+    bool IsBounded);
+
 internal static class AdrCrossAdrEvidenceBuilder
 {
     internal const int MaximumCharacters = 16000;
 
-    internal static string? Build(
+    internal static AdrCrossAdrEvidence? Build(
         AdrDocument target,
         IReadOnlyList<AdrDocument> existingDocuments)
     {
@@ -27,9 +33,17 @@ internal static class AdrCrossAdrEvidenceBuilder
             .ToArray();
 
         var builder = new StringBuilder();
+        var includedSourceNames = new List<string>();
+
         builder.Append("Cross-ADR comparison evidence:")
             .Append(Environment.NewLine)
             .Append(BuildDocumentEvidence("Target", target));
+
+        if (builder.Length > MaximumCharacters)
+        {
+            throw new InvalidOperationException(
+                $"Cross-ADR comparison evidence exceeds the {MaximumCharacters}-character limit before candidate ADRs are added.");
+        }
 
         foreach (var document in ordered)
         {
@@ -43,9 +57,14 @@ internal static class AdrCrossAdrEvidenceBuilder
             }
 
             builder.Append(entry);
+            includedSourceNames.Add(document.FileName);
         }
 
-        return builder.ToString();
+        return new AdrCrossAdrEvidence(
+            builder.ToString(),
+            includedSourceNames,
+            ordered.Length,
+            includedSourceNames.Count < ordered.Length);
     }
 
     private static string BuildDocumentEvidence(
