@@ -344,7 +344,7 @@ internal static class AdrReviewReportSerializer
                     "missing-context",
                     StringComparison.Ordinal))
                 ? "needs-context"
-                : findings.Count > 0
+                : findings.Length > 0
                     ? "follow-up-suggested"
                     : "no-follow-up-findings";
 
