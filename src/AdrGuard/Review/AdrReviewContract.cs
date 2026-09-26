@@ -45,6 +45,12 @@ internal static class AdrReviewContract
         Use not-applicable only when the supplied evidence makes non-applicability supportable.
         Model output is fallible reviewer guidance, not an authoritative security/compliance assessment.
 
+        Return exactly one JSON object with a top-level "findings" array.
+        Every finding object must contain exactly these string properties:
+        "dimension", "classification", "source", "excerpt", "explanation", and "guidance".
+        Use an empty string for source or excerpt only when that evidence is genuinely unavailable.
+        Do not return Markdown, prose outside the JSON object, approval verdicts, scores, or extra properties.
+
         Cross-ADR analysis rules:
         - Perform cross-ADR assertions only when "Cross-ADR comparison evidence" is present.
         - A potential contradiction must name both ADR IDs/sources and cite the relevant decision statements.
