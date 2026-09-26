@@ -181,8 +181,8 @@ public sealed class ReviewCommandIntegrationTests
                 TestContext.Current.CancellationToken);
 
             Assert.Equal(ExitCodes.Success, exitCode);
-            Assert.Contains("ADR 0002", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
-            Assert.DoesNotContain("ADR 0001", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("Candidate ADR 0002", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("Target ADR 0001", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
             Assert.Contains("Warning:", output.ToString(), StringComparison.Ordinal);
         }
         finally
@@ -393,7 +393,8 @@ public sealed class ReviewCommandIntegrationTests
 
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.Equal(1, provider.CallCount);
-            Assert.DoesNotContain("0002-use-postgres.md", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
+            Assert.DoesNotContain("Cross-ADR comparison evidence", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
+            Assert.DoesNotContain("Use Postgres.", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
         }
         finally
         {
