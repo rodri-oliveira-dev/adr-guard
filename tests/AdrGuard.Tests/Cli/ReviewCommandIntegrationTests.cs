@@ -29,24 +29,93 @@ public sealed class ReviewCommandIntegrationTests
         Assert.Equal(string.Empty, error.ToString());
     }
 
-    [Theory]
-    [InlineData(new[] { "review" })]
-    [InlineData(new[] { "review", "0001-use-redis.md", "--provider", "openai" })]
-    [InlineData(new[] { "review", "0001-use-redis.md", "--model", "test-model" })]
-    public void ReviewInvalidUsageReturnsUsageError(string[] args)
+    [Fact]
+    public void ReviewInvalidUsageReturnsUsageError()
+    {
+        IReadOnlyList<string[]> invalidArguments =
+        [
+            ["review"],
+            ["review", "0001-use-redis.md", "--provider", "openai"],
+            ["review", "0001-use-redis.md", "--model", "test-model"],
+        ];
+
+        foreach (var args in invalidArguments)
+        {
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                args,
+                output,
+                error);
+
+            Assert.Equal(ExitCodes.UsageError, exitCode);
+            Assert.Equal(string.Empty, output.ToString());
+            Assert.Contains("review", error.ToString(), StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("usage", error.ToString(), StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public void ReviewRejectsNonMarkdownTargetBeforeProviderInvocation()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "decision.txt");
+            File.WriteAllText(target, "not an ADR");
+
+            var provider = new RecordingReviewProvider(
+                ReviewResult("Should not run."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                ["review", target, "--provider", "openai", "--model", "test-model"],
+                output,
+                error,
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
+
+            Assert.Equal(ExitCodes.UsageError, exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Contains(".md extension", error.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void ReviewRejectsUnsupportedProviderAsUsageError()
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
         var exitCode = CliApplication.Run(
-            args,
+            [
+                "review",
+                "0001-use-redis.md",
+                "--provider",
+                "unsupported",
+                "--model",
+                "test-model",
+            ],
             output,
-            error);
+            error,
+            TestContext.Current.CancellationToken);
 
         Assert.Equal(ExitCodes.UsageError, exitCode);
-        Assert.Equal(string.Empty, output.ToString());
-        Assert.Contains("review", error.ToString(), StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("usage", error.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            "Unsupported AI provider",
+            error.ToString(),
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "review --help",
+            error.ToString(),
+            StringComparison.Ordinal);
     }
 
     [Fact]
