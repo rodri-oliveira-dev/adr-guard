@@ -162,7 +162,7 @@ internal static partial class AdrReviewReportBuilder
                 || context.CrossAdrEvidence?.IsBounded == true);
     }
 
-    private static IReadOnlyList<SelectedSource> BuildSelectedSources(
+    private static List<SelectedSource> BuildSelectedSources(
         AdrDocument target,
         AdrReviewContext context)
     {
@@ -305,7 +305,7 @@ internal static partial class AdrReviewReportBuilder
     }
 
     private static string DetermineOutcome(
-        IReadOnlyList<AdrReviewFollowUpFindingReport> findings)
+        AdrReviewFollowUpFindingReport[] findings)
     {
         if (findings.Any(finding =>
                 string.Equals(
