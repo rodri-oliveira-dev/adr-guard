@@ -1,5 +1,6 @@
 using AdrGuard.Generation;
 using AdrGuard.Generation.Providers;
+using AdrGuard.Review;
 using System.Reflection;
 
 namespace AdrGuard.Cli;
@@ -18,6 +19,7 @@ internal static class CliApplication
           adr-guard index [directory] [--output <file>]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
+          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>]
           adr-guard [options]
 
         Commands:
@@ -25,6 +27,7 @@ internal static class CliApplication
           index    Validate ADR files and generate an index. Defaults to README.md.
           new      Create a Proposed ADR from an offline Markdown template.
           draft    Generate a Proposed ADR draft through a configured AI provider.
+          review   Request an advisory, read-only technical review of one existing ADR.
 
         Options:
           -h, --help    Show command-line help.
@@ -101,6 +104,32 @@ internal static class CliApplication
         validates the generated ADR, prints it, and does not write any file.
         """;
 
+    private const string ReviewHelpText = """
+        Usage:
+          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>]
+
+        Request an AI-assisted technical review of one existing, structurally valid ADR.
+        The command is advisory and read-only: it does not edit the ADR, change its status,
+        update an index, accept/reject the decision, or alter git state.
+
+        Required provider options:
+          --provider <provider>   openai | anthropic | gemini | openai-compatible
+          --model <model>         Provider model identifier. ADR Guard does not choose a default model.
+
+        Optional options:
+          --endpoint <uri>        Required only for openai-compatible; rejected for official providers.
+
+        Authentication is read from the same provider environment variables used by 'draft'.
+        Only the selected ADR is sent by this foundation command. Additional context controls are
+        introduced separately. Ctrl+C cancels provider execution.
+
+        Exit codes:
+          0  Review completed
+          1  Selected ADR failed structural validation
+          2  Invalid review command/provider usage
+          3  Operational/provider/cancellation failure
+        """;
+
     internal static int Run(
         IReadOnlyList<string> args,
         TextWriter output,
@@ -172,6 +201,14 @@ internal static class CliApplication
                 httpClientFactory,
                 environmentVariableReader,
                 cancellationToken),
+            "review" => RunReview(
+                args,
+                output,
+                error,
+                generationProvider,
+                httpClientFactory,
+                environmentVariableReader,
+                cancellationToken),
             _ => WriteUsageError(args, error),
         };
     }
@@ -226,6 +263,103 @@ internal static class CliApplication
             outputPath,
             output,
             error);
+    }
+
+    private static int RunReview(
+        IReadOnlyList<string> args,
+        TextWriter output,
+        TextWriter error,
+        IAdrGenerationProvider? injectedProvider,
+        Func<HttpClient>? httpClientFactory,
+        Func<string, string?>? environmentVariableReader,
+        CancellationToken cancellationToken)
+    {
+        if (args.Count == 2 && IsHelpOption(args[1]))
+        {
+            output.WriteLine(ReviewHelpText);
+            return ExitCodes.Success;
+        }
+
+        if (!TryParseReviewArguments(args, out var reviewArguments))
+        {
+            return WriteCommandUsageError("review", error);
+        }
+
+        if (string.IsNullOrWhiteSpace(reviewArguments.ProviderName)
+            || string.IsNullOrWhiteSpace(reviewArguments.Model))
+        {
+            error.WriteLine("'review' requires both --provider and --model.");
+            error.WriteLine("Run 'adr-guard review --help' for usage.");
+            return ExitCodes.UsageError;
+        }
+
+        try
+        {
+            if (injectedProvider is not null)
+            {
+                return ReviewCommand.Run(
+                    reviewArguments.TargetPath,
+                    new GenerationBackedAdrReviewProvider(injectedProvider),
+                    output,
+                    error,
+                    cancellationToken);
+            }
+
+            using var httpClient =
+                httpClientFactory?.Invoke()
+                ?? new HttpClient();
+
+            var provider = AdrGenerationProviderFactory.Create(
+                reviewArguments.ProviderName,
+                reviewArguments.Model,
+                reviewArguments.Endpoint,
+                httpClient,
+                environmentVariableReader);
+
+            return ReviewCommand.Run(
+                reviewArguments.TargetPath,
+                new GenerationBackedAdrReviewProvider(provider),
+                output,
+                error,
+                cancellationToken);
+        }
+        catch (ArgumentException exception)
+        {
+            error.WriteLine(exception.Message);
+            error.WriteLine("Run 'adr-guard review --help' for usage.");
+            return ExitCodes.UsageError;
+        }
+        catch (InvalidOperationException exception)
+        {
+            error.WriteLine(exception.Message);
+            return ExitCodes.OperationalError;
+        }
+    }
+
+    internal static int RunReviewForTests(
+        IReadOnlyList<string> args,
+        TextWriter output,
+        TextWriter error,
+        IAdrReviewProvider provider,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryParseReviewArguments(args, out var reviewArguments))
+        {
+            return WriteCommandUsageError("review", error);
+        }
+
+        if (string.IsNullOrWhiteSpace(reviewArguments.ProviderName)
+            || string.IsNullOrWhiteSpace(reviewArguments.Model))
+        {
+            return WriteCommandUsageError("review", error);
+        }
+
+        return ReviewCommand.Run(
+            reviewArguments.TargetPath,
+            provider,
+            output,
+            error,
+            cancellationToken);
     }
 
     private static int RunDraft(
@@ -455,6 +589,86 @@ internal static class CliApplication
         }
 
         return true;
+    }
+
+    private static bool TryParseReviewArguments(
+        IReadOnlyList<string> args,
+        out ReviewArguments reviewArguments)
+    {
+        string? targetPath = null;
+        string? providerName = null;
+        string? model = null;
+        string? endpoint = null;
+
+        for (var index = 1; index < args.Count; index++)
+        {
+            var argument = args[index];
+
+            if (argument is "--provider" or "--model" or "--endpoint")
+            {
+                if (index + 1 >= args.Count)
+                {
+                    reviewArguments = ReviewArguments.Empty;
+                    return false;
+                }
+
+                var value = args[++index];
+                if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-'))
+                {
+                    reviewArguments = ReviewArguments.Empty;
+                    return false;
+                }
+
+                switch (argument)
+                {
+                    case "--provider":
+                        if (providerName is not null)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
+                        providerName = value;
+                        break;
+                    case "--model":
+                        if (model is not null)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
+                        model = value;
+                        break;
+                    case "--endpoint":
+                        if (endpoint is not null)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
+                        endpoint = value;
+                        break;
+                }
+
+                continue;
+            }
+
+            if (argument.StartsWith('-') || targetPath is not null)
+            {
+                reviewArguments = ReviewArguments.Empty;
+                return false;
+            }
+
+            targetPath = argument;
+        }
+
+        reviewArguments = new ReviewArguments(
+            targetPath ?? string.Empty,
+            providerName,
+            model,
+            endpoint);
+
+        return !string.IsNullOrWhiteSpace(targetPath);
     }
 
     private static bool TryParseDraftArguments(
@@ -713,6 +927,16 @@ internal static class CliApplication
                    ?.InformationalVersion
                ?? assembly.GetName().Version?.ToString()
                ?? "unknown";
+    }
+
+    private sealed record ReviewArguments(
+        string TargetPath,
+        string? ProviderName,
+        string? Model,
+        string? Endpoint)
+    {
+        internal static ReviewArguments Empty { get; } =
+            new(string.Empty, null, null, null);
     }
 
     private sealed record DraftArguments(
