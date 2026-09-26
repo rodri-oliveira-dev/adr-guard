@@ -79,7 +79,11 @@ internal static class ReviewCommand
                     .GetAwaiter()
                     .GetResult();
             }
-            catch (InvalidOperationException exception)
+            catch (Exception exception) when (
+                exception is InvalidOperationException
+                    or IOException
+                    or UnauthorizedAccessException
+                    or ArgumentException)
             {
                 error.WriteLine($"Unable to build review context: {exception.Message}");
                 return ExitCodes.OperationalError;
