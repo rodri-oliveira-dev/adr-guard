@@ -43,7 +43,8 @@ public sealed class ReviewCommandIntegrationTests
                 ["review", path, "--provider", "openai", "--model", "test-model"],
                 output,
                 error,
-                provider);
+                provider,
+                TestContext.Current.CancellationToken);
 
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.Equal(string.Empty, error.ToString());
@@ -76,7 +77,8 @@ public sealed class ReviewCommandIntegrationTests
                 ["review", path, "--provider", "openai", "--model", "test-model"],
                 output,
                 error,
-                provider);
+                provider,
+                TestContext.Current.CancellationToken);
 
             Assert.Equal(ExitCodes.ValidationFailed, exitCode);
             Assert.Equal(0, provider.CallCount);
@@ -106,7 +108,8 @@ public sealed class ReviewCommandIntegrationTests
                 ["review", path, "--provider", "openai", "--model", "test-model"],
                 output,
                 error,
-                provider);
+                provider,
+                TestContext.Current.CancellationToken);
 
             Assert.Equal(ExitCodes.OperationalError, exitCode);
             Assert.Contains("canceled", error.ToString(), StringComparison.OrdinalIgnoreCase);
@@ -138,7 +141,8 @@ public sealed class ReviewCommandIntegrationTests
                 ["review", target, "--provider", "openai", "--model", "test", "--context-file", context],
                 output,
                 error,
-                provider);
+                provider,
+                TestContext.Current.CancellationToken);
 
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.Equal(1, provider.CallCount);
@@ -173,7 +177,8 @@ public sealed class ReviewCommandIntegrationTests
                 ["review", target, "--provider", "openai", "--model", "test", "--include-existing-adrs"],
                 output,
                 error,
-                provider);
+                provider,
+                TestContext.Current.CancellationToken);
 
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.Contains("ADR 0002", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
@@ -204,10 +209,191 @@ public sealed class ReviewCommandIntegrationTests
                 ["review", target, "--provider", "openai", "--model", "test", "--context-file", Path.Combine(root, "missing.txt")],
                 output,
                 error,
-                provider);
+                provider,
+                TestContext.Current.CancellationToken);
 
             Assert.Equal(ExitCodes.OperationalError, exitCode);
             Assert.Equal(0, provider.CallCount);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void CrossAdrEvidenceIsAbsentWithoutOptIn()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "0001-use-redis.md");
+            var sibling = Path.Combine(root, "0002-avoid-redis.md");
+            File.WriteAllText(target, ValidMarkdown());
+            File.WriteAllText(
+                sibling,
+                ValidMarkdown()
+                    .Replace("Use Redis", "Avoid Redis", StringComparison.Ordinal)
+                    .Replace("Use Redis.", "Do not use Redis.", StringComparison.Ordinal));
+
+            var provider = new RecordingReviewProvider(ReviewResult("Reviewed."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.RunReviewForTests(
+                ["review", target, "--provider", "openai", "--model", "test"],
+                output,
+                error,
+                provider,
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.DoesNotContain(
+                "Cross-ADR comparison evidence",
+                provider.LastRequest!.ProviderContext,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain("0002-avoid-redis.md", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void CrossAdrEvidenceIncludesBothIdsStatusesDecisionsAndLinksWhenOptedIn()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "0001-use-redis.md");
+            var sibling = Path.Combine(root, "0002-avoid-redis.md");
+
+            File.WriteAllText(
+                target,
+                """
+                # Use Redis
+
+                ## Status
+                Accepted
+
+                ## Context
+                Shared caching is required.
+
+                ## Decision
+                Use Redis for shared caching.
+
+                ## Consequences
+                Redis must be operated and monitored.
+
+                ## Related
+                See [ADR 0002](0002-avoid-redis.md).
+                """);
+
+            File.WriteAllText(
+                sibling,
+                """
+                # Avoid Redis
+
+                ## Status
+                Proposed
+
+                ## Context
+                Managed dependencies should be minimized.
+
+                ## Decision
+                Do not use Redis for shared caching.
+
+                ## Consequences
+                Use application-local caching only.
+                """);
+
+            var provider = new RecordingReviewProvider(
+                new AdrReviewResult(
+                [
+                    new AdrReviewFinding(
+                        "architectural-consistency",
+                        "potential-risk",
+                        "0001-use-redis.md <-> 0002-avoid-redis.md",
+                        "Use Redis for shared caching. / Do not use Redis for shared caching.",
+                        "The selected decisions are textually inconsistent for the same stated caching scope.",
+                        "Confirm intended scope and decide whether one ADR supersedes or narrows the other."),
+                ]));
+
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.RunReviewForTests(
+                ["review", target, "--provider", "openai", "--model", "test", "--include-existing-adrs"],
+                output,
+                error,
+                provider,
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.Contains("Target ADR 0001", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("Candidate ADR 0002", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("Status: Accepted", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("Status: Proposed", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("0002-avoid-redis.md", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("potential-risk", output.ToString(), StringComparison.Ordinal);
+            Assert.Contains("0001-use-redis.md <-> 0002-avoid-redis.md", output.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void CrossAdrContractQualifiesSupersededAndDifferentScopeCases()
+    {
+        var instructions = AdrReviewContract.BuildInstructions();
+
+        Assert.Contains("Deprecated and Superseded", instructions, StringComparison.Ordinal);
+        Assert.Contains("different scopes or time periods", instructions, StringComparison.Ordinal);
+        Assert.Contains("not enough information", instructions, StringComparison.Ordinal);
+        Assert.Contains("name both ADR IDs", instructions, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReviewAllowsValidSiblingReferenceWithoutTransmittingSiblingByDefault()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "0001-use-redis.md");
+            var sibling = Path.Combine(root, "0002-use-postgres.md");
+
+            File.WriteAllText(
+                target,
+                ValidMarkdown()
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + "## Related"
+                    + Environment.NewLine
+                    + "[ADR 0002](0002-use-postgres.md)");
+            File.WriteAllText(
+                sibling,
+                ValidMarkdown().Replace("Use Redis", "Use Postgres", StringComparison.Ordinal));
+
+            var provider = new RecordingReviewProvider(ReviewResult("Reviewed."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.RunReviewForTests(
+                ["review", target, "--provider", "openai", "--model", "test"],
+                output,
+                error,
+                provider,
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.Equal(1, provider.CallCount);
+            Assert.DoesNotContain("0002-use-postgres.md", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
         }
         finally
         {
