@@ -45,24 +45,28 @@ internal static class ReviewCommand
             var markdown = File.ReadAllText(fullPath);
             var directory = Path.GetDirectoryName(fullPath)
                 ?? Directory.GetCurrentDirectory();
-            var documents = AdrDocumentLoader.LoadDirectory(
-                directory,
-                cancellationToken);
-            var validation = AdrValidator.Validate(documents);
-            var targetValidation = new ValidationResult(
-                validation.Issues
-                    .Where(issue =>
-                        string.Equals(
-                            Path.GetFullPath(issue.FilePath),
-                            fullPath,
-                            StringComparison.OrdinalIgnoreCase))
-                    .ToArray());
+            var document = AdrMarkdownParser.Parse(
+                fullPath,
+                markdown);
 
-            if (!targetValidation.IsValid)
+            var referencedSiblingPaths = AdrReference
+                .FindAll(document)
+                .Select(reference => reference.ResolvedPath)
+                .Where(path =>
+                    IsWithinDirectory(directory, path)
+                    && File.Exists(path))
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+
+            var validation = AdrValidator.Validate(
+                [document],
+                referencedSiblingPaths);
+
+            if (!validation.IsValid)
             {
                 error.WriteLine(
                     "Selected ADR is structurally invalid and was not sent to the review provider.");
-                ValidationOutput.WriteIssues(targetValidation, error);
+                ValidationOutput.WriteIssues(validation, error);
                 return ExitCodes.ValidationFailed;
             }
 
@@ -172,4 +176,25 @@ internal static class ReviewCommand
             return ExitCodes.OperationalError;
         }
     }
+    private static bool IsWithinDirectory(
+        string directory,
+        string path)
+    {
+        var relativePath = Path.GetRelativePath(
+            directory,
+            path);
+
+        return !Path.IsPathRooted(relativePath)
+            && !string.Equals(
+                relativePath,
+                "..",
+                StringComparison.Ordinal)
+            && !relativePath.StartsWith(
+                $"..{Path.DirectorySeparatorChar}",
+                StringComparison.Ordinal)
+            && !relativePath.StartsWith(
+                $"..{Path.AltDirectorySeparatorChar}",
+                StringComparison.Ordinal);
+    }
+
 }
