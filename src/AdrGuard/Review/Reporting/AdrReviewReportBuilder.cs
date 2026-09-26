@@ -222,6 +222,7 @@ internal static partial class AdrReviewReportBuilder
 
         var fileTokens = SourceFileToken()
             .Matches(sourceText)
+            .Cast<Match>()
             .Select(match => match.Value)
             .Distinct(StringComparer.Ordinal)
             .ToArray();
