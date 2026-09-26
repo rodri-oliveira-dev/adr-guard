@@ -1,4 +1,5 @@
 using AdrGuard.Cli;
+using AdrGuard.Generation.Http;
 using AdrGuard.Review;
 using AdrGuard.Review.Providers;
 using System.Net;
@@ -68,6 +69,95 @@ public sealed class AdrReviewProviderIntegrationTests
         Assert.DoesNotContain(
             "Draft the prose fields",
             capturedBody,
+            StringComparison.Ordinal);
+
+        if (string.Equals(
+                providerName,
+                "anthropic",
+                StringComparison.Ordinal))
+        {
+            Assert.Contains(
+                $"\"max_tokens\":{AdrReviewProviderFactory.AnthropicReviewMaxTokens}",
+                capturedBody,
+                StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData("unknown-dimension")]
+    [InlineData("invalid-classification")]
+    [InlineData("missing-dimension")]
+    [InlineData("missing-context-without-uncertainty")]
+    public void ReviewJsonContractRejectsInvalidStructuredFindings(
+        string invalidCase)
+    {
+        var json = CreateInvalidReviewJson(
+            invalidCase);
+
+        var exception = Assert.Throws<AiProviderException>(
+            () => AdrReviewJsonContract.Parse(
+                json,
+                "Test provider"));
+
+        Assert.Equal(
+            AiProviderErrorKind.InvalidResponse,
+            exception.ErrorKind);
+    }
+
+    [Fact]
+    public void OpenAiCompatibleJsonFenceRemainsAcceptedBoundary()
+    {
+        var json = CreateReviewJson(
+            sparse: false);
+        var fenced =
+            $"```json{Environment.NewLine}{json}{Environment.NewLine}```";
+
+        var normalized =
+            AdrReviewJsonContract.RemoveSingleJsonFence(
+                fenced);
+        var result = AdrReviewJsonContract.Parse(
+            normalized,
+            "Compatible provider");
+
+        Assert.Equal(
+            8,
+            result.Findings.Count);
+    }
+
+    [Fact]
+    public void ReviewJsonContractRejectsExcessiveFindingCount()
+    {
+        var finding = new
+        {
+            dimension = "clarity-and-rationale",
+            classification = "observed-evidence",
+            source = "0001-use-cache.md",
+            excerpt = "Use a cache.",
+            explanation = "Evidence observed.",
+            guidance = "Verify the evidence.",
+        };
+
+        var json = JsonSerializer.Serialize(
+            new
+            {
+                findings = Enumerable
+                    .Repeat(
+                        finding,
+                        AdrReviewJsonContract.MaximumFindings + 1)
+                    .ToArray(),
+            });
+
+        var exception = Assert.Throws<AiProviderException>(
+            () => AdrReviewJsonContract.Parse(
+                json,
+                "Test provider"));
+
+        Assert.Equal(
+            AiProviderErrorKind.InvalidResponse,
+            exception.ErrorKind);
+        Assert.Contains(
+            "finding review limit",
+            exception.Message,
             StringComparison.Ordinal);
     }
 
@@ -211,6 +301,60 @@ public sealed class AdrReviewProviderIntegrationTests
         {
             Directory.Delete(root, true);
         }
+    }
+
+    private static string CreateInvalidReviewJson(
+        string invalidCase)
+    {
+        var findings = AdrReviewContract.Dimensions
+            .Select(dimension =>
+                new Dictionary<string, string>(
+                    StringComparer.Ordinal)
+                {
+                    ["dimension"] = dimension,
+                    ["classification"] = "observed-evidence",
+                    ["source"] = "0001-use-cache.md",
+                    ["excerpt"] = "Use a cache.",
+                    ["explanation"] = "Evidence observed.",
+                    ["guidance"] = "Verify the evidence.",
+                })
+            .ToList();
+
+        switch (invalidCase)
+        {
+            case "unknown-dimension":
+                findings[0]["dimension"] =
+                    "unknown-dimension";
+                break;
+
+            case "invalid-classification":
+                findings[0]["classification"] =
+                    "critical";
+                break;
+
+            case "missing-dimension":
+                findings.RemoveAt(
+                    findings.Count - 1);
+                break;
+
+            case "missing-context-without-uncertainty":
+                findings[0]["classification"] =
+                    "missing-context";
+                findings[0]["explanation"] =
+                    "The ADR does not say.";
+                findings[0]["source"] =
+                    string.Empty;
+                findings[0]["excerpt"] =
+                    string.Empty;
+                break;
+
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(invalidCase));
+        }
+
+        return JsonSerializer.Serialize(
+            new { findings });
     }
 
     private static string CreateReviewJson(bool sparse)
