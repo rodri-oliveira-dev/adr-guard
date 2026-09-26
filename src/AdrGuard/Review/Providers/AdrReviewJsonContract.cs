@@ -6,6 +6,7 @@ namespace AdrGuard.Review.Providers;
 
 internal static class AdrReviewJsonContract
 {
+    internal const int MaximumFindings = 64;
     private static readonly JsonSerializerOptions JsonOptions =
         new(JsonSerializerDefaults.Web);
 
@@ -77,6 +78,12 @@ internal static class AdrReviewJsonContract
         {
             throw InvalidResponse(
                 $"{providerDisplayName} returned review JSON without findings.");
+        }
+
+        if (payload.Findings.Length > MaximumFindings)
+        {
+            throw InvalidResponse(
+                $"{providerDisplayName} returned more than the {MaximumFindings}-finding review limit.");
         }
 
         var findings = new List<AdrReviewFinding>(
