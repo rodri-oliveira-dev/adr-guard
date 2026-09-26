@@ -136,9 +136,13 @@ internal static class CliApplication
           No repository/source-tree discovery occurs by default. --include-existing-adrs explicitly authorizes
           Markdown ADR discovery below the target ADR directory; git diffs and environment variables are never scanned as context.
 
+        Provider-side processing:
+          Selected review material is transmitted to the configured external AI provider and can leave
+          the local machine/process. Provider retention, logging, residency and processing terms apply;
+          review the selected provider's privacy/data-processing policy before sending sensitive material.
+
         Authentication is read from the same provider environment variables used by 'draft'.
-        Only the selected ADR is sent by this foundation command. Additional context controls are
-        introduced separately. Ctrl+C cancels provider execution.
+        Ctrl+C cancels provider execution.
 
         Exit codes:
           0  Review completed
