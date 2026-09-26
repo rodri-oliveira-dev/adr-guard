@@ -20,6 +20,9 @@ public sealed class ReviewCommandIntegrationTests
         Assert.Equal(ExitCodes.Success, exitCode);
         Assert.Contains("adr-guard review", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("advisory", output.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("UTF-8", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("150000 bytes", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("Every transmitted source", output.ToString(), StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
     }
 
@@ -146,10 +149,14 @@ public sealed class ReviewCommandIntegrationTests
 
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.Equal(1, provider.CallCount);
-            Assert.Contains("requirements.txt", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("Target ADR source [target]: 0001-use-redis.md", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("Explicit context source [context-1]: requirements.txt", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
             Assert.Contains("Latency must stay below 50 ms.", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
             Assert.DoesNotContain("secret.txt", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
             Assert.DoesNotContain(root, provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("- target ADR [target]: 0001-use-redis.md", output.ToString(), StringComparison.Ordinal);
+            Assert.Contains("- explicit context [context-1]: requirements.txt", output.ToString(), StringComparison.Ordinal);
+            Assert.DoesNotContain(root, output.ToString(), StringComparison.Ordinal);
         }
         finally
         {
@@ -183,7 +190,10 @@ public sealed class ReviewCommandIntegrationTests
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.Contains("Candidate ADR 0002", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
             Assert.Contains("Target ADR 0001", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("- existing ADR: 0002-use-postgres.md", output.ToString(), StringComparison.Ordinal);
+            Assert.Contains("1 of 1 candidate ADR source(s) transmitted", output.ToString(), StringComparison.Ordinal);
             Assert.Contains("Warning:", output.ToString(), StringComparison.Ordinal);
+            Assert.DoesNotContain(root, output.ToString(), StringComparison.Ordinal);
         }
         finally
         {
@@ -214,6 +224,184 @@ public sealed class ReviewCommandIntegrationTests
 
             Assert.Equal(ExitCodes.OperationalError, exitCode);
             Assert.Equal(0, provider.CallCount);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void InvalidUtf8ContextFailsBeforeProviderInvocation()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "0001-use-redis.md");
+            var context = Path.Combine(root, "invalid.txt");
+            File.WriteAllText(target, ValidMarkdown());
+            File.WriteAllBytes(context, [0xC3, 0x28]);
+
+            var provider = new RecordingReviewProvider(ReviewResult("Should not run."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                ["review", target, "--provider", "openai", "--model", "test", "--context-file", context],
+                output,
+                error,
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
+
+            Assert.Equal(ExitCodes.OperationalError, exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Contains("valid UTF-8", error.ToString(), StringComparison.Ordinal);
+            Assert.DoesNotContain("Review material sent", output.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void OversizedContextBytesFailBeforeProviderInvocation()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "0001-use-redis.md");
+            var context = Path.Combine(root, "oversized.txt");
+            File.WriteAllText(target, ValidMarkdown());
+            File.WriteAllBytes(
+                context,
+                Enumerable.Repeat(
+                        (byte)'x',
+                        checked((int)AdrReviewExplicitContextValidator.MaximumContextFileBytes + 1))
+                    .ToArray());
+
+            var provider = new RecordingReviewProvider(ReviewResult("Should not run."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                ["review", target, "--provider", "openai", "--model", "test", "--context-file", context],
+                output,
+                error,
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
+
+            Assert.Equal(ExitCodes.OperationalError, exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Contains("byte per-file limit", error.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void FinalPromptOverflowFailsBeforeProviderInvocation()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "0001-use-redis.md");
+            var firstContext = Path.Combine(root, "first.txt");
+            var secondContext = Path.Combine(root, "second.txt");
+
+            File.WriteAllText(
+                target,
+                ValidMarkdown().Replace(
+                    "Use Redis.",
+                    new string('d', 23000),
+                    StringComparison.Ordinal));
+            File.WriteAllText(firstContext, new string('a', 49000));
+            File.WriteAllText(secondContext, new string('b', 49000));
+
+            var provider = new RecordingReviewProvider(ReviewResult("Should not run."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [
+                    "review",
+                    target,
+                    "--provider",
+                    "openai",
+                    "--model",
+                    "test",
+                    "--context-file",
+                    firstContext,
+                    "--context-file",
+                    secondContext,
+                ],
+                output,
+                error,
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
+
+            Assert.Equal(ExitCodes.OperationalError, exitCode);
+            Assert.Equal(0, provider.CallCount);
+            Assert.Contains("final prompt limit", error.ToString(), StringComparison.Ordinal);
+            Assert.DoesNotContain("Review material sent", output.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void BoundedExistingAdrSelectionDisclosesOnlyTransmittedSourcesInDeterministicOrder()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "0001-target.md");
+            File.WriteAllText(
+                target,
+                ValidMarkdown().Replace("Use Redis", "Target Decision", StringComparison.Ordinal));
+
+            File.WriteAllText(
+                Path.Combine(root, "0004-later.md"),
+                ValidMarkdown().Replace("Use Redis", "Later Decision", StringComparison.Ordinal));
+            File.WriteAllText(
+                Path.Combine(root, "0003-too-large.md"),
+                ValidMarkdown()
+                    .Replace("Use Redis", "Too Large", StringComparison.Ordinal)
+                    .Replace("Use Redis.", new string('z', 15000), StringComparison.Ordinal));
+            File.WriteAllText(
+                Path.Combine(root, "0002-included.md"),
+                ValidMarkdown().Replace("Use Redis", "Included Decision", StringComparison.Ordinal));
+
+            var provider = new RecordingReviewProvider(ReviewResult("Reviewed."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                ["review", target, "--provider", "openai", "--model", "test", "--include-existing-adrs"],
+                output,
+                error,
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.Equal(1, provider.CallCount);
+            Assert.Contains("0002-included.md", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
+            Assert.DoesNotContain("0003-too-large.md", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+            Assert.DoesNotContain("0004-later.md", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+
+            var disclosure = output.ToString();
+            Assert.Contains("- existing ADR: 0002-included.md", disclosure, StringComparison.Ordinal);
+            Assert.DoesNotContain("- existing ADR: 0003-too-large.md", disclosure, StringComparison.Ordinal);
+            Assert.DoesNotContain("- existing ADR: 0004-later.md", disclosure, StringComparison.Ordinal);
+            Assert.Contains("1 of 3 candidate ADR source(s) transmitted (bounded)", disclosure, StringComparison.Ordinal);
         }
         finally
         {
