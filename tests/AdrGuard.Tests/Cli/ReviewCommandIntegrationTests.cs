@@ -23,7 +23,86 @@ public sealed class ReviewCommandIntegrationTests
         Assert.Contains("UTF-8", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("150000 bytes", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("Every transmitted source", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--context-file <path>", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--include-existing-adrs", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("Exit codes:", output.ToString(), StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
+    }
+
+    [Theory]
+    [InlineData(new[] { "review" })]
+    [InlineData(new[] { "review", "0001-use-redis.md", "--provider", "openai" })]
+    [InlineData(new[] { "review", "0001-use-redis.md", "--model", "test-model" })]
+    public void ReviewInvalidUsageReturnsUsageError(string[] args)
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = CliApplication.Run(
+            args,
+            output,
+            error);
+
+        Assert.Equal(ExitCodes.UsageError, exitCode);
+        Assert.Equal(string.Empty, output.ToString());
+        Assert.Contains("review", error.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("usage", error.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReviewProviderFailureIsOperationalAndDoesNotModifyAdrOrIndex()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "0001-use-redis.md");
+            var index = Path.Combine(root, "README.md");
+            var originalAdr = ValidMarkdown();
+            const string originalIndex = "# Existing ADR Index";
+            File.WriteAllText(target, originalAdr);
+            File.WriteAllText(index, originalIndex);
+
+            var originalFiles = Directory
+                .EnumerateFiles(root)
+                .Select(Path.GetFileName)
+                .Order(StringComparer.Ordinal)
+                .ToArray();
+
+            var provider = new FailingReviewProvider();
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                ["review", target, "--provider", "openai", "--model", "test-model"],
+                output,
+                error,
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
+
+            Assert.Equal(ExitCodes.OperationalError, exitCode);
+            Assert.Contains(
+                "provider failed",
+                error.ToString(),
+                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(
+                "structurally invalid",
+                error.ToString(),
+                StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(originalAdr, File.ReadAllText(target));
+            Assert.Equal(originalIndex, File.ReadAllText(index));
+            Assert.Equal(
+                originalFiles,
+                Directory
+                    .EnumerateFiles(root)
+                    .Select(Path.GetFileName)
+                    .Order(StringComparer.Ordinal)
+                    .ToArray());
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
     }
 
     [Fact]
@@ -34,8 +113,11 @@ public sealed class ReviewCommandIntegrationTests
         try
         {
             var path = Path.Combine(root, "0001-use-redis.md");
+            var index = Path.Combine(root, "README.md");
             var original = ValidMarkdown();
+            const string originalIndex = "# Existing ADR Index";
             File.WriteAllText(path, original);
+            File.WriteAllText(index, originalIndex);
 
             var provider = new RecordingReviewProvider(
                 ReviewResult("Review completed."));
@@ -53,6 +135,7 @@ public sealed class ReviewCommandIntegrationTests
             Assert.Equal(string.Empty, error.ToString());
             Assert.Equal(1, provider.CallCount);
             Assert.Equal(original, File.ReadAllText(path));
+            Assert.Equal(originalIndex, File.ReadAllText(index));
             Assert.Contains("Review completed.", output.ToString(), StringComparison.Ordinal);
         }
         finally
@@ -678,6 +761,15 @@ public sealed class ReviewCommandIntegrationTests
             LastRequest = request;
             return Task.FromResult(result);
         }
+    }
+
+    private sealed class FailingReviewProvider : IAdrReviewProvider
+    {
+        public Task<AdrReviewResult> ReviewAsync(
+            AdrReviewRequest request,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException(
+                "Synthetic provider failure.");
     }
 
     private sealed class CancelingReviewProvider : IAdrReviewProvider
