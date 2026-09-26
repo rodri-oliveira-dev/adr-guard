@@ -56,7 +56,7 @@ internal static class AdrReviewProviderFactory
         };
     }
 
-    private static IAdrReviewProvider CreateOpenAi(
+    private static OpenAiAdrReviewProvider CreateOpenAi(
         string model,
         string? endpoint,
         AiHttpTransport transport,
@@ -73,7 +73,7 @@ internal static class AdrReviewProviderFactory
                 environmentVariableReader));
     }
 
-    private static IAdrReviewProvider CreateAnthropic(
+    private static AnthropicAdrReviewProvider CreateAnthropic(
         string model,
         string? endpoint,
         AiHttpTransport transport,
@@ -91,7 +91,7 @@ internal static class AdrReviewProviderFactory
                     environmentVariableReader));
     }
 
-    private static IAdrReviewProvider CreateGemini(
+    private static GeminiAdrReviewProvider CreateGemini(
         string model,
         string? endpoint,
         AiHttpTransport transport,
@@ -108,7 +108,7 @@ internal static class AdrReviewProviderFactory
                 environmentVariableReader));
     }
 
-    private static IAdrReviewProvider CreateOpenAiCompatible(
+    private static OpenAiCompatibleAdrReviewProvider CreateOpenAiCompatible(
         string model,
         string? endpoint,
         AiHttpTransport transport,
