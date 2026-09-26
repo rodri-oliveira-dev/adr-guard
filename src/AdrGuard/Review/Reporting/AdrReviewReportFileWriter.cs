@@ -9,16 +9,14 @@ internal static class AdrReviewReportFileWriter
             encoderShouldEmitUTF8Identifier: false,
             throwOnInvalidBytes: true);
 
-    internal static string Write(
+    internal static string ValidateDestination(
         string outputPath,
-        string content,
         AdrReviewOutputFormat format,
         string targetAdrPath,
         bool overwrite)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(
             outputPath);
-        ArgumentNullException.ThrowIfNull(content);
         ArgumentException.ThrowIfNullOrWhiteSpace(
             targetAdrPath);
 
@@ -79,6 +77,26 @@ internal static class AdrReviewReportFileWriter
                     $"Review report output already exists: '{fullOutputPath}'. Use --overwrite to replace it explicitly.");
             }
         }
+
+        return fullOutputPath;
+    }
+
+    internal static string Write(
+        string outputPath,
+        string content,
+        AdrReviewOutputFormat format,
+        string targetAdrPath,
+        bool overwrite)
+    {
+        ArgumentNullException.ThrowIfNull(content);
+
+        var fullOutputPath = ValidateDestination(
+            outputPath,
+            format,
+            targetAdrPath,
+            overwrite);
+        var outputDirectory =
+            Path.GetDirectoryName(fullOutputPath)!;
 
         var temporaryPath = Path.Combine(
             outputDirectory,
