@@ -92,7 +92,7 @@ internal static class ReviewCommand
             output.WriteLine("AI-assisted ADR review (advisory only)");
             output.WriteLine("Human review remains authoritative; no ADR content or status was changed.");
             output.WriteLine();
-            output.WriteLine(result.Summary);
+            output.WriteLine(result.ToHumanReadable());
             return ExitCodes.Success;
         }
         catch (OperationCanceledException)
