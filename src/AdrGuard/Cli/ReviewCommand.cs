@@ -86,17 +86,43 @@ internal static class ReviewCommand
             }
 
             output.WriteLine("Review material sent to the configured external provider:");
-            output.WriteLine($"- target ADR: {Path.GetFileName(fullPath)}");
+            output.WriteLine($"- target ADR [target]: {Path.GetFileName(fullPath)}");
 
-            foreach (var contextFile in reviewContext.ExplicitFiles)
+            for (var index = 0; index < reviewContext.ExplicitFiles.Count; index++)
             {
-                output.WriteLine($"- explicit context: {Path.GetFileName(contextFile.FilePath)}");
+                var contextFile = reviewContext.ExplicitFiles[index];
+                output.WriteLine(
+                    $"- explicit context [context-{index + 1}]: {Path.GetFileName(contextFile.FilePath)}");
             }
 
             if (includeExistingAdrs)
             {
+                var transmittedExistingSources =
+                    (reviewContext.ExistingAdrs?.IncludedSourceNames
+                        ?? Array.Empty<string>())
+                    .Concat(
+                        reviewContext.CrossAdrEvidence?.IncludedSourceNames
+                        ?? Array.Empty<string>())
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray();
+
+                foreach (var sourceName in transmittedExistingSources)
+                {
+                    output.WriteLine($"- existing ADR: {sourceName}");
+                }
+
+                var totalCandidates =
+                    Math.Max(
+                        reviewContext.ExistingAdrs?.TotalCount ?? 0,
+                        reviewContext.CrossAdrEvidence?.TotalCandidateCount ?? 0);
+                var isBounded =
+                    reviewContext.ExistingAdrs?.IsBounded == true
+                    || reviewContext.CrossAdrEvidence?.IsBounded == true;
+
                 output.WriteLine(
-                    $"- existing ADR context: {reviewContext.ExistingAdrs?.IncludedCount ?? 0} parsed ADR(s)");
+                    $"- existing ADR selection: {transmittedExistingSources.Length} of {totalCandidates} candidate ADR source(s) transmitted"
+                    + (isBounded ? " (bounded)" : string.Empty));
+
                 output.WriteLine(
                     "Warning: --include-existing-adrs transmits bounded parsed ADR content to the configured external provider.");
             }
