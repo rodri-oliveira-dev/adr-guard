@@ -313,7 +313,17 @@ internal static class CliApplication
                     reviewArguments.TargetPath,
                     reviewArguments.ContextFilePaths,
                     reviewArguments.IncludeExistingAdrs,
-                    new GenerationBackedAdrReviewProvider(injectedProvider),
+                    new ContractAdrReviewProvider(async (request, token) =>
+                    {
+                        var generated = await injectedProvider.GenerateAsync(
+                            new AdrGenerationRequest(
+                                "ADR technical review",
+                                request.Instructions + Environment.NewLine + Environment.NewLine + request.Input,
+                                "en-US"),
+                            token).ConfigureAwait(false);
+
+                        return AdrReviewFallbackMapper.Map(generated);
+                    }),
                     output,
                     error,
                     cancellationToken);
@@ -334,7 +344,17 @@ internal static class CliApplication
                 reviewArguments.TargetPath,
                 reviewArguments.ContextFilePaths,
                 reviewArguments.IncludeExistingAdrs,
-                new GenerationBackedAdrReviewProvider(provider),
+                new ContractAdrReviewProvider(async (request, token) =>
+                {
+                    var generated = await provider.GenerateAsync(
+                        new AdrGenerationRequest(
+                            "ADR technical review",
+                            request.Instructions + Environment.NewLine + Environment.NewLine + request.Input,
+                            "en-US"),
+                        token).ConfigureAwait(false);
+
+                    return AdrReviewFallbackMapper.Map(generated);
+                }),
                 output,
                 error,
                 cancellationToken);
