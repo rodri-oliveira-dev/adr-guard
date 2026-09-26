@@ -375,7 +375,7 @@ public sealed class ReviewCommandIntegrationTests
                 Path.Combine(root, "0003-too-large.md"),
                 ValidMarkdown()
                     .Replace("Use Redis", "Too Large", StringComparison.Ordinal)
-                    .Replace("Use Redis.", new string('z', 15000), StringComparison.Ordinal));
+                    .Replace("Use Redis.", new string('z', AdrCrossAdrEvidenceBuilder.MaximumCharacters), StringComparison.Ordinal));
             File.WriteAllText(
                 Path.Combine(root, "0002-included.md"),
                 ValidMarkdown().Replace("Use Redis", "Included Decision", StringComparison.Ordinal));
