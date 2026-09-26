@@ -9,6 +9,7 @@ namespace AdrGuard.Review.Providers;
 
 internal static class AdrReviewProviderFactory
 {
+    internal const int AnthropicReviewMaxTokens = 8192;
     internal static IAdrReviewProvider Create(
         string providerName,
         string model,
@@ -87,6 +88,7 @@ internal static class AdrReviewProviderFactory
             transport,
             AnthropicProviderOptions.FromEnvironment(
                 model,
+                maxTokens: AnthropicReviewMaxTokens,
                 environmentVariableReader:
                     environmentVariableReader));
     }
