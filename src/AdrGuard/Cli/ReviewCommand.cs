@@ -8,12 +8,15 @@ internal static class ReviewCommand
 {
     internal static int Run(
         string targetPath,
+        IReadOnlyList<string> contextFilePaths,
+        bool includeExistingAdrs,
         IAdrReviewProvider provider,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
+        ArgumentNullException.ThrowIfNull(contextFilePaths);
         ArgumentNullException.ThrowIfNull(provider);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
@@ -51,9 +54,37 @@ internal static class ReviewCommand
                 return ExitCodes.ValidationFailed;
             }
 
+            var reviewContext = AdrReviewContextBuilder
+                .BuildAsync(
+                    fullPath,
+                    markdown,
+                    contextFilePaths,
+                    includeExistingAdrs,
+                    cancellationToken)
+                .GetAwaiter()
+                .GetResult();
+
+            output.WriteLine("Review material sent to the configured external provider:");
+            output.WriteLine($"- target ADR: {Path.GetFileName(fullPath)}");
+
+            foreach (var contextFile in reviewContext.ExplicitFiles)
+            {
+                output.WriteLine($"- explicit context: {Path.GetFileName(contextFile.FilePath)}");
+            }
+
+            if (includeExistingAdrs)
+            {
+                output.WriteLine(
+                    $"- existing ADR context: {reviewContext.ExistingAdrs?.IncludedCount ?? 0} parsed ADR(s)");
+                output.WriteLine(
+                    "Warning: --include-existing-adrs transmits bounded parsed ADR content to the configured external provider.");
+            }
+
+            var providerContext = AdrReviewContextBuilder.ComposeProviderContext(reviewContext);
+
             var result = provider
                 .ReviewAsync(
-                    new AdrReviewRequest(fullPath, markdown),
+                    new AdrReviewRequest(fullPath, markdown, providerContext),
                     cancellationToken)
                 .GetAwaiter()
                 .GetResult();
