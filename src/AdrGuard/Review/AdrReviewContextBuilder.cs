@@ -10,7 +10,7 @@ internal sealed record AdrReviewContext(
     string TargetMarkdown,
     IReadOnlyList<ExplicitContextFile> ExplicitFiles,
     ExistingAdrContext? ExistingAdrs,
-    string? CrossAdrEvidence);
+    AdrCrossAdrEvidence? CrossAdrEvidence);
 
 internal static class AdrReviewContextBuilder
 {
@@ -40,7 +40,7 @@ internal static class AdrReviewContextBuilder
             .ConfigureAwait(false);
 
         ExistingAdrContext? existingContext = null;
-        string? crossAdrEvidence = null;
+        AdrCrossAdrEvidence? crossAdrEvidence = null;
 
         if (includeExistingAdrs)
         {
@@ -110,10 +110,10 @@ internal static class AdrReviewContextBuilder
                 .Append(existing.Content);
         }
 
-        if (!string.IsNullOrWhiteSpace(context.CrossAdrEvidence))
+        if (context.CrossAdrEvidence is { } crossAdrEvidence)
         {
             builder.Append(AdrGenerationText.DoubleNewLine)
-                .Append(context.CrossAdrEvidence);
+                .Append(crossAdrEvidence.Content);
         }
 
         var composed = builder.ToString();
