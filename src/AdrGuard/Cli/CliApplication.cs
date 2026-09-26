@@ -119,8 +119,9 @@ internal static class CliApplication
 
         Optional options:
           --endpoint <uri>        Required only for openai-compatible; rejected for official providers.
-          --context-file <path>    Explicit .md or .txt context file; repeatable.
-                                  Each file is limited to 50000 characters; aggregate limit is 100000.
+          --context-file <path>    Explicit UTF-8 .md or .txt context file; repeatable.
+                                  Each file is limited to 50000 characters and 150000 bytes.
+                                  Aggregate limits are 100000 characters and 300000 bytes.
           --include-existing-adrs  Opt in to bounded parsed ADR context from the target ADR directory.
                                   The selected target ADR is deduplicated from this set.
 
@@ -129,8 +130,10 @@ internal static class CliApplication
           Context files are never discovered automatically and must be explicitly supplied.
           Existing ADRs are included only with --include-existing-adrs and are bounded to 12000 characters.
           The final composed review context is limited to 120000 characters.
-          Source filenames are disclosed locally before transmission; absolute local paths are not included
-          in provider context. Repository trees, git diffs and environment variables are never scanned as context.
+          Every transmitted source is disclosed locally before provider invocation.
+          Source IDs plus filenames are used in provider context; absolute local paths are not included.
+          UTF-16, UTF-32, invalid UTF-8 and binary/NUL explicit context are rejected.
+          Repository trees, source trees, git diffs and environment variables are never scanned as context.
 
         Authentication is read from the same provider environment variables used by 'draft'.
         Only the selected ADR is sent by this foundation command. Additional context controls are
