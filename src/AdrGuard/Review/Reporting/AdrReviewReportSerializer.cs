@@ -335,7 +335,7 @@ internal static class AdrReviewReportSerializer
 
     private static void ValidateOutcome(
         string outcome,
-        IReadOnlyList<AdrReviewFollowUpFindingReport> findings)
+        AdrReviewFollowUpFindingReport[] findings)
     {
         var expected =
             findings.Any(finding =>
