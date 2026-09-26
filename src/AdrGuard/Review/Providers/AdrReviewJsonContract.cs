@@ -1,5 +1,6 @@
 using AdrGuard.Generation.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace AdrGuard.Review.Providers;
 
@@ -186,6 +187,7 @@ internal static class AdrReviewJsonContract
 
     internal sealed record ReviewJsonSchemaProperty(
         string Type,
+        [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         ReviewJsonSchema? Items = null);
 
     private sealed class ReviewPayload
