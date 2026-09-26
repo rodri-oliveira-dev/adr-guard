@@ -140,6 +140,12 @@ internal static class AdrReviewReportSerializer
                          report.Findings.SelectMany(
                              finding => finding.Evidence)))
         {
+            if (evidence is null)
+            {
+                throw new InvalidDataException(
+                    "Review report contains null evidence.");
+            }
+
             ValidateSafePath(
                 evidence.Path,
                 "evidence path");
@@ -211,7 +217,8 @@ internal static class AdrReviewReportSerializer
         foreach (var source in inputScope.ExplicitContext
                      .Concat(inputScope.ExistingAdrs))
         {
-            if (string.IsNullOrWhiteSpace(
+            if (source is null
+                || string.IsNullOrWhiteSpace(
                     source.SourceId)
                 || !sourceIds.Add(
                     source.SourceId))
@@ -250,7 +257,8 @@ internal static class AdrReviewReportSerializer
         {
             var dimension = dimensions[index];
 
-            if (!string.Equals(
+            if (dimension is null
+                || !string.Equals(
                     dimension.Name,
                     AdrReviewContract.Dimensions[index],
                     StringComparison.Ordinal)
@@ -279,7 +287,8 @@ internal static class AdrReviewReportSerializer
 
         foreach (var finding in findings)
         {
-            if (!AdrReviewContract.Dimensions.Contains(
+            if (finding is null
+                || !AdrReviewContract.Dimensions.Contains(
                     finding.Dimension,
                     StringComparer.Ordinal)
                 || finding.Classification is not (
