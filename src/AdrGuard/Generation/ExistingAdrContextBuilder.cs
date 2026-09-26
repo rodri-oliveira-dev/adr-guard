@@ -9,7 +9,10 @@ internal sealed record ExistingAdrContext(
     string Content,
     int IncludedCount,
     int TotalCount,
-    bool IsBounded);
+    bool IsBounded)
+{
+    internal IReadOnlyList<string> IncludedSourceNames { get; init; } = [];
+}
 
 internal static class ExistingAdrContextBuilder
 {
@@ -29,6 +32,7 @@ internal static class ExistingAdrContextBuilder
 
         var builder = new StringBuilder();
         var includedCount = 0;
+        var includedSourceNames = new List<string>();
 
         foreach (var document in orderedDocuments)
         {
@@ -53,6 +57,7 @@ internal static class ExistingAdrContextBuilder
             }
 
             builder.Append(entry);
+            includedSourceNames.Add(document.FileName);
             includedCount++;
         }
 
@@ -60,7 +65,10 @@ internal static class ExistingAdrContextBuilder
             builder.ToString(),
             includedCount,
             orderedDocuments.Length,
-            includedCount < orderedDocuments.Length);
+            includedCount < orderedDocuments.Length)
+        {
+            IncludedSourceNames = includedSourceNames,
+        };
     }
 
     private static string BuildEntry(
