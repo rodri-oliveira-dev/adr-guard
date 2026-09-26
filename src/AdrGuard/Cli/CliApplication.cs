@@ -133,7 +133,8 @@ internal static class CliApplication
           Every transmitted source is disclosed locally before provider invocation.
           Source IDs plus filenames are used in provider context; absolute local paths are not included.
           UTF-16, UTF-32, invalid UTF-8 and binary/NUL explicit context are rejected.
-          Repository trees, source trees, git diffs and environment variables are never scanned as context.
+          No repository/source-tree discovery occurs by default. --include-existing-adrs explicitly authorizes
+          Markdown ADR discovery below the target ADR directory; git diffs and environment variables are never scanned as context.
 
         Authentication is read from the same provider environment variables used by 'draft'.
         Only the selected ADR is sent by this foundation command. Additional context controls are
