@@ -6,9 +6,11 @@ using System.Text;
 namespace AdrGuard.Review;
 
 internal sealed record AdrReviewContext(
+    string TargetSourceName,
     string TargetMarkdown,
     IReadOnlyList<ExplicitContextFile> ExplicitFiles,
-    ExistingAdrContext? ExistingAdrs);
+    ExistingAdrContext? ExistingAdrs,
+    string? CrossAdrEvidence);
 
 internal static class AdrReviewContextBuilder
 {
@@ -30,12 +32,16 @@ internal static class AdrReviewContextBuilder
             .ConfigureAwait(false);
 
         ExistingAdrContext? existingContext = null;
+        string? crossAdrEvidence = null;
 
         if (includeExistingAdrs)
         {
             var directory = Path.GetDirectoryName(targetPath)
                 ?? Directory.GetCurrentDirectory();
             var targetFullPath = Path.GetFullPath(targetPath);
+            var targetDocument = AdrMarkdownParser.Parse(
+                targetFullPath,
+                targetMarkdown);
 
             var documents = AdrDocumentLoader
                 .LoadDirectory(directory, cancellationToken)
@@ -47,14 +53,21 @@ internal static class AdrReviewContextBuilder
                 .ToArray();
 
             existingContext = ExistingAdrContextBuilder.Build(documents);
+            crossAdrEvidence = AdrCrossAdrEvidenceBuilder.Build(
+                targetDocument,
+                documents);
         }
 
-        ValidatePromptSize(targetMarkdown, explicitFiles, existingContext);
-
-        return new AdrReviewContext(
+        var context = new AdrReviewContext(
+            Path.GetFileName(targetPath),
             targetMarkdown,
             explicitFiles,
-            existingContext);
+            existingContext,
+            crossAdrEvidence);
+
+        ValidatePromptSize(context);
+
+        return context;
     }
 
     internal static string ComposeProviderContext(
@@ -63,7 +76,8 @@ internal static class AdrReviewContextBuilder
         ArgumentNullException.ThrowIfNull(context);
 
         var builder = new StringBuilder();
-        builder.Append("Target ADR:")
+        builder.Append("Target ADR source: ")
+            .Append(context.TargetSourceName)
             .Append(AdrGenerationText.NewLine)
             .Append(context.TargetMarkdown.Trim());
 
@@ -84,6 +98,12 @@ internal static class AdrReviewContextBuilder
                 .Append(existing.Content);
         }
 
+        if (!string.IsNullOrWhiteSpace(context.CrossAdrEvidence))
+        {
+            builder.Append(AdrGenerationText.DoubleNewLine)
+                .Append(context.CrossAdrEvidence);
+        }
+
         var composed = builder.ToString();
 
         if (composed.Length > MaximumPromptCharacters)
@@ -96,15 +116,6 @@ internal static class AdrReviewContextBuilder
     }
 
     private static void ValidatePromptSize(
-        string targetMarkdown,
-        IReadOnlyList<ExplicitContextFile> explicitFiles,
-        ExistingAdrContext? existingContext)
-    {
-        var context = new AdrReviewContext(
-            targetMarkdown,
-            explicitFiles,
-            existingContext);
-
+        AdrReviewContext context) =>
         _ = ComposeProviderContext(context);
-    }
 }
