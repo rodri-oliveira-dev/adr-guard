@@ -19,7 +19,7 @@ internal static class CliApplication
           adr-guard index [directory] [--output <file>]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
-          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>]
+          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs]
           adr-guard [options]
 
         Commands:
@@ -118,6 +118,18 @@ internal static class CliApplication
 
         Optional options:
           --endpoint <uri>        Required only for openai-compatible; rejected for official providers.
+          --context-file <path>    Explicit .md or .txt context file; repeatable.
+                                  Each file is limited to 50000 characters; aggregate limit is 100000.
+          --include-existing-adrs  Opt in to bounded parsed ADR context from the target ADR directory.
+                                  The selected target ADR is deduplicated from this set.
+
+        Privacy and limits:
+          Review sends only the selected ADR by default.
+          Context files are never discovered automatically and must be explicitly supplied.
+          Existing ADRs are included only with --include-existing-adrs and are bounded to 12000 characters.
+          The final composed review context is limited to 120000 characters.
+          Source filenames are disclosed locally before transmission; absolute local paths are not included
+          in provider context. Repository trees, git diffs and environment variables are never scanned as context.
 
         Authentication is read from the same provider environment variables used by 'draft'.
         Only the selected ADR is sent by this foundation command. Additional context controls are
@@ -299,6 +311,8 @@ internal static class CliApplication
             {
                 return ReviewCommand.Run(
                     reviewArguments.TargetPath,
+                    reviewArguments.ContextFilePaths,
+                    reviewArguments.IncludeExistingAdrs,
                     new GenerationBackedAdrReviewProvider(injectedProvider),
                     output,
                     error,
@@ -318,6 +332,8 @@ internal static class CliApplication
 
             return ReviewCommand.Run(
                 reviewArguments.TargetPath,
+                reviewArguments.ContextFilePaths,
+                reviewArguments.IncludeExistingAdrs,
                 new GenerationBackedAdrReviewProvider(provider),
                 output,
                 error,
@@ -356,6 +372,8 @@ internal static class CliApplication
 
         return ReviewCommand.Run(
             reviewArguments.TargetPath,
+            reviewArguments.ContextFilePaths,
+            reviewArguments.IncludeExistingAdrs,
             provider,
             output,
             error,
@@ -599,12 +617,26 @@ internal static class CliApplication
         string? providerName = null;
         string? model = null;
         string? endpoint = null;
+        var contextFilePaths = new List<string>();
+        var includeExistingAdrs = false;
 
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
 
-            if (argument is "--provider" or "--model" or "--endpoint")
+            if (argument == "--include-existing-adrs")
+            {
+                if (includeExistingAdrs)
+                {
+                    reviewArguments = ReviewArguments.Empty;
+                    return false;
+                }
+
+                includeExistingAdrs = true;
+                continue;
+            }
+
+            if (argument is "--provider" or "--model" or "--endpoint" or "--context-file")
             {
                 if (index + 1 >= args.Count)
                 {
@@ -622,31 +654,19 @@ internal static class CliApplication
                 switch (argument)
                 {
                     case "--provider":
-                        if (providerName is not null)
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
+                        if (providerName is not null) { reviewArguments = ReviewArguments.Empty; return false; }
                         providerName = value;
                         break;
                     case "--model":
-                        if (model is not null)
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
+                        if (model is not null) { reviewArguments = ReviewArguments.Empty; return false; }
                         model = value;
                         break;
                     case "--endpoint":
-                        if (endpoint is not null)
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
+                        if (endpoint is not null) { reviewArguments = ReviewArguments.Empty; return false; }
                         endpoint = value;
+                        break;
+                    case "--context-file":
+                        contextFilePaths.Add(value);
                         break;
                 }
 
@@ -666,7 +686,9 @@ internal static class CliApplication
             targetPath ?? string.Empty,
             providerName,
             model,
-            endpoint);
+            endpoint,
+            contextFilePaths,
+            includeExistingAdrs);
 
         return !string.IsNullOrWhiteSpace(targetPath);
     }
@@ -933,10 +955,12 @@ internal static class CliApplication
         string TargetPath,
         string? ProviderName,
         string? Model,
-        string? Endpoint)
+        string? Endpoint,
+        IReadOnlyList<string> ContextFilePaths,
+        bool IncludeExistingAdrs)
     {
         internal static ReviewArguments Empty { get; } =
-            new(string.Empty, null, null, null);
+            new(string.Empty, null, null, null, [], false);
     }
 
     private sealed record DraftArguments(
