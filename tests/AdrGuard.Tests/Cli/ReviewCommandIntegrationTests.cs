@@ -35,7 +35,7 @@ public sealed class ReviewCommandIntegrationTests
             File.WriteAllText(path, original);
 
             var provider = new RecordingReviewProvider(
-                new AdrReviewResult("Review completed."));
+                ReviewResult("Review completed."));
             using var output = new StringWriter();
             using var error = new StringWriter();
 
@@ -68,7 +68,7 @@ public sealed class ReviewCommandIntegrationTests
             File.WriteAllText(path, "# Use Redis");
 
             var provider = new RecordingReviewProvider(
-                new AdrReviewResult("Should not be used."));
+                ReviewResult("Should not be used."));
             using var output = new StringWriter();
             using var error = new StringWriter();
 
@@ -130,7 +130,7 @@ public sealed class ReviewCommandIntegrationTests
             File.WriteAllText(context, "Latency must stay below 50 ms.");
             File.WriteAllText(Path.Combine(root, "secret.txt"), "must not be discovered");
 
-            var provider = new RecordingReviewProvider(new AdrReviewResult("Reviewed."));
+            var provider = new RecordingReviewProvider(ReviewResult("Reviewed."));
             using var output = new StringWriter();
             using var error = new StringWriter();
 
@@ -165,7 +165,7 @@ public sealed class ReviewCommandIntegrationTests
             File.WriteAllText(target, ValidMarkdown());
             File.WriteAllText(sibling, ValidMarkdown().Replace("Use Redis", "Use Postgres", StringComparison.Ordinal));
 
-            var provider = new RecordingReviewProvider(new AdrReviewResult("Reviewed."));
+            var provider = new RecordingReviewProvider(ReviewResult("Reviewed."));
             using var output = new StringWriter();
             using var error = new StringWriter();
 
@@ -196,7 +196,7 @@ public sealed class ReviewCommandIntegrationTests
             var target = Path.Combine(root, "0001-use-redis.md");
             File.WriteAllText(target, ValidMarkdown());
 
-            var provider = new RecordingReviewProvider(new AdrReviewResult("Should not run."));
+            var provider = new RecordingReviewProvider(ReviewResult("Should not run."));
             using var output = new StringWriter();
             using var error = new StringWriter();
 
@@ -213,6 +213,49 @@ public sealed class ReviewCommandIntegrationTests
         {
             Directory.Delete(root, true);
         }
+    }
+
+    private static AdrReviewResult ReviewResult(string explanation)
+    {
+        var findings = AdrReviewContract.Dimensions
+            .Select((dimension, index) =>
+                new AdrReviewFinding(
+                    dimension,
+                    index == 5 ? "not-applicable" : index == 2 ? "missing-context" : "observed-evidence",
+                    index == 5 ? null : "0001-use-redis.md",
+                    index == 5 ? null : "Decision excerpt",
+                    index == 2 ? "not enough information" : explanation,
+                    "Human reviewer should verify this dimension."))
+            .ToArray();
+
+        return new AdrReviewResult(findings);
+    }
+
+    [Fact]
+    public void ReviewContractCoversEightDimensionsAndUncertainty()
+    {
+        var result = ReviewResult("Evidence observed.");
+        var rendered = result.ToHumanReadable();
+
+        Assert.Equal(8, result.Findings.Count);
+        Assert.All(AdrReviewContract.Dimensions, dimension =>
+            Assert.Contains(dimension, rendered, StringComparison.Ordinal));
+        Assert.Contains("not enough information", rendered, StringComparison.Ordinal);
+        Assert.Contains("not-applicable", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("approved", rendered, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("rejected", rendered, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ReviewContractInstructionsRequireGroundedEvidence()
+    {
+        var instructions = AdrReviewContract.BuildInstructions();
+
+        Assert.Contains("actual selected source", instructions, StringComparison.Ordinal);
+        Assert.Contains("Never invent line numbers", instructions, StringComparison.Ordinal);
+        Assert.Contains("not enough information", instructions, StringComparison.Ordinal);
+        Assert.Contains("Never approve/reject", instructions, StringComparison.Ordinal);
+        Assert.Contains("fallible", instructions, StringComparison.Ordinal);
     }
 
     private static string CreateTempDirectory()
