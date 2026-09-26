@@ -1,6 +1,7 @@
 using AdrGuard.Generation;
 using AdrGuard.Generation.Providers;
 using AdrGuard.Review;
+using AdrGuard.Review.Providers;
 using System.Reflection;
 
 namespace AdrGuard.Cli;
@@ -148,7 +149,8 @@ internal static class CliApplication
         TextWriter error,
         IAdrGenerationProvider? generationProvider = null,
         Func<HttpClient>? httpClientFactory = null,
-        Func<string, string?>? environmentVariableReader = null) =>
+        Func<string, string?>? environmentVariableReader = null,
+        IAdrReviewProvider? reviewProvider = null) =>
         RunCore(
             args,
             output,
@@ -156,6 +158,7 @@ internal static class CliApplication
             generationProvider,
             httpClientFactory,
             environmentVariableReader,
+            reviewProvider,
             default);
 
     internal static int Run(
@@ -165,7 +168,8 @@ internal static class CliApplication
         CancellationToken cancellationToken,
         IAdrGenerationProvider? generationProvider = null,
         Func<HttpClient>? httpClientFactory = null,
-        Func<string, string?>? environmentVariableReader = null) =>
+        Func<string, string?>? environmentVariableReader = null,
+        IAdrReviewProvider? reviewProvider = null) =>
         RunCore(
             args,
             output,
@@ -173,6 +177,7 @@ internal static class CliApplication
             generationProvider,
             httpClientFactory,
             environmentVariableReader,
+            reviewProvider,
             cancellationToken);
 
     private static int RunCore(
@@ -182,6 +187,7 @@ internal static class CliApplication
         IAdrGenerationProvider? generationProvider,
         Func<HttpClient>? httpClientFactory,
         Func<string, string?>? environmentVariableReader,
+        IAdrReviewProvider? reviewProvider,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -217,7 +223,7 @@ internal static class CliApplication
                 args,
                 output,
                 error,
-                generationProvider,
+                reviewProvider,
                 httpClientFactory,
                 environmentVariableReader,
                 cancellationToken),
@@ -281,7 +287,7 @@ internal static class CliApplication
         IReadOnlyList<string> args,
         TextWriter output,
         TextWriter error,
-        IAdrGenerationProvider? injectedProvider,
+        IAdrReviewProvider? injectedProvider,
         Func<HttpClient>? httpClientFactory,
         Func<string, string?>? environmentVariableReader,
         CancellationToken cancellationToken)
@@ -313,17 +319,7 @@ internal static class CliApplication
                     reviewArguments.TargetPath,
                     reviewArguments.ContextFilePaths,
                     reviewArguments.IncludeExistingAdrs,
-                    new ContractAdrReviewProvider(async (request, token) =>
-                    {
-                        var generated = await injectedProvider.GenerateAsync(
-                            new AdrGenerationRequest(
-                                "ADR technical review",
-                                request.Instructions + Environment.NewLine + Environment.NewLine + request.Input,
-                                "en-US"),
-                            token).ConfigureAwait(false);
-
-                        return AdrReviewFallbackMapper.Map(generated);
-                    }),
+                    injectedProvider,
                     output,
                     error,
                     cancellationToken);
@@ -333,7 +329,7 @@ internal static class CliApplication
                 httpClientFactory?.Invoke()
                 ?? new HttpClient();
 
-            var provider = AdrGenerationProviderFactory.Create(
+            var provider = AdrReviewProviderFactory.Create(
                 reviewArguments.ProviderName,
                 reviewArguments.Model,
                 reviewArguments.Endpoint,
@@ -344,17 +340,7 @@ internal static class CliApplication
                 reviewArguments.TargetPath,
                 reviewArguments.ContextFilePaths,
                 reviewArguments.IncludeExistingAdrs,
-                new ContractAdrReviewProvider(async (request, token) =>
-                {
-                    var generated = await provider.GenerateAsync(
-                        new AdrGenerationRequest(
-                            "ADR technical review",
-                            request.Instructions + Environment.NewLine + Environment.NewLine + request.Input,
-                            "en-US"),
-                        token).ConfigureAwait(false);
-
-                    return AdrReviewFallbackMapper.Map(generated);
-                }),
+                provider,
                 output,
                 error,
                 cancellationToken);
@@ -370,34 +356,6 @@ internal static class CliApplication
             error.WriteLine(exception.Message);
             return ExitCodes.OperationalError;
         }
-    }
-
-    internal static int RunReviewForTests(
-        IReadOnlyList<string> args,
-        TextWriter output,
-        TextWriter error,
-        IAdrReviewProvider provider,
-        CancellationToken cancellationToken = default)
-    {
-        if (!TryParseReviewArguments(args, out var reviewArguments))
-        {
-            return WriteCommandUsageError("review", error);
-        }
-
-        if (string.IsNullOrWhiteSpace(reviewArguments.ProviderName)
-            || string.IsNullOrWhiteSpace(reviewArguments.Model))
-        {
-            return WriteCommandUsageError("review", error);
-        }
-
-        return ReviewCommand.Run(
-            reviewArguments.TargetPath,
-            reviewArguments.ContextFilePaths,
-            reviewArguments.IncludeExistingAdrs,
-            provider,
-            output,
-            error,
-            cancellationToken);
     }
 
     private static int RunDraft(
