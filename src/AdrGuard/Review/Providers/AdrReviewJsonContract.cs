@@ -139,8 +139,8 @@ internal static class AdrReviewJsonContract
     {
         var trimmed = content.Trim();
 
-        if (!trimmed.StartsWith("\`\`\`", StringComparison.Ordinal)
-            || !trimmed.EndsWith("\`\`\`", StringComparison.Ordinal))
+        if (!trimmed.StartsWith("```", StringComparison.Ordinal)
+            || !trimmed.EndsWith("```", StringComparison.Ordinal))
         {
             return trimmed;
         }
@@ -155,10 +155,10 @@ internal static class AdrReviewJsonContract
             .TrimEnd('\r')
             .Trim();
 
-        if (openingFence is not "\`\`\`"
+        if (openingFence is not "```"
             && !string.Equals(
                 openingFence,
-                "\`\`\`json",
+                "```json",
                 StringComparison.OrdinalIgnoreCase))
         {
             return trimmed;
