@@ -39,12 +39,12 @@ public sealed class ReviewCommandIntegrationTests
             using var output = new StringWriter();
             using var error = new StringWriter();
 
-            var exitCode = CliApplication.RunReviewForTests(
+            var exitCode = CliApplication.Run(
                 ["review", path, "--provider", "openai", "--model", "test-model"],
                 output,
                 error,
-                provider,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
 
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.Equal(string.Empty, error.ToString());
@@ -73,12 +73,12 @@ public sealed class ReviewCommandIntegrationTests
             using var output = new StringWriter();
             using var error = new StringWriter();
 
-            var exitCode = CliApplication.RunReviewForTests(
+            var exitCode = CliApplication.Run(
                 ["review", path, "--provider", "openai", "--model", "test-model"],
                 output,
                 error,
-                provider,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
 
             Assert.Equal(ExitCodes.ValidationFailed, exitCode);
             Assert.Equal(0, provider.CallCount);
@@ -104,12 +104,12 @@ public sealed class ReviewCommandIntegrationTests
             using var output = new StringWriter();
             using var error = new StringWriter();
 
-            var exitCode = CliApplication.RunReviewForTests(
+            var exitCode = CliApplication.Run(
                 ["review", path, "--provider", "openai", "--model", "test-model"],
                 output,
                 error,
-                provider,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
 
             Assert.Equal(ExitCodes.OperationalError, exitCode);
             Assert.Contains("canceled", error.ToString(), StringComparison.OrdinalIgnoreCase);
@@ -137,12 +137,12 @@ public sealed class ReviewCommandIntegrationTests
             using var output = new StringWriter();
             using var error = new StringWriter();
 
-            var exitCode = CliApplication.RunReviewForTests(
+            var exitCode = CliApplication.Run(
                 ["review", target, "--provider", "openai", "--model", "test", "--context-file", context],
                 output,
                 error,
-                provider,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
 
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.Equal(1, provider.CallCount);
@@ -173,12 +173,12 @@ public sealed class ReviewCommandIntegrationTests
             using var output = new StringWriter();
             using var error = new StringWriter();
 
-            var exitCode = CliApplication.RunReviewForTests(
+            var exitCode = CliApplication.Run(
                 ["review", target, "--provider", "openai", "--model", "test", "--include-existing-adrs"],
                 output,
                 error,
-                provider,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
 
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.Contains("Candidate ADR 0002", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
@@ -205,12 +205,12 @@ public sealed class ReviewCommandIntegrationTests
             using var output = new StringWriter();
             using var error = new StringWriter();
 
-            var exitCode = CliApplication.RunReviewForTests(
+            var exitCode = CliApplication.Run(
                 ["review", target, "--provider", "openai", "--model", "test", "--context-file", Path.Combine(root, "missing.txt")],
                 output,
                 error,
-                provider,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
 
             Assert.Equal(ExitCodes.OperationalError, exitCode);
             Assert.Equal(0, provider.CallCount);
@@ -241,12 +241,12 @@ public sealed class ReviewCommandIntegrationTests
             using var output = new StringWriter();
             using var error = new StringWriter();
 
-            var exitCode = CliApplication.RunReviewForTests(
+            var exitCode = CliApplication.Run(
                 ["review", target, "--provider", "openai", "--model", "test"],
                 output,
                 error,
-                provider,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
 
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.DoesNotContain(
@@ -325,12 +325,12 @@ public sealed class ReviewCommandIntegrationTests
             using var output = new StringWriter();
             using var error = new StringWriter();
 
-            var exitCode = CliApplication.RunReviewForTests(
+            var exitCode = CliApplication.Run(
                 ["review", target, "--provider", "openai", "--model", "test", "--include-existing-adrs"],
                 output,
                 error,
-                provider,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
 
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.Contains("Target ADR 0001", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
@@ -384,12 +384,12 @@ public sealed class ReviewCommandIntegrationTests
             using var output = new StringWriter();
             using var error = new StringWriter();
 
-            var exitCode = CliApplication.RunReviewForTests(
+            var exitCode = CliApplication.Run(
                 ["review", target, "--provider", "openai", "--model", "test"],
                 output,
                 error,
-                provider,
-                TestContext.Current.CancellationToken);
+                TestContext.Current.CancellationToken,
+                reviewProvider: provider);
 
             Assert.Equal(ExitCodes.Success, exitCode);
             Assert.Equal(1, provider.CallCount);
