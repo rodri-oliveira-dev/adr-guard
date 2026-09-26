@@ -6,6 +6,9 @@ namespace AdrGuard.Review.Providers;
 
 internal static class AdrReviewJsonContract
 {
+    private static readonly JsonSerializerOptions JsonOptions =
+        new(JsonSerializerDefaults.Web);
+
     internal static readonly string[] Classifications =
     [
         "observed-evidence",
@@ -62,7 +65,7 @@ internal static class AdrReviewJsonContract
         {
             payload = JsonSerializer.Deserialize<ReviewPayload>(
                 json,
-                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                JsonOptions);
         }
         catch (JsonException)
         {
