@@ -328,7 +328,10 @@ public sealed class ReviewCommandIntegrationTests
             File.WriteAllText(target, ValidMarkdown());
             File.WriteAllText(sibling, ValidMarkdown().Replace("Use Redis", "Use Postgres", StringComparison.Ordinal));
 
-            var provider = new RecordingReviewProvider(ReviewResult("Reviewed."));
+            var provider = new RecordingReviewProvider(
+                ReviewResult(
+                    "Reviewed.",
+                    "0001-target.md"));
             using var output = new StringWriter();
             using var error = new StringWriter();
 
@@ -682,7 +685,8 @@ public sealed class ReviewCommandIntegrationTests
             Assert.Contains("Status: Proposed", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
             Assert.Contains("0002-avoid-redis.md", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
             Assert.Contains("potential-risk", output.ToString(), StringComparison.Ordinal);
-            Assert.Contains("0001-use-redis.md <-> 0002-avoid-redis.md", output.ToString(), StringComparison.Ordinal);
+            Assert.Contains("[target] 0001-use-redis.md", output.ToString(), StringComparison.Ordinal);
+            Assert.Contains("[existing-1] 0002-avoid-redis.md", output.ToString(), StringComparison.Ordinal);
         }
         finally
         {
@@ -745,14 +749,16 @@ public sealed class ReviewCommandIntegrationTests
         }
     }
 
-    private static AdrReviewResult ReviewResult(string explanation)
+    private static AdrReviewResult ReviewResult(
+        string explanation,
+        string sourceName = "0001-use-redis.md")
     {
         var findings = AdrReviewContract.Dimensions
             .Select((dimension, index) =>
                 new AdrReviewFinding(
                     dimension,
                     index == 5 ? "not-applicable" : index == 2 ? "missing-context" : "observed-evidence",
-                    index == 5 ? null : "0001-use-redis.md",
+                    index == 5 ? null : sourceName,
                     index == 5 ? null : "Decision excerpt",
                     index == 2 ? "not enough information" : explanation,
                     "Human reviewer should verify this dimension."))
