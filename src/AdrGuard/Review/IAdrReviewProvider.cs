@@ -11,7 +11,8 @@ internal interface IAdrReviewProvider
 
 internal sealed record AdrReviewRequest(
     string TargetPath,
-    string Markdown);
+    string Markdown,
+    string ProviderContext);
 
 internal sealed record AdrReviewResult(
     string Summary);
@@ -35,8 +36,8 @@ internal sealed class GenerationBackedAdrReviewProvider(
             Analyze only the supplied ADR text. Do not approve, reject, rewrite, or modify the ADR.
             Return a concise review summary suitable for human assessment.
 
-            ADR:
-            """ + Environment.NewLine + request.Markdown,
+            Review inputs:
+            """ + Environment.NewLine + request.ProviderContext,
             "en-US");
 
         var result = await _generationProvider
