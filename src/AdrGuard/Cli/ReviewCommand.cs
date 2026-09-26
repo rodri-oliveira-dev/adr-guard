@@ -43,26 +43,47 @@ internal static class ReviewCommand
             cancellationToken.ThrowIfCancellationRequested();
 
             var markdown = File.ReadAllText(fullPath);
-            var document = AdrMarkdownParser.Parse(fullPath, markdown);
-            var validation = AdrValidator.Validate([document]);
+            var directory = Path.GetDirectoryName(fullPath)
+                ?? Directory.GetCurrentDirectory();
+            var documents = AdrDocumentLoader.LoadDirectory(
+                directory,
+                cancellationToken);
+            var validation = AdrValidator.Validate(documents);
+            var targetValidation = new ValidationResult(
+                validation.Issues
+                    .Where(issue =>
+                        string.Equals(
+                            Path.GetFullPath(issue.FilePath),
+                            fullPath,
+                            StringComparison.OrdinalIgnoreCase))
+                    .ToArray());
 
-            if (!validation.IsValid)
+            if (!targetValidation.IsValid)
             {
                 error.WriteLine(
                     "Selected ADR is structurally invalid and was not sent to the review provider.");
-                ValidationOutput.WriteIssues(validation, error);
+                ValidationOutput.WriteIssues(targetValidation, error);
                 return ExitCodes.ValidationFailed;
             }
 
-            var reviewContext = AdrReviewContextBuilder
-                .BuildAsync(
-                    fullPath,
-                    markdown,
-                    contextFilePaths,
-                    includeExistingAdrs,
-                    cancellationToken)
-                .GetAwaiter()
-                .GetResult();
+            AdrReviewContext reviewContext;
+            try
+            {
+                reviewContext = AdrReviewContextBuilder
+                    .BuildAsync(
+                        fullPath,
+                        markdown,
+                        contextFilePaths,
+                        includeExistingAdrs,
+                        cancellationToken)
+                    .GetAwaiter()
+                    .GetResult();
+            }
+            catch (InvalidOperationException exception)
+            {
+                error.WriteLine($"Unable to build review context: {exception.Message}");
+                return ExitCodes.OperationalError;
+            }
 
             output.WriteLine("Review material sent to the configured external provider:");
             output.WriteLine($"- target ADR: {Path.GetFileName(fullPath)}");
