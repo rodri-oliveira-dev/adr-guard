@@ -27,7 +27,15 @@ internal static class AdrValidator
         "Consequences",
     ];
 
-    internal static ValidationResult Validate(IReadOnlyList<AdrDocument> documents)
+    internal static ValidationResult Validate(
+        IReadOnlyList<AdrDocument> documents) =>
+        Validate(
+            documents,
+            additionalKnownPaths: null);
+
+    internal static ValidationResult Validate(
+        IReadOnlyList<AdrDocument> documents,
+        IEnumerable<string>? additionalKnownPaths)
     {
         ArgumentNullException.ThrowIfNull(documents);
 
@@ -35,6 +43,17 @@ internal static class AdrValidator
         var knownPaths = documents
             .Select(document => Path.GetFullPath(document.FilePath))
             .ToHashSet(StringComparer.Ordinal);
+
+        if (additionalKnownPaths is not null)
+        {
+            foreach (var path in additionalKnownPaths)
+            {
+                if (!string.IsNullOrWhiteSpace(path))
+                {
+                    knownPaths.Add(Path.GetFullPath(path));
+                }
+            }
+        }
 
         foreach (var document in documents)
         {
