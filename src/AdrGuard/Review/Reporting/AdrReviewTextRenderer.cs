@@ -110,7 +110,7 @@ internal static class AdrReviewTextRenderer
 
                         if (evidence.Line is { } line)
                         {
-                            builder.Append(":")
+                            builder.Append(':')
                                 .Append(line);
                         }
 
