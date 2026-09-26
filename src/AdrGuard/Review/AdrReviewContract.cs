@@ -44,6 +44,18 @@ internal static class AdrReviewContract
         When facts required for a conclusion are absent, explicitly say "not enough information".
         Use not-applicable only when the supplied evidence makes non-applicability supportable.
         Model output is fallible reviewer guidance, not an authoritative security/compliance assessment.
+
+        Cross-ADR analysis rules:
+        - Perform cross-ADR assertions only when "Cross-ADR comparison evidence" is present.
+        - A potential contradiction must name both ADR IDs/sources and cite the relevant decision statements.
+        - Distinguish an observed text-level mismatch from an assumption that requires human confirmation.
+        - Treat Deprecated and Superseded decisions as historical context; do not assert a current conflict solely
+          because they differ from an active decision.
+        - Do not assert conflict when the supplied evidence indicates different scopes or time periods.
+        - A dependency/link is evidence of relationship, not proof that the decisions must agree.
+        - If scope, chronology, or supporting evidence is missing, classify the finding as missing-context or
+          recommendation-for-human-investigation and explicitly say "not enough information".
+        - Never rewrite links/statuses and never require all architectural decisions to agree.
         """;
 }
 
