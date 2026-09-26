@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "adr-review-report-v1.schema.json",
+  "title": "ADR Guard AI-assisted technical review report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "generatedAtUtc",
+    "target",
+    "reviewer",
+    "provider",
+    "inputScope",
+    "outcome",
+    "dimensions",
+    "findings",
+    "limitations",
+    "costCaveat"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "generatedAtUtc": { "type": "string", "format": "date-time" },
+    "target": { "$ref": "#/$defs/target" },
+    "reviewer": { "$ref": "#/$defs/reviewer" },
+    "provider": { "$ref": "#/$defs/provider" },
+    "inputScope": { "$ref": "#/$defs/inputScope" },
+    "outcome": {
+      "enum": [
+        "no-follow-up-findings",
+        "follow-up-suggested",
+        "needs-context"
+      ]
+    },
+    "dimensions": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": { "$ref": "#/$defs/dimension" }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/followUpFinding" }
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "costCaveat": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "nullableString": {
+      "type": ["string", "null"]
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "path", "adrId", "title", "status"],
+      "properties": {
+        "sourceId": { "const": "target" },
+        "path": { "type": "string", "minLength": 1 },
+        "adrId": { "$ref": "#/$defs/nullableString" },
+        "title": { "$ref": "#/$defs/nullableString" },
+        "status": { "$ref": "#/$defs/nullableString" }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "contractVersion"],
+      "properties": {
+        "name": { "const": "adr-guard" },
+        "contractVersion": { "type": "string", "minLength": 1 }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "model"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 }
+      }
+    },
+    "inputSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "path", "adrId"],
+      "properties": {
+        "sourceId": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "adrId": { "$ref": "#/$defs/nullableString" }
+      }
+    },
+    "inputScope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "includeExistingAdrs",
+        "explicitContext",
+        "existingAdrs",
+        "existingAdrSelectionBounded"
+      ],
+      "properties": {
+        "includeExistingAdrs": { "type": "boolean" },
+        "explicitContext": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/inputSource" }
+        },
+        "existingAdrs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/inputSource" }
+        },
+        "existingAdrSelectionBounded": { "type": "boolean" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "path", "adrId", "line", "excerpt"],
+      "properties": {
+        "sourceId": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "adrId": { "$ref": "#/$defs/nullableString" },
+        "line": { "type": ["integer", "null"], "minimum": 1 },
+        "excerpt": { "$ref": "#/$defs/nullableString" }
+      }
+    },
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "explanation",
+        "guidance",
+        "followUpPriority",
+        "uncertainty",
+        "evidence"
+      ],
+      "properties": {
+        "classification": {
+          "enum": [
+            "observed-evidence",
+            "potential-risk",
+            "missing-context",
+            "recommendation-for-human-investigation",
+            "not-applicable"
+          ]
+        },
+        "explanation": { "type": "string", "minLength": 1 },
+        "guidance": { "type": "string", "minLength": 1 },
+        "followUpPriority": {
+          "type": ["string", "null"],
+          "enum": ["required", "recommended", null]
+        },
+        "uncertainty": {
+          "type": ["string", "null"],
+          "enum": [
+            "not-enough-information",
+            "potential",
+            "requires-human-investigation",
+            null
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        }
+      }
+    },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "assessments"],
+      "properties": {
+        "name": {
+          "enum": [
+            "clarity-and-rationale",
+            "considered-alternatives",
+            "nonfunctional-requirements",
+            "risks-and-consequences",
+            "architectural-consistency",
+            "security-and-compliance",
+            "implementation-and-operational-feasibility",
+            "measurable-verification-criteria"
+          ]
+        },
+        "assessments": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/assessment" }
+        }
+      }
+    },
+    "followUpFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dimension",
+        "classification",
+        "followUpPriority",
+        "uncertainty",
+        "explanation",
+        "guidance",
+        "evidence"
+      ],
+      "properties": {
+        "dimension": {
+          "enum": [
+            "clarity-and-rationale",
+            "considered-alternatives",
+            "nonfunctional-requirements",
+            "risks-and-consequences",
+            "architectural-consistency",
+            "security-and-compliance",
+            "implementation-and-operational-feasibility",
+            "measurable-verification-criteria"
+          ]
+        },
+        "classification": {
+          "enum": [
+            "potential-risk",
+            "missing-context",
+            "recommendation-for-human-investigation"
+          ]
+        },
+        "followUpPriority": {
+          "enum": ["required", "recommended"]
+        },
+        "uncertainty": {
+          "type": ["string", "null"],
+          "enum": [
+            "not-enough-information",
+            "potential",
+            "requires-human-investigation",
+            null
+          ]
+        },
+        "explanation": { "type": "string", "minLength": 1 },
+        "guidance": { "type": "string", "minLength": 1 },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        }
+      }
+    }
+  }
+}
