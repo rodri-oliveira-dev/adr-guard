@@ -51,15 +51,25 @@ internal static class AdrReviewExplicitContextValidator
                     fullPath);
             }
 
+            var expectedByteCount = new FileInfo(fullPath).Length;
+            ValidateByteLimits(
+                fullPath,
+                expectedByteCount,
+                ref aggregateBytes);
+
             var bytes = await File.ReadAllBytesAsync(
                     fullPath,
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            ValidateByteLimits(
-                fullPath,
-                bytes.LongLength,
-                ref aggregateBytes);
+            if (bytes.LongLength != expectedByteCount)
+            {
+                aggregateBytes -= expectedByteCount;
+                ValidateByteLimits(
+                    fullPath,
+                    bytes.LongLength,
+                    ref aggregateBytes);
+            }
 
             ValidateUtf8(
                 fullPath,
@@ -100,8 +110,10 @@ internal static class AdrReviewExplicitContextValidator
             throw InvalidEncoding(fullPath);
         }
 
-        if (content.StartsWith(
-                [0xEF, 0xBB, 0xBF]))
+        if (content.Length >= 3
+            && content[0] == 0xEF
+            && content[1] == 0xBB
+            && content[2] == 0xBF)
         {
             content = content[3..];
         }
@@ -110,9 +122,7 @@ internal static class AdrReviewExplicitContextValidator
         {
             var decoded = StrictUtf8.GetString(content);
 
-            if (decoded.Contains(
-                    '\0',
-                    StringComparison.Ordinal))
+            if (decoded.Contains('\0'))
             {
                 throw InvalidEncoding(fullPath);
             }
@@ -124,11 +134,25 @@ internal static class AdrReviewExplicitContextValidator
     }
 
     private static bool HasUtf16OrUtf32Bom(
-        ReadOnlySpan<byte> content) =>
-        content.StartsWith([0xFF, 0xFE])
-        || content.StartsWith([0xFE, 0xFF])
-        || content.StartsWith([0x00, 0x00, 0xFE, 0xFF])
-        || content.StartsWith([0xFF, 0xFE, 0x00, 0x00]);
+        ReadOnlySpan<byte> content)
+    {
+        if (content.Length >= 4
+            && ((content[0] == 0x00
+                    && content[1] == 0x00
+                    && content[2] == 0xFE
+                    && content[3] == 0xFF)
+                || (content[0] == 0xFF
+                    && content[1] == 0xFE
+                    && content[2] == 0x00
+                    && content[3] == 0x00)))
+        {
+            return true;
+        }
+
+        return content.Length >= 2
+            && ((content[0] == 0xFF && content[1] == 0xFE)
+                || (content[0] == 0xFE && content[1] == 0xFF));
+    }
 
     private static InvalidDataException InvalidEncoding(
         string fullPath) =>
