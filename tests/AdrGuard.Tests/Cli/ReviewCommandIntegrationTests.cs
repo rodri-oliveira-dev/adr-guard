@@ -329,9 +329,7 @@ public sealed class ReviewCommandIntegrationTests
             File.WriteAllText(sibling, ValidMarkdown().Replace("Use Redis", "Use Postgres", StringComparison.Ordinal));
 
             var provider = new RecordingReviewProvider(
-                ReviewResult(
-                    "Reviewed.",
-                    "0001-target.md"));
+                ReviewResult("Reviewed."));
             using var output = new StringWriter();
             using var error = new StringWriter();
 
@@ -538,7 +536,10 @@ public sealed class ReviewCommandIntegrationTests
                 Path.Combine(root, "0002-included.md"),
                 ValidMarkdown().Replace("Use Redis", "Included Decision", StringComparison.Ordinal));
 
-            var provider = new RecordingReviewProvider(ReviewResult("Reviewed."));
+            var provider = new RecordingReviewProvider(
+                ReviewResult(
+                    "Reviewed.",
+                    "0001-target.md"));
             using var output = new StringWriter();
             using var error = new StringWriter();
 
