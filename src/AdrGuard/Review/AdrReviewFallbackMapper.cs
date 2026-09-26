@@ -12,7 +12,7 @@ internal static class AdrReviewFallbackMapper
             Environment.NewLine + Environment.NewLine,
             new[] { generated.Context, generated.Decision, generated.Consequences }
                 .Where(value => !string.IsNullOrWhiteSpace(value))
-                .Select(value => value.Trim()));
+                .Select(value => value!.Trim()));
 
         if (string.IsNullOrWhiteSpace(sourceText))
         {
