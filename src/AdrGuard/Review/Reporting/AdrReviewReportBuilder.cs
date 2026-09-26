@@ -316,7 +316,7 @@ internal static partial class AdrReviewReportBuilder
             return "needs-context";
         }
 
-        return findings.Count > 0
+        return findings.Length > 0
             ? "follow-up-suggested"
             : "no-follow-up-findings";
     }
