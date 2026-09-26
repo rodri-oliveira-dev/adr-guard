@@ -51,30 +51,63 @@ internal static class AdrReviewExplicitContextValidator
                     fullPath);
             }
 
-            var expectedByteCount = new FileInfo(fullPath).Length;
-            ValidateByteLimits(
-                fullPath,
-                expectedByteCount,
-                ref aggregateBytes);
-
-            var bytes = await File.ReadAllBytesAsync(
+            var bytes = await ReadBoundedBytesAsync(
                     fullPath,
                     cancellationToken)
                 .ConfigureAwait(false);
 
-            if (bytes.LongLength != expectedByteCount)
-            {
-                aggregateBytes -= expectedByteCount;
-                ValidateByteLimits(
-                    fullPath,
-                    bytes.LongLength,
-                    ref aggregateBytes);
-            }
+            ValidateByteLimits(
+                fullPath,
+                bytes.LongLength,
+                ref aggregateBytes);
 
             ValidateUtf8(
                 fullPath,
                 bytes);
         }
+    }
+
+
+    private static async Task<byte[]> ReadBoundedBytesAsync(
+        string fullPath,
+        CancellationToken cancellationToken)
+    {
+        await using var stream = new FileStream(
+            fullPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            bufferSize: 4096,
+            useAsync: true);
+
+        var buffer = new byte[
+            checked((int)MaximumContextFileBytes + 1)];
+        var totalRead = 0;
+
+        while (totalRead < buffer.Length)
+        {
+            var read = await stream
+                .ReadAsync(
+                    buffer.AsMemory(totalRead),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            if (read == 0)
+            {
+                break;
+            }
+
+            totalRead += read;
+        }
+
+        if (totalRead > MaximumContextFileBytes)
+        {
+            throw new InvalidOperationException(
+                $"Context file '{fullPath}' exceeds the "
+                + $"{MaximumContextFileBytes}-byte per-file limit.");
+        }
+
+        return buffer[..totalRead];
     }
 
     private static void ValidateByteLimits(
