@@ -1,5 +1,6 @@
 using AdrGuard.Cli;
 using AdrGuard.Review;
+using Xunit;
 
 namespace AdrGuard.Tests.Cli;
 
