@@ -107,7 +107,7 @@ internal static class CliApplication
 
     private const string ReviewHelpText = """
         Usage:
-          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>]
+          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs]
 
         Request an AI-assisted technical review of one existing, structurally valid ADR.
         The command is advisory and read-only: it does not edit the ADR, change its status,
