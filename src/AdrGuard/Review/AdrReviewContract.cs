@@ -36,8 +36,10 @@ internal static class AdrReviewContract
         For every dimension return one or more findings classified as:
         observed-evidence, potential-risk, missing-context, recommendation-for-human-investigation, or not-applicable.
 
-        Every finding must identify an actual selected source by its visible source name when evidence exists,
-        quote only a short relevant excerpt when available, explain the observation, and include an actionable
+        Every finding must identify an actual selected source by its visible source name when evidence exists.
+        When a bracketed source ID such as [target] or [context-1] is visible, include that ID with the source name.
+        Never output absolute paths or invent a filename/source that is not present in the selected material.
+        Quote only a short relevant excerpt when available, explain the observation, and include an actionable
         question or suggestion. Never invent line numbers, workloads, SLAs, measurements, infrastructure,
         budgets, legal/compliance obligations, or source documents.
 
