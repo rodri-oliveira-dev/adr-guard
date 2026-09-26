@@ -84,7 +84,7 @@ internal static class AdrReviewContextBuilder
         ArgumentNullException.ThrowIfNull(context);
 
         var builder = new StringBuilder();
-        builder.Append("Target ADR source: ")
+        builder.Append("Target ADR source [target]: ")
             .Append(context.TargetSourceName)
             .Append(AdrGenerationText.NewLine)
             .Append(context.TargetMarkdown.Trim());
