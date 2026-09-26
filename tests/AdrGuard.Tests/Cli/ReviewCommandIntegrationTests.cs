@@ -116,6 +116,104 @@ public sealed class ReviewCommandIntegrationTests
         }
     }
 
+    [Fact]
+    public void ReviewUsesOnlyExplicitContextFilesAndDisclosesSources()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "0001-use-redis.md");
+            var context = Path.Combine(root, "requirements.txt");
+            File.WriteAllText(target, ValidMarkdown());
+            File.WriteAllText(context, "Latency must stay below 50 ms.");
+            File.WriteAllText(Path.Combine(root, "secret.txt"), "must not be discovered");
+
+            var provider = new RecordingReviewProvider(new AdrReviewResult("Reviewed."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.RunReviewForTests(
+                ["review", target, "--provider", "openai", "--model", "test", "--context-file", context],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.Equal(1, provider.CallCount);
+            Assert.Contains("requirements.txt", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("Latency must stay below 50 ms.", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+            Assert.DoesNotContain("secret.txt", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+            Assert.DoesNotContain(root, provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void ReviewIncludesExistingAdrsOnlyAfterOptInAndDeduplicatesTarget()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "0001-use-redis.md");
+            var sibling = Path.Combine(root, "0002-use-postgres.md");
+            File.WriteAllText(target, ValidMarkdown());
+            File.WriteAllText(sibling, ValidMarkdown().Replace("Use Redis", "Use Postgres", StringComparison.Ordinal));
+
+            var provider = new RecordingReviewProvider(new AdrReviewResult("Reviewed."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.RunReviewForTests(
+                ["review", target, "--provider", "openai", "--model", "test", "--include-existing-adrs"],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.Contains("ADR 0002", provider.LastRequest!.ProviderContext, StringComparison.Ordinal);
+            Assert.DoesNotContain("ADR 0001", provider.LastRequest.ProviderContext, StringComparison.Ordinal);
+            Assert.Contains("Warning:", output.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void MissingContextFileFailsBeforeProviderInvocation()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(root, "0001-use-redis.md");
+            File.WriteAllText(target, ValidMarkdown());
+
+            var provider = new RecordingReviewProvider(new AdrReviewResult("Should not run."));
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.RunReviewForTests(
+                ["review", target, "--provider", "openai", "--model", "test", "--context-file", Path.Combine(root, "missing.txt")],
+                output,
+                error,
+                provider);
+
+            Assert.Equal(ExitCodes.OperationalError, exitCode);
+            Assert.Equal(0, provider.CallCount);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
     private static string CreateTempDirectory()
     {
         var path = Path.Combine(
@@ -147,12 +245,15 @@ public sealed class ReviewCommandIntegrationTests
     {
         internal int CallCount { get; private set; }
 
+        internal AdrReviewRequest? LastRequest { get; private set; }
+
         public Task<AdrReviewResult> ReviewAsync(
             AdrReviewRequest request,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             CallCount++;
+            LastRequest = request;
             return Task.FromResult(result);
         }
     }
