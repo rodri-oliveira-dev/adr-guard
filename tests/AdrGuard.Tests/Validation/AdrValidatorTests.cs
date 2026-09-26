@@ -198,6 +198,40 @@ public sealed class AdrValidatorTests
     }
 
     [Fact]
+    public void ValidateAcceptsReferencePathWithoutLoadingReferencedDocument()
+    {
+        const string firstMarkdown = """
+            # First
+
+            ## Status
+            Accepted
+
+            ## Context
+            See [the next ADR](0002-second.md).
+
+            ## Decision
+            Decision.
+
+            ## Consequences
+            Consequences.
+            """;
+
+        var document = Parse(
+            "docs/adr/0001-first.md",
+            firstMarkdown);
+        var siblingPath = Path.GetFullPath(
+            "docs/adr/0002-second.md");
+
+        var result = AdrValidator.Validate(
+            [document],
+            [siblingPath]);
+
+        Assert.DoesNotContain(
+            result.Issues,
+            issue => issue.Code == ValidationCodes.BrokenReference);
+    }
+
+    [Fact]
     public void ValidateReportsBrokenLocalMarkdownReference()
     {
         const string markdown = """
