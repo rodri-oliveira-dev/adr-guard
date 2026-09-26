@@ -27,8 +27,16 @@ internal static class AdrReviewContextBuilder
         ArgumentNullException.ThrowIfNull(targetMarkdown);
         ArgumentNullException.ThrowIfNull(contextFilePaths);
 
+        await AdrReviewExplicitContextValidator
+            .ValidateAsync(
+                contextFilePaths,
+                cancellationToken)
+            .ConfigureAwait(false);
+
         var explicitFiles = await ExplicitContextFileLoader
-            .LoadAsync(contextFilePaths, cancellationToken)
+            .LoadAsync(
+                contextFilePaths,
+                cancellationToken)
             .ConfigureAwait(false);
 
         ExistingAdrContext? existingContext = null;
@@ -81,10 +89,14 @@ internal static class AdrReviewContextBuilder
             .Append(AdrGenerationText.NewLine)
             .Append(context.TargetMarkdown.Trim());
 
-        foreach (var file in context.ExplicitFiles)
+        for (var index = 0; index < context.ExplicitFiles.Count; index++)
         {
+            var file = context.ExplicitFiles[index];
+
             builder.Append(AdrGenerationText.DoubleNewLine)
-                .Append("Explicit context source: ")
+                .Append("Explicit context source [context-")
+                .Append(index + 1)
+                .Append("]: ")
                 .Append(Path.GetFileName(file.FilePath))
                 .Append(AdrGenerationText.NewLine)
                 .Append(file.Content.Trim());
