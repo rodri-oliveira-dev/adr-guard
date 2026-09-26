@@ -46,6 +46,60 @@ public sealed class CliApplicationTests
         Assert.Equal(string.Empty, error.ToString());
     }
 
+    [Theory]
+    [InlineData("check")]
+    [InlineData("index")]
+    public void NonReviewOfflineCommandsDoNotReadProviderEnvironment(
+        string command)
+    {
+        var root = Path.Combine(
+            Path.GetTempPath(),
+            $"adr-guard-cli-offline-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(root, "0001-use-postgresql.md"),
+                """
+                # Use PostgreSQL
+
+                ## Status
+                Accepted
+
+                ## Context
+                Context.
+
+                ## Decision
+                Decision.
+
+                ## Consequences
+                Consequences.
+                """);
+
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run(
+                [command, root],
+                output,
+                error,
+                environmentVariableReader: _ =>
+                    throw new InvalidOperationException(
+                        "Provider environment must not be read."));
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.Equal(string.Empty, error.ToString());
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
     [Fact]
     public void RunWithUnknownArgumentWritesErrorAndReturnsUsageError()
     {
