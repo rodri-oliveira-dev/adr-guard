@@ -177,7 +177,32 @@ if [[ "${command}" == "review" ]]; then
 
   if [[ -n "${review_context_files}" ]]; then
     while IFS= read -r context_path || [[ -n "${context_path}" ]]; do
-      context_path="${context_path%  if [[ -z "${adr_path}" ]]; then
+      context_path="${context_path%$'\r'}"
+      [[ -z "${context_path}" ]] && continue
+
+      resolve_inside_workspace "${context_path}" "Each 'context-files' entry"
+
+      if [[ ! -f "${RESOLVED_INPUT_PATH}" ]]; then
+        usage_error "Context file '${context_path}' must resolve to a regular file."
+      fi
+
+      case "${RESOLVED_INPUT_PATH,,}" in
+        *.md|*.txt)
+          ;;
+        *)
+          usage_error "Context file '${context_path}' must use a .md or .txt extension."
+          ;;
+      esac
+
+      resolved_review_context_files+=("${RESOLVED_INPUT_PATH}")
+    done <<< "${review_context_files}"
+  fi
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    operational_error "Python 3 is required for safe AI review summary and annotation rendering."
+  fi
+else
+  if [[ -z "${adr_path}" ]]; then
     usage_error "The 'path' input must not be empty."
   fi
 
