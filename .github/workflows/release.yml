@@ -1,13 +1,7 @@
 name: Release
 
 on:
-  workflow_run:
-    workflows:
-      - CI
-    types:
-      - completed
-    branches:
-      - main
+  workflow_dispatch:
 
 concurrency:
   group: release
@@ -21,10 +15,7 @@ env:
 jobs:
   build-and-pack:
     name: Validate, build, test and pack
-    if: >-
-      github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -39,7 +30,7 @@ jobs:
       - name: Checkout validated commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -52,7 +43,7 @@ jobs:
         id: version
         shell: bash
         env:
-          VALIDATED_SHA: ${{ github.event.workflow_run.head_sha }}
+          VALIDATED_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
 
