@@ -164,6 +164,13 @@ internal static class CliApplication
           No repository/source-tree discovery occurs by default. --include-existing-adrs explicitly authorizes
           Markdown ADR discovery below the target ADR directory; git diffs and environment variables are never scanned as context.
 
+        Security boundary:
+          ADR/context text and provider output are untrusted data. Embedded instructions, URLs and commands are inert.
+          Review exposes no filesystem/network/tool execution, file-write, status-change or secret-access capability to the model.
+          Known provider/GitHub credential values are redacted from provider context, diagnostics and reports.
+          Provider findings are field-bounded and workflow-command delimiters are neutralized before rendering.
+          See docs/adr-review-security.md for fork/community PR and secret-handling guidance.
+
         Provider-side processing:
           Selected review material is transmitted to the configured external AI provider and can leave
           the local machine/process. Provider retention, logging, residency and processing terms apply;
