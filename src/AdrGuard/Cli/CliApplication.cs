@@ -1,6 +1,7 @@
 using AdrGuard.Generation;
 using AdrGuard.Generation.Providers;
 using AdrGuard.Review;
+using AdrGuard.Review.Policy;
 using AdrGuard.Review.Providers;
 using AdrGuard.Review.Reporting;
 using System.Reflection;
@@ -21,7 +22,7 @@ internal static class CliApplication
           adr-guard index [directory] [--output <file>]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
-          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--format text|json] [--output <path> [--overwrite]]
+          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
           adr-guard [options]
 
         Commands:
@@ -40,6 +41,7 @@ internal static class CliApplication
           1  ADR validation failed
           2  Invalid command-line usage
           3  Operational error
+          4  Deterministic review policy failed
         """;
 
     private const string CheckHelpText = """
@@ -108,7 +110,7 @@ internal static class CliApplication
 
     private const string ReviewHelpText = """
         Usage:
-          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--format text|json] [--output <path> [--overwrite]]
+          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
 
         Request an AI-assisted technical review of one existing, structurally valid ADR.
         The command is advisory and read-only: it does not edit the ADR, change its status,
@@ -125,12 +127,23 @@ internal static class CliApplication
                                   Aggregate limits are 100000 characters and 300000 bytes.
           --include-existing-adrs  Opt in to bounded parsed ADR context from the target ADR directory.
                                   The selected target ADR is deduplicated from this set.
+          --policy <mode>           Deterministic policy mode: advisory | enforce. Defaults to advisory.
+                                  AI findings never become enforceable policy violations.
+          --policy-file <path>      Strict local JSON policy (schemaVersion 1.0). Not sent to the provider.
+                                  Required with --policy enforce.
           --format <format>         Report format: text | json. Defaults to text.
                                   JSON writes one versioned report object to stdout.
           --output <path>          Explicitly persist the rendered report. Text output requires .md/.txt;
                                   JSON output requires .json. Parent directory must already exist.
           --overwrite              Allow --output to replace an existing regular file atomically.
                                   Rejected without --output; never permits replacing the ADR or README.md index.
+
+        Policy:
+          Advisory is the safe default. Deterministic policy violations are diagnostics only.
+          Enforce mode exits 4 only for named local rules with inspectable evidence, before provider invocation.
+          Supported v1 rules: required-section-content and required-context-file.
+          Model wording such as critical/high and model-reported missing context remain advisory.
+          See docs/adr-review-policy-v1.md for the policy schema and outcome/exit-code matrix.
 
         Reporting:
           Text output is Markdown-compatible and includes evidence, unknowns, follow-up priority and
@@ -161,8 +174,9 @@ internal static class CliApplication
         Exit codes:
           0  Review completed
           1  Selected ADR failed structural validation
-          2  Invalid review command/provider usage
-          3  Operational/provider/cancellation failure
+          2  Invalid review command/provider/policy usage
+          3  Operational/provider/cancellation/malformed-result failure
+          4  Named deterministic enforcement rule violated
         """;
 
     internal static int Run(
@@ -333,6 +347,15 @@ internal static class CliApplication
             return ExitCodes.UsageError;
         }
 
+        if (reviewArguments.PolicyMode == AdrReviewPolicyMode.Enforce
+            && string.IsNullOrWhiteSpace(reviewArguments.PolicyFilePath))
+        {
+            error.WriteLine(
+                "'review --policy enforce' requires --policy-file with explicit deterministic rules.");
+            error.WriteLine("Run 'adr-guard review --help' for usage.");
+            return ExitCodes.UsageError;
+        }
+
         try
         {
             if (injectedProvider is not null)
@@ -346,6 +369,8 @@ internal static class CliApplication
                     reviewArguments.Format,
                     reviewArguments.OutputPath,
                     reviewArguments.OverwriteOutput,
+                    reviewArguments.PolicyMode,
+                    reviewArguments.PolicyFilePath,
                     injectedProvider,
                     output,
                     error,
@@ -372,6 +397,8 @@ internal static class CliApplication
                 reviewArguments.Format,
                 reviewArguments.OutputPath,
                 reviewArguments.OverwriteOutput,
+                reviewArguments.PolicyMode,
+                reviewArguments.PolicyFilePath,
                 provider,
                 output,
                 error,
@@ -628,11 +655,14 @@ internal static class CliApplication
         string? model = null;
         string? endpoint = null;
         string? outputPath = null;
+        string? policyFilePath = null;
         var contextFilePaths = new List<string>();
         var includeExistingAdrs = false;
         var format = AdrReviewOutputFormat.Text;
         var formatAssigned = false;
         var overwriteOutput = false;
+        var policyMode = AdrReviewPolicyMode.Advisory;
+        var policyAssigned = false;
 
         for (var index = 1; index < args.Count; index++)
         {
@@ -667,6 +697,8 @@ internal static class CliApplication
                 or "--model"
                 or "--endpoint"
                 or "--context-file"
+                or "--policy"
+                or "--policy-file"
                 or "--format"
                 or "--output")
             {
@@ -719,6 +751,39 @@ internal static class CliApplication
 
                     case "--context-file":
                         contextFilePaths.Add(value);
+                        break;
+
+                    case "--policy":
+                        if (policyAssigned)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
+                        policyMode = value switch
+                        {
+                            "advisory" => AdrReviewPolicyMode.Advisory,
+                            "enforce" => AdrReviewPolicyMode.Enforce,
+                            _ => (AdrReviewPolicyMode)(-1),
+                        };
+
+                        if (!Enum.IsDefined(policyMode))
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
+                        policyAssigned = true;
+                        break;
+
+                    case "--policy-file":
+                        if (policyFilePath is not null)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
+                        policyFilePath = value;
                         break;
 
                     case "--format":
@@ -784,7 +849,9 @@ internal static class CliApplication
             includeExistingAdrs,
             format,
             outputPath,
-            overwriteOutput);
+            overwriteOutput,
+            policyMode,
+            policyFilePath);
 
         return !string.IsNullOrWhiteSpace(targetPath);
     }
@@ -1056,7 +1123,9 @@ internal static class CliApplication
         bool IncludeExistingAdrs,
         AdrReviewOutputFormat Format,
         string? OutputPath,
-        bool OverwriteOutput)
+        bool OverwriteOutput,
+        AdrReviewPolicyMode PolicyMode,
+        string? PolicyFilePath)
     {
         internal static ReviewArguments Empty { get; } =
             new(
@@ -1068,7 +1137,9 @@ internal static class CliApplication
                 false,
                 AdrReviewOutputFormat.Text,
                 null,
-                false);
+                false,
+                AdrReviewPolicyMode.Advisory,
+                null);
     }
 
     private sealed record DraftArguments(
