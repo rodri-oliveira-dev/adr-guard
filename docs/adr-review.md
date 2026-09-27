@@ -264,8 +264,8 @@ and may opt in after the corresponding Action release is published:
 
 The Action:
 
-- blocks `review` on `pull_request_target`;
-- blocks provider-backed review for fork `pull_request` events before Docker/provider execution;
+- accepts provider-backed review only on `push`, `workflow_dispatch`, `schedule`, and same-repository `pull_request`;
+- rejects fork pull requests, `pull_request_target`, and all other event types before Docker/provider execution;
 - never forwards `GITHUB_TOKEN` or `GH_TOKEN` to the review container;
 - mounts the checkout read-only;
 - uses outbound network only for provider-backed `review`; deterministic `check`/`index` retain `--network=none`;
