@@ -19,7 +19,55 @@ if ! docker info >/dev/null 2>&1; then
   exit 1
 fi
 
-release_json="$(curl --fail --silent --show-error --location   -H 'Accept: application/vnd.github+json'   "https://api.github.com/repos/${REPOSITORY}/releases/latest")"
+# Call the GitHub API with the workflow token when available, while preserving
+# unauthenticated local execution for contributors running this script manually.
+github_api() {
+  local url="$1"
+  local -a headers=(
+    -H 'Accept: application/vnd.github+json'
+    -H 'X-GitHub-Api-Version: 2022-11-28'
+  )
+
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    headers+=(-H "Authorization: Bearer ${GITHUB_TOKEN}")
+  fi
+
+  curl --fail --silent --show-error --location "${headers[@]}" "${url}"
+}
+
+# Peel lightweight or annotated tag refs until the referenced commit is reached.
+resolve_ref_commit() {
+  local current_json="$1"
+  local object_type object_sha
+  local depth=0
+
+  while (( depth < 10 )); do
+    object_type="$(jq -r '.object.type // empty' <<<"${current_json}")"
+    object_sha="$(jq -r '.object.sha // empty' <<<"${current_json}")"
+
+    case "${object_type}" in
+      commit)
+        [[ -n "${object_sha}" ]] || return 1
+        printf '%s\n' "${object_sha}"
+        return 0
+        ;;
+      tag)
+        [[ -n "${object_sha}" ]] || return 1
+        current_json="$(github_api "https://api.github.com/repos/${REPOSITORY}/git/tags/${object_sha}")"
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+
+    depth=$((depth + 1))
+  done
+
+  echo "Git tag reference exceeded the supported annotated-tag depth." >&2
+  return 1
+}
+
+release_json="$(github_api "https://api.github.com/repos/${REPOSITORY}/releases/latest")"
 
 release_tag="$(jq -r '.tag_name // empty' <<<"${release_json}")"
 release_url="$(jq -r '.html_url // empty' <<<"${release_json}")"
@@ -33,11 +81,17 @@ fi
 version="${release_tag#v}"
 major="${BASH_REMATCH[1]}"
 
-ref_json="$(curl --fail --silent --show-error --location   -H 'Accept: application/vnd.github+json'   "https://api.github.com/repos/${REPOSITORY}/git/ref/tags/v${major}")"
-exact_ref_json="$(curl --fail --silent --show-error --location   -H 'Accept: application/vnd.github+json'   "https://api.github.com/repos/${REPOSITORY}/git/ref/tags/${release_tag}")"
+ref_json="$(github_api "https://api.github.com/repos/${REPOSITORY}/git/ref/tags/v${major}")"
+exact_ref_json="$(github_api "https://api.github.com/repos/${REPOSITORY}/git/ref/tags/${release_tag}")"
 
-major_sha="$(jq -r '.object.sha // empty' <<<"${ref_json}")"
-exact_sha="$(jq -r '.object.sha // empty' <<<"${exact_ref_json}")"
+major_sha="$(resolve_ref_commit "${ref_json}")" || {
+  echo "Unable to resolve moving Action tag v${major} to a commit." >&2
+  exit 1
+}
+exact_sha="$(resolve_ref_commit "${exact_ref_json}")" || {
+  echo "Unable to resolve exact Action tag ${release_tag} to a commit." >&2
+  exit 1
+}
 
 if [[ -z "${major_sha}" || -z "${exact_sha}" || "${major_sha}" != "${exact_sha}" ]]; then
   echo "Moving Action tag v${major} does not resolve to the latest exact release ${release_tag}." >&2
