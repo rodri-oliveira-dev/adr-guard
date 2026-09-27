@@ -55,6 +55,8 @@ Selected material is transmitted to the configured external provider and may lea
 
 Local source disclosure lists which selected source filenames are sent. ADR Guard does not silently scan source code, git history, environment variables as context, arbitrary URLs, or unrelated repository files.
 
+Review reports can contain short evidence excerpts or provider-derived architectural observations. Treat persisted report files and CI artifacts according to the same repository/data-classification rules as the ADRs they review; secret redaction is a defense-in-depth control, not a substitute for appropriate artifact access control.
+
 ## Community and fork pull requests
 
 Do not expose provider credentials to untrusted fork code or workflows. For future GitHub Action review integration:
