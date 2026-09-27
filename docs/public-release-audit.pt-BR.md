@@ -43,6 +43,12 @@ Portanto:
 
 Isso evita criar uma release desnecessária apenas para fazer o metadata fonte parecer igual ao patch mais recente.
 
+## Política de disparo das próximas releases
+
+O snapshot da `v1.1.6` acima foi produzido pelo trigger automático pós-CI anterior. O PR #86 altera a política de publicação das próximas releases: merge na `main` ou CI verde **não publica artefatos**.
+
+A publicação futura só começa quando um mantenedor autorizado executar manualmente **Actions → Release → Run workflow** com a branch `main` selecionada. O workflow `Release` passa a usar somente `workflow_dispatch`, rejeita dispatches fora da `main`, vincula a release ao `github.sha` selecionado e executa novamente build/testes/smoke do pacote antes de iniciar publicação em NuGet, packages, containers, tags da Action ou GitHub Release.
+
 ## Verificação contínua dos artefatos públicos
 
 `scripts/public-distribution-smoke-test.sh` transforma a auditoria em um gate reproduzível do CI. Ele:
