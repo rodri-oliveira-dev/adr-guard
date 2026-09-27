@@ -11,8 +11,10 @@ EXAMPLE_PR="${ROOT_DIR}/docs/examples/github-action-pr.yml"
 EXAMPLE_MAIN="${ROOT_DIR}/docs/examples/github-action-main.yml"
 EXTERNAL_EN="${ROOT_DIR}/docs/github-action-external-verification.md"
 EXTERNAL_PT="${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
+REVIEW_EN="${ROOT_DIR}/docs/github-action-review.md"
+REVIEW_PT="${ROOT_DIR}/docs/github-action-review.pt-BR.md"
 
-for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXTERNAL_EN}" "${EXTERNAL_PT}"; do
+for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${REVIEW_EN}" "${REVIEW_PT}"; do
   test -s "${file}" || {
     echo "Required GitHub Action consumer documentation is missing: ${file}" >&2
     exit 1
@@ -20,7 +22,7 @@ for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}
 done
 
 # Public input contract must stay synchronized with the guides.
-for input in path command version; do
+for input in path command version review-target provider model endpoint context-files include-existing-adrs policy policy-file; do
   grep -Eq "^  ${input}:" "${ACTION}" || {
     echo "action.yml no longer exposes expected input '${input}'." >&2
     exit 1
@@ -42,6 +44,15 @@ grep -Fq '| `path` | `docs/adr` |' "${GUIDE_EN}"
 grep -Fq '| `path` | `docs/adr` |' "${GUIDE_PT}"
 grep -Fq '| `command` | `check` |' "${GUIDE_EN}"
 grep -Fq '| `command` | `check` |' "${GUIDE_PT}"
+
+for review_guide in "${REVIEW_EN}" "${REVIEW_PT}"; do
+  grep -Fq 'contents: read' "${review_guide}"
+  grep -Fq 'pull_request_target' "${review_guide}"
+  grep -Fq 'command: review' "${review_guide}"
+  grep -Fq 'review-target:' "${review_guide}"
+  grep -Fq 'policy: advisory' "${review_guide}"
+  grep -Fq 'GITHUB_TOKEN' "${review_guide}"
+done
 
 # Consumer workflow examples are deliberately minimal and use only public inputs.
 for example in "${EXAMPLE_PR}" "${EXAMPLE_MAIN}"; do
