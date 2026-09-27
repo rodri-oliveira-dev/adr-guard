@@ -17,12 +17,14 @@ internal static class AdrCrossAdrEvidenceBuilder
 
     internal static AdrCrossAdrEvidence? Build(
         AdrDocument target,
-        IReadOnlyList<AdrDocument> existingDocuments)
+        IReadOnlyList<AdrDocument> existingDocuments,
+        int maximumCharacters = MaximumCharacters)
     {
         ArgumentNullException.ThrowIfNull(target);
         ArgumentNullException.ThrowIfNull(existingDocuments);
 
-        if (existingDocuments.Count == 0)
+        if (existingDocuments.Count == 0
+            || maximumCharacters <= 0)
         {
             return null;
         }
@@ -39,10 +41,9 @@ internal static class AdrCrossAdrEvidenceBuilder
             .Append(Environment.NewLine)
             .Append(BuildDocumentEvidence("Target", target));
 
-        if (builder.Length > MaximumCharacters)
+        if (builder.Length > maximumCharacters)
         {
-            throw new InvalidOperationException(
-                $"Cross-ADR comparison evidence exceeds the {MaximumCharacters}-character limit before candidate ADRs are added.");
+            return null;
         }
 
         foreach (var document in ordered)
@@ -51,7 +52,7 @@ internal static class AdrCrossAdrEvidenceBuilder
                 + Environment.NewLine
                 + BuildDocumentEvidence("Candidate", document);
 
-            if (builder.Length + entry.Length > MaximumCharacters)
+            if (builder.Length + entry.Length > maximumCharacters)
             {
                 break;
             }
