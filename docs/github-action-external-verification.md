@@ -10,7 +10,7 @@ This document records the independent-consumer evidence for ADR Guard issue #49.
 
 **Production Marketplace verification: pending owner publication.**
 
-The Action is published on the moving `v1` compatibility line; `review` joined that line in `v1.1.6`. The independent-consumer evidence below predates the first `v1` release, while current ADR Guard CI exercises the real remote `rodri-oliveira-dev/adr-guard@v1` for `check` and `index` in clean fixture directories. Issue #49 deliberately retains a stricter independent-repository rerun plus the real Marketplace listing as its final closure criteria.
+The `v1` compatibility tag is published and tracks the moving `v1` line; `review` joined that line in `v1.1.6`. The independent-consumer evidence below predates the first `v1` release, while current ADR Guard CI exercises the real remote `rodri-oliveira-dev/adr-guard@v1` for `check` and `index` in clean fixture directories. Issue #49 deliberately retains a stricter independent-repository rerun plus the real Marketplace listing as its final closure criteria.
 
 ## Independent consumer
 
