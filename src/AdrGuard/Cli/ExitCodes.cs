@@ -6,4 +6,5 @@ internal static class ExitCodes
     internal const int ValidationFailed = 1;
     internal const int UsageError = 2;
     internal const int OperationalError = 3;
+    internal const int PolicyFailed = 4;
 }
