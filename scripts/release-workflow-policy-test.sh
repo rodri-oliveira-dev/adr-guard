@@ -30,6 +30,21 @@ grep -Fq 'VALIDATED_SHA: ${{ github.sha }}' "${WORKFLOW}" || {
   exit 1
 }
 
+grep -Fq 'actions: read' "${WORKFLOW}" || {
+  echo "Manual release must be able to verify CI status for the dispatched commit." >&2
+  exit 1
+}
+
+grep -Fq 'actions/workflows/ci.yml/runs?head_sha=${VALIDATED_SHA}&event=push&status=completed' "${WORKFLOW}" || {
+  echo "Manual release must query completed CI push runs for the exact dispatched commit." >&2
+  exit 1
+}
+
+grep -Fq 'select(.conclusion == "success")' "${WORKFLOW}" || {
+  echo "Manual release must require a successful CI run before publication." >&2
+  exit 1
+}
+
 grep -Fq '<VersionPrefix>1.1.0</VersionPrefix>' "${PROJECT}" || {
   echo "The coordinated template release must start at 1.1.0 while retaining the existing @v1 compatibility line." >&2
   exit 1
