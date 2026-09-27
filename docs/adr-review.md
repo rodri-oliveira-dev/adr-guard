@@ -13,10 +13,10 @@ The CLI and the GitHub Action have separate release histories.
 | Base `adr-guard review`, eight dimensions, bounded context, versioned reports | `v1.1.2` | Published |
 | Deterministic advisory/enforce policy v1 | `v1.1.3` | Published |
 | Review trust-boundary hardening and deterministic mock-provider regression matrix | `v1.1.4` | Published |
-| Current published CLI package/image | `v1.1.5` | Includes the capabilities above |
-| Reusable Action `command: review` | PR #85 / next release after merge | Implemented and tested on this branch; not part of the already-published `@v1` until that release publishes |
+| Reusable Action `command: review` | `v1.1.6` | Published on the moving `@v1` compatibility line |
+| Latest exact CLI/package/image patch | See GitHub Releases / NuGet | Intentionally not hard-coded because every successful release can advance the patch |
 
-Until PR #85 is merged and its release moves the `v1` compatibility tag, the currently published Action remains `check`/`index` only. The Marketplace listing is still tracked separately; this documentation does not claim that it is live.
+The published `@v1` Action supports `check`, `index`, and opt-in `review` from `v1.1.6`. The Marketplace listing is tracked separately and is not claimed as live until a canonical public listing URL is verified.
 
 ## Minimal CLI usage
 
@@ -247,7 +247,7 @@ permissions:
   contents: read
 ```
 
-and may opt in after the corresponding Action release is published:
+and can opt in using the published Action:
 
 ```yaml
 - name: Review selected ADR
