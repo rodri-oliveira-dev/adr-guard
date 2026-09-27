@@ -10,7 +10,7 @@ Este documento registra as evidências de consumidor independente da issue #49 d
 
 **Verificação de produção no Marketplace: pendente de publicação pelo proprietário.**
 
-A Action está publicada na linha móvel de compatibilidade `v1`; o `review` entrou nessa linha na `v1.1.6`. As evidências de consumidor independente abaixo são anteriores à primeira release `v1`, enquanto o CI atual do ADR Guard exercita a referência remota real `rodri-oliveira-dev/adr-guard@v1` para `check` e `index` em diretórios de fixture limpos. A issue #49 mantém deliberadamente como critérios finais o rerun mais estrito em repositório independente e a listagem real no Marketplace.
+A tag de compatibilidade `v1` está publicada e acompanha a linha móvel `v1`; o `review` entrou nessa linha na `v1.1.6`. As evidências de consumidor independente abaixo são anteriores à primeira release `v1`, enquanto o CI atual do ADR Guard exercita a referência remota real `rodri-oliveira-dev/adr-guard@v1` para `check` e `index` em diretórios de fixture limpos. A issue #49 mantém deliberadamente como critérios finais o rerun mais estrito em repositório independente e a listagem real no Marketplace.
 
 ## Consumidor independente
 
