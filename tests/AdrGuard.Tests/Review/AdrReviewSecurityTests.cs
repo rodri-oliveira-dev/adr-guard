@@ -318,6 +318,20 @@ public sealed class AdrReviewSecurityTests
     }
 
     [Fact]
+    public void UnicodeLineSeparatorsAreNormalizedInUntrustedText()
+    {
+        var sanitized =
+            AdrReviewSecurityBoundary.SanitizeUntrustedText(
+                "alpha\u2028beta\u2029gamma\u0085delta",
+                100,
+                rejectOversized: false);
+
+        Assert.Equal(
+            "alpha beta gamma delta",
+            sanitized);
+    }
+
+    [Fact]
     public void OversizedLocalDocumentMetadataReturnsOperationalFailure()
     {
         var root = CreateTempDirectory();
