@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
+      actions: read
       contents: read
     outputs:
       package-version: ${{ steps.version.outputs.package_version }}
@@ -27,6 +28,25 @@ jobs:
       validated-sha: ${{ steps.version.outputs.validated_sha }}
 
     steps:
+      - name: Verify CI success for dispatched main commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          successful_ci_run="$(
+            gh api               "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${VALIDATED_SHA}&event=push&status=completed&per_page=100"               --jq '.workflow_runs[] | select(.conclusion == "success") | .id'               | head -n 1
+          )"
+
+          if [[ -z "${successful_ci_run}" ]]; then
+            echo "::error::The manually selected main commit ${VALIDATED_SHA} does not have a successful completed CI push run. Wait for CI to pass, then dispatch Release again."
+            exit 1
+          fi
+
+          echo "Validated CI run ${successful_ci_run} for main commit ${VALIDATED_SHA}."
+
       - name: Checkout validated commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
