@@ -1,6 +1,6 @@
 # GitHub Action consumer guide
 
-> **Publication status:** the reusable Action and moving compatibility tag `v1` are published. The public `v1` line supports `check`, `index`, and opt-in `review` since `v1.1.6`. `new` and `draft` remain CLI/container-only workflows. No public GitHub Marketplace listing has been verified; Marketplace publication remains an owner-only manual gate documented below.
+> **Publication status:** the reusable Action is published, and the moving compatibility tag `v1` is published. The public `v1` line supports `check`, `index`, and opt-in `review` since `v1.1.6`. `new` and `draft` remain CLI/container-only workflows. No public GitHub Marketplace listing has been verified; Marketplace publication remains an owner-only manual gate documented below.
 
 ADR Guard's composite Action runs the published ADR Guard container. Consumers do not need the .NET SDK. They need a Linux runner with Docker and must check out the repository first; opt-in `review` additionally requires Python 3 on the runner for safe summary/annotation rendering.
 
