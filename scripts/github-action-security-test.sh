@@ -47,12 +47,21 @@ for secret_name in OPENAI_API_KEY ANTHROPIC_API_KEY GEMINI_API_KEY ADR_GUARD_OPE
   fi
 done
 
-# The reusable validation/index action deliberately has no provider or token
-# inputs and does not expose draft.
+# The reusable Action exposes provider/model selection only for explicit review.
+# Credentials and GitHub tokens must never become Action inputs, and draft stays unavailable.
 if grep -Eq 'GITHUB_TOKEN|secrets\.|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|ADR_GUARD_OPENAI_COMPATIBLE_API_KEY' "${ROOT_DIR}/action.yml"; then
   echo "action.yml must not request or forward repository/provider credentials." >&2
   exit 1
 fi
+
+if grep -Eq '^[[:space:]]+(token|api-key|credential|openai-api-key|anthropic-api-key|gemini-api-key):' "${ROOT_DIR}/action.yml"; then
+  echo "Provider credentials must not be exposed as Action inputs." >&2
+  exit 1
+fi
+
+grep -Eq '^  review-target:' "${ROOT_DIR}/action.yml"
+grep -Eq '^  provider:' "${ROOT_DIR}/action.yml"
+grep -Eq '^  model:' "${ROOT_DIR}/action.yml"
 
 if grep -Eq '(^|[[:space:]])draft([[:space:]]|$)' "${ROOT_DIR}/action.yml"; then
   echo "The default GitHub Action must not expose the AI draft command." >&2
