@@ -68,6 +68,9 @@ jobs:
           --add-source ./artifacts/package
           --ignore-failed-sources
 
+      - name: Verify bilingual ADR review documentation
+        run: bash scripts/adr-review-docs-test.sh ./.tools/adr-guard
+
       - name: Installed .NET Tool template and compatibility regressions
         run: bash scripts/template-regression-test.sh
 
