@@ -169,11 +169,43 @@ internal static class AdrReviewReportFileWriter
 
     private static bool PathsEqual(
         string first,
-        string second) =>
-        string.Equals(
-            Path.GetFullPath(first),
-            Path.GetFullPath(second),
-            OperatingSystem.IsWindows()
-                ? StringComparison.OrdinalIgnoreCase
-                : StringComparison.Ordinal);
+        string second)
+    {
+        var comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        var fullFirst = Path.GetFullPath(first);
+        var fullSecond = Path.GetFullPath(second);
+
+        if (string.Equals(
+                fullFirst,
+                fullSecond,
+                comparison))
+        {
+            return true;
+        }
+
+        if (!File.Exists(fullFirst)
+            || !File.Exists(fullSecond))
+        {
+            return false;
+        }
+
+        return string.Equals(
+            ResolveFinalTargetPath(fullFirst),
+            ResolveFinalTargetPath(fullSecond),
+            comparison);
+    }
+
+    private static string ResolveFinalTargetPath(
+        string path)
+    {
+        var file = new FileInfo(path);
+        var resolved = file.ResolveLinkTarget(
+            returnFinalTarget: true);
+
+        return Path.GetFullPath(
+            resolved?.FullName
+            ?? file.FullName);
+    }
 }
