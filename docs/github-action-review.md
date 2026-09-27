@@ -2,6 +2,8 @@
 
 AI-assisted ADR review is an explicit opt-in extension of the reusable ADR Guard Action. The default remains deterministic `check`; enabling `review` does not change existing validation workflows.
 
+> **Availability:** `command: review` is implemented and CI-validated in PR #85 on this branch. The already-published remote `rodri-oliveira-dev/adr-guard@v1` still exposes `check`/`index` only until the release after PR #85 is merged advances the `v1` tag. The `@v1` examples below are the post-release consumer form, not a claim that the current remote tag already supports review.
+
 ## Trust boundary
 
 Use provider-backed review only in trusted workflows. The Action enforces the following boundaries:
