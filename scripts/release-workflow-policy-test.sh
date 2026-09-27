@@ -5,6 +5,31 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKFLOW="${ROOT_DIR}/.github/workflows/release.yml"
 PROJECT="${ROOT_DIR}/src/AdrGuard/AdrGuard.csproj"
 
+grep -Fq '  workflow_dispatch:' "${WORKFLOW}" || {
+  echo "Release workflow must be started explicitly with workflow_dispatch." >&2
+  exit 1
+}
+
+if grep -Fq 'workflow_run:' "${WORKFLOW}" || grep -Fq 'github.event.workflow_run' "${WORKFLOW}"; then
+  echo "Release workflow must not publish automatically after CI." >&2
+  exit 1
+fi
+
+grep -Fq "if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'" "${WORKFLOW}" || {
+  echo "Manual release must be restricted to an explicit dispatch of the main branch." >&2
+  exit 1
+}
+
+grep -Fq 'ref: ${{ github.sha }}' "${WORKFLOW}" || {
+  echo "Manual release must checkout the commit selected by workflow_dispatch." >&2
+  exit 1
+}
+
+grep -Fq 'VALIDATED_SHA: ${{ github.sha }}' "${WORKFLOW}" || {
+  echo "Manual release must bind versioning and artifacts to the dispatched commit." >&2
+  exit 1
+}
+
 grep -Fq '<VersionPrefix>1.1.0</VersionPrefix>' "${PROJECT}" || {
   echo "The coordinated template release must start at 1.1.0 while retaining the existing @v1 compatibility line." >&2
   exit 1
