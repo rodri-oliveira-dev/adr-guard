@@ -4,11 +4,13 @@ Este documento registra as evidências de consumidor independente da issue #49 d
 
 ## Status
 
-**Verificação externa pré-release: aprovada.**
+**Verificação pré-release em repositório independente: aprovada.**
 
-**Verificação de produção no Marketplace: pendente.**
+**Verificação de compatibilidade do `@v1` publicado em fixtures isoladas de consumidor: testada continuamente no CI do ADR Guard.**
 
-A Action já foi publicada como `v1.0.0`, e a tag de compatibilidade `v1` está publicada. As evidências de consumidor independente abaixo são anteriores a essa release; os critérios finais da #49 relativos ao Marketplace continuam pendentes até o proprietário publicar e verificar a listagem e os workflows consumidores externos serem executados novamente contra o `@v1` publicado.
+**Verificação de produção no Marketplace: pendente de publicação pelo proprietário.**
+
+A Action está publicada na linha móvel de compatibilidade `v1`; o `review` entrou nessa linha na `v1.1.6`. As evidências de consumidor independente abaixo são anteriores à primeira release `v1`, enquanto o CI atual do ADR Guard exercita a referência remota real `rodri-oliveira-dev/adr-guard@v1` para `check` e `index` em diretórios de fixture limpos. A issue #49 mantém deliberadamente como critérios finais o rerun mais estrito em repositório independente e a listagem real no Marketplace.
 
 ## Consumidor independente
 
@@ -102,19 +104,15 @@ Isso também melhora o comportamento da major móvel em runners self-hosted, poi
 
 ## Gate final de verificação de produção
 
-A release `v1.0.0` e a tag de compatibilidade `v1` já estão publicadas. Para concluir a verificação de produção do consumidor e do Marketplace:
+A tag móvel `v1` da Action e os canais públicos de release/container agora são cobertos pela [auditoria da release pública](public-release-audit.pt-BR.md) e pelos smoke tests de distribuição pública do CI. Para concluir os critérios mais estritos de Marketplace nas issues #49/#50:
 
-1. confirmar que as tags publicadas imutável `v1.0.0` e móvel `v1` da Action resolvem conforme esperado;
-2. confirmar que as imagens exata (`:1.0.0`) e major (`:1`) correspondentes no GHCR podem ser baixadas publicamente;
-3. publicar a listagem no Marketplace pelo fluxo autorizado descrito em [github-marketplace.pt-BR.md](github-marketplace.pt-BR.md);
-4. registrar na issue #49 a URL real do Marketplace e a referência publicada da Action;
-5. alterar os workflows externos da referência SHA + `version: 0.1.12` para:
-   `uses: rodri-oliveira-dev/adr-guard@v1`;
-6. remover o input explícito `version`;
-7. executar novamente os dois workflows externos;
-8. exigir sucesso do workflow válido e falha do inválido com annotation de arquivo;
-9. verificar compatibilidade da referência/imagem major publicada;
-10. substituir todos os avisos de "Marketplace futuro" pela URL verificada;
-11. somente então encerrar #49 e o roadmap #50.
+1. publicar a listagem no Marketplace pelo fluxo autorizado descrito em [github-marketplace.pt-BR.md](github-marketplace.pt-BR.md);
+2. registrar na issue #49 a URL canônica real do Marketplace e a referência publicada da Action;
+3. atualizar os workflows independentes do `poc-arquitetura` da referência histórica SHA + `version: 0.1.12` para `uses: rodri-oliveira-dev/adr-guard@v1`;
+4. remover o input explícito `version`;
+5. executar novamente os dois workflows independentes;
+6. exigir sucesso do workflow válido e falha do inválido com annotation de arquivo;
+7. substituir os avisos explícitos de "Marketplace ainda não verificado" pela URL real da listagem;
+8. somente então encerrar #49 e o roadmap #50.
 
 A URL final do Marketplace e a referência publicada devem ser copiadas do GitHub depois da publicação; nunca devem ser inferidas ou inventadas.
