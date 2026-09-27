@@ -175,6 +175,8 @@ jobs:
           global-json-file: global.json
 
       - name: Verify latest public NuGet, Action refs, GHCR, and Docker Hub artifacts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: bash scripts/public-distribution-smoke-test.sh
 
   github-action-contract:
@@ -289,8 +291,8 @@ jobs:
           test "${generated_indexes[0]}" = "${ACTION_FIXTURE_ROOT}/index ADRs/README.md"
 
       # Exercise the actual published moving @v1 entrypoint (not just ./ with
-      # the latest public runtime). check/index compatibility stays stable;
-      # new remains intentionally outside the Action command contract.
+      # the latest public runtime). check/index/review compatibility stays
+      # stable; new remains intentionally outside the Action command contract.
       - name: Prepare isolated published @v1 consumer fixtures
         run: |
           mkdir -p "${ACTION_FIXTURE_ROOT}/published-v1 ADRs"
@@ -323,6 +325,65 @@ jobs:
           test -s "${ACTION_FIXTURE_ROOT}/published-v1 ADRs/README.md"
           test "${NEW_OUTCOME}" = failure
           test "$(find "${ACTION_FIXTURE_ROOT}/published-v1 ADRs" -maxdepth 1 -name '[0-9]*.md' | wc -l)" -eq 1
+
+      - name: Prepare deterministic published @v1 review provider mock
+        run: |
+          fake_bin="${RUNNER_TEMP}/published-v1-review-bin"
+          mkdir -p "${fake_bin}"
+          cat >"${fake_bin}/docker" <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          case "${1:-}" in
+            info|pull)
+              exit 0
+              ;;
+            run)
+              printf '%s\n' "$@" >"${PUBLISHED_V1_DOCKER_CAPTURE:?}"
+              cat <<'JSON'
+          {
+            "schemaVersion": "1.0",
+            "target": {
+              "sourceId": "target",
+              "path": "0001-use-postgresql.md"
+            },
+            "inputScope": {
+              "explicitContext": [],
+              "existingAdrs": []
+            },
+            "outcome": "no-follow-up-findings",
+            "findings": []
+          }
+          JSON
+              exit 0
+              ;;
+            *)
+              echo "Unexpected docker invocation: $*" >&2
+              exit 99
+              ;;
+          esac
+          EOF
+          chmod +x "${fake_bin}/docker"
+          echo "${fake_bin}" >> "${GITHUB_PATH}"
+
+      - name: Published @v1 consumer review remains compatible
+        uses: rodri-oliveira-dev/adr-guard@v1
+        env:
+          PUBLISHED_V1_DOCKER_CAPTURE: ${{ runner.temp }}/published-v1-review-docker-args.txt
+        with:
+          command: review
+          review-target: .tmp/adr-action-contract/published-v1 ADRs/0001-use-postgresql.md
+          provider: openai
+          model: mock-model
+
+      - name: Assert published @v1 review used the deterministic provider path
+        env:
+          PUBLISHED_V1_DOCKER_CAPTURE: ${{ runner.temp }}/published-v1-review-docker-args.txt
+        run: |
+          grep -Fxq "review" "${PUBLISHED_V1_DOCKER_CAPTURE}"
+          grep -Fxq -- "--provider" "${PUBLISHED_V1_DOCKER_CAPTURE}"
+          grep -Fxq "openai" "${PUBLISHED_V1_DOCKER_CAPTURE}"
+          rm -f "${RUNNER_TEMP}/published-v1-review-bin/docker"
 
       - name: Compare Action with the published CLI diagnostic matrix
         run: >-
