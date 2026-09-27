@@ -21,6 +21,10 @@ internal static class AdrReviewProviderFactory
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
         ArgumentNullException.ThrowIfNull(httpClient);
 
+        ValidateSelection(
+            providerName,
+            endpoint);
+
         var normalizedProvider =
             providerName.Trim().ToLowerInvariant();
         var transport = new AiHttpTransport(httpClient);
@@ -55,6 +59,53 @@ internal static class AdrReviewProviderFactory
                 $"Unsupported AI provider '{providerName}'. Supported providers: openai, anthropic, gemini, openai-compatible.",
                 nameof(providerName)),
         };
+    }
+
+    internal static void ValidateSelection(
+        string providerName,
+        string? endpoint)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(
+            providerName);
+
+        var normalizedProvider =
+            providerName.Trim().ToLowerInvariant();
+
+        switch (normalizedProvider)
+        {
+            case AdrGenerationProviderFactory.OpenAiProviderName:
+            case AdrGenerationProviderFactory.AnthropicProviderName:
+            case AdrGenerationProviderFactory.GeminiProviderName:
+                RejectEndpoint(
+                    normalizedProvider,
+                    endpoint);
+                return;
+
+            case AdrGenerationProviderFactory.OpenAiCompatibleProviderName:
+                if (string.IsNullOrWhiteSpace(endpoint))
+                {
+                    throw new ArgumentException(
+                        "--endpoint is required when --provider openai-compatible is selected.",
+                        nameof(endpoint));
+                }
+
+                if (!Uri.TryCreate(
+                        endpoint,
+                        UriKind.Absolute,
+                        out _))
+                {
+                    throw new ArgumentException(
+                        "OpenAI-compatible --endpoint must be an absolute HTTP or HTTPS URI.",
+                        nameof(endpoint));
+                }
+
+                return;
+
+            default:
+                throw new ArgumentException(
+                    $"Unsupported AI provider '{providerName}'. Supported providers: openai, anthropic, gemini, openai-compatible.",
+                    nameof(providerName));
+        }
     }
 
     private static OpenAiAdrReviewProvider CreateOpenAi(
