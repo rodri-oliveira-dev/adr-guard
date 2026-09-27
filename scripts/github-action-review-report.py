@@ -21,10 +21,21 @@ def workflow_escape(value: str, *, property_value: bool = False) -> str:
     return escaped
 
 
-def markdown_text(value: object, limit: int = 4000) -> str:
+def normalized_text(value: object, limit: int = 4000) -> str:
     text = str(value if value is not None else "")
     text = " ".join(text.split())
-    return html.escape(text[:limit], quote=False)
+    return text[:limit]
+
+
+def markdown_text(value: object, limit: int = 4000) -> str:
+    text = html.escape(normalized_text(value, limit), quote=False)
+    for character in "\\\\`*_{}[]()#+-.!|>":
+        text = text.replace(character, "\\\\" + character)
+    return text
+
+
+def markdown_code(value: object, limit: int = 4000) -> str:
+    return "<code>" + html.escape(normalized_text(value, limit), quote=True) + "</code>"
 
 
 def is_safe_filename(value: object) -> bool:
@@ -136,8 +147,8 @@ def render_non_success(
         f"### ADR Guard — AI review\n\n"
         f"| Item | Result |\n"
         f"| --- | --- |\n"
-        f"| Provider | `{markdown_text(provider)}` |\n"
-        f"| Model | `{markdown_text(model)}` |\n"
+        f"| Provider | {markdown_code(provider)} |\n"
+        f"| Model | {markdown_code(model)} |\n"
         f"| Exit code | `{status}` |\n"
         f"| Outcome | {markdown_text(outcome)} |\n"
     )
@@ -204,12 +215,12 @@ def main() -> int:
         if not isinstance(finding, dict):
             continue
 
-        dimension = markdown_text(finding.get("dimension", "unknown"), 200)
-        classification = markdown_text(finding.get("classification", "unknown"), 200)
-        priority = markdown_text(finding.get("followUpPriority", "advisory"), 200)
-        explanation = markdown_text(finding.get("explanation", ""), 2000)
-        guidance = markdown_text(finding.get("guidance", ""), 2000)
-        uncertainty = markdown_text(finding.get("uncertainty", ""), 1000)
+        dimension = normalized_text(finding.get("dimension", "unknown"), 200)
+        classification = normalized_text(finding.get("classification", "unknown"), 200)
+        priority = normalized_text(finding.get("followUpPriority", "advisory"), 200)
+        explanation = normalized_text(finding.get("explanation", ""), 2000)
+        guidance = normalized_text(finding.get("guidance", ""), 2000)
+        uncertainty = normalized_text(finding.get("uncertainty", ""), 1000)
 
         evidence = finding.get("evidence")
         verified_path: Path | None = None
@@ -250,13 +261,14 @@ def main() -> int:
             else "no verified local path; no file annotation emitted"
         )
         uncertainty_text = (
-            f" Uncertainty: {uncertainty}."
+            f" Uncertainty: {markdown_text(uncertainty)}."
             if uncertainty
             else ""
         )
         summary_findings.append(
-            f"- **{dimension}** — `{classification}` / `{priority}`: "
-            f"{explanation} Evidence: {evidence_text}.{uncertainty_text}"
+            f"- **{markdown_text(dimension)}** — "
+            f"{markdown_code(classification)} / {markdown_code(priority)}: "
+            f"{markdown_text(explanation)} Evidence: {evidence_text}.{uncertainty_text}"
         )
 
     for path, message in annotations:
@@ -272,11 +284,11 @@ def main() -> int:
         with summary_path.open("a", encoding="utf-8") as stream:
             stream.write("### ADR Guard — AI review (advisory)\n\n")
             stream.write("| Item | Result |\n| --- | --- |\n")
-            stream.write(f"| Provider | `{markdown_text(provider)}` |\n")
-            stream.write(f"| Model | `{markdown_text(model)}` |\n")
-            stream.write(f"| Target | `{markdown_text(relative_display(target, workspace), 1000)}` |\n")
+            stream.write(f"| Provider | {markdown_code(provider)} |\n")
+            stream.write(f"| Model | {markdown_code(model)} |\n")
+            stream.write(f"| Target | {markdown_code(relative_display(target, workspace), 1000)} |\n")
             stream.write(f"| Exit code | `0` |\n")
-            stream.write(f"| Outcome | `{markdown_text(outcome, 200)}` |\n")
+            stream.write(f"| Outcome | {markdown_code(outcome, 200)} |\n")
             stream.write(f"| Follow-up findings | {len(findings)} |\n")
             stream.write(f"| File annotations | {len(annotations)} (cap: {ANNOTATION_LIMIT}) |\n")
             stream.write("\n")
