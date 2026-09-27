@@ -1,5 +1,7 @@
 # ADR review policy v1
 
+[Português (Brasil)](adr-review-policy-v1.pt-BR.md)
+
 ADR Guard review policy separates deterministic CI enforcement from fallible AI reviewer guidance.
 
 ## Safe default
