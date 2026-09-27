@@ -1,4 +1,5 @@
 using AdrGuard.Cli;
+using AdrGuard.Generation;
 using AdrGuard.Review;
 using Xunit;
 
@@ -506,6 +507,68 @@ public sealed class ReviewCommandIntegrationTests
         finally
         {
             Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public async Task ExistingAdrSectionsShareAdvertisedCharacterBudget()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(
+                root,
+                "0001-target.md");
+            var first = Path.Combine(
+                root,
+                "0002-first.md");
+            var second = Path.Combine(
+                root,
+                "0003-second.md");
+
+            File.WriteAllText(
+                target,
+                ValidMarkdown().Replace(
+                    "Use Redis",
+                    "Target Decision",
+                    StringComparison.Ordinal));
+            File.WriteAllText(
+                first,
+                ValidMarkdown().Replace(
+                    "Use Redis.",
+                    new string('a', 5500),
+                    StringComparison.Ordinal));
+            File.WriteAllText(
+                second,
+                ValidMarkdown().Replace(
+                    "Use Redis.",
+                    new string('b', 5500),
+                    StringComparison.Ordinal));
+
+            var context = await AdrReviewContextBuilder.BuildAsync(
+                target,
+                File.ReadAllText(target),
+                [],
+                includeExistingAdrs: true,
+                TestContext.Current.CancellationToken);
+
+            var transmittedExistingAdrCharacters =
+                (context.ExistingAdrs?.Content.Length ?? 0)
+                + (context.CrossAdrEvidence?.Content.Length ?? 0);
+
+            Assert.InRange(
+                transmittedExistingAdrCharacters,
+                1,
+                ExistingAdrContextBuilder.MaximumContextCharacters);
+            Assert.NotNull(
+                context.CrossAdrEvidence);
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
         }
     }
 
