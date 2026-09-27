@@ -21,7 +21,7 @@ internal static class ReviewCommand
         AdrReviewPolicyMode policyMode,
         string? policyFilePath,
         AdrReviewSecurityBoundary securityBoundary,
-        IAdrReviewProvider provider,
+        Func<IAdrReviewProvider> providerFactory,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken = default)
@@ -31,7 +31,7 @@ internal static class ReviewCommand
         ArgumentException.ThrowIfNullOrWhiteSpace(providerName);
         ArgumentException.ThrowIfNullOrWhiteSpace(model);
         ArgumentNullException.ThrowIfNull(securityBoundary);
-        ArgumentNullException.ThrowIfNull(provider);
+        ArgumentNullException.ThrowIfNull(providerFactory);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
 
@@ -215,12 +215,28 @@ internal static class ReviewCommand
                 return ExitCodes.OperationalError;
             }
 
-            var securedReviewContext =
-                securityBoundary.SanitizeContext(
-                    reviewContext);
-            var securedDocument =
-                securityBoundary.SanitizeDocumentMetadata(
-                    document);
+            AdrReviewContext securedReviewContext;
+            AdrDocument securedDocument;
+
+            try
+            {
+                securedReviewContext =
+                    securityBoundary.SanitizeContext(
+                        reviewContext);
+                securedDocument =
+                    securityBoundary.SanitizeDocumentMetadata(
+                        document);
+            }
+            catch (Exception exception) when (
+                exception is InvalidDataException
+                    or InvalidOperationException
+                    or ArgumentException)
+            {
+                error.WriteLine(
+                    securityBoundary.SanitizeDiagnostic(
+                        $"Unable to sanitize review material: {exception.Message}"));
+                return ExitCodes.OperationalError;
+            }
 
             var diagnosticWriter =
                 format == AdrReviewOutputFormat.Json
@@ -235,6 +251,31 @@ internal static class ReviewCommand
             var providerContext =
                 AdrReviewContextBuilder.ComposeProviderContext(
                     securedReviewContext);
+
+            IAdrReviewProvider provider;
+
+            try
+            {
+                provider = providerFactory()
+                    ?? throw new InvalidOperationException(
+                        "ADR review provider factory returned null.");
+            }
+            catch (ArgumentException exception)
+            {
+                error.WriteLine(
+                    securityBoundary.SanitizeDiagnostic(
+                        exception.Message));
+                error.WriteLine(
+                    "Run 'adr-guard review --help' for usage.");
+                return ExitCodes.UsageError;
+            }
+            catch (InvalidOperationException exception)
+            {
+                error.WriteLine(
+                    securityBoundary.SanitizeDiagnostic(
+                        exception.Message));
+                return ExitCodes.OperationalError;
+            }
 
             AdrReviewResult result;
 
