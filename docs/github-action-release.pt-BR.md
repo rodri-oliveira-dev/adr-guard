@@ -40,11 +40,11 @@ Merge na `main` e CI concluído não publicam mais uma release. O workflow `Rele
 Para publicar uma release:
 
 1. faça merge das alterações desejadas na `main`;
-2. aguarde o CI normal da `main` e revise o resultado;
+2. aguarde o CI normal da `main` concluir com sucesso;
 3. abra **Actions → Release → Run workflow**;
 4. selecione a branch `main` e inicie o workflow manualmente.
 
-O próprio workflow executa novamente restore, build, testes, empacotamento e smoke tests antes de qualquer publicação. Dispatches feitos a partir de branches diferentes de `main` são rejeitados pelo gate do job de release, então os artefatos ficam vinculados ao commit da `main` escolhido explicitamente no dispatch (`github.sha`). Não existe mais trigger automático por `workflow_run`, e CI verde por si só não publica nada.
+O workflow verifica pela API do GitHub Actions que o commit exato da `main` selecionado no dispatch já possui uma execução `CI` de push concluída com sucesso. Se esse CI estiver ausente, em andamento, cancelado ou com falha, a release para antes de checkout/publicação. Depois disso, o próprio workflow executa novamente restore, build, testes, empacotamento e smoke tests antes de qualquer publicação. Dispatches feitos a partir de branches diferentes de `main` são rejeitados pelo gate do job de release, então os artefatos ficam vinculados ao commit da `main` escolhido explicitamente no dispatch (`github.sha`). Não existe mais trigger automático por `workflow_run`, e CI verde por si só não publica nada.
 
 ## Ordem da release
 
