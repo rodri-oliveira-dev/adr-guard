@@ -1,6 +1,6 @@
 # Modelo de segurança da GitHub Action
 
-A GitHub Action reutilizável do ADR Guard é deliberadamente limitada à validação determinística de ADRs e à geração do índice. Ela executa o container publicado no GHCR e não expõe o comando de IA `draft`.
+A GitHub Action reutilizável do ADR Guard mantém a validação determinística de ADRs como padrão, permite geração explícita do índice e expõe `review` assistido por IA somente como operação opt-in. Ela executa o container publicado no GHCR e não expõe o comando de IA `draft`.
 
 ## Permissões mínimas
 
@@ -43,25 +43,25 @@ A Action inicia o container com as seguintes restrições:
 - filesystem raiz do container somente leitura;
 - todas as capabilities Linux removidas com `--cap-drop=ALL`;
 - elevação de privilégios bloqueada com `no-new-privileges`;
-- rede desabilitada com `--network=none`;
+- rede desabilitada com `--network=none` para `check` e `index` determinísticos; somente `review` com provider usa rede de saída;
 - sem modo `--privileged`;
-- sem encaminhamento implícito de variáveis de ambiente ou secrets.
+- sem encaminhamento implícito de variáveis de ambiente ou secrets; `review` pode encaminhar apenas a variável de credencial do provider selecionado.
 
 A imagem publicada declara um usuário não-root. O CI verifica os metadados da imagem publicada e rejeita usuário vazio, root ou UID 0.
 
-No `check`, todo o workspace do consumidor é montado como somente leitura. No `index`, o workspace continua somente leitura e apenas o diretório de ADR validado é sobreposto com uma montagem gravável. Em Linux, `index` usa UID/GID não-root do host para manter o ownership dos arquivos gerados. Um runner executado como root é rejeitado no `index`, em vez de executar o container como root.
+No `check` e no `review`, todo o workspace do consumidor é montado como somente leitura. No `index`, o workspace continua somente leitura e apenas o diretório de ADR validado é sobreposto com uma montagem gravável. Em Linux, `index` usa UID/GID não-root do host para manter o ownership dos arquivos gerados. Um runner executado como root é rejeitado no `index`, em vez de executar o container como root.
 
 ## Inputs e diagnósticos
 
-Somente `check` e `index` são aceitos. Os paths são resolvidos dentro de `GITHUB_WORKSPACE`, traversal e escapes por symlink são rejeitados, e os inputs são enviados como argumentos separados de processo, sem avaliação como fragmentos de shell.
+`check`, `index` e `review` explícito são aceitos. Os paths são resolvidos dentro de `GITHUB_WORKSPACE`, traversal e escapes por symlink são rejeitados, e os inputs são enviados como argumentos separados de processo, sem avaliação como fragmentos de shell. O review rejeita `pull_request_target` e `pull_request` vindo de fork antes da execução do Docker/provider.
 
-A saída do CLI é tratada como não confiável. O log bruto é preservado para troubleshooting enquanto a interpretação de workflow commands do GitHub fica suspensa. Somente diagnósticos reconhecidos `ADR001`–`ADR009`, com paths verificados, viram anotações de arquivo escapadas. O relatório não pode alterar o exit code original do validador.
+A saída do CLI e do provider é tratada como não confiável. O log bruto é preservado para troubleshooting enquanto a interpretação de workflow commands do GitHub fica suspensa. Diagnósticos determinísticos `ADR001`–`ADR009`, com paths verificados, viram annotations de erro escapadas. Achados de IA viram annotations `warning` apenas quando a evidência pode ser associada a um arquivo local selecionado e verificado; a Action não inventa números de linha. O relatório não altera o exit code original do CLI.
 
 ## Secrets e providers de IA
 
-A Action padrão não expõe `draft`, seleção de provider, endpoints nem inputs de credenciais. Ela não envia `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `ADR_GUARD_OPENAI_COMPATIBLE_API_KEY`, `GITHUB_TOKEN` ou `GH_TOKEN` ao container.
+O caminho padrão de `check`/`index` não encaminha credenciais de provider. O `review` opt-in expõe seleção de provider/model, mas deliberadamente não possui input de credencial ou token: o consumidor fornece a credencial do provider pelo ambiente do step da Action, e o wrapper encaminha ao Docker apenas o nome da variável do provider selecionado. `GITHUB_TOKEN` e `GH_TOKEN` nunca são encaminhados. Review em PR de fork e em `pull_request_target` é bloqueado antes da execução do provider.
 
-A criação assistida por IA continua sendo um fluxo separado e explícito do CLI/container. Consumidores que decidirem usar `draft` devem gerenciar as credenciais do provider e revisar separadamente as orientações de privacidade.
+A criação assistida por IA continua sendo um fluxo separado e explícito do CLI/container e não é exposta pela Action. Consulte [Revisão por IA na GitHub Action](github-action-review.pt-BR.md) para o contrato de workflow confiável.
 
 ## Confiança em versão e digest
 
