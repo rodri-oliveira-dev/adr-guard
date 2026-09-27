@@ -238,7 +238,7 @@ Outcome: needs-context
 
 ## GitHub Action and CI governance
 
-The Action integration implemented in PR #85 keeps `check` as the default and makes `review` explicit.
+The published Action integration keeps `check` as the default and makes `review` explicit; `review` is available on the `v1` line since `v1.1.6`.
 
 A trusted workflow uses only:
 
