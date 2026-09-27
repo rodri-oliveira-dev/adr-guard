@@ -390,7 +390,7 @@ jobs:
             type=raw,value=latest
           labels: |
             org.opencontainers.image.title=ADR Guard
-            org.opencontainers.image.description=A lightweight .NET CLI for validating, maintaining, indexing, and drafting Architecture Decision Records (ADRs).
+            org.opencontainers.image.description=A lightweight .NET CLI for validating, creating, indexing, drafting, and reviewing Architecture Decision Records (ADRs).
             org.opencontainers.image.url=https://github.com/${{ github.repository }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.documentation=https://github.com/${{ github.repository }}#readme
@@ -400,7 +400,7 @@ jobs:
             org.opencontainers.image.revision=${{ needs.build-and-pack.outputs.validated-sha }}
           annotations: |
             org.opencontainers.image.title=ADR Guard
-            org.opencontainers.image.description=A lightweight .NET CLI for validating, maintaining, indexing, and drafting Architecture Decision Records (ADRs).
+            org.opencontainers.image.description=A lightweight .NET CLI for validating, creating, indexing, drafting, and reviewing Architecture Decision Records (ADRs).
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.licenses=MIT
             org.opencontainers.image.version=${{ needs.build-and-pack.outputs.package-version }}
