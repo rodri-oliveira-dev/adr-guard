@@ -29,13 +29,18 @@ def normalized_text(value: object, limit: int = 4000) -> str:
 
 def markdown_text(value: object, limit: int = 4000) -> str:
     text = html.escape(normalized_text(value, limit), quote=False)
-    for character in "\\\\`*_{}[]()#+-.!|>":
-        text = text.replace(character, "\\\\" + character)
+    for character in (
+        "\\", "`", "*", "_", "{", "}", "[", "]", "(", ")",
+        "#", "+", "-", ".", "!", "|", ">",
+    ):
+        text = text.replace(character, "\\" + character)
     return text
 
 
 def markdown_code(value: object, limit: int = 4000) -> str:
-    return "<code>" + html.escape(normalized_text(value, limit), quote=True) + "</code>"
+    text = html.escape(normalized_text(value, limit), quote=True)
+    text = text.replace("|", "&#124;")
+    return "<code>" + text + "</code>"
 
 
 def is_safe_filename(value: object) -> bool:
@@ -256,7 +261,7 @@ def main() -> int:
             annotations.append((verified_path, details))
 
         evidence_text = (
-            f"verified path `{markdown_text(relative_display(verified_path, workspace), 1000)}`"
+            f"verified path {markdown_code(relative_display(verified_path, workspace), 1000)}"
             if verified_path is not None
             else "no verified local path; no file annotation emitted"
         )
