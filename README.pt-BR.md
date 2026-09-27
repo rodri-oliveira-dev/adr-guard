@@ -10,7 +10,7 @@
 
 **Consumidores da GitHub Action:** consulte o [guia de consumo](docs/github-action.pt-BR.md), a [política de release](docs/github-action-release.pt-BR.md), o [modelo de segurança](docs/github-action-security.pt-BR.md), as [evidências de verificação externa](docs/github-action-external-verification.pt-BR.md) e o [checklist de publicação no Marketplace](docs/github-marketplace.pt-BR.md). A verificação externa pré-release passou, a tag de compatibilidade `@v1` está publicada e a listagem no Marketplace ainda é **futura**. O suporte está em [SUPPORT.md](SUPPORT.md) e relatos de segurança seguem [SECURITY.md](SECURITY.md).
 
-> **Disponibilidade por versão:** `new` offline e `draft` opcional com templates são introduzidos na versão **1.1.0**; pacotes anteriores 1.0.x não oferecem esses recursos. Antes da publicação da 1.1.0, compile `feature/issues-59` para testá-los; após a release, instale o pacote ou imagem versionada. A GitHub Action pública `@v1` continua aceitando somente `check`/`index`.
+> **Disponibilidade por versão:** `new` offline e `draft` com templates estão publicados desde a **v1.1.0**. O CLI `review` está publicado desde a **v1.1.2**, a policy determinística de review desde a **v1.1.3** e o hardening de segurança/regressão desde a **v1.1.4**; o CLI/pacote/imagem atual **v1.1.5** inclui tudo isso. O `command: review` opt-in da GitHub Action está implementado e testado no PR #85 nesta branch, mas o `@v1` já publicado continua com `check`/`index` até a release posterior ao merge desse PR. A listagem no Marketplace continua futura.
 
 ADR Guard é uma ferramenta de linha de comando para .NET focada em validar e indexar Architecture Decision Records (ADRs).
 
@@ -28,6 +28,7 @@ A proposta é permitir que convenções de ADR sejam explícitas, revisáveis e 
 - fornece exit codes previsíveis para CI/CD;
 - cria ADRs `Proposed` editáveis offline usando templates Markdown internos ou personalizados;
 - oferece criação assistida por IA de ADRs `Proposed`, com revisão humana, providers e contexto explícitos;
+- revisa ADRs existentes em oito dimensões arquiteturais com evidências, incerteza, relatórios versionados e enforcement determinístico opcional;
 - é distribuído como .NET Tool sem dependências externas em runtime.
 
 ## Instalação
@@ -117,7 +118,7 @@ As entradas são pequenas e correspondem diretamente ao comportamento suportado 
 | Entrada | Padrão | Valores permitidos / política |
 | --- | --- | --- |
 | `path` | `docs/adr` | Diretório de ADRs relativo ao repositório. Caminhos absolutos, travessia com `..`, diretórios inexistentes e caminhos que resolvam para fora de `GITHUB_WORKSPACE` são rejeitados. |
-| `command` | `check` | `check` ou `index`. |
+| `command` | `check` | `check`, `index` ou `review` explícito no source da Action implementado pelo PR #85. O `@v1` já publicado recebe `review` somente após a release correspondente. |
 | `version` | vazio | Versão exata opcional da imagem, no formato `X.Y.Z` ou `vX.Y.Z`. Quando omitida, `@vX.Y.Z` seleciona a imagem exata e `@vX` seleciona a tag major móvel correspondente. Pins por SHA/branch exigem versão exata explícita. |
 
 A seleção de versão nunca faz fallback para `latest`. Com `uses: rodri-oliveira-dev/adr-guard@v1.2.3`, a Action executa `ghcr.io/rodri-oliveira-dev/adr-guard:1.2.3`. Com `uses: rodri-oliveira-dev/adr-guard@v1`, ela usa a tag major móvel correspondente da imagem, `:1`. Tags exatas da Action são imutáveis; tags major avançam apenas para releases bem-sucedidas mais novas daquela major. Se a Action estiver fixada por SHA de commit ou por uma branch, informe a versão da imagem explicitamente:
@@ -152,11 +153,11 @@ Quando um comando `check` ou `index` termina com exit code `1`, a Action convert
 
 A Action grava um `GITHUB_STEP_SUMMARY` compacto com resultado, exit code e, nas falhas de validação reconhecidas, quantidade total e contagem por regra. São emitidas **no máximo 50 anotações por execução**; todos os diagnósticos continuam disponíveis no log bruto do CLI. A interpretação de workflow commands fica temporariamente suspensa durante a exibição desse log, evitando que conteúdo não confiável dos ADRs injete anotações ou outros comandos. Uma falha no relatório não altera o exit code original do CLI.
 
-A própria Action não precisa de `GITHUB_TOKEN`, permissão de escrita no repositório, chaves de API de providers ou acesso de rede. Os containers executam com filesystem raiz somente leitura, todas as capabilities Linux removidas, `no-new-privileges` e rede desabilitada. O `draft` assistido por IA e as credenciais dos providers ficam deliberadamente fora do contrato da Action padrão. Consulte o [modelo de segurança da GitHub Action](docs/github-action-security.pt-BR.md) para detalhes sobre registry, secrets, execução não-root e pinning por versão/digest.
+O caminho padrão `check`/`index` da Action não precisa de credenciais de provider nem de rede e mantém `--network=none`. O `review` opt-in do PR #85 usa rede de saída somente para o provider selecionado, mantém o checkout somente leitura, encaminha apenas a variável de credencial do provider selecionado, nunca encaminha `GITHUB_TOKEN`/`GH_TOKEN`, rejeita PRs de fork e `pull_request_target`, e continua exigindo apenas `permissions: contents: read`. O `draft` assistido por IA permanece fora do contrato da Action. Consulte o [guia de review por IA na GitHub Action](docs/github-action-review.pt-BR.md) e o [modelo de segurança](docs/github-action-security.pt-BR.md).
 
 Windows, macOS, runners Linux sem Docker funcional e execução como root para `index` gravável não são suportados.
 
-A Action pública `rodri-oliveira-dev/adr-guard@v1` oferece **somente `check` e `index`**. Execute `new` ou `draft` com IA separadamente pela CLI/.NET Tool ou container versionado, nunca como inputs da Action.
+A Action `rodri-oliveira-dev/adr-guard@v1` **atualmente publicada** oferece somente `check` e `index`. Esta branch adiciona `review` opt-in e seus testes de trust boundary; ele passa a fazer parte do `@v1` somente após a release posterior ao PR #85. `new` e `draft` com IA continuam sendo fluxos de CLI/.NET Tool ou container direto, não comandos da Action.
 
 ## Formato dos ADRs
 
@@ -411,6 +412,43 @@ A criação assistida por IA permanece deliberadamente human-in-the-loop. Um ADR
 
 Esse fluxo não realiza varredura de código-fonte, ingestão automática do repositório inteiro, análise de Git diff, detecção automática de necessidade de ADR, alteração automática dos status de ADRs existentes, commits ou pull requests, RAG/busca vetorial/embeddings, fallback entre providers nem roteamento automático de modelos.
 
+## Revisão técnica assistida por IA de ADRs existentes
+
+`adr-guard review` é um fluxo separado e somente leitura para revisar um ADR existente. Ele **não** reescreve o ADR, não muda status, não atualiza o índice, não aprova/rejeita a decisão e não trata saída do modelo como gate objetivo de CI.
+
+Uso mínimo:
+
+```bash
+adr-guard review docs/adr/0007-cache-strategy.md \
+  --provider openai \
+  --model <modelo-openai>
+```
+
+O mesmo contrato de provider/model/autenticação usado por `draft` vale para `review`: OpenAI/`OPENAI_API_KEY`, Anthropic/`ANTHROPIC_API_KEY`, Gemini/`GEMINI_API_KEY` ou `openai-compatible` com endpoint explícito e `ADR_GUARD_OPENAI_COMPATIBLE_API_KEY` opcional. O ADR Guard nunca escolhe o modelo automaticamente.
+
+O review aceita `--context-file <path>` explícito e repetível, `--include-existing-adrs` opcional, `--policy advisory|enforce`, `--policy-file <path>`, `--format text|json` e persistência opcional do relatório por `--output <path> [--overwrite]`.
+
+O contexto continua opt-in e limitado:
+
+| Fonte do review | Máximo |
+| --- | ---: |
+| Cada `--context-file` explícito | 50.000 caracteres / 150.000 bytes |
+| Todos os context files explícitos | 100.000 caracteres / 300.000 bytes |
+| Contexto parseado de ADRs existentes | 12.000 caracteres |
+| Contexto final composto do review | 120.000 caracteres |
+
+Por padrão, somente o ADR selecionado é enviado ao provider externo configurado. Context files explícitos precisam ser `.md`/`.txt` UTF-8 válidos; descoberta de ADRs existentes só ocorre com `--include-existing-adrs`. O material selecionado pode sair da máquina/organização e fica sujeito às políticas do provider sobre retenção, logging, residência, treinamento, cobrança, quota e rate limit. Para optar por não usar processamento de terceiros, não execute `review`; `check`, `index` e `new` continuam fluxos determinísticos/offline.
+
+Toda resposta do provider precisa cobrir oito dimensões: clareza/racional, alternativas, requisitos não funcionais, riscos/consequências, consistência arquitetural, segurança/compliance, viabilidade de implementação/operação e critérios mensuráveis de verificação. Findings usam `observed-evidence`, `potential-risk`, `missing-context`, `recommendation-for-human-investigation` ou `not-applicable`. Contexto ausente, riscos potenciais, linguagem severa e recomendações do modelo continuam advisory.
+
+`--policy advisory` é o padrão. `--policy enforce --policy-file <path>` só pode falhar por regras locais determinísticas (`required-section-content` e `required-context-file` no schema `1.0`) e retorna exit code `4` antes da chamada ao provider quando uma regra nomeada falha. Policy passando ainda não significa aprovação arquitetural.
+
+Relatórios em text são compatíveis com Markdown e legíveis por humanos. `--format json` emite schema versionado `1.0` com campos camelCase estáveis, escopo dos inputs selecionados, as oito dimensões, findings de follow-up, incerteza, limitações e aviso de custo. Falhas de provider/transporte/timeout/rate limit/resposta malformada retornam `3`, nunca “sem problemas”.
+
+Para o contrato público completo, exemplo de relatório, semântica de evidência, matriz de policy, workflow da Action, orientação para forks/comunidade, disponibilidade por release e troubleshooting, consulte o [guia de review por IA](docs/adr-review.pt-BR.md), a [policy v1](docs/adr-review-policy-v1.md) e os [limites de segurança](docs/adr-review-security.md).
+
+**A responsabilidade humana é obrigatória:** a saída do review é assistência arquitetural, não prova de correção, certificação formal de segurança/compliance nem aceitação automática.
+
 ## Regras de validação
 
 | Código | Validação |
@@ -434,7 +472,8 @@ A numeração não precisa ser contínua. Lacunas são aceitas porque ADRs podem
 | `0` | Sucesso |
 | `1` | Validação dos ADRs falhou |
 | `2` | Uso inválido da CLI |
-| `3` | Erro operacional |
+| `3` | Erro operacional/provider/cancelamento |
+| `4` | Regra determinística de `review --policy enforce` falhou |
 
 Isso permite integração direta em CI:
 
