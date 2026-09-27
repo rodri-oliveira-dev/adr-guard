@@ -1,0 +1,3 @@
+Selected review context.
+Latency target: p95 below 50 ms.
+This file is deliberately local and non-sensitive.
