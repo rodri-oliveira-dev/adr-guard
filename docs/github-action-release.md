@@ -33,9 +33,22 @@ with:
   version: 1.2.3
 ```
 
+## Manual release trigger
+
+Merging to `main` and completing CI no longer publishes a release. The `Release` workflow is triggered **only** through GitHub Actions `workflow_dispatch`.
+
+To publish a release:
+
+1. merge the intended changes into `main`;
+2. wait for the normal CI on `main` to finish and review its result;
+3. open **Actions → Release → Run workflow**;
+4. select the `main` branch and start the workflow manually.
+
+The workflow itself re-runs restore, build, tests, packaging and smoke checks before any publication. Dispatches from branches other than `main` are rejected by the release job gate, so artifacts are bound to the explicitly dispatched `main` commit (`github.sha`). There is no automatic `workflow_run` trigger and no publication caused merely by a successful CI run.
+
 ## Release ordering
 
-The post-CI release workflow preserves the validated commit from the successful `CI` run and performs the release in this order:
+The manually dispatched release workflow uses the selected `main` commit as the validated release commit and performs the release in this order:
 
 1. build, test, and package the validated commit;
 2. reserve the resolved SemVer with an internal `release-reservation/vMAJOR.MINOR.PATCH` tag tied to that validated commit;
