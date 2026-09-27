@@ -9,10 +9,20 @@ A composite Action do ADR Guard executa o container publicado do ADR Guard. O co
 | Input | Padrão | Valores aceitos |
 | --- | --- | --- |
 | `path` | `docs/adr` | Diretório de ADRs relativo ao repositório, dentro de `GITHUB_WORKSPACE`. Paths absolutos, diretórios inexistentes, traversal com `..` e escapes por symlink são rejeitados. |
-| `command` | `check` | `check` ou `index`. |
+| `command` | `check` | `check`, `index` ou `review` explícito. |
 | `version` | vazio | Versão exata opcional da imagem de runtime no formato `X.Y.Z` ou `vX.Y.Z`. Obrigatória quando o source da Action é fixado por SHA de commit ou branch. |
+| `review-target` | vazio | Arquivo Markdown do ADR relativo ao repositório; obrigatório para `review`. |
+| `provider` | vazio | Provider de revisão; obrigatório para `review`. |
+| `model` | vazio | Identificador do modelo; obrigatório para `review`. |
+| `endpoint` | vazio | Endpoint OpenAI-compatible opcional. |
+| `context-files` | vazio | Contexto de review opcional em arquivos `.md`/`.txt` relativos ao repositório, um por linha. |
+| `include-existing-adrs` | `false` | Opt-in explícito para contexto limitado de ADRs existentes. |
+| `policy` | `advisory` | `advisory` ou `enforce` determinístico. |
+| `policy-file` | vazio | JSON de policy determinística; obrigatório com `policy: enforce`. |
 
-O contrato de exit codes do CLI é preservado: `0` sucesso, `1` falha de validação de ADR, `2` erro de uso/input e `3` erro operacional.
+O contrato de exit codes do CLI é preservado: `0` sucesso, `1` falha de validação de ADR, `2` erro de uso/input, `3` falha operacional/provider e `4` falha de policy determinística de review.
+
+A revisão com provider é opcional e não altera o comportamento padrão do `check`. Consulte [Revisão por IA na GitHub Action](github-action-review.pt-BR.md) para credenciais, eventos confiáveis, summaries, annotations e restrições de fork/`pull_request_target`.
 
 ## Validação de pull request
 
