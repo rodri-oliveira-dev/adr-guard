@@ -4,6 +4,7 @@ using AdrGuard.Review;
 using AdrGuard.Review.Policy;
 using AdrGuard.Review.Providers;
 using AdrGuard.Review.Reporting;
+using AdrGuard.Review.Security;
 using System.Reflection;
 
 namespace AdrGuard.Cli;
@@ -356,6 +357,10 @@ internal static class CliApplication
             return ExitCodes.UsageError;
         }
 
+        var securityBoundary = new AdrReviewSecurityBoundary(
+            AdrReviewSecurityBoundary.ReadCredentialValues(
+                environmentVariableReader));
+
         try
         {
             if (injectedProvider is not null)
@@ -371,6 +376,7 @@ internal static class CliApplication
                     reviewArguments.OverwriteOutput,
                     reviewArguments.PolicyMode,
                     reviewArguments.PolicyFilePath,
+                    securityBoundary,
                     injectedProvider,
                     output,
                     error,
@@ -399,6 +405,7 @@ internal static class CliApplication
                 reviewArguments.OverwriteOutput,
                 reviewArguments.PolicyMode,
                 reviewArguments.PolicyFilePath,
+                securityBoundary,
                 provider,
                 output,
                 error,
@@ -406,13 +413,17 @@ internal static class CliApplication
         }
         catch (ArgumentException exception)
         {
-            error.WriteLine(exception.Message);
+            error.WriteLine(
+                securityBoundary.SanitizeDiagnostic(
+                    exception.Message));
             error.WriteLine("Run 'adr-guard review --help' for usage.");
             return ExitCodes.UsageError;
         }
         catch (InvalidOperationException exception)
         {
-            error.WriteLine(exception.Message);
+            error.WriteLine(
+                securityBoundary.SanitizeDiagnostic(
+                    exception.Message));
             return ExitCodes.OperationalError;
         }
     }
