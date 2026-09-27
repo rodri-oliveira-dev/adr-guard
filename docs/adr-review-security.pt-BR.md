@@ -61,7 +61,7 @@ Relatórios de review podem conter trechos curtos de evidência ou observações
 
 ## Pull requests de comunidade e forks
 
-Não exponha credenciais de provider a código ou workflows não confiáveis de forks. A integração de review da GitHub Action implementada no PR #85 aplica estes limites:
+Não exponha credenciais de provider a código ou workflows não confiáveis de forks. A integração publicada de review da GitHub Action aplica estes limites:
 
 - `review` em `pull_request_target` é rejeitado antes da execução do Docker/provider;
 - `review` em `pull_request` vindo de fork é rejeitado antes da execução do Docker/provider;
