@@ -164,7 +164,7 @@ O schema `1.0` de policy suporta:
 
 O enforcement roda localmente **antes da construção/chamada do provider**. Violação retorna `4`. Policy passando ainda não significa aprovação arquitetural.
 
-Consulte [policy v1 de review](adr-review-policy-v1.md).
+Consulte [policy v1 de review](adr-review-policy-v1.pt-BR.md).
 
 ## Relatórios e schema JSON
 
@@ -286,7 +286,7 @@ A saída do provider passa por validação de schema e limites. Respostas malfor
 
 Relatórios persistidos e artefatos de CI podem conter trechos de evidência e observações arquiteturais. Proteja-os conforme as mesmas regras de classificação de dados dos ADRs revisados.
 
-Consulte [segurança e limites de confiança do review](adr-review-security.md).
+Consulte [segurança e limites de confiança do review](adr-review-security.pt-BR.md).
 
 ## Troubleshooting
 
