@@ -33,9 +33,22 @@ with:
   version: 1.2.3
 ```
 
+## Disparo manual da release
+
+Merge na `main` e CI concluído não publicam mais uma release. O workflow `Release` é disparado **somente** por `workflow_dispatch` no GitHub Actions.
+
+Para publicar uma release:
+
+1. faça merge das alterações desejadas na `main`;
+2. aguarde o CI normal da `main` e revise o resultado;
+3. abra **Actions → Release → Run workflow**;
+4. selecione a branch `main` e inicie o workflow manualmente.
+
+O próprio workflow executa novamente restore, build, testes, empacotamento e smoke tests antes de qualquer publicação. Dispatches feitos a partir de branches diferentes de `main` são rejeitados pelo gate do job de release, então os artefatos ficam vinculados ao commit da `main` escolhido explicitamente no dispatch (`github.sha`). Não existe mais trigger automático por `workflow_run`, e CI verde por si só não publica nada.
+
 ## Ordem da release
 
-O workflow de release executado após o CI preserva o commit validado pelo workflow `CI` bem-sucedido e segue esta ordem:
+O workflow de release disparado manualmente usa o commit selecionado da `main` como commit validado da release e segue esta ordem:
 
 1. faz build, testes e empacotamento do commit validado;
 2. reserva o SemVer resolvido com uma tag interna `release-reservation/vMAJOR.MINOR.PATCH` vinculada ao commit validado;
