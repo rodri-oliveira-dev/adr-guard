@@ -10,6 +10,16 @@ grep -Fq '<VersionPrefix>1.1.0</VersionPrefix>' "${PROJECT}" || {
   exit 1
 }
 
+grep -Fq 'AI-assisted drafting, and evidence-oriented advisory technical review' "${PROJECT}" || {
+  echo "NuGet metadata must describe the published ADR review capability." >&2
+  exit 1
+}
+
+grep -Fq 'org.opencontainers.image.description=A lightweight .NET CLI for validating, creating, indexing, drafting, and reviewing Architecture Decision Records (ADRs).' "${WORKFLOW}" || {
+  echo "OCI metadata must describe the published ADR review capability." >&2
+  exit 1
+}
+
 job_block() {
   local job="$1"
   awk -v header="  ${job}:" '
