@@ -10,7 +10,7 @@
 
 **GitHub Action consumers:** see the [consumer guide](docs/github-action.md), [release policy](docs/github-action-release.md), [security model](docs/github-action-security.md), [external verification evidence](docs/github-action-external-verification.md), and [Marketplace publication checklist](docs/github-marketplace.md). Independent pre-release consumer verification has passed, the `@v1` compatibility tag is published, and the Marketplace listing is still **forthcoming**. Support is available through [SUPPORT.md](SUPPORT.md); security reports follow [SECURITY.md](SECURITY.md).
 
-> **Version availability:** Offline `new` and optional template-based `draft` are introduced in version **1.1.0**; older 1.0.x packages do not include them. Before the 1.1.0 release is published, build `feature/issues-59` to try them; afterward install the versioned package or image. The public GitHub Action `@v1` continues to support only `check`/`index`.
+> **Version availability:** Offline `new` and template-aware `draft` are published since **v1.1.0**. CLI `review` is published since **v1.1.2**, deterministic review policy since **v1.1.3**, and review security/regression hardening since **v1.1.4**; the current published **v1.1.5** CLI/package/image includes all of them. The opt-in GitHub Action `command: review` is implemented and tested in PR #85 on this branch, but the already-published `@v1` remains `check`/`index` only until the release after that PR is merged. The Marketplace listing is still forthcoming.
 
 ADR Guard is a lightweight .NET command-line tool for validating and indexing Architecture Decision Records (ADRs).
 
@@ -28,6 +28,7 @@ It is designed for repositories that want ADR conventions to be explicit, review
 - exposes predictable exit codes for CI/CD;
 - creates human-editable `Proposed` ADRs offline using built-in or custom Markdown templates;
 - supports human-reviewed AI-assisted `Proposed` ADR drafting through explicit providers and context;
+- reviews existing ADRs across eight architectural dimensions with evidence, uncertainty, versioned reports, and optional deterministic policy enforcement;
 - ships as a .NET Tool with no third-party runtime dependencies.
 
 ## Install
@@ -117,7 +118,7 @@ Inputs are deliberately small and map directly to supported CLI behavior:
 | Input | Default | Allowed values / policy |
 | --- | --- | --- |
 | `path` | `docs/adr` | Repository-relative ADR directory. Absolute paths, `..` traversal, missing directories, and paths resolving outside `GITHUB_WORKSPACE` are rejected. |
-| `command` | `check` | `check` or `index`. |
+| `command` | `check` | `check`, `index`, or explicit `review` in the Action source implemented by PR #85. The currently published `@v1` gains `review` only after the corresponding release. |
 | `version` | empty | Optional exact image version in `X.Y.Z` or `vX.Y.Z` form. When omitted, `@vX.Y.Z` selects the exact image tag and `@vX` selects the matching moving major image tag. SHA/branch pins require an explicit exact version. |
 
 Version selection never falls back to `latest`. For `uses: rodri-oliveira-dev/adr-guard@v1.2.3`, the Action invokes `ghcr.io/rodri-oliveira-dev/adr-guard:1.2.3`. For `uses: rodri-oliveira-dev/adr-guard@v1`, it invokes the matching moving major image tag `:1`. Exact Action tags are immutable; major tags move only to newer successful releases in that major line. If the Action is pinned by commit SHA or a branch, specify the image explicitly:
@@ -152,11 +153,11 @@ When a `check` or `index` run returns exit code `1`, the action converts recogni
 
 The action writes a compact `GITHUB_STEP_SUMMARY` with the outcome, exit code, and (for validation failures with recognized output) total and per-rule diagnostic counts. **At most 50 file annotations** are emitted per run; all diagnostics remain available in the raw CLI log. Raw output is replayed with GitHub workflow-command processing temporarily suspended to prevent untrusted ADR content from injecting annotations or other workflow commands. Reporting errors never replace the original CLI exit code.
 
-The Action itself does not require `GITHUB_TOKEN`, repository write permissions, provider API keys, or network access. It runs containers with a read-only root filesystem, all Linux capabilities dropped, `no-new-privileges`, and networking disabled. AI-assisted `draft` and provider credentials are intentionally outside the default Action contract. See the [GitHub Action security model](docs/github-action-security.md) for registry access, secret handling, non-root execution, and version/digest pinning guidance.
+The default `check`/`index` Action path does not require provider credentials or network access and keeps `--network=none`. Opt-in `review` in PR #85 uses outbound network only for the selected provider, keeps the checkout read-only, forwards only the selected provider credential variable, never forwards `GITHUB_TOKEN`/`GH_TOKEN`, rejects fork PRs and `pull_request_target`, and still needs only `permissions: contents: read`. AI-assisted `draft` remains outside the Action contract. See the [GitHub Action AI review guide](docs/github-action-review.md) and [security model](docs/github-action-security.md).
 
 Windows, macOS, Linux runners without a working Docker daemon, and root execution for writable `index` are not supported.
 
-The public `rodri-oliveira-dev/adr-guard@v1` Action offers **only `check` and `index`**. Run `new` or AI `draft` separately via the CLI/.NET Tool or a versioned container, not as Action inputs.
+The **currently published** `rodri-oliveira-dev/adr-guard@v1` Action offers only `check` and `index`. This branch adds opt-in `review` and its trust-boundary tests; it becomes part of `@v1` only after the release following PR #85. `new` and AI `draft` remain CLI/.NET Tool or direct-container workflows, not Action commands.
 
 ## ADR format
 
@@ -411,6 +412,43 @@ AI-assisted drafting deliberately remains human-in-the-loop. Generated ADRs can 
 
 This workflow does not perform source-code scanning, repository-wide context ingestion, Git diff analysis, automatic detection that an ADR is required, automatic modification of existing ADR statuses, commits or pull requests, RAG/vector search/embeddings, provider fallback, or automatic model routing.
 
+## AI-assisted technical review of existing ADRs
+
+`adr-guard review` is a separate, read-only workflow for reviewing one existing ADR. It does **not** rewrite the ADR, change its status, update the index, approve/reject the decision, or treat model output as an objective CI gate.
+
+Minimal usage:
+
+```bash
+adr-guard review docs/adr/0007-cache-strategy.md \
+  --provider openai \
+  --model <openai-model>
+```
+
+The same provider/model/authentication contract used by `draft` applies to `review`: OpenAI/`OPENAI_API_KEY`, Anthropic/`ANTHROPIC_API_KEY`, Gemini/`GEMINI_API_KEY`, or `openai-compatible` with an explicit endpoint and optional `ADR_GUARD_OPENAI_COMPATIBLE_API_KEY`. ADR Guard never chooses the model automatically.
+
+Review accepts explicit repeatable `--context-file <path>`, optional `--include-existing-adrs`, `--policy advisory|enforce`, `--policy-file <path>`, `--format text|json`, and optional report persistence through `--output <path> [--overwrite]`.
+
+Context remains opt-in and bounded:
+
+| Review source | Maximum |
+| --- | ---: |
+| Each explicit `--context-file` | 50,000 characters / 150,000 bytes |
+| All explicit context files | 100,000 characters / 300,000 bytes |
+| Parsed existing ADR context | 12,000 characters |
+| Final composed review context | 120,000 characters |
+
+By default, only the selected ADR is sent to the configured external provider. Explicit context files must be valid UTF-8 `.md`/`.txt`; existing ADR discovery occurs only with `--include-existing-adrs`. Selected material can leave the local machine/organization and is subject to provider retention, logging, residency, training, billing, quota, and rate-limit policies. To opt out of third-party processing, do not invoke `review`; `check`, `index`, and `new` remain deterministic/offline workflows.
+
+Every provider response must cover eight dimensions: clarity/rationale, alternatives, non-functional requirements, risks/consequences, architectural consistency, security/compliance, implementation/operational feasibility, and measurable verification criteria. Findings are classified as `observed-evidence`, `potential-risk`, `missing-context`, `recommendation-for-human-investigation`, or `not-applicable`. Missing context, potential risks, severe wording, and model recommendations remain advisory.
+
+`--policy advisory` is the default. `--policy enforce --policy-file <path>` can fail only deterministic local rules (`required-section-content` and `required-context-file` in schema `1.0`) and returns exit code `4` before provider invocation when a named rule fails. A passing policy is still not architectural approval.
+
+Text reports are human-readable Markdown-compatible output. `--format json` emits schema version `1.0` with stable camelCase fields, selected input scope, all dimensions, follow-up findings, uncertainty, limitations, and cost caveat. Provider/transport/timeouts/rate limits/malformed responses are exit `3`, never “no issues”.
+
+For the complete public contract, report example, evidence semantics, policy matrix, Action workflow, fork/community guidance, release availability, and troubleshooting, see the [AI review guide](docs/adr-review.md), [policy v1](docs/adr-review-policy-v1.md), and [security boundary](docs/adr-review-security.md).
+
+**Human ownership is mandatory:** review output is architectural assistance, not proof of correctness, formal security/compliance certification, or automated acceptance.
+
 ## Validation rules
 
 | Code | Validation |
@@ -434,7 +472,8 @@ ADR IDs do not need to be contiguous. Gaps are allowed because ADRs may be archi
 | `0` | Success |
 | `1` | ADR validation failed |
 | `2` | Invalid command-line usage |
-| `3` | Operational error |
+| `3` | Operational/provider/cancellation error |
+| `4` | Deterministic `review --policy enforce` rule failed |
 
 This makes CI integration straightforward:
 
