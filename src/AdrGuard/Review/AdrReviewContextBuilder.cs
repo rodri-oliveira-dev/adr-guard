@@ -61,9 +61,18 @@ internal static class AdrReviewContextBuilder
                 .ToArray();
 
             existingContext = ExistingAdrContextBuilder.Build(documents);
+
+            var remainingExistingAdrBudget = Math.Max(
+                0,
+                ExistingAdrContextBuilder.MaximumContextCharacters
+                - existingContext.Content.Length);
+
             crossAdrEvidence = AdrCrossAdrEvidenceBuilder.Build(
                 targetDocument,
-                documents);
+                documents,
+                Math.Min(
+                    AdrCrossAdrEvidenceBuilder.MaximumCharacters,
+                    remainingExistingAdrBudget));
         }
 
         var context = new AdrReviewContext(
