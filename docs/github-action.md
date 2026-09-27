@@ -9,10 +9,20 @@ ADR Guard's composite Action runs the published ADR Guard container. Consumers d
 | Input | Default | Accepted values |
 | --- | --- | --- |
 | `path` | `docs/adr` | Repository-relative ADR directory inside `GITHUB_WORKSPACE`. Absolute paths, missing directories, `..` traversal, and symlink escapes are rejected. |
-| `command` | `check` | `check` or `index`. |
+| `command` | `check` | `check`, `index`, or explicit `review`. |
 | `version` | empty | Optional exact runtime image version in `X.Y.Z` or `vX.Y.Z` form. Required when the Action source is pinned by commit SHA or branch. |
+| `review-target` | empty | Repository-relative ADR Markdown file; required for `review`. |
+| `provider` | empty | Review provider; required for `review`. |
+| `model` | empty | Provider model identifier; required for `review`. |
+| `endpoint` | empty | Optional OpenAI-compatible endpoint. |
+| `context-files` | empty | Optional newline-delimited repository-relative `.md`/`.txt` review context. |
+| `include-existing-adrs` | `false` | Explicit opt-in to bounded existing-ADR review context. |
+| `policy` | `advisory` | `advisory` or deterministic `enforce`. |
+| `policy-file` | empty | Deterministic policy JSON; required with `policy: enforce`. |
 
-The CLI exit contract is preserved: `0` success, `1` ADR validation failure, `2` usage/input error, and `3` operational error.
+The CLI exit contract is preserved: `0` success, `1` ADR validation failure, `2` usage/input error, `3` operational/provider failure, and `4` deterministic review-policy failure.
+
+Provider-backed review is optional and does not alter the default `check` behavior. See [GitHub Action AI review](github-action-review.md) for credentials, trusted events, summaries, annotations, and fork/`pull_request_target` restrictions.
 
 ## Pull-request validation
 
