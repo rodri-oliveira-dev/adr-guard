@@ -212,6 +212,7 @@ internal sealed class AdrReviewSecurityBoundary
         foreach (var character in value)
         {
             if (character is '\r' or '\n' or '\t'
+                or '\u0085' or '\u2028' or '\u2029'
                 || char.IsControl(character))
             {
                 if (builder.Length == 0
