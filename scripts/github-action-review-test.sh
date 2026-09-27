@@ -3,7 +3,20 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEMP_DIR="$(mktemp -d)"
-trap 'rm -rf -- "${TEMP_DIR}"' EXIT
+
+cleanup() {
+  local status=$?
+  trap - EXIT
+  if [[ "${status}" -ne 0 ]]; then
+    echo "GitHub Action AI review test failed at line ${BASH_LINENO[0]} while running: ${BASH_COMMAND}" >&2
+  fi
+  rm -rf -- "${TEMP_DIR}"
+  exit "${status}"
+}
+trap cleanup EXIT
+
+bash -n "${ROOT_DIR}/scripts/github-action.sh"
+python3 -m py_compile "${ROOT_DIR}/scripts/github-action-review-report.py"
 
 WORKSPACE="${TEMP_DIR}/workspace"
 FAKE_BIN="${TEMP_DIR}/fake-bin"
