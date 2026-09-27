@@ -370,6 +370,10 @@ internal static class CliApplication
 
         try
         {
+            AdrReviewProviderFactory.ValidateSelection(
+                reviewArguments.ProviderName!,
+                reviewArguments.Endpoint);
+
             if (injectedProvider is not null)
             {
                 return ReviewCommand.Run(
@@ -384,39 +388,49 @@ internal static class CliApplication
                     reviewArguments.PolicyMode,
                     reviewArguments.PolicyFilePath,
                     securityBoundary,
-                    injectedProvider,
+                    () => injectedProvider!,
                     output,
                     error,
                     cancellationToken);
             }
 
-            using var httpClient =
-                httpClientFactory?.Invoke()
-                ?? new HttpClient();
+            HttpClient? httpClient = null;
 
-            var provider = AdrReviewProviderFactory.Create(
-                reviewArguments.ProviderName,
-                reviewArguments.Model,
-                reviewArguments.Endpoint,
-                httpClient,
-                environmentVariableReader);
+            try
+            {
+                return ReviewCommand.Run(
+                    reviewArguments.TargetPath,
+                    reviewArguments.ContextFilePaths,
+                    reviewArguments.IncludeExistingAdrs,
+                    reviewArguments.ProviderName!,
+                    reviewArguments.Model!,
+                    reviewArguments.Format,
+                    reviewArguments.OutputPath,
+                    reviewArguments.OverwriteOutput,
+                    reviewArguments.PolicyMode,
+                    reviewArguments.PolicyFilePath,
+                    securityBoundary,
+                    () =>
+                    {
+                        httpClient ??=
+                            httpClientFactory?.Invoke()
+                            ?? new HttpClient();
 
-            return ReviewCommand.Run(
-                reviewArguments.TargetPath,
-                reviewArguments.ContextFilePaths,
-                reviewArguments.IncludeExistingAdrs,
-                reviewArguments.ProviderName!,
-                reviewArguments.Model!,
-                reviewArguments.Format,
-                reviewArguments.OutputPath,
-                reviewArguments.OverwriteOutput,
-                reviewArguments.PolicyMode,
-                reviewArguments.PolicyFilePath,
-                securityBoundary,
-                provider,
-                output,
-                error,
-                cancellationToken);
+                        return AdrReviewProviderFactory.Create(
+                            reviewArguments.ProviderName,
+                            reviewArguments.Model,
+                            reviewArguments.Endpoint,
+                            httpClient,
+                            environmentVariableReader);
+                    },
+                    output,
+                    error,
+                    cancellationToken);
+            }
+            finally
+            {
+                httpClient?.Dispose();
+            }
         }
         catch (ArgumentException exception)
         {
