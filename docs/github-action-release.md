@@ -40,11 +40,11 @@ Merging to `main` and completing CI no longer publishes a release. The `Release`
 To publish a release:
 
 1. merge the intended changes into `main`;
-2. wait for the normal CI on `main` to finish and review its result;
+2. wait for the normal CI on `main` to finish successfully;
 3. open **Actions → Release → Run workflow**;
 4. select the `main` branch and start the workflow manually.
 
-The workflow itself re-runs restore, build, tests, packaging and smoke checks before any publication. Dispatches from branches other than `main` are rejected by the release job gate, so artifacts are bound to the explicitly dispatched `main` commit (`github.sha`). There is no automatic `workflow_run` trigger and no publication caused merely by a successful CI run.
+The workflow verifies through the GitHub Actions API that the exact dispatched `main` commit already has a completed successful `CI` push run. If that CI is missing, still running, cancelled, or failed, the release stops before checkout/publication. It then re-runs restore, build, tests, packaging and smoke checks before any publication. Dispatches from branches other than `main` are rejected by the release job gate, so artifacts are bound to the explicitly dispatched `main` commit (`github.sha`). There is no automatic `workflow_run` trigger and no publication caused merely by a successful CI run.
 
 ## Release ordering
 
