@@ -63,9 +63,9 @@ adr-guard review <adr-file>
 | `<adr-file>` | Required target ADR. Only its filename, not its absolute local path, is exposed to the model. |
 | `--context-file <path>` | Explicit UTF-8 `.md` or `.txt` file; repeatable and never discovered automatically. |
 | `--include-existing-adrs` | Explicitly allows bounded parsed ADR discovery below the target ADR directory for cross-ADR context. |
-| `--policy advisory|enforce` | Defaults to `advisory`. Only deterministic local policy rules can enforce. |
+| `--policy advisory\|enforce` | Defaults to `advisory`. Only deterministic local policy rules can enforce. |
 | `--policy-file <path>` | Strict schema `1.0` local JSON policy. It is not sent to the provider. Required for `enforce`. |
-| `--format text|json` | Defaults to text. JSON emits one schema-versioned object to stdout. |
+| `--format text\|json` | Defaults to text. JSON emits one schema-versioned object to stdout. |
 | `--output <path>` | Optional report persistence. Text requires `.md`/`.txt`; JSON requires `.json`. |
 | `--overwrite` | Allows atomic replacement of an existing report only; it never permits replacing the reviewed ADR or ADR index. |
 
