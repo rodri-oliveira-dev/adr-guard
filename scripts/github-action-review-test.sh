@@ -221,7 +221,7 @@ grep -Fq '::warning file=docs/adr/0001-review.md,title=ADR Guard AI review::' "$
 grep -Fq '### ADR Guard — AI review (advisory)' "${REVIEW_SUMMARY}"
 grep -Fq '| Outcome | <code>follow-up-suggested</code> |' "${REVIEW_SUMMARY}"
 grep -Fq 'human verification required' "${REVIEW_SUMMARY}"
-grep -Fq '\\!\\[result\\]' "${REVIEW_SUMMARY}"
+grep -Fq '\!\[result\]' "${REVIEW_SUMMARY}"
 if grep -Fq '![result](' "${REVIEW_SUMMARY}" || grep -Fq '[the workflow event](' "${REVIEW_SUMMARY}"; then
   echo "Provider-controlled Markdown must render as inert summary text." >&2
   exit 1
