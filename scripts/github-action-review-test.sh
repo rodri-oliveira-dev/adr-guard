@@ -74,8 +74,8 @@ cat >"${MOCK_STDOUT}" <<'EOF'
       "classification": "potential-risk",
       "followUpPriority": "recommended",
       "uncertainty": "human verification required",
-      "explanation": "Confirm the documented trust boundary before rollout.",
-      "guidance": "Verify the workflow event and credential scope.",
+      "explanation": "Confirm ![result](https://attacker.example/pixel) **the documented trust boundary** before rollout.",
+      "guidance": "Verify [the workflow event](https://attacker.example/review) and credential scope.",
       "evidence": [
         {
           "sourceId": "target",
@@ -219,8 +219,13 @@ if grep -Fq "mock-provider-secret" "${DOCKER_CAPTURE}" || grep -Fq "GITHUB_TOKEN
 fi
 grep -Fq '::warning file=docs/adr/0001-review.md,title=ADR Guard AI review::' "${REVIEW_LOG}"
 grep -Fq '### ADR Guard — AI review (advisory)' "${REVIEW_SUMMARY}"
-grep -Fq '| Outcome | `follow-up-suggested` |' "${REVIEW_SUMMARY}"
+grep -Fq '| Outcome | <code>follow-up-suggested</code> |' "${REVIEW_SUMMARY}"
 grep -Fq 'human verification required' "${REVIEW_SUMMARY}"
+grep -Fq '\\!\\[result\\]' "${REVIEW_SUMMARY}"
+if grep -Fq '![result](' "${REVIEW_SUMMARY}" || grep -Fq '[the workflow event](' "${REVIEW_SUMMARY}"; then
+  echo "Provider-controlled Markdown must render as inert summary text." >&2
+  exit 1
+fi
 
 # Fork PRs and pull_request_target are rejected before Docker/provider execution.
 rm -f "${DOCKER_CAPTURE}"
@@ -248,6 +253,46 @@ ADR_GUARD_COMMAND=review \
   assert_exit_code 2 run_action "${TEMP_DIR}/target-summary.md" >"${TARGET_LOG}" 2>&1
 test ! -e "${DOCKER_CAPTURE}"
 grep -Fiq 'disabled for pull_request_target' "${TARGET_LOG}"
+
+# Events outside the explicit trusted allowlist are rejected before provider execution.
+rm -f "${DOCKER_CAPTURE}"
+UNSUPPORTED_EVENT_LOG="${TEMP_DIR}/unsupported-event.log"
+ADR_GUARD_COMMAND=review \
+  ADR_GUARD_REVIEW_TARGET=docs/adr/0001-review.md \
+  ADR_GUARD_REVIEW_PROVIDER=openai \
+  ADR_GUARD_REVIEW_MODEL=mock-model \
+  ADR_GUARD_EVENT_NAME=workflow_run \
+  OPENAI_API_KEY=must-not-be-exposed \
+  assert_exit_code 2 run_action "${TEMP_DIR}/unsupported-event-summary.md" >"${UNSUPPORTED_EVENT_LOG}" 2>&1
+test ! -e "${DOCKER_CAPTURE}"
+grep -Fiq "AI review is not supported for event 'workflow_run'" "${UNSUPPORTED_EVENT_LOG}"
+
+# A successful provider-backed review requires Python 3 for safe summary rendering.
+NO_PYTHON_BIN="${TEMP_DIR}/no-python-bin"
+mkdir -p "${NO_PYTHON_BIN}"
+ln -s "$(command -v realpath)" "${NO_PYTHON_BIN}/realpath"
+NO_PYTHON_LOG="${TEMP_DIR}/no-python.log"
+set +e
+PATH="${NO_PYTHON_BIN}" \
+  GITHUB_WORKSPACE="${WORKSPACE}" \
+  GITHUB_STEP_SUMMARY="${TEMP_DIR}/no-python-summary.md" \
+  RUNNER_OS=Linux \
+  ADR_GUARD_ACTION_REF=review-test \
+  ADR_GUARD_VERSION=1.1.0 \
+  ADR_GUARD_COMMAND=review \
+  ADR_GUARD_REVIEW_TARGET=docs/adr/0001-review.md \
+  ADR_GUARD_REVIEW_PROVIDER=openai \
+  ADR_GUARD_REVIEW_MODEL=mock-model \
+  ADR_GUARD_EVENT_NAME=push \
+  ADR_GUARD_REPOSITORY=acme/example \
+  /bin/bash "${ROOT_DIR}/scripts/github-action.sh" >"${NO_PYTHON_LOG}" 2>&1
+no_python_status=$?
+set -e
+if [[ "${no_python_status}" -ne 3 ]]; then
+  echo "Expected missing Python 3 to return exit code 3, got ${no_python_status}." >&2
+  exit 1
+fi
+grep -Fiq 'Python 3 is required for safe AI review summary and annotation rendering' "${NO_PYTHON_LOG}"
 
 # Deterministic enforcement failures and provider/transport failures remain
 # distinct in both exit status and summary.
