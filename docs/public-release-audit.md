@@ -43,6 +43,12 @@ Therefore:
 
 This avoids creating an unnecessary release solely to make source metadata look like the latest patch.
 
+## Future release trigger policy
+
+The `v1.1.6` snapshot above was produced by the previous automatic post-CI release trigger. PR #86 changes the publication policy for future releases: merging to `main` or obtaining a green CI result **does not publish artifacts**.
+
+Future publication starts only when an authorized maintainer manually runs **Actions → Release → Run workflow** with the `main` branch selected. The `Release` workflow uses `workflow_dispatch` only, rejects non-`main` dispatches, binds the release to the selected `github.sha`, and re-runs build/tests/package smoke checks before NuGet, package, container, Action-tag or GitHub Release publication begins.
+
 ## Continuous public-artifact verification
 
 `scripts/public-distribution-smoke-test.sh` converts the audit into a repeatable CI gate. It:
