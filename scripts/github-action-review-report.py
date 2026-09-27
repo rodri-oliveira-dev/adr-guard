@@ -184,7 +184,7 @@ def main() -> int:
                 stream.write(summary)
                 stream.write("\n")
                 for note in notes:
-                    stream.write(f"- {markdown_text(note)}\n")
+                    stream.write(f"- {note}\n")
         return 0
 
     try:
