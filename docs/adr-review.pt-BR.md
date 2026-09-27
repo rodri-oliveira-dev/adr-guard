@@ -238,7 +238,7 @@ Outcome: needs-context
 
 ## GitHub Action e governança de CI
 
-A integração da Action implementada no PR #85 mantém `check` como padrão e torna `review` explícito.
+A integração publicada da Action mantém `check` como padrão e torna `review` explícito; `review` está disponível na linha `v1` desde a `v1.1.6`.
 
 Um workflow confiável usa apenas:
 
