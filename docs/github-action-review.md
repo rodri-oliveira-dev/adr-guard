@@ -6,11 +6,11 @@ AI-assisted ADR review is an explicit opt-in extension of the reusable ADR Guard
 
 ## Trust boundary
 
-Use provider-backed review only in trusted workflows. The Action enforces the following boundaries:
+Use provider-backed review only in trusted workflows. Review requires Linux, Docker, and Python 3 on the runner because safe summary/annotation rendering is part of the successful review contract. The Action enforces the following boundaries:
 
 - `pull_request_target` is rejected for `review`;
 - fork `pull_request` events are rejected before Docker/provider execution;
-- same-repository `pull_request`, trusted `push`, and trusted/manual workflows may opt in;
+- only `push`, `workflow_dispatch`, `schedule`, and same-repository `pull_request` events may opt in; all other event types are rejected before Docker/provider execution;
 - the checkout is mounted read-only for `review`;
 - `GITHUB_TOKEN` and `GH_TOKEN` are never forwarded to the review container;
 - only the credential environment variable associated with the selected provider is forwarded, and only by variable name;
