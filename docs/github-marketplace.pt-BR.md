@@ -1,6 +1,6 @@
 # Checklist de publicação no GitHub Marketplace
 
-Requisitos conferidos na documentação oficial do GitHub em **21/09/2026**.
+Requisitos e estado público da listagem conferidos novamente em **27/09/2026**.
 
 Referências oficiais:
 
@@ -27,7 +27,7 @@ Branding:
 
 As categorias são selecionadas na interface de release/Marketplace do GitHub e não fazem parte do `action.yml`.
 
-Uma busca realizada em 21/09/2026 não encontrou listagem existente no Marketplace com o nome proposto exato. A validação definitiva de unicidade é feita pelo próprio GitHub no momento da publicação; se a interface indicar colisão de nome, a publicação deve ser interrompida.
+Uma nova busca pública em 27/09/2026 não encontrou uma listagem verificável do ADR Guard no Marketplace nem uma URL canônica `github.com/marketplace/actions/...`. A validação definitiva de unicidade é feita pelo próprio GitHub no momento da publicação; se a interface indicar colisão de nome, a publicação deve ser interrompida. Até que um proprietário autorizado publique a Action e registre a URL canônica resultante, o repositório deve declarar que a publicação no Marketplace está incompleta.
 
 ## Requisitos do repositório
 
@@ -59,9 +59,9 @@ O fluxo de release da Action:
 
 A listagem deve selecionar uma versão da Action associada a uma release. Não publique a partir de branch de desenvolvimento.
 
-A primeira referência de consumo do Marketplace é `@v1`. A tag de compatibilidade `v1` real já está publicada; antes da publicação no Marketplace, execute novamente a verificação do consumidor externo contra o `@v1` publicado e registre a evidência de produção.
+A referência de consumo suportada no Marketplace é `@v1`. A tag de compatibilidade `v1` real está publicada e o CI do repositório exercita continuamente essa referência pública para `check`/`index`; `review` está publicado na linha `v1` desde a `v1.1.6`. A issue #49 ainda exige seu rerun mais estrito em repositório independente antes que o roadmap do Marketplace possa ser considerado totalmente concluído.
 
-A verificação externa pré-release já passou em `rodri-oliveira-dev/poc-arquitetura`; consulte [github-action-external-verification.pt-BR.md](github-action-external-verification.pt-BR.md). Essa evidência não substitui o rerun obrigatório com `@v1` depois da release.
+A verificação externa pré-release passou em `rodri-oliveira-dev/poc-arquitetura`; consulte [github-action-external-verification.pt-BR.md](github-action-external-verification.pt-BR.md). O repositório também possui cobertura equivalente de produção em consumidor isolado contra o `@v1` público real. O rerun no repositório independente continua sendo um critério explícito da #49 para concluir o Marketplace, e não um pré-requisito para afirmar que a tag da Action é pública.
 
 ## Gates manuais do proprietário
 
