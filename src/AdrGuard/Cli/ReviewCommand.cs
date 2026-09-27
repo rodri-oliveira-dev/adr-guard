@@ -1,5 +1,6 @@
 using AdrGuard.Parsing;
 using AdrGuard.Review;
+using AdrGuard.Review.Policy;
 using AdrGuard.Review.Reporting;
 using AdrGuard.Validation;
 
@@ -16,6 +17,8 @@ internal static class ReviewCommand
         AdrReviewOutputFormat format,
         string? outputPath,
         bool overwriteOutput,
+        AdrReviewPolicyMode policyMode,
+        string? policyFilePath,
         IAdrReviewProvider provider,
         TextWriter output,
         TextWriter error,
@@ -102,6 +105,77 @@ internal static class ReviewCommand
                     validation,
                     error);
                 return ExitCodes.ValidationFailed;
+            }
+
+            AdrReviewPolicyDefinition policyDefinition;
+
+            try
+            {
+                policyDefinition = AdrReviewPolicyLoader.Load(
+                    policyFilePath);
+            }
+            catch (Exception exception) when (
+                exception is FileNotFoundException
+                    or InvalidDataException
+                    or ArgumentException)
+            {
+                error.WriteLine(
+                    $"Invalid review policy: {exception.Message}");
+                return ExitCodes.UsageError;
+            }
+            catch (Exception exception) when (
+                exception is IOException
+                    or UnauthorizedAccessException)
+            {
+                error.WriteLine(
+                    $"Unable to load review policy: {exception.Message}");
+                return ExitCodes.OperationalError;
+            }
+
+            AdrReviewPolicyEvaluation policyEvaluation;
+
+            try
+            {
+                policyEvaluation = AdrReviewPolicyEvaluator.Evaluate(
+                    document,
+                    contextFilePaths,
+                    policyDefinition,
+                    policyMode,
+                    policyFilePath);
+            }
+            catch (Exception exception) when (
+                exception is IOException
+                    or UnauthorizedAccessException
+                    or ArgumentException)
+            {
+                error.WriteLine(
+                    $"Unable to evaluate review policy: {exception.Message}");
+                return ExitCodes.OperationalError;
+            }
+
+            if (policyFilePath is not null
+                || policyMode == AdrReviewPolicyMode.Enforce)
+            {
+                var policyWriter =
+                    policyMode == AdrReviewPolicyMode.Enforce
+                    && policyEvaluation.HasViolations
+                        ? error
+                        : format == AdrReviewOutputFormat.Json
+                            ? error
+                            : output;
+
+                WritePolicyEvaluation(
+                    policyEvaluation,
+                    policyDefinition.Rules.Length,
+                    policyWriter);
+            }
+
+            if (policyMode == AdrReviewPolicyMode.Enforce
+                && policyEvaluation.HasViolations)
+            {
+                error.WriteLine(
+                    "Review policy outcome: policy-failed. The review provider was not invoked.");
+                return ExitCodes.PolicyFailed;
             }
 
             AdrReviewContext reviewContext;
@@ -257,6 +331,32 @@ internal static class ReviewCommand
             error.WriteLine(
                 $"ADR review failed: {exception.Message}");
             return ExitCodes.OperationalError;
+        }
+    }
+
+    private static void WritePolicyEvaluation(
+        AdrReviewPolicyEvaluation evaluation,
+        int ruleCount,
+        TextWriter writer)
+    {
+        var mode = evaluation.Mode == AdrReviewPolicyMode.Enforce
+            ? "enforce"
+            : "advisory";
+
+        writer.WriteLine(
+            $"Review policy: {mode} ({ruleCount} deterministic rule(s), {evaluation.Violations.Length} violation(s)).");
+
+        foreach (var violation in evaluation.Violations)
+        {
+            writer.WriteLine(
+                $"- [{violation.RuleName}] {violation.RuleType}: {violation.Evidence}");
+        }
+
+        if (evaluation.Mode == AdrReviewPolicyMode.Advisory
+            && evaluation.HasViolations)
+        {
+            writer.WriteLine(
+                "Deterministic policy violations are advisory only in this mode; provider review continues.");
         }
     }
 
