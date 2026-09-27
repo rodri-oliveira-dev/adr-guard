@@ -131,12 +131,12 @@ for stale_claim in   'current published **v1.1.5**'   'current published CLI pac
 done
 
 # Historical external-consumer evidence must not imply that the published @v1 tag is still pending.
-grep -Fiq 'the `v1` compatibility tag is published' "${EXTERNAL_EN}" || {
-  echo "English external-verification guide must describe the published v1 tag." >&2
+grep -Fiq 'moving `v1` compatibility line' "${EXTERNAL_EN}" || {
+  echo "English external-verification guide must describe the published v1 line." >&2
   exit 1
 }
-grep -Fiq 'a tag de compatibilidade `v1` está publicada' "${EXTERNAL_PT}" || {
-  echo "pt-BR external-verification guide must describe the published v1 tag." >&2
+grep -Fiq 'linha móvel de compatibilidade `v1`' "${EXTERNAL_PT}" || {
+  echo "pt-BR external-verification guide must describe the published v1 line." >&2
   exit 1
 }
 for stale_claim in \
