@@ -515,7 +515,7 @@ ADR Guard validates its own architecture decisions. See [docs/adr](docs/adr/READ
 
 The repository CI builds and tests the solution, packages the .NET Tool, installs that package locally, runs the packaged `adr-guard` against `docs/adr`, regenerates the ADR index, and verifies that no documentation drift was introduced. The container path additionally lints the `Dockerfile`, builds and smoke-tests the image, and blocks fixable `HIGH` or `CRITICAL` vulnerabilities detected by Trivy.
 
-For release highlights, see the [v1.1.0 release notes](docs/releases/v1.1.0.md) ([pt-BR](docs/releases/v1.1.0.pt-BR.md)).
+For release highlights, see the [v1.1.0 release notes](docs/releases/v1.1.0.md) ([pt-BR](docs/releases/v1.1.0.pt-BR.md)) and the exact [AI review release availability matrix](docs/releases/ai-review.md) ([pt-BR](docs/releases/ai-review.pt-BR.md)).
 
 ## Additional resources
 
