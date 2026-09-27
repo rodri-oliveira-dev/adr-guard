@@ -12,11 +12,15 @@ RELEASE_EN="${ROOT_DIR}/docs/releases/ai-review.md"
 RELEASE_PT="${ROOT_DIR}/docs/releases/ai-review.pt-BR.md"
 ACTION_REVIEW_EN="${ROOT_DIR}/docs/github-action-review.md"
 ACTION_REVIEW_PT="${ROOT_DIR}/docs/github-action-review.pt-BR.md"
+POLICY_EN="${ROOT_DIR}/docs/adr-review-policy-v1.md"
+POLICY_PT="${ROOT_DIR}/docs/adr-review-policy-v1.pt-BR.md"
+SECURITY_EN="${ROOT_DIR}/docs/adr-review-security.md"
+SECURITY_PT="${ROOT_DIR}/docs/adr-review-security.pt-BR.md"
 ACTION_TEST="${ROOT_DIR}/scripts/github-action-review-test.sh"
 REGRESSION_TEST="${ROOT_DIR}/tests/AdrGuard.Tests/Review/AdrReviewRegressionFixtureTests.cs"
 CI="${ROOT_DIR}/.github/workflows/ci.yml"
 
-for file in   "${EN}" "${PT}" "${README_EN}" "${README_PT}"   "${RELEASE_EN}" "${RELEASE_PT}"   "${ACTION_REVIEW_EN}" "${ACTION_REVIEW_PT}"   "${ACTION_TEST}" "${REGRESSION_TEST}" "${CI}"; do
+for file in   "${EN}" "${PT}" "${README_EN}" "${README_PT}"   "${RELEASE_EN}" "${RELEASE_PT}"   "${ACTION_REVIEW_EN}" "${ACTION_REVIEW_PT}"   "${POLICY_EN}" "${POLICY_PT}" "${SECURITY_EN}" "${SECURITY_PT}"   "${ACTION_TEST}" "${REGRESSION_TEST}" "${CI}"; do
   test -s "${file}" || {
     echo "Required ADR review documentation/test artifact is missing: ${file}" >&2
     exit 1
@@ -77,12 +81,28 @@ done
 grep -Fiq 'not published' "${RELEASE_EN}"
 grep -Fiq 'ainda não publicado' "${RELEASE_PT}"
 
+# Policy and security guidance must exist in both languages and cross-link correctly.
+grep -Fq '[Português (Brasil)](adr-review-policy-v1.pt-BR.md)' "${POLICY_EN}"
+grep -Fq '[English](adr-review-policy-v1.md)' "${POLICY_PT}"
+grep -Fq '[Português (Brasil)](adr-review-security.pt-BR.md)' "${SECURITY_EN}"
+grep -Fq '[English](adr-review-security.md)' "${SECURITY_PT}"
+for doc in "${POLICY_EN}" "${POLICY_PT}"; do
+  grep -Fq 'required-section-content' "${doc}"
+  grep -Fq 'required-context-file' "${doc}"
+  grep -Fq 'exit' "${doc}"
+done
+for doc in "${SECURITY_EN}" "${SECURITY_PT}"; do
+  grep -Fq 'pull_request_target' "${doc}"
+  grep -Fq 'GITHUB_TOKEN' "${doc}"
+  grep -Fq 'contents: read' "${doc}"
+done
+
 # Every documented execution surface is tied to deterministic test coverage.
 grep -Fq 'Verify opt-in AI review paths with mock provider' "${CI}"
 grep -Fq 'github-action-review-test.sh' "${CI}"
 grep -Fq 'CompleteFixtureProducesVersionedEightDimensionReportWithoutMutation' "${REGRESSION_TEST}"
 grep -Fq 'AdvisoryPolicyViolationRunsMockProviderAndRemainsSuccessful' "${REGRESSION_TEST}"
-grep -Fq 'DeterministicEnforcementIsIndependentOfProviderResponseAndLanguage' "${REGRESSION_TEST}"
+grep -Fq 'DeterministicEnforcementIsIndependentOfMockProviderLanguage' "${REGRESSION_TEST}"
 
 # When the packaged tool is available, smoke the actual public help contract.
 if [[ -n "${TOOL}" ]]; then
