@@ -318,6 +318,76 @@ public sealed class AdrReviewSecurityTests
     }
 
     [Fact]
+    public void OversizedLocalDocumentMetadataReturnsOperationalFailure()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(
+                root,
+                "0001-long-title.md");
+            var title = new string(
+                't',
+                AdrReviewSecurityLimits.MaximumMetadataCharacters + 1);
+
+            File.WriteAllText(
+                target,
+                $"""
+                # {title}
+
+                ## Status
+                Proposed
+
+                ## Context
+                Normal context.
+
+                ## Decision
+                Keep review advisory and deterministic.
+
+                ## Consequences
+                Human review remains required.
+                """);
+
+            var provider = new RecordingProvider(
+                CompleteObservedResult());
+
+            var result = Run(
+                provider,
+                EnvironmentReader,
+                "review",
+                target,
+                "--provider",
+                "openai",
+                "--model",
+                "test-model");
+
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                result.Code);
+            Assert.Equal(
+                0,
+                provider.CallCount);
+            Assert.Contains(
+                "Unable to sanitize review material",
+                result.Error,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "field safety limit",
+                result.Error,
+                StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(
+                "# ADR Technical Review",
+                result.Output,
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public void OversizedProviderFindingIsOperationalFailure()
     {
         var root = CreateTempDirectory();
