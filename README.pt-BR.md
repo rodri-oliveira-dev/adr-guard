@@ -515,7 +515,7 @@ O ADR Guard valida os próprios ADRs do projeto. Consulte [docs/adr](docs/adr/RE
 
 O CI do repositório compila e testa a solução, empacota a .NET Tool, instala o pacote localmente, executa o `adr-guard` empacotado contra `docs/adr`, regenera o índice e verifica se houve drift na documentação. O caminho de container também valida o `Dockerfile` com Hadolint, faz build e smoke tests da imagem e bloqueia vulnerabilidades corrigíveis `HIGH` ou `CRITICAL` detectadas pelo Trivy.
 
-Para os principais recursos da release, consulte as [notas da v1.1.0](docs/releases/v1.1.0.pt-BR.md) ([EN](docs/releases/v1.1.0.md)).
+Para os principais recursos da release, consulte as [notas da v1.1.0](docs/releases/v1.1.0.pt-BR.md) ([EN](docs/releases/v1.1.0.md)) e a [matriz exata de disponibilidade do review por IA](docs/releases/ai-review.pt-BR.md) ([EN](docs/releases/ai-review.md)).
 
 ## Recursos adicionais
 
