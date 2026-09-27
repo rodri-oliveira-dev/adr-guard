@@ -61,7 +61,7 @@ Review reports can contain short evidence excerpts or provider-derived architect
 
 ## Community and fork pull requests
 
-Do not expose provider credentials to untrusted fork code or workflows. The GitHub Action review integration implemented in PR #85 enforces these boundaries:
+Do not expose provider credentials to untrusted fork code or workflows. The published GitHub Action review integration enforces these boundaries:
 
 - `review` on `pull_request_target` is rejected before Docker/provider execution;
 - `review` on a fork `pull_request` is rejected before Docker/provider execution;
