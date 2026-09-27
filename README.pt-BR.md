@@ -445,7 +445,7 @@ Toda resposta do provider precisa cobrir oito dimensões: clareza/racional, alte
 
 Relatórios em text são compatíveis com Markdown e legíveis por humanos. `--format json` emite schema versionado `1.0` com campos camelCase estáveis, escopo dos inputs selecionados, as oito dimensões, findings de follow-up, incerteza, limitações e aviso de custo. Falhas de provider/transporte/timeout/rate limit/resposta malformada retornam `3`, nunca “sem problemas”.
 
-Para o contrato público completo, exemplo de relatório, semântica de evidência, matriz de policy, workflow da Action, orientação para forks/comunidade, disponibilidade por release e troubleshooting, consulte o [guia de review por IA](docs/adr-review.pt-BR.md), a [policy v1](docs/adr-review-policy-v1.md) e os [limites de segurança](docs/adr-review-security.md).
+Para o contrato público completo, exemplo de relatório, semântica de evidência, matriz de policy, workflow da Action, orientação para forks/comunidade, disponibilidade por release e troubleshooting, consulte o [guia de review por IA](docs/adr-review.pt-BR.md), a [policy v1](docs/adr-review-policy-v1.pt-BR.md) e os [limites de segurança](docs/adr-review-security.pt-BR.md).
 
 **A responsabilidade humana é obrigatória:** a saída do review é assistência arquitetural, não prova de correção, certificação formal de segurança/compliance nem aceitação automática.
 
