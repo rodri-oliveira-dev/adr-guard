@@ -28,13 +28,27 @@ for file in   "${EN}" "${PT}" "${README_EN}" "${README_PT}"   "${RELEASE_EN}" "$
 done
 
 # Both language guides must describe the same stable machine-facing contract.
-for token in   'adr-guard review'   '--provider'   '--model'   '--endpoint'   '--context-file'   '--include-existing-adrs'   '--policy advisory|enforce'   '--policy-file'   '--format text|json'   '--output <path>'   '--overwrite'   'OPENAI_API_KEY'   'ANTHROPIC_API_KEY'   'GEMINI_API_KEY'   'ADR_GUARD_OPENAI_COMPATIBLE_API_KEY'   'clarity-and-rationale'   'considered-alternatives'   'nonfunctional-requirements'   'risks-and-consequences'   'architectural-consistency'   'security-and-compliance'   'implementation-and-operational-feasibility'   'measurable-verification-criteria'   'observed-evidence'   'potential-risk'   'missing-context'   'recommendation-for-human-investigation'   'not-applicable'   'required-section-content'   'required-context-file'   'schema `1.0`'   '50,000'   '150,000'   '100,000'   '300,000'   '12,000'   '120,000'   'pull_request_target'   'contents: read'   'GITHUB_STEP_SUMMARY'   'v1.1.2'   'v1.1.3'   'v1.1.4'   'v1.1.5'; do
+for token in   'adr-guard review'   '--provider'   '--model'   '--endpoint'   '--context-file'   '--include-existing-adrs'   '--policy advisory|enforce'   '--policy-file'   '--format text|json'   '--output <path>'   '--overwrite'   'OPENAI_API_KEY'   'ANTHROPIC_API_KEY'   'GEMINI_API_KEY'   'ADR_GUARD_OPENAI_COMPATIBLE_API_KEY'   'clarity-and-rationale'   'considered-alternatives'   'nonfunctional-requirements'   'risks-and-consequences'   'architectural-consistency'   'security-and-compliance'   'implementation-and-operational-feasibility'   'measurable-verification-criteria'   'observed-evidence'   'potential-risk'   'missing-context'   'recommendation-for-human-investigation'   'not-applicable'   'required-section-content'   'required-context-file'   'schema `1.0`'   'pull_request_target'   'contents: read'   'GITHUB_STEP_SUMMARY'   'v1.1.2'   'v1.1.3'   'v1.1.4'   'v1.1.5'; do
   grep -Fq -- "${token}" "${EN}" || {
     echo "English ADR review guide is missing contract token: ${token}" >&2
     exit 1
   }
   grep -Fq -- "${token}" "${PT}" || {
     echo "pt-BR ADR review guide is missing contract token: ${token}" >&2
+    exit 1
+  }
+done
+
+# Numeric limits use locale-appropriate thousands separators.
+for token in '50,000' '150,000' '100,000' '300,000' '12,000' '120,000'; do
+  grep -Fq -- "${token}" "${EN}" || {
+    echo "English ADR review guide is missing limit: ${token}" >&2
+    exit 1
+  }
+done
+for token in '50.000' '150.000' '100.000' '300.000' '12.000' '120.000'; do
+  grep -Fq -- "${token}" "${PT}" || {
+    echo "pt-BR ADR review guide is missing limit: ${token}" >&2
     exit 1
   }
 done
