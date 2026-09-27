@@ -148,6 +148,222 @@ public sealed class AdrReviewPolicyTests
     }
 
     [Fact]
+    public void RequiredContextFilePassesWhenExistingFileIsExplicitlySelected()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = WriteTarget(root);
+            var securityContext = Path.Combine(
+                root,
+                "security.md");
+            File.WriteAllText(
+                securityContext,
+                """
+                # Security Context
+
+                Security requirements are explicitly selected for this review.
+                """);
+            var policy = WritePolicy(
+                root,
+                """
+                {
+                  "schemaVersion": "1.0",
+                  "rules": [
+                    {
+                      "name": "security-context",
+                      "type": "required-context-file",
+                      "path": "security.md"
+                    }
+                  ]
+                }
+                """);
+            var provider = new StaticReviewProvider(
+                CompleteObservedResult());
+
+            var result = Run(
+                provider,
+                "review",
+                target,
+                "--provider",
+                "openai",
+                "--model",
+                "test-model",
+                "--context-file",
+                securityContext,
+                "--policy",
+                "enforce",
+                "--policy-file",
+                policy);
+
+            Assert.Equal(
+                ExitCodes.Success,
+                result.Code);
+            Assert.Equal(
+                1,
+                provider.CallCount);
+            Assert.DoesNotContain(
+                "[security-context]",
+                result.Error,
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void EnforceFailurePrecedesRealProviderConstructionWithoutCredentials()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = WriteTarget(root);
+            var policy = WritePolicy(
+                root,
+                """
+                {
+                  "schemaVersion": "1.0",
+                  "rules": [
+                    {
+                      "name": "security-notes",
+                      "type": "required-section-content",
+                      "section": "Security"
+                    }
+                  ]
+                }
+                """);
+            var httpClientFactoryCalls = 0;
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var code = CliApplication.Run(
+                [
+                    "review",
+                    target,
+                    "--provider",
+                    "openai",
+                    "--model",
+                    "test-model",
+                    "--policy",
+                    "enforce",
+                    "--policy-file",
+                    policy,
+                ],
+                output,
+                error,
+                TestContext.Current.CancellationToken,
+                httpClientFactory: () =>
+                {
+                    httpClientFactoryCalls++;
+                    return new HttpClient();
+                },
+                environmentVariableReader: _ => null);
+
+            Assert.Equal(
+                ExitCodes.PolicyFailed,
+                code);
+            Assert.Equal(
+                0,
+                httpClientFactoryCalls);
+            Assert.Contains(
+                "[security-notes]",
+                error.ToString(),
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "provider was not invoked",
+                error.ToString(),
+                StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void RequiredSectionContentAcceptsAnyNonEmptyMatchingSection()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = Path.Combine(
+                root,
+                "0001-use-cache.md");
+            File.WriteAllText(
+                target,
+                """
+                # Use Cache
+
+                ## Status
+                Proposed
+
+                ## Context
+                We need caching.
+
+                ## Operational Notes
+
+                ## Operational Notes
+                Runbook and ownership are documented.
+
+                ## Decision
+                Use a cache.
+
+                ## Consequences
+                Cache operation must be defined.
+                """);
+            var policy = WritePolicy(
+                root,
+                """
+                {
+                  "schemaVersion": "1.0",
+                  "rules": [
+                    {
+                      "name": "operational-notes",
+                      "type": "required-section-content",
+                      "section": "Operational Notes"
+                    }
+                  ]
+                }
+                """);
+            var provider = new StaticReviewProvider(
+                CompleteObservedResult());
+
+            var result = Run(
+                provider,
+                "review",
+                target,
+                "--provider",
+                "openai",
+                "--model",
+                "test-model",
+                "--policy",
+                "enforce",
+                "--policy-file",
+                policy);
+
+            Assert.Equal(
+                ExitCodes.Success,
+                result.Code);
+            Assert.Equal(
+                1,
+                provider.CallCount);
+            Assert.DoesNotContain(
+                "[operational-notes]",
+                result.Error,
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public void PassingEnforcementIsIndependentOfModelWording()
     {
         var root = CreateTempDirectory();
