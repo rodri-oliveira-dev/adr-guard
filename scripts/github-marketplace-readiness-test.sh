@@ -37,7 +37,7 @@ for input in path command version; do
   }
 done
 
-for required in LICENSE SUPPORT.md SECURITY.md README.md README.pt-BR.md docs/github-action.md docs/github-action.pt-BR.md docs/github-marketplace.md docs/github-marketplace.pt-BR.md docs/github-action-external-verification.md docs/github-action-external-verification.pt-BR.md; do
+for required in LICENSE SUPPORT.md SECURITY.md README.md README.pt-BR.md docs/github-action.md docs/github-action.pt-BR.md docs/github-marketplace.md docs/github-marketplace.pt-BR.md docs/github-action-external-verification.md docs/github-action-external-verification.pt-BR.md docs/public-release-audit.md docs/public-release-audit.pt-BR.md; do
   test -s "${ROOT_DIR}/${required}" || {
     echo "Marketplace readiness file is missing or empty: ${required}" >&2
     exit 1
@@ -47,10 +47,17 @@ done
 grep -Fq 'MIT License' "${ROOT_DIR}/LICENSE"
 grep -Fq 'https://github.com/rodri-oliveira-dev/adr-guard/issues' "${ROOT_DIR}/SUPPORT.md"
 grep -Fq 'Reporting a vulnerability' "${ROOT_DIR}/SECURITY.md"
-grep -Fq 'Pre-release external verification: passed.' "${ROOT_DIR}/docs/github-action-external-verification.md"
-grep -Fq 'Production Marketplace verification: pending.' "${ROOT_DIR}/docs/github-action-external-verification.md"
-grep -Fq 'Verificação externa pré-release: aprovada.' "${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
-grep -Fq 'Verificação de produção no Marketplace: pendente.' "${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
+grep -Fq 'Independent pre-release repository verification: passed.' "${ROOT_DIR}/docs/github-action-external-verification.md"
+grep -Fq 'Production Marketplace verification: pending owner publication.' "${ROOT_DIR}/docs/github-action-external-verification.md"
+grep -Fq 'Verificação pré-release em repositório independente: aprovada.' "${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
+grep -Fq 'Verificação de produção no Marketplace: pendente de publicação pelo proprietário.' "${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
+
+grep -Fq '2026-09-27' "${MARKETPLACE_EN}"
+grep -Fq '27/09/2026' "${MARKETPLACE_PT}"
+grep -Fq 'canonical `github.com/marketplace/actions/...` URL' "${MARKETPLACE_EN}"
+grep -Fq 'URL canônica `github.com/marketplace/actions/...`' "${MARKETPLACE_PT}"
+grep -Fiq 'owner' "${ROOT_DIR}/docs/public-release-audit.md"
+grep -Fiq 'proprietário' "${ROOT_DIR}/docs/public-release-audit.pt-BR.md"
 
 for guide in "${MARKETPLACE_EN}" "${MARKETPLACE_PT}"; do
   grep -Fq "${expected_name}" "${guide}"
