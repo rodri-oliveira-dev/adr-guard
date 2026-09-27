@@ -295,6 +295,9 @@ jobs:
       - name: Verify low-level input, exit-code, mount, and workspace behavior
         run: bash scripts/github-action-smoke-test.sh "${ADR_GUARD_ACTION_IMAGE_VERSION}"
 
+      - name: Verify opt-in AI review paths with mock provider
+        run: bash scripts/github-action-review-test.sh
+
       - name: Verify annotations, summaries, and hostile diagnostic handling
         run: bash scripts/github-action-report-test.sh
 
