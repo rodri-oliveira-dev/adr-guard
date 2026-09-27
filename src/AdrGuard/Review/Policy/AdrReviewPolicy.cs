@@ -276,16 +276,17 @@ internal static class AdrReviewPolicyEvaluator
         AdrReviewPolicyRule rule,
         List<AdrReviewPolicyViolation> violations)
     {
-        var section = document.Sections
-            .FirstOrDefault(candidate =>
+        var hasNonEmptySection = document.Sections
+            .Any(candidate =>
                 candidate.Level == 2
                 && string.Equals(
                     candidate.Heading,
                     rule.Section,
-                    StringComparison.OrdinalIgnoreCase));
+                    StringComparison.OrdinalIgnoreCase)
+                && !string.IsNullOrWhiteSpace(
+                    candidate.Content));
 
-        if (section is not null
-            && !string.IsNullOrWhiteSpace(section.Content))
+        if (hasNonEmptySection)
         {
             return;
         }
