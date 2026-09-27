@@ -1,4 +1,5 @@
 using AdrGuard.Generation.Http;
+using AdrGuard.Review.Security;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -8,7 +9,10 @@ internal static class AdrReviewJsonContract
 {
     internal const int MaximumFindings = 64;
     private static readonly JsonSerializerOptions JsonOptions =
-        new(JsonSerializerDefaults.Web);
+        new(JsonSerializerDefaults.Web)
+        {
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+        };
 
     internal static readonly string[] Classifications =
     [
@@ -107,6 +111,27 @@ internal static class AdrReviewJsonContract
                     $"{providerDisplayName} returned an invalid review finding.");
             }
 
+            EnsureBounded(
+                finding.Source,
+                "source",
+                AdrReviewSecurityLimits.MaximumSourceCharacters,
+                providerDisplayName);
+            EnsureBounded(
+                finding.Excerpt,
+                "excerpt",
+                AdrReviewSecurityLimits.MaximumExcerptCharacters,
+                providerDisplayName);
+            EnsureBounded(
+                finding.Explanation,
+                "explanation",
+                AdrReviewSecurityLimits.MaximumExplanationCharacters,
+                providerDisplayName);
+            EnsureBounded(
+                finding.Guidance,
+                "guidance",
+                AdrReviewSecurityLimits.MaximumGuidanceCharacters,
+                providerDisplayName);
+
             if (string.Equals(
                     finding.Classification,
                     "missing-context",
@@ -176,6 +201,20 @@ internal static class AdrReviewJsonContract
         }
 
         return trimmed[(firstLineEnd + 1)..^3].Trim();
+    }
+
+    private static void EnsureBounded(
+        string? value,
+        string fieldName,
+        int maximumCharacters,
+        string providerDisplayName)
+    {
+        if (value is not null
+            && value.Length > maximumCharacters)
+        {
+            throw InvalidResponse(
+                $"{providerDisplayName} returned a review {fieldName} field exceeding the {maximumCharacters}-character safety limit.");
+        }
     }
 
     private static string? NormalizeOptional(string? value) =>
