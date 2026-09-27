@@ -1,6 +1,6 @@
 # Guia de consumo da GitHub Action
 
-> **Status da publicação:** a Action reutilizável e a tag de compatibilidade `v1` estão publicadas para o contrato atual de `check`/`index`. O `command: review` opt-in está implementado no PR #85 nesta branch, mas ainda não faz parte do `@v1` remoto atual até a publicação da release pós-merge. A listagem no Marketplace é acompanhada separadamente e continua futura até ser publicada e verificada manualmente.
+> **Status da publicação:** a Action reutilizável está publicada, e a tag de compatibilidade `v1` está publicada para o contrato atual de `check`/`index`. O `command: review` opt-in está implementado no PR #85 nesta branch, mas ainda não faz parte do `@v1` remoto atual até a publicação da release pós-merge. A listagem no Marketplace é acompanhada separadamente e continua futura até ser publicada e verificada manualmente.
 
 A composite Action do ADR Guard executa o container publicado do ADR Guard. O consumidor não precisa do .NET SDK, mas precisa de um runner Linux com Docker e deve fazer checkout do repositório antes.
 
