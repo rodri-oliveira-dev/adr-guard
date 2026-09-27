@@ -16,5 +16,6 @@
 
   <ItemGroup>
     <None Update="Fixtures/Templates/*.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/Review/**/*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
