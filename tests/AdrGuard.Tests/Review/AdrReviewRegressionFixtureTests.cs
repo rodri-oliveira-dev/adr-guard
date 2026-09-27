@@ -3,6 +3,7 @@ using AdrGuard.Generation.Http;
 using AdrGuard.Review;
 using AdrGuard.Review.Providers;
 using AdrGuard.Review.Reporting;
+using System.Text.Json;
 using Xunit;
 
 namespace AdrGuard.Tests.Review;
@@ -224,17 +225,33 @@ public sealed class AdrReviewRegressionFixtureTests
             var providerContext =
                 provider.LastRequest!.ProviderContext;
 
+            using var envelope =
+                JsonDocument.Parse(
+                    providerContext);
+            var sources = envelope.RootElement
+                .GetProperty("sources")
+                .EnumerateArray()
+                .ToArray();
+            var existingContent = sources
+                .Single(source =>
+                    source.GetProperty("sourceId")
+                        .GetString()
+                    == "existing-adrs")
+                .GetProperty("content")
+                .GetString()
+                ?? string.Empty;
+
             var postgresPosition =
-                providerContext.IndexOf(
-                    "0002-use-postgres-cache.md",
+                existingContent.IndexOf(
+                    "ADR 0002",
                     StringComparison.Ordinal);
             var legacyPosition =
-                providerContext.IndexOf(
-                    "0003-legacy-cache.md",
+                existingContent.IndexOf(
+                    "ADR 0003",
                     StringComparison.Ordinal);
             var redisPosition =
-                providerContext.IndexOf(
-                    "0004-use-redis-cache.md",
+                existingContent.IndexOf(
+                    "ADR 0004",
                     StringComparison.Ordinal);
 
             Assert.True(
@@ -247,16 +264,20 @@ public sealed class AdrReviewRegressionFixtureTests
                 > legacyPosition);
             Assert.Contains(
                 "Status: Superseded",
-                providerContext,
+                existingContent,
                 StringComparison.Ordinal);
             Assert.Contains(
-                "requirements.txt",
-                providerContext,
-                StringComparison.Ordinal);
+                sources,
+                source =>
+                    source.GetProperty("name")
+                        .GetString()
+                    == "requirements.txt");
             Assert.DoesNotContain(
-                "unselected-secret.txt",
-                providerContext,
-                StringComparison.Ordinal);
+                sources,
+                source =>
+                    source.GetProperty("name")
+                        .GetString()
+                    == "unselected-secret.txt");
 
             var report =
                 AdrReviewReportSerializer.Deserialize(
