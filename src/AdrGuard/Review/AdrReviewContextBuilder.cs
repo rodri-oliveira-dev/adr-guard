@@ -16,6 +16,9 @@ internal static class AdrReviewContextBuilder
 {
     internal const int MaximumPromptCharacters = 120000;
 
+    private static readonly JsonSerializerOptions ProviderContextJsonOptions =
+        new(JsonSerializerDefaults.Web);
+
     internal static async Task<AdrReviewContext> BuildAsync(
         string targetPath,
         string targetMarkdown,
@@ -152,7 +155,9 @@ internal static class AdrReviewContextBuilder
                 SecretAccess: false),
             sources.ToArray());
 
-        var composed = JsonSerializer.Serialize(envelope);
+        var composed = JsonSerializer.Serialize(
+            envelope,
+            ProviderContextJsonOptions);
 
         if (composed.Length > MaximumPromptCharacters)
         {
