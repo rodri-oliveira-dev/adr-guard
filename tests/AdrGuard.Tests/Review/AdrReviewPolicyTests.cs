@@ -148,6 +148,73 @@ public sealed class AdrReviewPolicyTests
     }
 
     [Fact]
+    public void RequiredContextFilePassesWhenExistingFileIsExplicitlySelected()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = WriteTarget(root);
+            var securityContext = Path.Combine(
+                root,
+                "security.md");
+            File.WriteAllText(
+                securityContext,
+                """
+                # Security Context
+
+                Security requirements are explicitly selected for this review.
+                """);
+            var policy = WritePolicy(
+                root,
+                """
+                {
+                  "schemaVersion": "1.0",
+                  "rules": [
+                    {
+                      "name": "security-context",
+                      "type": "required-context-file",
+                      "path": "security.md"
+                    }
+                  ]
+                }
+                """);
+            var provider = new StaticReviewProvider(
+                CompleteObservedResult());
+
+            var result = Run(
+                provider,
+                "review",
+                target,
+                "--provider",
+                "openai",
+                "--model",
+                "test-model",
+                "--context-file",
+                securityContext,
+                "--policy",
+                "enforce",
+                "--policy-file",
+                policy);
+
+            Assert.Equal(
+                ExitCodes.Success,
+                result.Code);
+            Assert.Equal(
+                1,
+                provider.CallCount);
+            Assert.DoesNotContain(
+                "[security-context]",
+                result.Error,
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
     public void EnforceFailurePrecedesRealProviderConstructionWithoutCredentials()
     {
         var root = CreateTempDirectory();
