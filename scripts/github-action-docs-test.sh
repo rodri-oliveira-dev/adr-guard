@@ -13,8 +13,10 @@ EXTERNAL_EN="${ROOT_DIR}/docs/github-action-external-verification.md"
 EXTERNAL_PT="${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
 REVIEW_EN="${ROOT_DIR}/docs/github-action-review.md"
 REVIEW_PT="${ROOT_DIR}/docs/github-action-review.pt-BR.md"
+AUDIT_EN="${ROOT_DIR}/docs/public-release-audit.md"
+AUDIT_PT="${ROOT_DIR}/docs/public-release-audit.pt-BR.md"
 
-for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${REVIEW_EN}" "${REVIEW_PT}"; do
+for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${REVIEW_EN}" "${REVIEW_PT}" "${AUDIT_EN}" "${AUDIT_PT}"; do
   test -s "${file}" || {
     echo "Required GitHub Action consumer documentation is missing: ${file}" >&2
     exit 1
@@ -99,19 +101,34 @@ grep -Fiq 'tag de compatibilidade `v1` está publicada' "${GUIDE_PT}" || {
   echo "pt-BR guide must describe the published v1 compatibility tag." >&2
   exit 1
 }
-grep -Fiq 'the `@v1` compatibility tag is published' "${README_EN}" || {
+grep -Fiq 'moving `@v1` tag is published' "${README_EN}" || {
   echo "English README must describe @v1 as published." >&2
   exit 1
 }
-grep -Fiq 'a tag de compatibilidade `@v1` está publicada' "${README_PT}" || {
+grep -Fiq 'tag móvel `@v1` está publicada' "${README_PT}" || {
   echo "pt-BR README must describe @v1 as published." >&2
   exit 1
 }
 
-if grep -Eq 'github\.com/marketplace/actions/' "${GUIDE_EN}" "${GUIDE_PT}"; then
+if grep -Eq 'github\.com/marketplace/actions/' "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}"; then
   echo "Marketplace URL must not be published before a verified listing exists." >&2
   exit 1
 fi
+
+for audit in "${AUDIT_EN}" "${AUDIT_PT}"; do
+  grep -Fq 'v1.1.6' "${audit}"
+  grep -Fq '36356961234' "${audit}"
+  grep -Fq 'RodriOliveira.AdrGuard' "${audit}"
+  grep -Fq 'Docker Hub' "${audit}"
+  grep -Fq 'Marketplace' "${audit}"
+done
+
+for stale_claim in   'current published **v1.1.5**'   'current published CLI package/image | `v1.1.5`'   'Pacote/imagem do CLI publicados atualmente | `v1.1.5`'   'PR #85 on this branch'   'PR #85 nesta branch'   'still exposes `check`/`index` only'   'ainda expõe somente `check`/`index`'; do
+  if grep -Fiq "${stale_claim}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${REVIEW_EN}" "${REVIEW_PT}"; then
+    echo "Documentation contains stale post-v1.1.6 availability wording: ${stale_claim}" >&2
+    exit 1
+  fi
+done
 
 # Historical external-consumer evidence must not imply that the published @v1 tag is still pending.
 grep -Fq 'the `v1` compatibility tag is published' "${EXTERNAL_EN}" || {
