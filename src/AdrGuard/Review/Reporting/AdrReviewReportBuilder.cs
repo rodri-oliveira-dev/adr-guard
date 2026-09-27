@@ -220,9 +220,11 @@ internal static partial class AdrReviewReportBuilder
                 "Review finding contains an undocumented path. Only selected source IDs and filenames are allowed.");
         }
 
-        var fileTokens = SourceFileToken()
+        var fileTokenMatches = SourceFileToken()
             .Matches(sourceText)
             .Cast<Match>()
+            .ToArray();
+        var fileTokens = fileTokenMatches
             .Select(match => match.Value)
             .Distinct(StringComparer.Ordinal)
             .ToArray();
@@ -240,7 +242,9 @@ internal static partial class AdrReviewReportBuilder
             }
         }
 
-        var matches = new List<(SelectedSource Source, int Position)>();
+        var matches =
+            new Dictionary<string, (SelectedSource Source, int Position)>(
+                StringComparer.Ordinal);
 
         foreach (var source in sources)
         {
@@ -248,17 +252,57 @@ internal static partial class AdrReviewReportBuilder
             var idPosition = sourceText.IndexOf(
                 idMarker,
                 StringComparison.Ordinal);
-            var pathPosition = sourceText.IndexOf(
-                source.Path,
-                StringComparison.Ordinal);
 
-            var position = idPosition >= 0
-                ? idPosition
-                : pathPosition;
-
-            if (position >= 0)
+            if (idPosition >= 0)
             {
-                matches.Add((source, position));
+                matches[source.SourceId] = (
+                    source,
+                    idPosition);
+            }
+        }
+
+        foreach (var tokenMatch in fileTokenMatches)
+        {
+            var candidates = sources
+                .Where(source =>
+                    string.Equals(
+                        source.Path,
+                        tokenMatch.Value,
+                        StringComparison.Ordinal))
+                .ToArray();
+
+            if (candidates.Length == 0)
+            {
+                continue;
+            }
+
+            if (candidates.Length > 1)
+            {
+                var explicitlyIdentified = candidates
+                    .Any(candidate =>
+                        sourceText.Contains(
+                            $"[{candidate.SourceId}]",
+                            StringComparison.Ordinal));
+
+                if (!explicitlyIdentified)
+                {
+                    throw new InvalidOperationException(
+                        $"Review finding source '{sourceText}' is ambiguous; use the visible source ID.");
+                }
+
+                continue;
+            }
+
+            var candidate = candidates[0];
+
+            if (!matches.TryGetValue(
+                    candidate.SourceId,
+                    out var existing)
+                || tokenMatch.Index < existing.Position)
+            {
+                matches[candidate.SourceId] = (
+                    candidate,
+                    tokenMatch.Index);
             }
         }
 
@@ -268,32 +312,11 @@ internal static partial class AdrReviewReportBuilder
                 $"Review finding source '{sourceText}' does not match any selected review source.");
         }
 
-        foreach (var group in matches
-                     .Where(match => match.Position >= 0)
-                     .GroupBy(
-                         match => match.Source.Path,
-                         StringComparer.Ordinal))
-        {
-            if (group.Count() <= 1)
-            {
-                continue;
-            }
-
-            var explicitlyIdentified = group
-                .Any(match => sourceText.Contains(
-                    $"[{match.Source.SourceId}]",
-                    StringComparison.Ordinal));
-
-            if (!explicitlyIdentified)
-            {
-                throw new InvalidOperationException(
-                    $"Review finding source '{sourceText}' is ambiguous; use the visible source ID.");
-            }
-        }
-
-        return matches
+        return matches.Values
             .OrderBy(match => match.Position)
-            .ThenBy(match => match.Source.SourceId, StringComparer.Ordinal)
+            .ThenBy(
+                match => match.Source.SourceId,
+                StringComparer.Ordinal)
             .Select(match =>
                 new AdrReviewEvidenceReport(
                     match.Source.SourceId,
