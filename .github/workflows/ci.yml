@@ -43,6 +43,14 @@ jobs:
       - name: Test
         run: dotnet test AdrGuard.slnx --configuration Release --no-build
 
+      - name: Deterministic ADR review regression matrix
+        run: >-
+          dotnet test tests/AdrGuard.Tests/AdrGuard.Tests.csproj
+          --configuration Release
+          --no-build
+          --
+          --filter-class AdrGuard.Tests.Review.AdrReviewRegressionFixtureTests
+
       - name: Pack .NET Tool
         run: dotnet pack src/AdrGuard/AdrGuard.csproj --configuration Release --no-build --output artifacts/package
 

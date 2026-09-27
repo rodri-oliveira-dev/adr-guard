@@ -1,0 +1,12 @@
+{
+  "findings": [
+    {"dimension":"clarity-and-rationale","classification":"observed-evidence","source":"[target] 0001-use-cache.md","excerpt":"Use Redis for bounded application caching.","explanation":"The decision is explicit.","guidance":"Verify the rationale with stakeholders."},
+    {"dimension":"considered-alternatives","classification":"missing-context","source":"","excerpt":"","explanation":"not enough information to determine which alternatives were considered.","guidance":"Ask which alternatives were considered and why they were rejected."},
+    {"dimension":"nonfunctional-requirements","classification":"missing-context","source":"","excerpt":"","explanation":"not enough information to determine a measurable latency objective.","guidance":"Provide the expected latency and load targets."},
+    {"dimension":"risks-and-consequences","classification":"observed-evidence","source":"[target] 0001-use-cache.md","excerpt":"Cache invalidation, observability, and fallback behavior require human review.","explanation":"Operational consequences are listed.","guidance":"Verify mitigations."},
+    {"dimension":"architectural-consistency","classification":"recommendation-for-human-investigation","source":"[target] 0001-use-cache.md","excerpt":"Use Redis for bounded application caching.","explanation":"Consistency with other active ADRs requires selected cross-ADR evidence.","guidance":"Opt in to existing ADR context when comparison is required."},
+    {"dimension":"security-and-compliance","classification":"missing-context","source":"","excerpt":"","explanation":"not enough information to determine security or compliance obligations.","guidance":"Provide relevant security and compliance constraints."},
+    {"dimension":"implementation-and-operational-feasibility","classification":"observed-evidence","source":"[target] 0001-use-cache.md","excerpt":"observability, and fallback behavior","explanation":"Operational concerns are acknowledged.","guidance":"Verify runbook and ownership."},
+    {"dimension":"measurable-verification-criteria","classification":"missing-context","source":"","excerpt":"","explanation":"not enough information to determine pass/fail verification criteria.","guidance":"Define measurable validation criteria."}
+  ]
+}

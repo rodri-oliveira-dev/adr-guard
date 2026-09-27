@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0",
+  "rules": [
+    {
+      "name": "security-section-required",
+      "type": "required-section-content",
+      "section": "Security"
+    }
+  ]
+}

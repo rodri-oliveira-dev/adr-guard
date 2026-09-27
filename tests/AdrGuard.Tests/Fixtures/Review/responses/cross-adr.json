@@ -1,0 +1,12 @@
+{
+  "findings": [
+    {"dimension":"clarity-and-rationale","classification":"observed-evidence","source":"[target] 0001-use-cache.md","excerpt":"Use Redis for bounded application caching.","explanation":"The target decision is explicit.","guidance":"Verify the rationale."},
+    {"dimension":"considered-alternatives","classification":"observed-evidence","source":"[target] 0001-use-cache.md","excerpt":"Use Redis for bounded application caching.","explanation":"The selected corpus exposes another active approach for human comparison.","guidance":"Confirm whether the active PostgreSQL-cache decision is an intended alternative."},
+    {"dimension":"nonfunctional-requirements","classification":"observed-evidence","source":"[target] 0001-use-cache.md","excerpt":"low-latency repeated reads","explanation":"Latency is an observable driver.","guidance":"Verify measurable targets."},
+    {"dimension":"risks-and-consequences","classification":"observed-evidence","source":"[target] 0001-use-cache.md","excerpt":"Cache invalidation, observability, and fallback behavior require human review.","explanation":"The target records explicit risks.","guidance":"Verify mitigations."},
+    {"dimension":"architectural-consistency","classification":"potential-risk","source":"[target] 0001-use-cache.md and [existing-1] 0002-use-postgres-cache.md","excerpt":"Use Redis ... / Do not use Redis; store transient shared cache state in PostgreSQL.","explanation":"The two selected active decisions contain an observable text-level mismatch; scope and chronology still require human confirmation.","guidance":"Confirm whether both decisions govern the same service scope and time period."},
+    {"dimension":"security-and-compliance","classification":"missing-context","source":"","excerpt":"","explanation":"not enough information to determine security or compliance impact from the selected ADRs.","guidance":"Provide relevant security constraints if they affect the cache choice."},
+    {"dimension":"implementation-and-operational-feasibility","classification":"observed-evidence","source":"[target] 0001-use-cache.md","excerpt":"observability, and fallback behavior","explanation":"The target names operational concerns.","guidance":"Verify operational readiness."},
+    {"dimension":"measurable-verification-criteria","classification":"missing-context","source":"","excerpt":"","explanation":"not enough information to determine measurable acceptance criteria.","guidance":"Define objective verification criteria."}
+  ]
+}
