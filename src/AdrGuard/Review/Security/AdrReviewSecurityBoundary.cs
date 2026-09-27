@@ -201,11 +201,8 @@ internal sealed class AdrReviewSecurityBoundary
     {
         ArgumentNullException.ThrowIfNull(value);
 
-        if (maximumCharacters <= 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(maximumCharacters));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(
+            maximumCharacters);
 
         var builder = new StringBuilder(
             Math.Min(
