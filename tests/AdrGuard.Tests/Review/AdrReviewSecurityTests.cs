@@ -104,8 +104,9 @@ public sealed class AdrReviewSecurityTests
                 ExitCodes.Success,
                 result.Code);
 
-            var request = Assert.NotNull(
+            Assert.NotNull(
                 provider.LastRequest);
+            var request = provider.LastRequest!;
 
             using var context = JsonDocument.Parse(
                 request.ProviderContext);
@@ -229,8 +230,9 @@ public sealed class AdrReviewSecurityTests
                 ExitCodes.Success,
                 result.Code);
 
-            var request = Assert.NotNull(
+            Assert.NotNull(
                 provider.LastRequest);
+            var request = provider.LastRequest!;
 
             Assert.DoesNotContain(
                 Secret,
