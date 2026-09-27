@@ -53,6 +53,20 @@ for token in '50.000' '150.000' '100.000' '300.000' '12.000' '120.000'; do
   }
 done
 
+# Markdown table option values must escape literal pipe separators.
+for guide in "${EN}" "${PT}"; do
+  grep -Fq -- '`--policy advisory\|enforce`' "${guide}"
+  grep -Fq -- '`--format text\|json`' "${guide}"
+done
+
+# Action review runtime and event boundaries must stay synchronized in both languages.
+for guide in "${ACTION_REVIEW_EN}" "${ACTION_REVIEW_PT}"; do
+  grep -Fq 'Python 3' "${guide}"
+  grep -Fq 'workflow_dispatch' "${guide}"
+  grep -Fq 'schedule' "${guide}"
+  grep -Fq 'pull_request_target' "${guide}"
+done
+
 # Human ownership, third-party processing and opt-out language must be explicit.
 grep -Fiq 'not proof' "${EN}"
 grep -Fiq 'não prova' "${PT}"
