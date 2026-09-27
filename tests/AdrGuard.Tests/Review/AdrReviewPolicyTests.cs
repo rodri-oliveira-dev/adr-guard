@@ -1,6 +1,7 @@
 using AdrGuard.Cli;
 using AdrGuard.Review;
 using AdrGuard.Review.Policy;
+using System.Text.Json;
 using Xunit;
 
 namespace AdrGuard.Tests.Review;
@@ -523,6 +524,319 @@ public sealed class AdrReviewPolicyTests
                 "unsupported deterministic type",
                 result.Error,
                 StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void PolicyLoaderRejectsAbsoluteRequiredContextPath()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = WriteTarget(root);
+            var absolutePath = Path.Combine(
+                root,
+                "security.md");
+            var policy = WritePolicy(
+                root,
+                JsonSerializer.Serialize(
+                    new
+                    {
+                        schemaVersion = "1.0",
+                        rules = new[]
+                        {
+                            new
+                            {
+                                name = "absolute-context",
+                                type = "required-context-file",
+                                path = absolutePath,
+                            },
+                        },
+                    }));
+            var provider = new StaticReviewProvider(
+                CompleteObservedResult());
+
+            var result = Run(
+                provider,
+                "review",
+                target,
+                "--provider",
+                "openai",
+                "--model",
+                "test-model",
+                "--policy-file",
+                policy);
+
+            Assert.Equal(
+                ExitCodes.UsageError,
+                result.Code);
+            Assert.Equal(
+                0,
+                provider.CallCount);
+            Assert.Contains(
+                "relative 'path'",
+                result.Error,
+                StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void PolicyLoaderRejectsUnsupportedContextExtension()
+    {
+        var result = RunWithPolicy(
+            """
+            {
+              "schemaVersion": "1.0",
+              "rules": [
+                {
+                  "name": "security-context",
+                  "type": "required-context-file",
+                  "path": "security.json"
+                }
+              ]
+            }
+            """);
+
+        Assert.Equal(
+            ExitCodes.UsageError,
+            result.Code);
+        Assert.Contains(
+            ".md or .txt",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PolicyLoaderRejectsDuplicateRuleNames()
+    {
+        var result = RunWithPolicy(
+            """
+            {
+              "schemaVersion": "1.0",
+              "rules": [
+                {
+                  "name": "duplicate",
+                  "type": "required-section-content",
+                  "section": "Context"
+                },
+                {
+                  "name": "duplicate",
+                  "type": "required-section-content",
+                  "section": "Decision"
+                }
+              ]
+            }
+            """);
+
+        Assert.Equal(
+            ExitCodes.UsageError,
+            result.Code);
+        Assert.Contains(
+            "invalid or duplicated",
+            result.Error,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PolicyLoaderRejectsUnknownJsonProperty()
+    {
+        var result = RunWithPolicy(
+            """
+            {
+              "schemaVersion": "1.0",
+              "unsupported": true,
+              "rules": [
+                {
+                  "name": "context",
+                  "type": "required-section-content",
+                  "section": "Context"
+                }
+              ]
+            }
+            """);
+
+        Assert.Equal(
+            ExitCodes.UsageError,
+            result.Code);
+        Assert.Contains(
+            "unsupported properties",
+            result.Error,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void PolicyLoaderRejectsUnsupportedSchemaVersion()
+    {
+        var result = RunWithPolicy(
+            """
+            {
+              "schemaVersion": "2.0",
+              "rules": [
+                {
+                  "name": "context",
+                  "type": "required-section-content",
+                  "section": "Context"
+                }
+              ]
+            }
+            """);
+
+        Assert.Equal(
+            ExitCodes.UsageError,
+            result.Code);
+        Assert.Contains(
+            "Unsupported review policy schema version",
+            result.Error,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InvalidPolicyModeIsUsageErrorBeforeProvider()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = WriteTarget(root);
+            var provider = new StaticReviewProvider(
+                CompleteObservedResult());
+
+            var result = Run(
+                provider,
+                "review",
+                target,
+                "--provider",
+                "openai",
+                "--model",
+                "test-model",
+                "--policy",
+                "strict");
+
+            Assert.Equal(
+                ExitCodes.UsageError,
+                result.Code);
+            Assert.Equal(
+                0,
+                provider.CallCount);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    [Fact]
+    public void AdvisoryPolicyWithJsonFormatKeepsStdoutAsValidJson()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = WriteTarget(root);
+            var policy = WritePolicy(
+                root,
+                """
+                {
+                  "schemaVersion": "1.0",
+                  "rules": [
+                    {
+                      "name": "ops-notes",
+                      "type": "required-section-content",
+                      "section": "Operational Notes"
+                    }
+                  ]
+                }
+                """);
+            var provider = new StaticReviewProvider(
+                CompleteObservedResult());
+
+            var result = Run(
+                provider,
+                "review",
+                target,
+                "--provider",
+                "openai",
+                "--model",
+                "test-model",
+                "--policy-file",
+                policy,
+                "--format",
+                "json");
+
+            Assert.Equal(
+                ExitCodes.Success,
+                result.Code);
+            Assert.Equal(
+                1,
+                provider.CallCount);
+
+            using var report =
+                JsonDocument.Parse(
+                    result.Output);
+
+            Assert.Equal(
+                "1.0",
+                report.RootElement
+                    .GetProperty("schemaVersion")
+                    .GetString());
+            Assert.Contains(
+                "Review policy: advisory",
+                result.Error,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "[ops-notes]",
+                result.Error,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "Review policy:",
+                result.Output,
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, true);
+        }
+    }
+
+    private static (int Code, string Output, string Error) RunWithPolicy(
+        string policyContent)
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var target = WriteTarget(root);
+            var policy = WritePolicy(
+                root,
+                policyContent);
+            var provider = new StaticReviewProvider(
+                CompleteObservedResult());
+
+            var result = Run(
+                provider,
+                "review",
+                target,
+                "--provider",
+                "openai",
+                "--model",
+                "test-model",
+                "--policy-file",
+                policy);
+
+            Assert.Equal(
+                0,
+                provider.CallCount);
+
+            return result;
         }
         finally
         {
