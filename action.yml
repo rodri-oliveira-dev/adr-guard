@@ -1,18 +1,50 @@
 name: ADR Guard - Architecture Decision Validator
-description: Validate and index Architecture Decision Records (ADRs) with deterministic checks and GitHub file annotations.
+description: Validate, index, or explicitly review Architecture Decision Records (ADRs) with safe GitHub reporting.
 author: Rodrigo de Oliveira
 
 inputs:
   path:
-    description: Repository-relative ADR directory. Must stay inside GITHUB_WORKSPACE.
+    description: Repository-relative ADR directory for check/index. Must stay inside GITHUB_WORKSPACE.
     required: false
     default: docs/adr
   command:
-    description: ADR Guard command to run. Allowed values are 'check' and 'index'.
+    description: ADR Guard command to run. Allowed values are 'check', 'index', and opt-in 'review'.
     required: false
     default: check
   version:
     description: Optional exact ADR Guard image version (X.Y.Z or vX.Y.Z). When omitted, @vX.Y.Z selects the exact image and @vX selects the matching moving major image.
+    required: false
+    default: ""
+  review-target:
+    description: Repository-relative ADR Markdown file to review. Required only when command is 'review'.
+    required: false
+    default: ""
+  provider:
+    description: AI provider for review. Required only for review; credentials are supplied through the caller step environment, never as Action inputs.
+    required: false
+    default: ""
+  model:
+    description: Provider model identifier for review. Required only when command is 'review'.
+    required: false
+    default: ""
+  endpoint:
+    description: Optional endpoint for the openai-compatible review provider.
+    required: false
+    default: ""
+  context-files:
+    description: Optional newline-delimited repository-relative .md/.txt context files selected explicitly for review.
+    required: false
+    default: ""
+  include-existing-adrs:
+    description: Opt in to bounded existing-ADR context for review. Allowed values are 'false' and 'true'.
+    required: false
+    default: "false"
+  policy:
+    description: Deterministic review policy mode. Allowed values are 'advisory' and 'enforce'.
+    required: false
+    default: advisory
+  policy-file:
+    description: Optional repository-relative review policy JSON. Required when policy is 'enforce'.
     required: false
     default: ""
 
@@ -25,7 +57,18 @@ runs:
         ADR_GUARD_PATH: ${{ inputs.path }}
         ADR_GUARD_COMMAND: ${{ inputs.command }}
         ADR_GUARD_VERSION: ${{ inputs.version }}
+        ADR_GUARD_REVIEW_TARGET: ${{ inputs.review-target }}
+        ADR_GUARD_REVIEW_PROVIDER: ${{ inputs.provider }}
+        ADR_GUARD_REVIEW_MODEL: ${{ inputs.model }}
+        ADR_GUARD_REVIEW_ENDPOINT: ${{ inputs.endpoint }}
+        ADR_GUARD_REVIEW_CONTEXT_FILES: ${{ inputs.context-files }}
+        ADR_GUARD_REVIEW_INCLUDE_EXISTING_ADRS: ${{ inputs.include-existing-adrs }}
+        ADR_GUARD_REVIEW_POLICY: ${{ inputs.policy }}
+        ADR_GUARD_REVIEW_POLICY_FILE: ${{ inputs.policy-file }}
         ADR_GUARD_ACTION_REF: ${{ github.action_ref }}
+        ADR_GUARD_EVENT_NAME: ${{ github.event_name }}
+        ADR_GUARD_REPOSITORY: ${{ github.repository }}
+        ADR_GUARD_PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
       run: bash "${{ github.action_path }}/scripts/github-action.sh"
 
 branding:
