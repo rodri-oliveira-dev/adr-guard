@@ -12,8 +12,8 @@
     <VersionPrefix>1.1.0</VersionPrefix>
     <Title>ADR Guard - Architecture Decision Records Validator</Title>
     <Authors>Rodrigo de Oliveira</Authors>
-    <Description>Validate, index, and create Architecture Decision Records from the command line. ADR Guard provides deterministic Markdown checks, offline ADR generation from built-in or custom templates, and optional human-reviewed AI-assisted drafting.</Description>
-    <PackageTags>adr;architecture;architecture-decision-record;architecture-decision-records;dotnet;dotnet-tool;cli;validation;markdown;documentation;templates;adr-generation</PackageTags>
+    <Description>Validate, index, create, draft, and review Architecture Decision Records from the command line. ADR Guard provides deterministic Markdown checks, offline ADR generation, optional human-reviewed AI-assisted drafting, and evidence-oriented advisory technical review.</Description>
+    <PackageTags>adr;architecture;architecture-decision-record;architecture-decision-records;dotnet;dotnet-tool;cli;validation;markdown;documentation;templates;adr-generation;adr-review;ai</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
