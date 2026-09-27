@@ -803,7 +803,7 @@ public sealed class AdrReviewRegressionFixtureTests
             category,
             fileName);
 
-    private static IReadOnlyDictionary<
+    private static Dictionary<
         string,
         byte[]> Snapshot(
         string root) =>
