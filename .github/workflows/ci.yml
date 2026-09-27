@@ -184,7 +184,6 @@ jobs:
     permissions:
       contents: read
     env:
-      ADR_GUARD_ACTION_IMAGE_VERSION: "0.1.12"
       ACTION_FIXTURE_ROOT: .tmp/adr-action-contract
 
     steps:
@@ -192,6 +191,20 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Resolve latest published Action runtime version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          latest_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name')"
+          if [[ ! "${latest_tag}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::error::Latest GitHub Release is not a stable SemVer tag: ${latest_tag:-<empty>}."
+            exit 1
+          fi
+          echo "ADR_GUARD_ACTION_IMAGE_VERSION=${BASH_REMATCH[1]}" >> "${GITHUB_ENV}"
+          echo "Using latest published runtime image version ${BASH_REMATCH[1]} for Action contract tests."
 
       - name: Verify anonymous GHCR pull and published image security
         run: bash scripts/github-action-security-test.sh "${ADR_GUARD_ACTION_IMAGE_VERSION}"
@@ -276,7 +289,8 @@ jobs:
           test "${generated_indexes[0]}" = "${ACTION_FIXTURE_ROOT}/index ADRs/README.md"
 
       # Exercise the actual published moving @v1 entrypoint (not just ./ with
-      # a pinned published image). The public Action must expose check/index only.
+      # the latest public runtime). check/index compatibility stays stable;
+      # new remains intentionally outside the Action command contract.
       - name: Prepare isolated published @v1 consumer fixtures
         run: |
           mkdir -p "${ACTION_FIXTURE_ROOT}/published-v1 ADRs"
