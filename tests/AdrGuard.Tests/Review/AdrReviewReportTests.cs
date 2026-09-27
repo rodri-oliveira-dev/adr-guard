@@ -1,4 +1,5 @@
 using AdrGuard.Cli;
+using AdrGuard.Generation;
 using AdrGuard.Parsing;
 using AdrGuard.Review;
 using AdrGuard.Review.Reporting;
@@ -357,6 +358,118 @@ public sealed class AdrReviewReportTests
                 root,
                 true);
         }
+    }
+
+    [Fact]
+    public void OutputCannotReplaceTargetThroughSymbolicLinkAlias()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var realTarget = Path.Combine(
+                root,
+                "0002-real.md");
+            var aliasTarget = Path.Combine(
+                root,
+                "0001-alias.md");
+            var original = ValidMarkdown();
+
+            File.WriteAllText(
+                realTarget,
+                original);
+            File.CreateSymbolicLink(
+                aliasTarget,
+                realTarget);
+
+            var exception = Assert.Throws<InvalidOperationException>(
+                () => AdrReviewReportFileWriter.ValidateDestination(
+                    realTarget,
+                    AdrReviewOutputFormat.Text,
+                    aliasTarget,
+                    overwrite: true));
+
+            Assert.Contains(
+                "cannot overwrite",
+                exception.Message,
+                StringComparison.Ordinal);
+            Assert.Equal(
+                original,
+                File.ReadAllText(realTarget));
+        }
+        finally
+        {
+            Directory.Delete(
+                root,
+                true);
+        }
+    }
+
+    [Fact]
+    public void EvidenceFilenameMatchingUsesCompleteTokens()
+    {
+        var markdown = ValidMarkdown();
+        var targetPath = Path.Combine(
+            Path.GetTempPath(),
+            "0001-use-cache.md");
+        var target = AdrMarkdownParser.Parse(
+            targetPath,
+            markdown);
+        var context = new AdrReviewContext(
+            "0001-use-cache.md",
+            markdown,
+            [
+                new ExplicitContextFile(
+                    Path.Combine(
+                        Path.GetTempPath(),
+                        "notes-0001-use-cache.md"),
+                    "Supporting notes."),
+            ],
+            null,
+            null);
+        var result = new AdrReviewResult(
+            [
+                new AdrReviewFinding(
+                    "clarity-and-rationale",
+                    "observed-evidence",
+                    "notes-0001-use-cache.md",
+                    "Supporting notes.",
+                    "The supporting context contains the evidence.",
+                    "Human reviewer should verify the supporting context."),
+            ]);
+
+        var report = AdrReviewReportBuilder.Build(
+            target,
+            context,
+            result,
+            "openai",
+            "test-model",
+            new DateTimeOffset(
+                2026,
+                9,
+                27,
+                12,
+                0,
+                0,
+                TimeSpan.Zero));
+
+        var assessment = Assert.Single(
+            report.Dimensions
+                .Single(dimension =>
+                    string.Equals(
+                        dimension.Name,
+                        "clarity-and-rationale",
+                        StringComparison.Ordinal))
+                .Assessments);
+        var evidence = Assert.Single(
+            assessment.Evidence);
+
+        Assert.Equal(
+            "context-1",
+            evidence.SourceId);
+        Assert.Equal(
+            "notes-0001-use-cache.md",
+            evidence.Path);
     }
 
     [Theory]
