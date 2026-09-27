@@ -1,5 +1,7 @@
 # ADR review security and trust boundaries
 
+[Português (Brasil)](adr-review-security.pt-BR.md)
+
 AI-assisted ADR review processes repository documentation through an external model. Treat every ADR, context file, provider response, and fork contribution as untrusted input.
 
 ## Execution boundary
@@ -59,12 +61,18 @@ Review reports can contain short evidence excerpts or provider-derived architect
 
 ## Community and fork pull requests
 
-Do not expose provider credentials to untrusted fork code or workflows. For future GitHub Action review integration:
+Do not expose provider credentials to untrusted fork code or workflows. The GitHub Action review integration implemented in PR #85 enforces these boundaries:
 
-- preserve GitHub's default behavior that withholds repository secrets from fork pull requests;
-- do not add secrets merely to make an untrusted fork review run;
-- do not use `pull_request_target` to check out and execute untrusted PR content with privileged secrets;
-- prefer trusted/manual approval boundaries before any provider-backed review that requires credentials;
-- keep review advisory unless an explicit deterministic local policy is configured.
+- `review` on `pull_request_target` is rejected before Docker/provider execution;
+- `review` on a fork `pull_request` is rejected before Docker/provider execution;
+- `GITHUB_TOKEN` and `GH_TOKEN` are never forwarded to the review container;
+- only the selected provider credential variable may be forwarded from the Action step environment;
+- the checkout remains read-only;
+- no automatic PR comments are created;
+- `permissions: contents: read` is sufficient.
+
+For untrusted contributions, run deterministic `check` on the PR and perform provider-backed review only after merge or from a separately trusted/manual workflow.
 
 A provider-backed review is guidance for a human reviewer, not a security certification or architectural approval.
+
+See also [GitHub Action AI review](github-action-review.md).
