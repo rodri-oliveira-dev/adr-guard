@@ -130,15 +130,18 @@ for stale_claim in   'current published **v1.1.5**'   'current published CLI pac
   fi
 done
 
-# Historical external-consumer evidence must not imply that the published @v1 tag is still pending.
-grep -Fiq 'moving `v1` compatibility line' "${EXTERNAL_EN}" || {
-  echo "English external-verification guide must describe the published v1 line." >&2
-  exit 1
-}
-grep -Fiq 'linha móvel de compatibilidade `v1`' "${EXTERNAL_PT}" || {
-  echo "pt-BR external-verification guide must describe the published v1 line." >&2
-  exit 1
-}
+# Historical external-consumer evidence must identify the real published @v1 line without
+# depending on one exact prose sentence.
+for token in 'v1.1.6' 'rodri-oliveira-dev/adr-guard@v1'; do
+  grep -Fq "${token}" "${EXTERNAL_EN}" || {
+    echo "English external-verification guide is missing published v1 evidence: ${token}" >&2
+    exit 1
+  }
+  grep -Fq "${token}" "${EXTERNAL_PT}" || {
+    echo "pt-BR external-verification guide is missing published v1 evidence: ${token}" >&2
+    exit 1
+  }
+done
 for stale_claim in \
   '`@v1` does not exist yet' \
   '`@v1` ainda não existe' \
