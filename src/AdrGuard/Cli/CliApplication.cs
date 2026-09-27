@@ -370,10 +370,6 @@ internal static class CliApplication
 
         try
         {
-            AdrReviewProviderFactory.ValidateSelection(
-                reviewArguments.ProviderName!,
-                reviewArguments.Endpoint);
-
             if (injectedProvider is not null)
             {
                 return ReviewCommand.Run(
@@ -393,6 +389,10 @@ internal static class CliApplication
                     error,
                     cancellationToken);
             }
+
+            AdrReviewProviderFactory.ValidateSelection(
+                reviewArguments.ProviderName!,
+                reviewArguments.Endpoint);
 
             HttpClient? httpClient = null;
 
