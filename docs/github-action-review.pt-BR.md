@@ -6,11 +6,11 @@ A revisão assistida por IA de ADRs é uma extensão explicitamente opt-in da Ac
 
 ## Limite de confiança
 
-Use revisão com provider apenas em workflows confiáveis. A Action aplica estes limites:
+Use revisão com provider apenas em workflows confiáveis. O review exige Linux, Docker e Python 3 no runner porque a renderização segura de summary/annotations faz parte do contrato de sucesso. A Action aplica estes limites:
 
 - `pull_request_target` é rejeitado para `review`;
 - eventos `pull_request` vindos de forks são rejeitados antes da execução do Docker/provider;
-- `pull_request` do mesmo repositório, `push` confiável e workflows manuais/confiáveis podem optar pela revisão;
+- somente eventos `push`, `workflow_dispatch`, `schedule` e `pull_request` do mesmo repositório podem optar pela revisão; todos os outros tipos de evento são rejeitados antes da execução do Docker/provider;
 - o checkout é montado como somente leitura em `review`;
 - `GITHUB_TOKEN` e `GH_TOKEN` nunca são encaminhados ao container de revisão;
 - somente a variável de ambiente de credencial associada ao provider selecionado é encaminhada, apenas pelo nome da variável;
