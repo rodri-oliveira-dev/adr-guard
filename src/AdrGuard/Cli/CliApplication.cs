@@ -371,7 +371,7 @@ internal static class CliApplication
                     reviewArguments.OverwriteOutput,
                     reviewArguments.PolicyMode,
                     reviewArguments.PolicyFilePath,
-                    () => injectedProvider,
+                    () => injectedProvider!,
                     output,
                     error,
                     cancellationToken);
