@@ -2,7 +2,7 @@
 
 > **Publication status:** the reusable Action is published, and the compatibility tag `v1` is published for the existing `check`/`index` contract. Opt-in `command: review` is implemented in PR #85 on this branch but is not part of the current remote `@v1` until the post-merge release publishes. The Marketplace listing is tracked separately and remains forthcoming until it is manually published and verified.
 
-ADR Guard's composite Action runs the published ADR Guard container. Consumers do not need the .NET SDK, but they do need a Linux runner with Docker and must check out the repository first.
+ADR Guard's composite Action runs the published ADR Guard container. Consumers do not need the .NET SDK. They need a Linux runner with Docker and must check out the repository first; opt-in `review` additionally requires Python 3 on the runner for safe summary/annotation rendering.
 
 ## Inputs
 
@@ -144,7 +144,7 @@ To make ADR validation mandatory before merge, first run the workflow at least o
 
 If the Action reports exit code `2`, check the `path`, `command`, and version/ref combination. Paths must remain inside the checkout.
 
-Exit code `3` means an operational failure such as Docker being unavailable or the selected image being unavailable. The supported environment is a Linux runner with a working Docker daemon.
+Exit code `3` means an operational failure such as Docker being unavailable, the selected image being unavailable, or Python 3 being unavailable for opt-in `review`. The supported environment is a Linux runner with a working Docker daemon; `review` additionally requires Python 3.
 
 For `index`, the runner must be non-root because the Action deliberately refuses to execute the writable container as UID 0.
 
