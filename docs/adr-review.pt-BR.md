@@ -264,8 +264,8 @@ e poderá optar pelo review após a publicação da release correspondente da Ac
 
 A Action:
 
-- bloqueia `review` em `pull_request_target`;
-- bloqueia review com provider em eventos `pull_request` vindos de fork antes da execução do Docker/provider;
+- aceita review com provider somente em `push`, `workflow_dispatch`, `schedule` e `pull_request` do mesmo repositório;
+- rejeita pull requests de fork, `pull_request_target` e todos os demais tipos de evento antes da execução do Docker/provider;
 - nunca encaminha `GITHUB_TOKEN` nem `GH_TOKEN` ao container de review;
 - monta o checkout como somente leitura;
 - usa rede de saída somente no `review` com provider; `check`/`index` determinísticos mantêm `--network=none`;
