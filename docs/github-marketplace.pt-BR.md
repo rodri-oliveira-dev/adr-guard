@@ -16,7 +16,7 @@ Nome proposto no Marketplace:
 
 Descrição:
 
-`Validate and index Architecture Decision Records (ADRs) with deterministic checks and GitHub file annotations.`
+`Validate, index, or explicitly review Architecture Decision Records (ADRs) with safe GitHub reporting.`
 
 Branding:
 
