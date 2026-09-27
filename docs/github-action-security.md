@@ -1,6 +1,6 @@
 # GitHub Action security model
 
-ADR Guard's reusable GitHub Action is intentionally limited to deterministic ADR validation and index generation. It invokes the published GHCR container and does not expose the AI-assisted `draft` command.
+ADR Guard's reusable GitHub Action keeps deterministic ADR validation as its default, supports explicit index generation, and exposes AI-assisted `review` only as an opt-in operation. It invokes the published GHCR container and does not expose the AI-assisted `draft` command.
 
 ## Minimal permissions
 
@@ -43,25 +43,25 @@ The Action starts the container with the following restrictions:
 - read-only container root filesystem;
 - all Linux capabilities dropped with `--cap-drop=ALL`;
 - privilege escalation blocked with `no-new-privileges`;
-- networking disabled with `--network=none`;
+- networking disabled with `--network=none` for deterministic `check` and `index`; provider-backed `review` alone uses outbound networking;
 - no `--privileged` mode;
-- no implicit environment-variable or secret forwarding.
+- no implicit environment-variable or secret forwarding; `review` may forward only the credential variable selected for its provider.
 
 The published image declares a non-root runtime user. CI checks the published image metadata and rejects an empty, root, or UID 0 runtime user.
 
-For `check`, the entire consumer workspace is mounted read-only. For `index`, the workspace remains read-only and only the validated ADR directory is over-mounted as writable. On Linux, `index` runs using the non-root host UID/GID so generated files retain consumer ownership. A root runner is rejected for writable `index` execution rather than running the container as root.
+For `check` and `review`, the entire consumer workspace is mounted read-only. For `index`, the workspace remains read-only and only the validated ADR directory is over-mounted as writable. On Linux, `index` runs using the non-root host UID/GID so generated files retain consumer ownership. A root runner is rejected for writable `index` execution rather than running the container as root.
 
 ## Inputs and diagnostics
 
-Only `check` and `index` are accepted. Paths are resolved inside `GITHUB_WORKSPACE`, traversal and symlink escapes are rejected, and inputs are passed as discrete process arguments rather than evaluated shell fragments.
+`check`, `index`, and explicit `review` are accepted. Paths are resolved inside `GITHUB_WORKSPACE`, traversal and symlink escapes are rejected, and inputs are passed as discrete process arguments rather than evaluated shell fragments. Review rejects `pull_request_target` and fork `pull_request` execution before Docker/provider invocation.
 
-CLI output is treated as untrusted. Raw output is preserved for troubleshooting while GitHub workflow-command interpretation is suspended. Only recognized `ADR001`–`ADR009` diagnostics with verified paths are converted to escaped file annotations. Reporting cannot change the original validator exit code.
+CLI and provider output are treated as untrusted. Raw output is preserved for troubleshooting while GitHub workflow-command interpretation is suspended. Deterministic `ADR001`–`ADR009` diagnostics with verified paths become escaped error annotations. AI follow-up findings become escaped `warning` annotations only when evidence maps to a verified selected local file; the Action does not invent line numbers. Reporting cannot change the original CLI exit code.
 
 ## Secrets and AI providers
 
-The default Action does not expose `draft`, provider selection, endpoints, or provider credential inputs. It does not pass `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `ADR_GUARD_OPENAI_COMPATIBLE_API_KEY`, `GITHUB_TOKEN`, or `GH_TOKEN` into the container.
+The default `check`/`index` path does not forward provider credentials. Opt-in `review` exposes provider/model selection but deliberately has no credential or token input: callers supply the provider credential through the Action step environment, and the wrapper forwards only the selected provider variable name to Docker. `GITHUB_TOKEN` and `GH_TOKEN` are never forwarded. Fork PRs and `pull_request_target` review are blocked before provider execution.
 
-AI-assisted drafting remains a separate, explicit CLI/container workflow. Consumers that intentionally use `draft` must manage provider credentials and review the privacy guidance separately.
+AI-assisted drafting remains a separate, explicit CLI/container workflow and is not exposed by the Action. See [GitHub Action AI review](github-action-review.md) for the trusted workflow contract.
 
 ## Version and digest trust
 
