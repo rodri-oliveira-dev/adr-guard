@@ -28,7 +28,7 @@ Provider credentials are read only from environment variables:
 
 For defensive redaction, `GITHUB_TOKEN` and `GH_TOKEN` are also treated as sensitive when present.
 
-Credential values are removed from selected source content before the provider context is built and from provider-derived findings, diagnostics, and persisted reports. Credentials are never intentionally placed in provider request bodies. Authentication headers remain transport metadata required by the selected provider.
+Exact, non-empty literal values of the listed environment variables are replaced with `[REDACTED]` in selected source content before the provider context is built and in provider-derived findings, diagnostics, and persisted reports. Encoded values, partial matches, and secrets from unlisted environment variables are not detected. Credentials are never intentionally placed in provider request bodies. Authentication headers remain transport metadata required by the selected provider.
 
 Official providers use fixed HTTPS endpoints. OpenAI-compatible remote endpoints require HTTPS. Plain HTTP is allowed only for unauthenticated loopback usage; any endpoint carrying an API key must use HTTPS, including loopback.
 
