@@ -53,7 +53,7 @@ For `check` and `review`, the entire consumer workspace is mounted read-only. Fo
 
 ## Inputs and diagnostics
 
-`check`, `index`, and explicit `review` are accepted. Paths are resolved inside `GITHUB_WORKSPACE`, traversal and symlink escapes are rejected, and inputs are passed as discrete process arguments rather than evaluated shell fragments. Review rejects `pull_request_target` and fork `pull_request` execution before Docker/provider invocation.
+`check`, `index`, and explicit `review` are accepted. Paths are resolved inside `GITHUB_WORKSPACE`, traversal and symlink escapes are rejected, and inputs are passed as discrete process arguments rather than evaluated shell fragments. Review accepts only `push`, `workflow_dispatch`, `schedule`, and same-repository `pull_request`; all other event types, including `pull_request_target` and fork pull requests, are rejected before Docker/provider invocation.
 
 CLI and provider output are treated as untrusted. Raw output is preserved for troubleshooting while GitHub workflow-command interpretation is suspended. Deterministic `ADR001`–`ADR009` diagnostics with verified paths become escaped error annotations. AI follow-up findings become escaped `warning` annotations only when evidence maps to a verified selected local file; the Action does not invent line numbers. Reporting cannot change the original CLI exit code.
 
@@ -75,6 +75,6 @@ ghcr.io/rodri-oliveira-dev/adr-guard@sha256:<digest>
 
 CI also verifies that the exact published SemVer image resolves to a GHCR `sha256` repository digest. Release images are additionally protected by the existing SBOM, provenance, multi-platform manifest verification, Hadolint, smoke tests, Dependabot base-image updates, and Trivy scanning controls.
 
-## Docker prerequisite
+## Runtime prerequisites
 
-The composite Action requires a Linux runner with a working Docker daemon. It is designed for GitHub-hosted Ubuntu runners and compatible non-root Linux runners. Windows, macOS, Docker-less runners, privileged-container requirements, and root execution for writable `index` are outside the supported contract.
+The composite Action requires a Linux runner with a working Docker daemon. Opt-in `review` additionally requires Python 3 because safe `GITHUB_STEP_SUMMARY` and annotation rendering is part of the successful review contract and is validated before provider execution. It is designed for GitHub-hosted Ubuntu runners and compatible non-root Linux runners. Windows, macOS, Docker-less runners, review runners without Python 3, privileged-container requirements, and root execution for writable `index` are outside the supported contract.
