@@ -358,6 +358,10 @@ internal static class CliApplication
 
         try
         {
+            AdrReviewProviderFactory.ValidateSelection(
+                reviewArguments.ProviderName!,
+                reviewArguments.Endpoint);
+
             if (injectedProvider is not null)
             {
                 return ReviewCommand.Run(
