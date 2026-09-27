@@ -4,11 +4,13 @@ This document records the independent-consumer evidence for ADR Guard issue #49.
 
 ## Status
 
-**Pre-release external verification: passed.**
+**Independent pre-release repository verification: passed.**
 
-**Production Marketplace verification: pending.**
+**Published `@v1` compatibility verification in isolated consumer fixtures: continuously tested in ADR Guard CI.**
 
-The Action has been released as `v1.0.0`, and the `v1` compatibility tag is published. The independent-consumer evidence below predates that release; the final #49 Marketplace acceptance criteria remain pending until the owner publishes and verifies the listing and the external consumer workflows are rerun against the published `@v1`.
+**Production Marketplace verification: pending owner publication.**
+
+The Action is published on the moving `v1` compatibility line; `review` joined that line in `v1.1.6`. The independent-consumer evidence below predates the first `v1` release, while current ADR Guard CI exercises the real remote `rodri-oliveira-dev/adr-guard@v1` for `check` and `index` in clean fixture directories. Issue #49 deliberately retains a stricter independent-repository rerun plus the real Marketplace listing as its final closure criteria.
 
 ## Independent consumer
 
@@ -102,19 +104,15 @@ This also improves moving-major behavior on self-hosted runners because the publ
 
 ## Final production verification gate
 
-The `v1.0.0` release and `v1` compatibility tag are already published. To complete production consumer and Marketplace verification:
+The moving `v1` Action tag and public release/container channels are now covered by the repository's [public release audit](public-release-audit.md) and CI public-distribution smoke tests. To complete the stricter Marketplace-specific acceptance criteria in #49/#50:
 
-1. confirm that the published immutable `v1.0.0` and moving `v1` Action tags resolve as expected;
-2. confirm that the corresponding exact (`:1.0.0`) and major (`:1`) GHCR images are publicly pullable;
-3. publish the Marketplace listing through the authorized owner flow described in [github-marketplace.md](github-marketplace.md);
-4. record the real Marketplace URL and released Action ref in issue #49;
-5. update the external consumer workflows from the pre-release SHA + `version: 0.1.12` to:
-   `uses: rodri-oliveira-dev/adr-guard@v1`;
-6. remove the explicit `version` input;
-7. rerun both external workflows;
-8. require the valid workflow to pass and the invalid workflow to fail with a file annotation;
-9. verify the published major image/ref compatibility;
-10. replace all "Marketplace forthcoming" notices with the verified listing URL;
-11. only then close #49 and roadmap #50.
+1. publish the Marketplace listing through the authorized owner flow described in [github-marketplace.md](github-marketplace.md);
+2. record the real canonical Marketplace URL and released Action ref in issue #49;
+3. update the independent `poc-arquitetura` workflows from the historical SHA + `version: 0.1.12` to `uses: rodri-oliveira-dev/adr-guard@v1`;
+4. remove the explicit `version` input;
+5. rerun both independent workflows;
+6. require the valid workflow to pass and the invalid workflow to fail with a file annotation;
+7. replace the explicit "Marketplace not yet verified" notices with the verified listing URL;
+8. only then close #49 and roadmap #50.
 
 The final Marketplace URL and published Action reference must be copied from GitHub after publication; they must never be inferred or invented.
