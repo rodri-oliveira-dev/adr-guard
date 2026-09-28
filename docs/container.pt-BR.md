@@ -76,7 +76,7 @@ docker run --rm --user "$(id -u):$(id -g)" \
 docker run --rm --user "$(id -u):$(id -g)" \
   -v "$PWD:/workspace" ghcr.io/rodri-oliveira-dev/adr-guard:1 \
   new docs/adr --title "Adotar Cache" \
-  --template-file docs/examples/templates/team.pt-BR.md
+  --template-file docs/examples/templates/team.pt-BR.md --culture pt-BR
 
 docker run --rm -v "$PWD:/workspace:ro" \
   ghcr.io/rodri-oliveira-dev/adr-guard:1 check docs/adr
