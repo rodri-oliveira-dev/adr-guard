@@ -400,25 +400,36 @@ jobs:
           import os
           import socketserver
 
-          review = {
-              "schemaVersion": "1.0",
-              "target": {
-                  "sourceId": "target",
-                  "path": "0001-use-postgresql.md",
-              },
-              "inputScope": {
-                  "explicitContext": [],
-                  "existingAdrs": [],
-              },
-              "outcome": "no-follow-up-findings",
-              "findings": [],
+          dimensions = [
+              "clarity-and-rationale",
+              "considered-alternatives",
+              "nonfunctional-requirements",
+              "risks-and-consequences",
+              "architectural-consistency",
+              "security-and-compliance",
+              "implementation-and-operational-feasibility",
+              "measurable-verification-criteria",
+          ]
+
+          provider_review = {
+              "findings": [
+                  {
+                      "dimension": dimension,
+                      "classification": "observed-evidence",
+                      "source": "0001-use-postgresql.md",
+                      "excerpt": "Decision.",
+                      "explanation": "The selected ADR contains evidence for this dimension.",
+                      "guidance": "Human reviewer should verify this dimension.",
+                  }
+                  for dimension in dimensions
+              ]
           }
 
           response = {
               "choices": [
                   {
                       "message": {
-                          "content": json.dumps(review),
+                          "content": json.dumps(provider_review),
                       }
                   }
               ]
@@ -477,6 +488,7 @@ jobs:
 
           jq -e '.schemaVersion == "1.0"' "${review_output}" >/dev/null
           jq -e '.outcome == "no-follow-up-findings"' "${review_output}" >/dev/null
+          jq -e '.dimensions | length == 8' "${review_output}" >/dev/null
           jq -e '.findings == []' "${review_output}" >/dev/null
 
       - name: Compare Action with the published CLI diagnostic matrix
