@@ -200,7 +200,7 @@ The required sections are `Context`, `Decision`, and `Consequences`. A `Supersed
 
 ## Create Proposed ADRs offline
 
-The new `adr-guard new` command on this development branch creates an editable ADR **without AI, credentials, or network access**. The destination directory must exist. Minimal and `en-US` are the defaults; Extended and Custom are opt-in.
+The published `adr-guard new` command creates an editable ADR **without AI, credentials, or network access**. The destination directory must exist. Minimal and `en-US` are the defaults; Extended and Custom are opt-in.
 
 ```bash
 mkdir -p docs/adr

@@ -2,7 +2,7 @@
 
 [English](custom-templates.md) · [Criação offline](creation.pt-BR.md) · [Integração com IA](draft-templates.pt-BR.md)
 
-Templates ADR personalizados seguem um formato Markdown offline e estrito, tratado apenas como dados. `new --template-file` e `draft --template-file` opcional são introduzidos na versão **1.1.0** da CLI/container; as versões 1.0.x não os oferecem. Compile esta branch antes da publicação ou instale 1.1.0 ou superior depois. A GitHub Action pública `@v1` continua limitada a `check`/`index`.
+Templates ADR personalizados seguem um formato Markdown offline e estrito, tratado apenas como dados. `new --template-file` e `draft --template-file` opcional estão disponíveis nas releases publicadas da CLI/container desde a **v1.1.0**; as versões 1.0.x não os oferecem. Instale ou atualize a .NET Tool estável, ou use uma imagem de release publicada. A GitHub Action `@v1` publicada suporta `check`, `index` e `review` opt-in; `new` e `draft` com templates continuam sendo fluxos de CLI/container direto.
 
 ## Origem e seleção
 

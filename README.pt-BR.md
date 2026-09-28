@@ -200,7 +200,7 @@ As seções `Context`, `Decision` e `Consequences` são obrigatórias. Um ADR co
 
 ## Criar ADRs Proposed offline
 
-O comando `adr-guard new` nesta branch cria uma ADR editável **sem IA, credenciais ou acesso à rede**. O diretório de destino precisa existir. Minimal e `en-US` são os padrões; Extended e Custom são opcionais.
+O comando `adr-guard new` publicado cria uma ADR editável **sem IA, credenciais ou acesso à rede**. O diretório de destino precisa existir. Minimal e `en-US` são os padrões; Extended e Custom são opcionais.
 
 ```bash
 mkdir -p docs/adr

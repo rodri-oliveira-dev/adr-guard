@@ -65,28 +65,29 @@ A imagem já executa como usuário não-root por padrão. O `--user` explícito 
 
 ## `new` offline e templates personalizados (disponível a partir da v1.1.0)
 
-O container da `v1.0.0` **não** inclui `new`. Antes da publicação da versão `v1.1.0`, crie uma imagem local a partir de `feature/issues-59`; depois, use uma imagem de release fixada em `:1.1.0` (ou superior):
+As imagens de container publicadas incluem `new` e suporte a templates personalizados desde a **v1.1.0**. Use uma imagem estável publicada; não é necessário compilar uma branch de feature. Para consumir a major móvel use `:1`, ou fixe uma tag SemVer exata/digest quando precisar de reprodutibilidade:
 
 ```bash
-docker build -t adr-guard:templates .
 mkdir -p docs/adr
 docker run --rm --user "$(id -u):$(id -g)" \
-  -v "$PWD:/workspace" adr-guard:templates \
+  -v "$PWD:/workspace" ghcr.io/rodri-oliveira-dev/adr-guard:1 \
   new docs/adr --title "Adotar Redis" --template minimal --culture pt-BR
 
 docker run --rm --user "$(id -u):$(id -g)" \
-  -v "$PWD:/workspace" adr-guard:templates \
+  -v "$PWD:/workspace" ghcr.io/rodri-oliveira-dev/adr-guard:1 \
   new docs/adr --title "Adotar Cache" \
   --template-file docs/examples/templates/team.pt-BR.md --culture pt-BR
 
-docker run --rm -v "$PWD:/workspace:ro" adr-guard:templates check docs/adr
+docker run --rm -v "$PWD:/workspace:ro" \
+  ghcr.io/rodri-oliveira-dev/adr-guard:1 check docs/adr
 docker run --rm --user "$(id -u):$(id -g)" \
-  -v "$PWD:/workspace" adr-guard:templates index docs/adr
+  -v "$PWD:/workspace" ghcr.io/rodri-oliveira-dev/adr-guard:1 \
+  index docs/adr
 ```
 
-`new` é **offline e não usa secrets**: não forneça `OPENAI_API_KEY` ou outras credenciais de IA. O diretório de destino precisa existir e ser gravável pelo usuário do container; o caminho do template é resolvido a partir de `/workspace`, diretório de trabalho do container, e o arquivo precisa ser legível. Uma montagem somente leitura é suficiente para `new --preview`/`--dry-run`, que imprime o Markdown proposto sem gravar. A criação efetiva com `new` não atualiza o índice automaticamente. Essas opções estão incluídas na **imagem versionada de GHCR/Docker Hub a partir da v1.1.0**. Imagens 1.0.x anteriores não as possuem; confira a versão resolvida pela tag móvel `:1` antes de supor que ela já suporta templates.
+`new` é **offline e não usa segredos**: não forneça `OPENAI_API_KEY` nem outras credenciais de provider. O diretório precisa existir e ser gravável pelo usuário do container; o template é resolvido em relação ao diretório de trabalho `/workspace` e precisa ser legível. Use volume somente leitura com `new --preview`/`--dry-run`, que exibem o Markdown proposto sem gravar. Uma execução real de `new` não atualiza o índice automaticamente. Imagens v1.0.x anteriores não incluem essas opções.
 
-Consulte o [guia de criação offline, exemplos válidos e códigos de saída](creation.pt-BR.md), [placeholders personalizados](custom-templates.pt-BR.md) e [draft com IA e privacidade](draft-templates.pt-BR.md). A GitHub Action pública `@v1` aceita **somente `check`/`index`**, embora a CLI/container executados separadamente possam usar `new` e `draft`.
+Consulte [criação offline, exemplos validados e exit codes](creation.pt-BR.md), [placeholders personalizados](custom-templates.pt-BR.md) e [draft com template/privacidade](draft-templates.pt-BR.md). A GitHub Action `@v1` publicada suporta `check`, `index` e `review` opt-in; `new` e `draft` assistido por IA continuam sendo fluxos de CLI/container direto.
 
 ## Criação assistida por IA
 
