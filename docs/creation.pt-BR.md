@@ -2,11 +2,11 @@
 
 [English](creation.md) · [README](../README.pt-BR.md) · [Contrato de templates personalizados](custom-templates.pt-BR.md) · [Integração de templates com IA](draft-templates.pt-BR.md)
 
-> **Disponibilidade por versão:** `new` e o `draft` opcional com templates são introduzidos na versão **1.1.0** da CLI/container; ferramentas 1.0.x não os oferecem. Antes da publicação, compile esta branch; depois, utilize a .NET Tool ou imagem versionada. A GitHub Action pública `@v1` permanece limitada a `check` e `index`, nunca a `new` ou `draft` com IA.
+> **Disponibilidade por versão:** `new` e o `draft` opcional com templates estão disponíveis nas releases publicadas da CLI/container desde a **v1.1.0**; ferramentas 1.0.x não os oferecem. Instale ou atualize a .NET Tool estável, ou use uma imagem de release publicada. A GitHub Action `@v1` publicada suporta `check`, `index` e `review` opt-in; `new` e `draft` assistido por IA continuam sendo fluxos de CLI/container direto.
 
 ## Início rápido — sem IA, conta, chave de API ou rede
 
-Execute na raiz do repositório com o comando `adr-guard` **v1.1.0 ou superior (ou compilado da branch antes da publicação)** instalado ou disponível no `PATH`. O diretório de destino **precisa existir**. O modelo padrão é `minimal` e o idioma padrão das instruções é `en-US`.
+Execute na raiz do repositório com o comando `adr-guard` publicado na **v1.1.0 ou superior** instalado ou disponível no `PATH`. O diretório de destino **precisa existir**. O modelo padrão é `minimal` e o idioma padrão das instruções é `en-US`.
 
 ```bash
 mkdir -p docs/adr
@@ -73,4 +73,4 @@ O contrato de códigos de saída é `0` sucesso, `1` erro de validação de ADR,
 
 O `draft` sem seleção de template mantém o comportamento anterior, as culturas .NET e o contrato com o provedor. Quando a IA é usada intencionalmente, pode-se selecionar `--template minimal|extended` **ou** `--template-file` no `draft`. Conteúdo, orientação e caminho do arquivo de template continuam **locais** e **não são enviados ao provedor**: ele recebe o `--context` obrigatório, cada `--context-file` explicitamente selecionado e dados interpretados das ADRs existentes **somente** com `--include-existing-adrs`. Limites de contexto, autenticação/endpoint do provedor e revisão humana permanecem válidos; `draft --preview` **chama o provedor**, mas não grava uma ADR. Consulte [exemplos de provedores e privacidade](draft-templates.pt-BR.md).
 
-NuGet.org e GitHub Packages distribuem a .NET Tool. GHCR (`ghcr.io/rodri-oliveira-dev/adr-guard`) e Docker Hub (`rodrigodotnet/adr-guard`) distribuem a mesma CLI em imagem versionada: execute `new` offline montando o diretório de ADRs com permissão de escrita e **sem credenciais de IA**; execute `draft` com credenciais e contexto fornecidos conscientemente. Consulte os [exemplos de container](container.pt-BR.md). A GitHub Action publicada `rodri-oliveira-dev/adr-guard@v1` permanece **exclusivamente `check`/`index`**; nem `new` nem `draft` são comandos da Action.
+NuGet.org e GitHub Packages distribuem a .NET Tool. GHCR (`ghcr.io/rodri-oliveira-dev/adr-guard`) e Docker Hub (`rodrigodotnet/adr-guard`) distribuem a mesma CLI em imagem versionada: execute `new` offline montando o diretório de ADRs com permissão de escrita e **sem credenciais de IA**; execute `draft` com credenciais e contexto fornecidos conscientemente. Consulte os [exemplos de container](container.pt-BR.md). A GitHub Action publicada `rodri-oliveira-dev/adr-guard@v1` suporta `check`, `index` e `review` opt-in; nem `new` nem `draft` são comandos da Action.

@@ -1,6 +1,6 @@
 # GitHub Action consumer guide
 
-> **Publication status:** the reusable Action is published, and the compatibility tag `v1` is published for the existing `check`/`index` contract. Opt-in `command: review` is implemented in PR #85 on this branch but is not part of the current remote `@v1` until the post-merge release publishes. The Marketplace listing is tracked separately and remains forthcoming until it is manually published and verified.
+> **Publication status:** the reusable Action is published, and the compatibility tag `v1` is published and supports `check`, `index`, and opt-in `review`. `command: review` is published in the `@v1` line starting with **v1.1.6**. The Marketplace listing is tracked separately and remains forthcoming until it is manually published and verified.
 
 ADR Guard's composite Action runs the published ADR Guard container. Consumers do not need the .NET SDK. They need a Linux runner with Docker and must check out the repository first; opt-in `review` additionally requires Python 3 on the runner for safe summary/annotation rendering.
 

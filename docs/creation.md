@@ -2,11 +2,11 @@
 
 [Português (Brasil)](creation.pt-BR.md) · [README](../README.md) · [Custom template contract](custom-templates.md) · [AI template integration](draft-templates.md)
 
-> **Version availability:** `new` and optional template-aware `draft` are introduced in CLI/container version **1.1.0**. The older 1.0.x tools do not offer them. Before 1.1.0 is published, build this feature branch; afterward use the versioned .NET Tool or image. The public GitHub Action `@v1` remains limited to `check` and `index`, never `new` or AI `draft`.
+> **Version availability:** `new` and optional template-aware `draft` are available in published CLI/container releases starting with **v1.1.0**; older 1.0.x tools do not offer them. Install or update the stable .NET Tool, or use a published release image. The published GitHub Action `@v1` supports `check`, `index`, and opt-in `review`; `new` and AI-assisted `draft` remain CLI/direct-container workflows.
 
 ## Quick start — no AI, account, API key, or network required
 
-Run from the repository root with the **v1.1.0 or newer (or branch-built before publication)** `adr-guard` command installed or on your `PATH`. The destination directory **must already exist**. The default template is `minimal` and the default guidance culture is `en-US`.
+Run from the repository root with **v1.1.0 or newer** of the published `adr-guard` command installed or on your `PATH`. The destination directory **must already exist**. The default template is `minimal` and the default guidance culture is `en-US`.
 
 ```bash
 mkdir -p docs/adr
@@ -73,4 +73,4 @@ The public exit-code contract is `0` success, `1` ADR validation failure, `2` in
 
 The existing unselected `draft` behavior, .NET culture handling and provider contract remain intact. You may select `--template minimal|extended` **or** `--template-file` on `draft` when you intentionally use an AI provider. Template content, guidance and file paths remain **local** and are **not sent to the provider**: the provider receives the required `--context`, each explicitly selected `--context-file`, and parsed existing ADR context **only** with `--include-existing-adrs`. The usual context limits, provider authentication/endpoint requirements, and human review still apply; `draft --preview` **calls the provider** but does not persist an ADR. See [provider/privacy examples and constraints](draft-templates.md).
 
-NuGet.org and GitHub Packages distribute the .NET Tool. Both GHCR (`ghcr.io/rodri-oliveira-dev/adr-guard`) and Docker Hub (`rodrigodotnet/adr-guard`) distribute the versioned CLI image: run offline `new` with a writable mount of the ADR directory and **no AI credentials**; run AI `draft` only with intentionally supplied credentials and context. See [container examples](container.md). The published GitHub Action `rodri-oliveira-dev/adr-guard@v1` remains `check`/`index` **only**; neither `new` nor `draft` is an Action command.
+NuGet.org and GitHub Packages distribute the .NET Tool. Both GHCR (`ghcr.io/rodri-oliveira-dev/adr-guard`) and Docker Hub (`rodrigodotnet/adr-guard`) distribute the versioned CLI image: run offline `new` with a writable mount of the ADR directory and **no AI credentials**; run AI `draft` only with intentionally supplied credentials and context. See [container examples](container.md). The published GitHub Action `rodri-oliveira-dev/adr-guard@v1` supports `check`, `index`, and opt-in `review`; neither `new` nor `draft` is an Action command.

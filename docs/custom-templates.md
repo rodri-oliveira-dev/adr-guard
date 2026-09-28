@@ -2,7 +2,7 @@
 
 [Português (Brasil)](custom-templates.pt-BR.md) · [Offline creation](creation.md) · [AI draft integration](draft-templates.md)
 
-Custom ADR templates use a strict offline, data-only Markdown format. The `new --template-file` and optional `draft --template-file` commands are introduced in CLI/container **v1.1.0**; versions 1.0.x do not expose them. Build this branch for pre-release testing or install 1.1.0 or newer after publication. The public GitHub Action `@v1` remains `check`/`index` only.
+Custom ADR templates use a strict offline, data-only Markdown format. The `new --template-file` and optional `draft --template-file` commands are available in published CLI/container releases starting with **v1.1.0**; versions 1.0.x do not expose them. Install or update the stable .NET Tool, or use a published release image. The published GitHub Action `@v1` supports `check`, `index`, and opt-in `review`; template-driven `new` and `draft` remain CLI/direct-container workflows.
 
 ## Template sources and selection
 

@@ -13,10 +13,10 @@ CLI e GitHub Action têm históricos de release separados.
 | `adr-guard review` base, oito dimensões, contexto limitado e relatórios versionados | `v1.1.2` | Publicado |
 | Policy v1 determinística com advisory/enforce | `v1.1.3` | Publicado |
 | Hardening dos limites de confiança do review e matriz determinística com mock provider | `v1.1.4` | Publicado |
-| Pacote/imagem do CLI publicados atualmente | `v1.1.5` | Inclui as capacidades acima |
-| `command: review` na Action reutilizável | PR #85 / próxima release após o merge | Implementado e testado nesta branch; ainda não faz parte do `@v1` já publicado até essa release sair |
+| Pacote/imagem do CLI publicados atualmente | `v1.1.6` | Inclui as capacidades acima |
+| `command: review` na Action reutilizável | `v1.1.6` | Publicado na Action móvel `@v1` como comando opt-in explícito |
 
-Até o PR #85 ser integrado e sua release mover a tag de compatibilidade `v1`, a Action publicada continua oferecendo somente `check`/`index`. A listagem no Marketplace continua acompanhada separadamente; esta documentação não afirma que ela já está disponível.
+A Action `@v1` publicada suporta `check`, `index` e `review` opt-in. A listagem no Marketplace continua acompanhada separadamente; esta documentação não afirma que ela já está disponível.
 
 ## Uso mínimo do CLI
 

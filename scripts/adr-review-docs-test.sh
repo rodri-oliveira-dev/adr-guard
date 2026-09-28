@@ -28,7 +28,7 @@ for file in   "${EN}" "${PT}" "${README_EN}" "${README_PT}"   "${RELEASE_EN}" "$
 done
 
 # Both language guides must describe the same stable machine-facing contract.
-for token in   'adr-guard review'   '--provider'   '--model'   '--endpoint'   '--context-file'   '--include-existing-adrs'   '--policy advisory|enforce'   '--policy-file'   '--format text|json'   '--output <path>'   '--overwrite'   'OPENAI_API_KEY'   'ANTHROPIC_API_KEY'   'GEMINI_API_KEY'   'ADR_GUARD_OPENAI_COMPATIBLE_API_KEY'   'clarity-and-rationale'   'considered-alternatives'   'nonfunctional-requirements'   'risks-and-consequences'   'architectural-consistency'   'security-and-compliance'   'implementation-and-operational-feasibility'   'measurable-verification-criteria'   'observed-evidence'   'potential-risk'   'missing-context'   'recommendation-for-human-investigation'   'not-applicable'   'required-section-content'   'required-context-file'   'schema `1.0`'   'pull_request_target'   'contents: read'   'GITHUB_STEP_SUMMARY'   'v1.1.2'   'v1.1.3'   'v1.1.4'   'v1.1.5'; do
+for token in   'adr-guard review'   '--provider'   '--model'   '--endpoint'   '--context-file'   '--include-existing-adrs'   '--policy advisory|enforce'   '--policy-file'   '--format text|json'   '--output <path>'   '--overwrite'   'OPENAI_API_KEY'   'ANTHROPIC_API_KEY'   'GEMINI_API_KEY'   'ADR_GUARD_OPENAI_COMPATIBLE_API_KEY'   'clarity-and-rationale'   'considered-alternatives'   'nonfunctional-requirements'   'risks-and-consequences'   'architectural-consistency'   'security-and-compliance'   'implementation-and-operational-feasibility'   'measurable-verification-criteria'   'observed-evidence'   'potential-risk'   'missing-context'   'recommendation-for-human-investigation'   'not-applicable'   'required-section-content'   'required-context-file'   'schema `1.0`'   'pull_request_target'   'contents: read'   'GITHUB_STEP_SUMMARY'   'v1.1.2'   'v1.1.3'   'v1.1.4'   'v1.1.6'; do
   grep -Fq -- "${token}" "${EN}" || {
     echo "English ADR review guide is missing contract token: ${token}" >&2
     exit 1
@@ -94,20 +94,19 @@ grep -Fq '[guia de review por IA](docs/adr-review.pt-BR.md)' "${README_PT}"
 for readme in "${README_EN}" "${README_PT}"; do
   grep -Fq 'adr-guard review' "${readme}"
   grep -Fq 'v1.1.2' "${readme}"
-  grep -Fq 'v1.1.5' "${readme}"
-  grep -Fq 'PR #85' "${readme}"
+  grep -Fq 'v1.1.6' "${readme}"
+  grep -Fq 'command: review' "${readme}"
   grep -Fq '`4`' "${readme}"
 done
 
 # Release availability is explicit and must not claim pre-release Action support.
 for release_note in "${RELEASE_EN}" "${RELEASE_PT}"; do
-  for version in v1.1.2 v1.1.3 v1.1.4 v1.1.5; do
+  for version in v1.1.2 v1.1.3 v1.1.4 v1.1.6; do
     grep -Fq "${version}" "${release_note}"
   done
-  grep -Fq 'PR #85' "${release_note}"
 done
-grep -Fiq 'not published' "${RELEASE_EN}"
-grep -Fiq 'ainda não publicado' "${RELEASE_PT}"
+grep -Fq 'Published in the moving `@v1` Action' "${RELEASE_EN}"
+grep -Fq 'Publicado na Action móvel `@v1`' "${RELEASE_PT}"
 
 # Policy and security guidance must exist in both languages and cross-link correctly.
 grep -Fq '[Português (Brasil)](adr-review-policy-v1.pt-BR.md)' "${POLICY_EN}"

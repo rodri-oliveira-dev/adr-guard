@@ -99,6 +99,15 @@ grep -Fiq 'tag de compatibilidade `v1` está publicada' "${GUIDE_PT}" || {
   echo "pt-BR guide must describe the published v1 compatibility tag." >&2
   exit 1
 }
+
+grep -Fq 'supports `check`, `index`, and opt-in `review`' "${GUIDE_EN}" || {
+  echo "English guide must describe review as part of the published v1 contract." >&2
+  exit 1
+}
+grep -Fq 'suporta `check`, `index` e `review` opt-in' "${GUIDE_PT}" || {
+  echo "pt-BR guide must describe review as part of the published v1 contract." >&2
+  exit 1
+}
 grep -Fiq 'the `@v1` compatibility tag is published' "${README_EN}" || {
   echo "English README must describe @v1 as published." >&2
   exit 1
@@ -126,8 +135,12 @@ for stale_claim in \
   '`@v1` does not exist yet' \
   '`@v1` ainda não existe' \
   'until this branch is merged, a real Action release/tag exists' \
-  'até esta branch entrar na `main`, existir uma release/tag real'; do
-  if grep -Fiq "${stale_claim}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}"; then
+  'até esta branch entrar na `main`, existir uma release/tag real' \
+  'not part of the current remote `@v1`' \
+  'ainda não faz parte do `@v1` remoto atual' \
+  'gains `review` only after the corresponding release' \
+  'recebe `review` somente após a release correspondente'; do
+  if grep -Fiq "${stale_claim}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${REVIEW_EN}" "${REVIEW_PT}"; then
     echo "Documentation contains an obsolete pre-v1 availability claim: ${stale_claim}" >&2
     exit 1
   fi

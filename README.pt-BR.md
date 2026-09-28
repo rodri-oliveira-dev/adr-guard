@@ -10,7 +10,7 @@
 
 **Consumidores da GitHub Action:** consulte o [guia de consumo](docs/github-action.pt-BR.md), o [guia de review por IA](docs/github-action-review.pt-BR.md), a [política de release](docs/github-action-release.pt-BR.md), o [modelo de segurança](docs/github-action-security.pt-BR.md), as [evidências de verificação externa](docs/github-action-external-verification.pt-BR.md) e o [checklist de publicação no Marketplace](docs/github-marketplace.pt-BR.md). A verificação externa pré-release passou, a tag de compatibilidade `@v1` está publicada e a listagem no Marketplace ainda é **futura**. O suporte está em [SUPPORT.md](SUPPORT.md) e relatos de segurança seguem [SECURITY.md](SECURITY.md).
 
-> **Disponibilidade por versão:** `new` offline e `draft` com templates estão publicados desde a **v1.1.0**. O CLI `review` está publicado desde a **v1.1.2**, a policy determinística de review desde a **v1.1.3** e o hardening de segurança/regressão desde a **v1.1.4**; o CLI/pacote/imagem atual **v1.1.5** inclui tudo isso. O `command: review` opt-in da GitHub Action está implementado e testado no PR #85 nesta branch, mas o `@v1` já publicado continua com `check`/`index` até a release posterior ao merge desse PR. A listagem no Marketplace continua futura.
+> **Disponibilidade por versão:** `new` offline e `draft` com templates estão publicados desde a **v1.1.0**. O CLI `review` está publicado desde a **v1.1.2**, a policy determinística de review desde a **v1.1.3** e o hardening de segurança/regressão desde a **v1.1.4**; o CLI/pacote/imagem atual **v1.1.6** inclui tudo isso. A GitHub Action `@v1` publicada também inclui `command: review` opt-in desde a **v1.1.6**. `new` e `draft` assistido por IA continuam sendo fluxos de CLI/.NET Tool ou container direto. A listagem no Marketplace continua futura.
 
 ADR Guard é uma ferramenta de linha de comando para .NET focada em validar e indexar Architecture Decision Records (ADRs).
 
@@ -118,7 +118,7 @@ As entradas são pequenas e correspondem diretamente ao comportamento suportado 
 | Entrada | Padrão | Valores permitidos / política |
 | --- | --- | --- |
 | `path` | `docs/adr` | Diretório de ADRs relativo ao repositório. Caminhos absolutos, travessia com `..`, diretórios inexistentes e caminhos que resolvam para fora de `GITHUB_WORKSPACE` são rejeitados. |
-| `command` | `check` | `check`, `index` ou `review` explícito no source da Action implementado pelo PR #85. O `@v1` já publicado recebe `review` somente após a release correspondente. |
+| `command` | `check` | `check`, `index` ou `review` opt-in explícito. O `@v1` publicado inclui os três comandos. |
 | `version` | vazio | Versão exata opcional da imagem, no formato `X.Y.Z` ou `vX.Y.Z`. Quando omitida, `@vX.Y.Z` seleciona a imagem exata e `@vX` seleciona a tag major móvel correspondente. Pins por SHA/branch exigem versão exata explícita. |
 
 A seleção de versão nunca faz fallback para `latest`. Com `uses: rodri-oliveira-dev/adr-guard@v1.2.3`, a Action executa `ghcr.io/rodri-oliveira-dev/adr-guard:1.2.3`. Com `uses: rodri-oliveira-dev/adr-guard@v1`, ela usa a tag major móvel correspondente da imagem, `:1`. Tags exatas da Action são imutáveis; tags major avançam apenas para releases bem-sucedidas mais novas daquela major. Se a Action estiver fixada por SHA de commit ou por uma branch, informe a versão da imagem explicitamente:
@@ -153,11 +153,11 @@ Quando um comando `check` ou `index` termina com exit code `1`, a Action convert
 
 A Action grava um `GITHUB_STEP_SUMMARY` compacto com resultado, exit code e, nas falhas de validação reconhecidas, quantidade total e contagem por regra. São emitidas **no máximo 50 anotações por execução**; todos os diagnósticos continuam disponíveis no log bruto do CLI. A interpretação de workflow commands fica temporariamente suspensa durante a exibição desse log, evitando que conteúdo não confiável dos ADRs injete anotações ou outros comandos. Uma falha no relatório não altera o exit code original do CLI.
 
-O caminho padrão `check`/`index` da Action não precisa de credenciais de provider nem de rede e mantém `--network=none`. O `review` opt-in do PR #85 usa rede de saída somente para o provider selecionado, mantém o checkout somente leitura, encaminha apenas a variável de credencial do provider selecionado, nunca encaminha `GITHUB_TOKEN`/`GH_TOKEN`, aceita somente eventos `push`, `workflow_dispatch`, `schedule` e `pull_request` do mesmo repositório, rejeita todos os demais tipos de evento antes da execução do provider e continua exigindo apenas `permissions: contents: read`. O `draft` assistido por IA permanece fora do contrato da Action. Consulte o [guia de review por IA na GitHub Action](docs/github-action-review.pt-BR.md) e o [modelo de segurança](docs/github-action-security.pt-BR.md).
+O caminho padrão `check`/`index` da Action não precisa de credenciais de provider nem de rede e mantém `--network=none`. O `review` opt-in publicado usa rede de saída somente para o provider selecionado, mantém o checkout somente leitura, encaminha apenas a variável de credencial do provider selecionado, nunca encaminha `GITHUB_TOKEN`/`GH_TOKEN`, aceita somente eventos `push`, `workflow_dispatch`, `schedule` e `pull_request` do mesmo repositório, rejeita todos os demais tipos de evento antes da execução do provider e continua exigindo apenas `permissions: contents: read`. O `draft` assistido por IA permanece fora do contrato da Action. Consulte o [guia de review por IA na GitHub Action](docs/github-action-review.pt-BR.md) e o [modelo de segurança](docs/github-action-security.pt-BR.md).
 
 Windows, macOS, runners Linux sem Docker funcional e execução como root para `index` gravável não são suportados.
 
-A Action `rodri-oliveira-dev/adr-guard@v1` **atualmente publicada** oferece somente `check` e `index`. Esta branch adiciona `review` opt-in e seus testes de trust boundary; ele passa a fazer parte do `@v1` somente após a release posterior ao PR #85. `new` e `draft` com IA continuam sendo fluxos de CLI/.NET Tool ou container direto, não comandos da Action.
+A Action `rodri-oliveira-dev/adr-guard@v1` publicada oferece `check`, `index` e `review` opt-in. `new` e `draft` com IA continuam sendo fluxos de CLI/.NET Tool ou container direto, não comandos da Action.
 
 ## Formato dos ADRs
 
@@ -200,7 +200,7 @@ As seções `Context`, `Decision` e `Consequences` são obrigatórias. Um ADR co
 
 ## Criar ADRs Proposed offline
 
-O comando `adr-guard new` nesta branch cria uma ADR editável **sem IA, credenciais ou acesso à rede**. O diretório de destino precisa existir. Minimal e `en-US` são os padrões; Extended e Custom são opcionais.
+O comando `adr-guard new` publicado cria uma ADR editável **sem IA, credenciais ou acesso à rede**. O diretório de destino precisa existir. Minimal e `en-US` são os padrões; Extended e Custom são opcionais.
 
 ```bash
 mkdir -p docs/adr
