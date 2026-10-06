@@ -16,7 +16,7 @@ jobs:
   build-and-pack:
     name: Validate, build, test and pack
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
     timeout-minutes: 20
     permissions:
       actions: read
@@ -233,7 +233,7 @@ jobs:
   reserve-release-version:
     name: Reserve release version
     needs: build-and-pack
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
     timeout-minutes: 5
     permissions:
       contents: write
@@ -262,7 +262,7 @@ jobs:
     needs:
       - build-and-pack
       - reserve-release-version
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
     permissions:
       contents: read
       id-token: write
@@ -301,7 +301,7 @@ jobs:
     needs:
       - build-and-pack
       - reserve-release-version
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
     permissions:
       contents: read
       packages: write
@@ -335,7 +335,7 @@ jobs:
     needs:
       - build-and-pack
       - reserve-release-version
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -466,7 +466,7 @@ jobs:
       - publish-nuget
       - publish-github-packages
       - publish-container
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
     timeout-minutes: 10
     permissions:
       contents: write
@@ -540,7 +540,7 @@ jobs:
     needs:
       - build-and-pack
       - publish-action-tags
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
     permissions:
       contents: write
 
