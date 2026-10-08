@@ -42,7 +42,7 @@ To publish a release:
 1. merge the intended changes into `main`;
 2. wait for the normal CI on `main` to finish successfully;
 3. open **Actions → Release → Run workflow**;
-4. select the `main` branch, enter the required **`version`** (for example, `1.2.0`, without `v`), and start the workflow manually.
+4. select the `main` branch, enter the required **`version`** with the exact SemVer of the intended release (normally the project's `VersionPrefix`, without `v`), and start the workflow manually.
 
 The required `version` input accepts stable `MAJOR.MINOR.PATCH` only: no leading zeroes, `v` prefix, prerelease, or build metadata. The requested version must be at least the project's `VersionPrefix` and newer than any published or reserved version. To recover from an incomplete release, rerun the **same version on the same commit**, provided no newer version has been reserved or published. A version already owned by another commit, a version regression, or a second release version for the same commit is rejected before packaging. Release versions are not inferred from PR titles or commit messages.
 

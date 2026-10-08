@@ -10,13 +10,26 @@ PROJECT="${ROOT}/src/AdrGuard/AdrGuard.csproj"
 TMP="$(mktemp -d)"
 trap 'rm -rf -- "${TMP}"' EXIT
 
+# VersionPrefix is the only release-series baseline. Test fixtures derive
+# their SemVer cases from it instead of coupling CI to a particular release.
 baseline="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' "${PROJECT}" | head -n 1)"
-if [[ ! "${baseline}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-  echo 'VersionPrefix must be stable MAJOR.MINOR.PATCH.' >&2
+if [[ ! "${baseline}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] ||
+   (( ${#baseline} > 32 )); then
+  echo "VersionPrefix must be stable MAJOR.MINOR.PATCH." >&2
   exit 1
 fi
 IFS=. read -r major minor patch <<<"${baseline}"
 next_version="${major}.${minor}.$((patch + 1))"
+if (( patch > 0 )); then
+  previous_version="${major}.${minor}.$((patch - 1))"
+elif (( minor > 0 )); then
+  previous_version="${major}.$((minor - 1)).0"
+elif (( major > 0 )); then
+  previous_version="$((major - 1)).0.0"
+else
+  echo "VersionPrefix must be greater than 0.0.0 for predecessor testing." >&2
+  exit 1
+fi
 
 # Extract just the shell body of the deployed Resolve release version workflow
 # step, with the ten YAML-indentation spaces removed.
@@ -74,7 +87,7 @@ assert_resolution() {
   done
 }
 
-# A new feature release is explicitly selected, not guessed from v1.1.7.
+# A new release is explicitly selected, not inferred from a PR or commit title.
 assert_resolution "${feature_sha}" "${baseline}"
 
 assert_rejected() {
@@ -97,10 +110,13 @@ assert_rejected() {
 }
 
 # Invalid SemVer and lower-than-baseline versions must never publish.
-for malformed in '' "v${baseline}" '1.2' '01.2.0' '1.02.0' '1.2.00' '1.2.0-rc.1' '1.2.0+build' '1.2.0;echo'; do
+for malformed in '' "v${baseline}" "${major}.${minor}" \
+  "0${major}.${minor}.${patch}" "${major}.0${minor}.${patch}" \
+  "${major}.${minor}.0${patch}" "${baseline}-rc.1" \
+  "${baseline}+build" "${baseline};echo"; do
   assert_rejected "${feature_sha}" "${malformed}" 'Release version must use stable SemVer'
 done
-assert_rejected "${feature_sha}" '1.1.8' 'below VersionPrefix'
+assert_rejected "${feature_sha}" "${previous_version}" 'below VersionPrefix'
 
 # A version reserved by a different commit cannot be claimed.
 git -C "${TMP}/work" tag release-reservation/v${baseline} "${prior_sha}"
@@ -114,7 +130,7 @@ assert_rejected "${feature_sha}" "${next_version}" 'already has reservation'
 git -C "${TMP}/work" tag -d release-reservation/v${baseline} >/dev/null
 
 # A matching immutable release tag permits idempotent repair.
-git -C "${TMP}/work" tag v${baseline} "${feature_sha}"
+git -C "${TMP}/work" tag "v${baseline}" "${feature_sha}"
 assert_resolution "${feature_sha}" "${baseline}"
 assert_rejected "${feature_sha}" "${next_version}" 'already published'
 
@@ -126,7 +142,7 @@ future_sha="$(git -C "${TMP}/work" rev-parse HEAD)"
 assert_rejected "${future_sha}" "${baseline}" 'already belongs'
 assert_resolution "${future_sha}" "${next_version}"
 
-git -C "${TMP}/work" tag v${next_version} "${future_sha}"
+git -C "${TMP}/work" tag "v${next_version}" "${future_sha}"
 assert_rejected "${feature_sha}" "${baseline}" 'older than latest'
 assert_resolution "${future_sha}" "${next_version}"
 

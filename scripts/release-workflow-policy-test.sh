@@ -54,12 +54,16 @@ grep -Fq 'select(.conclusion == "success")' "${WORKFLOW}" || {
   exit 1
 }
 
-baseline="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' "${PROJECT}" | head -n 1)"
-if [[ ! "${baseline}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] ||
-   [[ "$(printf '%s\n%s\n' '1.2.0' "${baseline}" | sort -V | tail -n 1)" != "${baseline}" ]]; then
-  echo "Project VersionPrefix must be stable SemVer >= 1.2.0." >&2
+# The release baseline is owned by the project, never pinned in CI policy.
+project_baseline="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' "${PROJECT}" | head -n 1)"
+if [[ ! "${project_baseline}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+  echo "Project VersionPrefix must be stable MAJOR.MINOR.PATCH." >&2
   exit 1
 fi
+grep -Fq 'below VersionPrefix ${base_version}' "${WORKFLOW}" || {
+  echo "Release resolver must reject versions below the project's VersionPrefix." >&2
+  exit 1
+}
 
 grep -Fq 'AI-assisted drafting, and evidence-oriented advisory technical review' "${PROJECT}" || {
   echo "NuGet metadata must describe the published ADR review capability." >&2

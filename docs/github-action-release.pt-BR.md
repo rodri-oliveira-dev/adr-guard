@@ -42,7 +42,7 @@ Para publicar uma release:
 1. faça merge das alterações desejadas na `main`;
 2. aguarde o CI normal da `main` concluir com sucesso;
 3. abra **Actions → Release → Run workflow**;
-4. selecione a branch `main`, informe o campo obrigatório **`version`** (por exemplo, `1.2.0`, sem `v`) e inicie o workflow manualmente.
+4. selecione a branch `main`, informe o campo obrigatório **`version`** com o SemVer exato da release desejada (geralmente o `VersionPrefix` do projeto, sem `v`) e inicie o workflow manualmente.
 
 O input obrigatório `version` aceita somente o formato estável `MAJOR.MINOR.PATCH`: sem zeros à esquerda, prefixo `v`, pré-release ou metadados de build. A versão solicitada deve ser igual ou superior ao `VersionPrefix` do projeto e maior do que qualquer versão publicada ou reservada. Para recuperar uma publicação incompleta, reexecute a **mesma versão no mesmo commit**, desde que nenhuma versão mais nova tenha sido reservada ou publicada. O workflow rejeita versões pertencentes a outro commit, regressões e uma segunda versão para o mesmo commit, antes do empacotamento. A versão não é inferida do título do PR ou das mensagens de commit.
 
