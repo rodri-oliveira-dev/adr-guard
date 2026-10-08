@@ -54,8 +54,14 @@ grep -Fq 'select(.conclusion == "success")' "${WORKFLOW}" || {
   exit 1
 }
 
-grep -Fq '<VersionPrefix>1.2.0</VersionPrefix>' "${PROJECT}" || {
-  echo "The next feature release must set the project baseline to 1.2.0." >&2
+# The release baseline is owned by the project, never pinned in CI policy.
+project_baseline="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' "${PROJECT}" | head -n 1)"
+if [[ ! "${project_baseline}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+  echo "Project VersionPrefix must be stable MAJOR.MINOR.PATCH." >&2
+  exit 1
+fi
+grep -Fq 'below VersionPrefix ${base_version}' "${WORKFLOW}" || {
+  echo "Release resolver must reject versions below the project's VersionPrefix." >&2
   exit 1
 }
 
