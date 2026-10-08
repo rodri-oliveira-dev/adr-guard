@@ -8,6 +8,7 @@ using AdrGuard.Review.Providers;
 using AdrGuard.Review.Reporting;
 using AdrGuard.Review.Security;
 using AdrGuard.Validation;
+using AdrGuard.Git;
 
 namespace AdrGuard.Cli;
 
@@ -22,16 +23,18 @@ internal static class CliApplication
 
         Usage:
           adr-guard init [repository] [options]
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--changed --base-ref <ref>] [--baseline <file>]
+          adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4]
           adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
-          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
+          adr-guard review <adr-file> --provider <provider> --model <model> [--compare-ref <ref>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
           adr-guard [options]
 
         Commands:
           init     Initialize ADR Guard configuration in an existing repository.
           check    Validate ADR files. Defaults to the current directory.
+          baseline Generate or explicitly update a versioned diagnostic baseline.
           index    Validate ADR files and generate an index. Defaults to README.md.
           new      Create a Proposed ADR from an offline Markdown template.
           draft    Generate a Proposed ADR draft through a configured AI provider.
@@ -51,11 +54,13 @@ internal static class CliApplication
 
     private const string CheckHelpText = """
         Usage:
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--changed --base-ref <ref>] [--baseline <file>]
 
         Validate ADR files recursively. The directory defaults to the configured ADR directory or current directory.
         Text is the default. JSON and SARIF 2.1.0 are deterministic data documents written to stdout.
         ADR format defaults to canonical; MADR 4.0 is selected explicitly with --adr-format madr-4.
+        --changed is opt-in and requires --base-ref. Git failures or insufficient history are operational errors.
+        --baseline classifies new/existing/resolved diagnostics; global integrity diagnostics cannot be suppressed.
         """;
 
     private const string IndexHelpText = """
@@ -66,6 +71,14 @@ internal static class CliApplication
         The directory defaults to the current directory.
         The output defaults to README.md inside the ADR directory.
         Relative --output paths are resolved from the current working directory.
+        """;
+
+    private const string BaselineHelpText = """
+        Usage:
+          adr-guard baseline [directory] --output <file.json> [--update] [--adr-format canonical|madr-4]
+
+        Explicitly generate a versioned diagnostic baseline. Existing output is replaced only with --update.
+        Baselines classify structural debt but never suppress global integrity or operational failures.
         """;
 
     private const string DraftHelpText = """
@@ -117,7 +130,7 @@ internal static class CliApplication
 
     private const string ReviewHelpText = """
         Usage:
-          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
+          adr-guard review <adr-file> --provider <provider> --model <model> [--compare-ref <ref>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
 
         Request an AI-assisted technical review of one existing, structurally valid ADR.
         The command is advisory and read-only: it does not edit the ADR, change its status,
@@ -128,6 +141,8 @@ internal static class CliApplication
           --model <model>         Provider model identifier. ADR Guard does not choose a default model.
 
         Optional options:
+          --compare-ref <ref>     Explicitly compare the current ADR with the same path at one Git reference.
+                                  Only those two versions are selected; repository history is not transmitted.
           --endpoint <uri>        Required only for openai-compatible; rejected for official providers.
           --context-file <path>    Explicit UTF-8 .md or .txt context file; repeatable.
                                   Each file is limited to 50000 characters and 150000 bytes.
@@ -273,7 +288,8 @@ internal static class CliApplication
         return effectiveArgs[0] switch
         {
             "init" => InitCommand.Run(effectiveArgs, output, error),
-            "check" => RunCheck(effectiveArgs, output, error),
+            "check" => RunCheck(effectiveArgs, output, error, cancellationToken),
+            "baseline" => RunBaseline(effectiveArgs, output, error, cancellationToken),
             "index" => RunIndex(effectiveArgs, output, error),
             "new" => NewCommand.Run(effectiveArgs, output, error, cancellationToken),
             "draft" => RunDraft(
@@ -299,7 +315,8 @@ internal static class CliApplication
     private static int RunCheck(
         IReadOnlyList<string> args,
         TextWriter output,
-        TextWriter error)
+        TextWriter error,
+        CancellationToken cancellationToken)
     {
         if (args.Count == 2 && IsHelpOption(args[1]))
         {
@@ -307,23 +324,45 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        if (!TryParseCheckArguments(args, out var directoryPath, out var format, out var adrFormat))
+        if (!TryParseCheckArguments(
+                args,
+                out var directoryPath,
+                out var format,
+                out var adrFormat,
+                out var changed,
+                out var baseReference,
+                out var baselinePath))
         {
             return WriteCommandUsageError("check", error);
         }
 
-        return CheckCommand.Run(directoryPath, format, adrFormat, output, error);
+        return CheckCommand.Run(
+            directoryPath,
+            format,
+            adrFormat,
+            changed,
+            baseReference,
+            baselinePath,
+            output,
+            error,
+            cancellationToken);
     }
 
     private static bool TryParseCheckArguments(
         IReadOnlyList<string> args,
         out string directoryPath,
         out CheckOutputFormat format,
-        out AdrFormat adrFormat)
+        out AdrFormat adrFormat,
+        out bool changed,
+        out string? baseReference,
+        out string? baselinePath)
     {
         directoryPath = ".";
         format = CheckOutputFormat.Text;
         adrFormat = AdrFormat.Canonical;
+        changed = false;
+        baseReference = null;
+        baselinePath = null;
         var directoryAssigned = false;
         var formatAssigned = false;
         var adrFormatAssigned = false;
@@ -331,6 +370,54 @@ internal static class CliApplication
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
+            if (argument == "--changed")
+            {
+                if (changed)
+                {
+                    return false;
+                }
+
+                changed = true;
+                continue;
+            }
+
+            if (argument == "--base-ref")
+            {
+                if (baseReference is not null
+                    || index + 1 >= args.Count
+                    || string.IsNullOrWhiteSpace(args[index + 1]))
+                {
+                    return false;
+                }
+
+                var candidate = args[++index];
+                try
+                {
+                    GitChangeDetector.ValidateReference(candidate);
+                }
+                catch (ArgumentException)
+                {
+                    return false;
+                }
+
+                baseReference = candidate;
+                continue;
+            }
+
+            if (argument == "--baseline")
+            {
+                if (baselinePath is not null
+                    || index + 1 >= args.Count
+                    || string.IsNullOrWhiteSpace(args[index + 1])
+                    || args[index + 1].StartsWith('-'))
+                {
+                    return false;
+                }
+
+                baselinePath = args[++index];
+                continue;
+            }
+
             if (argument == "--format")
             {
                 if (formatAssigned || index + 1 >= args.Count)
@@ -385,7 +472,105 @@ internal static class CliApplication
             directoryAssigned = true;
         }
 
-        return true;
+        return changed == (baseReference is not null);
+    }
+
+    private static int RunBaseline(
+        IReadOnlyList<string> args,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken)
+    {
+        if (args.Count == 2 && IsHelpOption(args[1]))
+        {
+            output.WriteLine(BaselineHelpText);
+            return ExitCodes.Success;
+        }
+
+        var directory = ".";
+        string? outputPath = null;
+        var update = false;
+        var format = AdrFormat.Canonical;
+        var directoryAssigned = false;
+        var formatAssigned = false;
+
+        for (var index = 1; index < args.Count; index++)
+        {
+            var argument = args[index];
+            if (argument == "--update")
+            {
+                if (update)
+                {
+                    return WriteCommandUsageError("baseline", error);
+                }
+
+                update = true;
+                continue;
+            }
+
+            if (argument is "--output" or "--adr-format")
+            {
+                if (index + 1 >= args.Count || args[index + 1].StartsWith('-'))
+                {
+                    return WriteCommandUsageError("baseline", error);
+                }
+
+                var value = args[++index];
+                if (argument == "--output")
+                {
+                    if (outputPath is not null)
+                    {
+                        return WriteCommandUsageError("baseline", error);
+                    }
+
+                    outputPath = value;
+                }
+                else
+                {
+                    if (formatAssigned)
+                    {
+                        return WriteCommandUsageError("baseline", error);
+                    }
+
+                    format = value switch
+                    {
+                        "canonical" => AdrFormat.Canonical,
+                        "madr-4" => AdrFormat.Madr4,
+                        _ => (AdrFormat)(-1),
+                    };
+                    if (!Enum.IsDefined(format))
+                    {
+                        return WriteCommandUsageError("baseline", error);
+                    }
+
+                    formatAssigned = true;
+                }
+
+                continue;
+            }
+
+            if (argument.StartsWith('-') || directoryAssigned)
+            {
+                return WriteCommandUsageError("baseline", error);
+            }
+
+            directory = argument;
+            directoryAssigned = true;
+        }
+
+        if (outputPath is null)
+        {
+            return WriteCommandUsageError("baseline", error);
+        }
+
+        return BaselineCommand.Run(
+            directory,
+            outputPath,
+            update,
+            format,
+            output,
+            error,
+            cancellationToken);
     }
 
     private static int RunIndex(
@@ -476,6 +661,7 @@ internal static class CliApplication
                     () => injectedProvider!,
                     output,
                     error,
+                    reviewArguments.CompareReference,
                     cancellationToken);
             }
 
@@ -514,6 +700,7 @@ internal static class CliApplication
                     },
                     output,
                     error,
+                    reviewArguments.CompareReference,
                     cancellationToken);
             }
             finally
@@ -800,6 +987,7 @@ internal static class CliApplication
         string? providerName = null;
         string? model = null;
         string? endpoint = null;
+        string? compareReference = null;
         string? outputPath = null;
         string? policyFilePath = null;
         var contextFilePaths = new List<string>();
@@ -841,6 +1029,7 @@ internal static class CliApplication
             if (argument is
                 "--provider"
                 or "--model"
+                or "--compare-ref"
                 or "--endpoint"
                 or "--context-file"
                 or "--policy"
@@ -883,6 +1072,16 @@ internal static class CliApplication
                         }
 
                         model = value;
+                        break;
+
+                    case "--compare-ref":
+                        if (compareReference is not null)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
+                        compareReference = value;
                         break;
 
                     case "--endpoint":
@@ -997,7 +1196,8 @@ internal static class CliApplication
             outputPath,
             overwriteOutput,
             policyMode,
-            policyFilePath);
+            policyFilePath,
+            compareReference);
 
         return !string.IsNullOrWhiteSpace(targetPath);
     }
@@ -1271,7 +1471,8 @@ internal static class CliApplication
         string? OutputPath,
         bool OverwriteOutput,
         AdrReviewPolicyMode PolicyMode,
-        string? PolicyFilePath)
+        string? PolicyFilePath,
+        string? CompareReference)
     {
         internal static ReviewArguments Empty { get; } =
             new(
@@ -1285,6 +1486,7 @@ internal static class CliApplication
                 null,
                 false,
                 AdrReviewPolicyMode.Advisory,
+                null,
                 null);
     }
 

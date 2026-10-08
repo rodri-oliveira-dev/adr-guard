@@ -24,8 +24,8 @@ A proposta é permitir que convenções de ADR sejam explícitas, revisáveis e 
 - exige um link válido em `Superseded by` para decisões substituídas;
 - gera um índice Markdown determinístico;
 - evita reescrever um índice que já está atualizado;
-- fornece códigos de validação estáveis (`ADR001` até `ADR009`), além dos diagnósticos de governança de relacionamentos (`ADR010` até `ADR014`) introduzidos na v1.3.0;
-- suporta validação MADR 4.0 com `--adr-format madr-4` explícito ou configuração, preservando o padrão canônico;
+- fornece códigos estáveis de validação (`ADR001` até `ADR009`) e governança de relacionamentos (`ADR010` até `ADR014`);
+- suporta validação MADR 4.0 opcional, validação incremental com Git, baselines de diagnósticos e revisão comparativa de ADRs (recursos incluídos na próxima v1.3.0);
 - fornece exit codes previsíveis para CI/CD;
 - cria ADRs `Proposed` editáveis offline usando templates Markdown internos ou personalizados;
 - oferece criação assistida por IA de ADRs `Proposed`, com revisão humana, providers e contexto explícitos;
@@ -217,11 +217,13 @@ adr-guard index docs/adr
 
 **Exemplos válidos:** [Minimal EN](docs/examples/generated/minimal/0001-adopt-redis.md), [Extended pt-BR](docs/examples/generated/extended/0001-adotar-redis.md), [Custom EN](docs/examples/generated/custom/0001-adopt-cache.md), [Custom pt-BR](docs/examples/generated/custom-pt-BR/0001-adotar-cache.md). Consulte o [guia completo de criação offline e códigos de saída](docs/creation.pt-BR.md) e as [regras de placeholders](docs/custom-templates.pt-BR.md).
 
-> **Preparação da v1.3.0:** builds do código-fonte na branch encadeada da v1.3 adicionam suporte explícito a MADR 4.0 com `--adr-format madr-4` e governança determinística de relacionamentos. O formato canônico permanece como default; estes recursos não são publicados até a conclusão da release independente v1.3.0. Consulte o [guia MADR](docs/madr-4.pt-BR.md) e o [guia de governança](docs/relationship-governance.pt-BR.md).
+> **Preparação da release v1.3.0 (escopo combinado das antigas branches v1.3 + v1.4):** a próxima release manual inclui MADR 4.0 opcional, governança de relacionamentos, validação incremental com Git, baselines de diagnósticos e revisão comparativa explícita por IA entre duas versões. O formato canônico e a validação completa permanecem como padrão. Os recursos estão no código-fonte, mas só devem ser considerados publicados após a release independente v1.3.0. Consulte os guias de [MADR](docs/madr-4.pt-BR.md), [governança](docs/relationship-governance.pt-BR.md), [validação incremental/baseline](docs/incremental-validation.pt-BR.md) e [revisão comparativa](docs/comparative-review.pt-BR.md).
 
 ## Validar ADRs
 
-> **Preparação da v1.2.0:** `init`, `.adrguard.yml` e `check --format json|sarif` estão disponíveis via build do código-fonte na branch de desenvolvimento da v1.2. Eles não fazem parte de uma release publicada até a conclusão do processo manual e independente da v1.2.0.
+> **v1.2.0:** `init`, `.adrguard.yml` e `check --format json|sarif` foram adicionados nessa versão. Consulte as [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) para obter o pacote publicado.
+
+
 
 Para validar recursivamente uma pasta:
 

@@ -9,6 +9,8 @@ README_EN="${ROOT_DIR}/README.md"
 README_PT="${ROOT_DIR}/README.pt-BR.md"
 EXAMPLE_PR="${ROOT_DIR}/docs/examples/github-action-pr.yml"
 EXAMPLE_MAIN="${ROOT_DIR}/docs/examples/github-action-main.yml"
+EXAMPLE_INCREMENTAL="${ROOT_DIR}/docs/examples/github-action-incremental.yml"
+EXAMPLE_FORK="${ROOT_DIR}/docs/examples/github-action-fork.yml"
 EXTERNAL_EN="${ROOT_DIR}/docs/github-action-external-verification.md"
 EXTERNAL_PT="${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
 REVIEW_EN="${ROOT_DIR}/docs/github-action-review.md"
@@ -16,7 +18,7 @@ REVIEW_PT="${ROOT_DIR}/docs/github-action-review.pt-BR.md"
 AUDIT_EN="${ROOT_DIR}/docs/public-release-audit.md"
 AUDIT_PT="${ROOT_DIR}/docs/public-release-audit.pt-BR.md"
 
-for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${REVIEW_EN}" "${REVIEW_PT}" "${AUDIT_EN}" "${AUDIT_PT}"; do
+for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXAMPLE_INCREMENTAL}" "${EXAMPLE_FORK}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${REVIEW_EN}" "${REVIEW_PT}" "${AUDIT_EN}" "${AUDIT_PT}"; do
   test -s "${file}" || {
     echo "Required GitHub Action consumer documentation is missing: ${file}" >&2
     exit 1
@@ -78,6 +80,19 @@ done
 
 grep -Fq 'pull_request:' "${EXAMPLE_PR}"
 grep -Fq 'push:' "${EXAMPLE_MAIN}"
+
+# v1.4 source-preparation examples keep fork checks secretless and make full
+# history an explicit prerequisite for opt-in Git comparison.
+grep -Fq 'fetch-depth: 0' "${EXAMPLE_INCREMENTAL}"
+grep -Fq -- '--changed --base-ref origin/main' "${EXAMPLE_INCREMENTAL}"
+grep -Fq -- '--baseline .adrguard-baseline.json' "${EXAMPLE_INCREMENTAL}"
+grep -Fq 'permissions:' "${EXAMPLE_FORK}"
+grep -Fq 'contents: read' "${EXAMPLE_FORK}"
+grep -Fq 'command: check' "${EXAMPLE_FORK}"
+if grep -Eiq 'pull_request_target|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|secrets\.' "${EXAMPLE_FORK}"; then
+  echo "Fork-safe example must not use privileged events or provider secrets." >&2
+  exit 1
+fi
 
 # Both languages must cover the same observable contract.
 for term in 'ADR001' 'ADR009' 'GITHUB_STEP_SUMMARY' '50' 'exit code `2`' 'exit code `3`' '`check`' '`index`' '`@v1.2.3`' '`@v1`' '`@<commit-sha>`' 'contents: read' 'Docker' 'Python 3'; do

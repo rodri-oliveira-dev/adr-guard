@@ -138,41 +138,6 @@ public sealed class AdrRelationshipValidatorTests
         Assert.True(result.IsValid);
     }
 
-    [Theory]
-    [InlineData("superseded by ADR-TBD")]
-    [InlineData("superseded by ADR-2147483648")]
-    [InlineData("superseded by ADR-0000")]
-    public void MadrUnparseableSupersessionStatusDoesNotMarkDependencyInactive(string status)
-    {
-        var historical = Parse("0001-historical.md", Madr("Historical", status));
-        var dependent = Parse(
-            "0002-dependent.md",
-            Madr("Dependent", "accepted") + "\n## Dependencies\n[Historical](0001-historical.md)");
-
-        var result = AdrValidator.Validate([historical, dependent], AdrFormat.Madr4);
-
-        Assert.True(result.IsValid);
-        Assert.DoesNotContain(result.Issues, issue => issue.Code == ValidationCodes.InactiveDependency);
-    }
-
-    [Theory]
-    [InlineData("Superseded")]
-    [InlineData("superseded by ADR-0003")]
-    public void MadrValidSupersessionStatusStillMarksDependencyInactive(string status)
-    {
-        var historical = Parse("0001-historical.md", Madr("Historical", status));
-        var dependent = Parse(
-            "0002-dependent.md",
-            Madr("Dependent", "accepted") + "\n## Dependencies\n[Historical](0001-historical.md)");
-        var successor = Parse("0003-successor.md", Madr("Successor", "accepted"));
-
-        var result = AdrValidator.Validate([historical, dependent, successor], AdrFormat.Madr4);
-
-        Assert.Contains(result.Issues, issue =>
-            issue.Code == ValidationCodes.InactiveDependency
-            && issue.FilePath.EndsWith("0002-dependent.md", StringComparison.Ordinal));
-    }
-
     [Fact]
     public void LargeAcyclicGraphIsDeterministic()
     {

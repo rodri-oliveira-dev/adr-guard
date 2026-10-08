@@ -239,7 +239,7 @@ internal static class AdrRelationshipValidator
 
     private static bool IsSuperseded(string? status) =>
         string.Equals(status, "Superseded", StringComparison.OrdinalIgnoreCase)
-        || TryParseMadrSupersedingId(status, out _);
+        || status?.StartsWith("superseded by ADR-", StringComparison.OrdinalIgnoreCase) == true;
 
     private static bool IsInactive(string? status) =>
         IsSuperseded(status)

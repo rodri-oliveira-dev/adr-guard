@@ -134,6 +134,16 @@ internal static partial class AdrReviewReportBuilder
                     $"context-{index + 1}",
                     Path.GetFileName(file.FilePath),
                     null))
+            .Concat(
+                context.Comparison is null
+                    ? []
+                    :
+                    [
+                        new AdrReviewInputSourceReport(
+                            "comparison-base",
+                            context.Comparison.FileName,
+                            ParseAdrId(context.Comparison.FileName)),
+                    ])
             .ToArray();
 
         var existingNames =
@@ -181,6 +191,15 @@ internal static partial class AdrReviewReportBuilder
                         $"context-{index + 1}",
                         Path.GetFileName(file.FilePath),
                         null)));
+
+        if (context.Comparison is { } comparison)
+        {
+            sources.Add(
+                new SelectedSource(
+                    "comparison-base",
+                    comparison.FileName,
+                    ParseAdrId(comparison.FileName)));
+        }
 
         var existingNames =
             (context.ExistingAdrs?.IncludedSourceNames

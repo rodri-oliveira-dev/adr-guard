@@ -21,6 +21,16 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["new", "existing", "resolved"],
+      "properties": {
+        "new": { "type": "integer", "minimum": 0 },
+        "existing": { "type": "integer", "minimum": 0 },
+        "resolved": { "type": "integer", "minimum": 0 }
+      }
+    },
     "diagnostics": {
       "type": "array",
       "items": {
@@ -30,7 +40,8 @@
         "properties": {
           "code": { "type": "string", "pattern": "^ADR[0-9]{3}$" },
           "message": { "type": "string", "minLength": 1 },
-          "file": { "type": "string", "minLength": 1 }
+          "file": { "type": "string", "minLength": 1 },
+          "baselineState": { "enum": ["new", "existing"] }
         }
       }
     }

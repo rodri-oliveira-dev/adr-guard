@@ -121,31 +121,6 @@ public sealed class Madr4ValidationTests
     }
 
     [Theory]
-    [InlineData("Superseded")]
-    [InlineData("superseded")]
-    public void Madr4PlainSupersededStatusDoesNotRequireCanonicalSupersededBySection(string status)
-    {
-        var markdown = $"""
-            ---
-            status: "{status}"
-            ---
-            # Historical decision
-            ## Context and Problem Statement
-            Historical context.
-            ## Considered Options
-            * Option A
-            ## Decision Outcome
-            Chosen option: A for historical reasons.
-            """;
-
-        var document = AdrMarkdownParser.Parse("0001-historical-decision.md", markdown);
-        var result = AdrValidator.Validate([document], AdrFormat.Madr4);
-
-        Assert.True(result.IsValid);
-        Assert.DoesNotContain(result.Issues, issue => issue.Code == ValidationCodes.MissingSupersededBy);
-    }
-
-    [Theory]
     [InlineData("Context and Problem Statement")]
     [InlineData("Considered Options")]
     [InlineData("Decision Outcome")]

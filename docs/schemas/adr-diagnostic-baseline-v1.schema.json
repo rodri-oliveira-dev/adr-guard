@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/schemas/adr-diagnostic-baseline-v1.schema.json",
+  "title": "ADR Guard diagnostic baseline v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "diagnostics"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["fingerprint", "code", "file", "message"],
+        "properties": {
+          "fingerprint": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "code": { "type": "string", "pattern": "^ADR[0-9]{3}$" },
+          "file": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

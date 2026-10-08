@@ -1,5 +1,6 @@
 using AdrGuard.Model;
 using AdrGuard.Validation;
+using AdrGuard.Baselines;
 using System.Text;
 using System.Text.Json;
 
@@ -11,18 +12,22 @@ internal static class CheckReportRenderer
         IReadOnlyList<AdrDocument> documents,
         ValidationResult result,
         string checkedDirectory,
+        DiagnosticBaselineComparison? baseline,
         TextWriter output) =>
         WriteDocument(output, writer =>
         {
-            // Choose a single relative-path namespace for the entire report.
+            // All report paths use one root for stable JSON/SARIF identity.
             var reportRoot = GetReportRoot(checkedDirectory);
             writer.WriteStartObject();
             writer.WriteString("schemaVersion", "1.0");
-            writer.WriteBoolean("valid", result.IsValid);
+            writer.WriteBoolean(
+                "valid",
+                baseline is null ? result.IsValid : baseline.NewIssues.Count == 0);
             writer.WriteStartObject("summary");
             writer.WriteNumber("files", documents.Count);
             writer.WriteNumber("diagnostics", result.Issues.Count);
             writer.WriteEndObject();
+            WriteBaselineSummary(writer, baseline);
             writer.WriteStartArray("files");
             foreach (var document in documents.OrderBy(item => item.FilePath, StringComparer.Ordinal))
             {
@@ -37,6 +42,7 @@ internal static class CheckReportRenderer
                 writer.WriteString("code", issue.Code);
                 writer.WriteString("message", issue.Message);
                 writer.WriteString("file", ToReportPath(issue.FilePath, reportRoot));
+                WriteJsonBaselineState(writer, issue, checkedDirectory, baseline);
                 writer.WriteEndObject();
             }
 
@@ -47,10 +53,11 @@ internal static class CheckReportRenderer
     internal static void WriteSarif(
         ValidationResult result,
         string checkedDirectory,
+        DiagnosticBaselineComparison? baseline,
         TextWriter output) =>
         WriteDocument(output, writer =>
         {
-            // Choose a single relative-path namespace for the entire report.
+            // All report paths use one root for stable JSON/SARIF identity.
             var reportRoot = GetReportRoot(checkedDirectory);
             writer.WriteStartObject();
             writer.WriteString(
@@ -82,6 +89,13 @@ internal static class CheckReportRenderer
             writer.WriteEndArray();
             writer.WriteEndObject();
             writer.WriteEndObject();
+            if (baseline is not null)
+            {
+                writer.WriteStartObject("properties");
+                WriteBaselineSummary(writer, baseline);
+                writer.WriteEndObject();
+            }
+
             writer.WriteStartArray("results");
             foreach (var issue in result.Issues)
             {
@@ -91,6 +105,7 @@ internal static class CheckReportRenderer
                 writer.WriteStartObject("message");
                 writer.WriteString("text", issue.Message);
                 writer.WriteEndObject();
+                WriteSarifBaselineState(writer, issue, checkedDirectory, baseline);
                 writer.WriteStartArray("locations");
                 writer.WriteStartObject();
                 writer.WriteStartObject("physicalLocation");
@@ -108,6 +123,67 @@ internal static class CheckReportRenderer
             writer.WriteEndArray();
             writer.WriteEndObject();
         });
+
+    private static void WriteBaselineSummary(
+        Utf8JsonWriter writer,
+        DiagnosticBaselineComparison? baseline)
+    {
+        if (baseline is null)
+        {
+            return;
+        }
+
+        writer.WriteStartObject("baseline");
+        writer.WriteNumber("new", baseline.NewIssues.Count);
+        writer.WriteNumber("existing", baseline.ExistingIssues.Count);
+        writer.WriteNumber("resolved", baseline.ResolvedEntries.Count);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteJsonBaselineState(
+        Utf8JsonWriter writer,
+        ValidationIssue issue,
+        string checkedDirectory,
+        DiagnosticBaselineComparison? baseline)
+    {
+        if (baseline is null)
+        {
+            return;
+        }
+
+        writer.WriteString(
+            "baselineState",
+            GetBaselineState(issue, checkedDirectory, baseline));
+    }
+
+    private static void WriteSarifBaselineState(
+        Utf8JsonWriter writer,
+        ValidationIssue issue,
+        string checkedDirectory,
+        DiagnosticBaselineComparison? baseline)
+    {
+        if (baseline is null)
+        {
+            return;
+        }
+
+        writer.WriteStartObject("properties");
+        writer.WriteString(
+            "adrGuardBaselineState",
+            GetBaselineState(issue, checkedDirectory, baseline));
+        writer.WriteEndObject();
+    }
+
+    private static string GetBaselineState(
+        ValidationIssue issue,
+        string checkedDirectory,
+        DiagnosticBaselineComparison baseline)
+    {
+        var fingerprint = DiagnosticBaselineService.Fingerprint(issue, checkedDirectory);
+        return baseline.StateByFingerprint.TryGetValue(fingerprint, out var state)
+            ? state
+            : "new";
+    }
 
     private static void WriteDocument(
         TextWriter output,
@@ -129,8 +205,7 @@ internal static class CheckReportRenderer
         var invocationRoot = Path.GetFullPath(Directory.GetCurrentDirectory());
         var checkedRoot = Path.GetFullPath(checkedDirectory);
 
-        // Prefer workspace-relative paths; use the checked directory when it
-        // is outside (or above) the invocation directory.
+        // Use workspace-relative paths when the checked directory belongs to it.
         return IsContained(invocationRoot, checkedRoot)
             ? invocationRoot
             : checkedRoot;
