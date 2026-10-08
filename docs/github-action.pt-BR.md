@@ -1,6 +1,6 @@
 # Guia de consumo da GitHub Action
 
-> **Status da publicação:** a Action reutilizável está publicada, e a tag móvel de compatibilidade `v1` está publicada. A linha pública `v1` suporta `check`, `index` e `review` opt-in desde a `v1.1.6`. `new` e `draft` continuam fluxos exclusivos de CLI/container. O proprietário informou a [URL da listagem no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) em 07/10/2026. A verificação de acesso independente em sessão deslogada ainda está pendente.
+> **Status da publicação:** a Action reutilizável está publicada, e a tag de compatibilidade `v1` está publicada e é móvel. A linha pública `v1` suporta `check`, `index` e `review` opt-in desde a `v1.1.6`. `new` e `draft` continuam fluxos exclusivos de CLI/container. O proprietário informou a [URL da listagem no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) em 07/10/2026. A verificação de acesso independente em sessão deslogada ainda está pendente.
 
 A composite Action do ADR Guard executa o container publicado do ADR Guard. O consumidor não precisa do .NET SDK. É necessário um runner Linux com Docker e checkout prévio do repositório; o `review` opt-in também exige Python 3 no runner para renderização segura de summary/annotations.
 
