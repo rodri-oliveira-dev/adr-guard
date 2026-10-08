@@ -62,6 +62,112 @@ public sealed class ConfigurationProcessIntegrationTests
         }
     }
 
+    [Theory]
+    [InlineData("check")]
+    [InlineData("index")]
+    [InlineData("new")]
+    [InlineData("draft")]
+    public async Task ConfiguredCommandHelpReturnsUsage(string command)
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(root, ".adrguard.yml"),
+                "schema-version: 1\nadr-directory: docs/adr\ntemplate: extended\n");
+
+            var result = await RunProcessAsync(root, command, "--help");
+
+            Assert.Equal(ExitCodes.Success, result.ExitCode);
+            Assert.Equal(string.Empty, result.Error);
+            Assert.Contains($"adr-guard {command}", result.Output, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public async Task JsonUsesInvocationRootForCheckedSubdirectory()
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var adrDirectory = Path.Combine(root, "docs", "adr");
+            Directory.CreateDirectory(adrDirectory);
+            File.WriteAllText(Path.Combine(adrDirectory, "0001-parent.md"), "# Invalid");
+
+            var result = await RunProcessAsync(root, "check", "docs/adr", "--format", "json");
+
+            Assert.Equal(ExitCodes.ValidationFailed, result.ExitCode);
+            using var report = JsonDocument.Parse(result.Output);
+            Assert.Equal(
+                "docs/adr/0001-parent.md",
+                report.RootElement.GetProperty("files")[0].GetString());
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Theory]
+    [InlineData("json")]
+    [InlineData("sarif")]
+    public async Task ReportUsesOneRootAndSarifEscapesSpecialCharacters(string format)
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            var checkedDirectory = Path.Combine(root, "docs", "adr");
+            var nestedDirectory = Path.Combine(checkedDirectory, "team");
+            Directory.CreateDirectory(nestedDirectory);
+            File.WriteAllText(Path.Combine(checkedDirectory, "0001-parent.md"), "# Invalid");
+            File.WriteAllText(Path.Combine(nestedDirectory, "0002-child.md"), "# Invalid");
+            File.WriteAllText(Path.Combine(nestedDirectory, "0003-é #%.md"), "# Invalid");
+
+            // Run from a child directory while checking its ancestor.
+            var result = await RunProcessAsync(
+                nestedDirectory, "check", "..", "--format", format);
+
+            Assert.Equal(ExitCodes.ValidationFailed, result.ExitCode);
+            Assert.Equal(string.Empty, result.Error);
+            using var report = JsonDocument.Parse(result.Output);
+
+            if (format == "json")
+            {
+                var files = report.RootElement.GetProperty("files")
+                    .EnumerateArray().Select(item => item.GetString()).ToArray();
+                Assert.Contains("0001-parent.md", files);
+                Assert.Contains("team/0002-child.md", files);
+                Assert.Contains("team/0003-é #%.md", files);
+            }
+            else
+            {
+                var uris = report.RootElement.GetProperty("runs")[0]
+                    .GetProperty("results").EnumerateArray()
+                    .Select(item => item.GetProperty("locations")[0]
+                        .GetProperty("physicalLocation")
+                        .GetProperty("artifactLocation").GetProperty("uri").GetString())
+                    .ToArray();
+
+                Assert.Contains("0001-parent.md", uris);
+                Assert.Contains("team/0002-child.md", uris);
+                Assert.Contains("team/0003-%C3%A9%20%23%25.md", uris);
+                Assert.All(uris, uri => Assert.True(
+                    Uri.TryCreate(uri, UriKind.Relative, out _)));
+            }
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
     private static async Task<ProcessResult> RunProcessAsync(
         string workingDirectory,
         params string[] arguments)

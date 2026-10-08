@@ -8,7 +8,8 @@ internal static class ConfigurationArguments
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        if (configuration is null || args.Count == 0)
+        if (configuration is null || args.Count == 0
+            || (args.Count == 2 && args[1] is "-h" or "--help"))
         {
             return args;
         }
