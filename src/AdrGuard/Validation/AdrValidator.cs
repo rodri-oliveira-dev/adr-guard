@@ -58,6 +58,8 @@ internal static class AdrValidator
     {
         ArgumentNullException.ThrowIfNull(documents);
 
+        // Keep metadata status specific to the explicitly selected MADR format.
+        documents = AdrStatusResolver.ForFormat(documents, format);
         var issues = new List<ValidationIssue>();
         var knownPaths = documents
             .Select(document => Path.GetFullPath(document.FilePath))

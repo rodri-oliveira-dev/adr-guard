@@ -2,6 +2,11 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact stable SemVer (MAJOR.MINOR.PATCH, without v)"
+        type: string
+        required: true
 
 concurrency:
   group: release
@@ -64,11 +69,35 @@ jobs:
         shell: bash
         env:
           VALIDATED_SHA: ${{ github.sha }}
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
 
+          requested_version="${RELEASE_VERSION:-}"
+          if [[ ! "${requested_version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || (( ${#requested_version} > 32 )); then
+            echo "::error::Release version must use stable SemVer MAJOR.MINOR.PATCH (no v prefix, leading zeroes, prerelease or metadata)."
+            exit 1
+          fi
+
+          base_version="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' src/AdrGuard/AdrGuard.csproj | head -n 1)"
+          if [[ ! "${base_version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::VersionPrefix must use stable SemVer MAJOR.MINOR.PATCH."
+            exit 1
+          fi
+
+          if [[ "$(printf '%s\n%s\n' "${base_version}" "${requested_version}" | sort -V | tail -n 1)" != "${requested_version}" ]]; then
+            echo "::error::Requested ${requested_version} is below VersionPrefix ${base_version}."
+            exit 1
+          fi
+
           git fetch --tags --force
 
+          package_version="${requested_version}"
+          release_tag="v${package_version}"
+          reservation_tag="release-reservation/${release_tag}"
+
+          # An immutable release or reservation on this SHA prevents assigning a
+          # different version to the very same source commit.
           existing_tag="$(git tag --points-at "${VALIDATED_SHA}" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1 || true)"
           existing_reservation="$(
             git tag --points-at "${VALIDATED_SHA}" \
@@ -78,50 +107,53 @@ jobs:
               || true
           )"
 
-          if [[ -n "${existing_tag}" ]]; then
-            package_version="${existing_tag#v}"
-            release_tag="${existing_tag}"
-          elif [[ -n "${existing_reservation}" ]]; then
-            release_tag="${existing_reservation#release-reservation/}"
-            package_version="${release_tag#v}"
-          else
-            base_version="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' src/AdrGuard/AdrGuard.csproj | head -n 1)"
-
-            if [[ ! "${base_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-              echo "::error::VersionPrefix must use stable SemVer format MAJOR.MINOR.PATCH."
-              exit 1
-            fi
-
-            latest_version="$(
-              {
-                git tag --list 'v*' \
-                  | sed -nE 's/^v([0-9]+\.[0-9]+\.[0-9]+)$/\1/p'
-                git tag --list 'release-reservation/v*' \
-                  | sed -nE 's#^release-reservation/v([0-9]+\.[0-9]+\.[0-9]+)$#\1#p'
-              } \
-                | sort -V \
-                | tail -n 1 \
-                || true
-            )"
-
-            if [[ -z "${latest_version}" ]]; then
-              package_version="${base_version}"
-            else
-              highest="$(printf '%s\n%s\n' "${base_version}" "${latest_version}" | sort -V | tail -n 1)"
-
-              if [[ "${highest}" == "${base_version}" && "${base_version}" != "${latest_version}" ]]; then
-                package_version="${base_version}"
-              else
-                IFS='.' read -r major minor patch <<< "${latest_version}"
-                package_version="${major}.${minor}.$((patch + 1))"
-              fi
-            fi
-
-            release_tag="v${package_version}"
+          if [[ -n "${existing_tag}" && "${existing_tag}" != "${release_tag}" ]]; then
+            echo "::error::Commit ${VALIDATED_SHA} is already published as ${existing_tag}, not ${release_tag}."
+            exit 1
+          fi
+          if [[ -n "${existing_reservation}" && "${existing_reservation}" != "${reservation_tag}" ]]; then
+            echo "::error::Commit ${VALIDATED_SHA} already has reservation ${existing_reservation}."
+            exit 1
           fi
 
-          reservation_tag="release-reservation/${release_tag}"
+          resume_existing=false
+          for tag in "${release_tag}" "${reservation_tag}"; do
+            if git show-ref --verify --quiet "refs/tags/${tag}"; then
+              tagged_sha="$(git rev-list -n 1 "${tag}")"
+              if [[ "${tagged_sha}" != "${VALIDATED_SHA}" ]]; then
+                echo "::error::Version ${requested_version} already belongs to ${tagged_sha} (${tag}), not ${VALIDATED_SHA}."
+                exit 1
+              fi
+              resume_existing=true
+            fi
+          done
 
+          latest_version="$(
+            {
+              git tag --list 'v*' \
+                | sed -nE 's/^v([0-9]+\.[0-9]+\.[0-9]+)$/\1/p'
+              git tag --list 'release-reservation/v*' \
+                | sed -nE 's#^release-reservation/v([0-9]+\.[0-9]+\.[0-9]+)$#\1#p'
+            } \
+              | sort -V \
+              | tail -n 1 \
+              || true
+          )"
+
+          # Do not let reruns of older versions move mutable image tags backwards.
+          if [[ -n "${latest_version}" ]] &&
+             [[ "$(printf '%s\n%s\n' "${requested_version}" "${latest_version}" | sort -V | tail -n 1)" != "${requested_version}" ]]; then
+            echo "::error::Requested ${requested_version} is older than latest published/reserved ${latest_version}."
+            exit 1
+          fi
+          if [[ -n "${latest_version}" && "${requested_version}" == "${latest_version}" && "${resume_existing}" != true ]]; then
+            echo "::error::Version ${requested_version} is already taken; choose a newer version."
+            exit 1
+          fi
+
+          if [[ "${resume_existing}" == true ]]; then
+            echo "Resuming ${release_tag} on original commit ${VALIDATED_SHA}."
+          fi
           echo "package_version=${package_version}" >> "${GITHUB_OUTPUT}"
           echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
           echo "reservation_tag=${reservation_tag}" >> "${GITHUB_OUTPUT}"

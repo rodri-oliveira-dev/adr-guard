@@ -69,6 +69,48 @@ public sealed class DiagnosticBaselineServiceTests
     }
 
     [Fact]
+    public void CreatingBaselineDeduplicatesIdenticalDiagnosticFingerprints()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            var issue = Issue(root, "0001-legacy.md", ValidationCodes.BrokenReference,
+                "Reference 'missing.md' does not resolve.");
+            var baseline = DiagnosticBaselineService.Create(
+                new ValidationResult([issue, issue]), root);
+
+            Assert.Single(baseline.Diagnostics);
+            var text = DiagnosticBaselineService.Serialize(baseline);
+            Assert.Contains(issue.Code, text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void DuplicateCanonicalSectionIsDocumentLocalAndCanBeBaselined()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            var issue = Issue(root, "0001-legacy.md",
+                ValidationCodes.DuplicateCanonicalSection, "Duplicate Status section.");
+            var current = new ValidationResult([issue]);
+            var comparison = DiagnosticBaselineService.Compare(
+                current, DiagnosticBaselineService.Create(current, root), root);
+
+            Assert.Empty(comparison.NewIssues);
+            Assert.Single(comparison.ExistingIssues);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void GlobalDiagnosticsCannotBeSuppressedByBaseline()
     {
         var root = CreateTempDirectory();

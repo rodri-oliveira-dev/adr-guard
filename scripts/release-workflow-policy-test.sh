@@ -10,6 +10,15 @@ grep -Fq '  workflow_dispatch:' "${WORKFLOW}" || {
   exit 1
 }
 
+grep -Fq '      version:' "${WORKFLOW}" && grep -Fq '        required: true' "${WORKFLOW}" || {
+  echo "Manual release must require an explicit version input." >&2
+  exit 1
+}
+grep -Fq 'RELEASE_VERSION: ${{ inputs.version }}' "${WORKFLOW}" || {
+  echo "Release resolver must read the explicit dispatch version." >&2
+  exit 1
+}
+
 if grep -Fq 'workflow_run:' "${WORKFLOW}" || grep -Fq 'github.event.workflow_run' "${WORKFLOW}"; then
   echo "Release workflow must not publish automatically after CI." >&2
   exit 1
@@ -45,8 +54,14 @@ grep -Fq 'select(.conclusion == "success")' "${WORKFLOW}" || {
   exit 1
 }
 
-grep -Fq '<VersionPrefix>1.1.0</VersionPrefix>' "${PROJECT}" || {
-  echo "The coordinated template release must start at 1.1.0 while retaining the existing @v1 compatibility line." >&2
+# The release baseline is owned by the project, never pinned in CI policy.
+project_baseline="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' "${PROJECT}" | head -n 1)"
+if [[ ! "${project_baseline}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+  echo "Project VersionPrefix must be stable MAJOR.MINOR.PATCH." >&2
+  exit 1
+fi
+grep -Fq 'below VersionPrefix ${base_version}' "${WORKFLOW}" || {
+  echo "Release resolver must reject versions below the project's VersionPrefix." >&2
   exit 1
 }
 
@@ -76,6 +91,11 @@ fi
 
 grep -Fq "git tag --list 'release-reservation/v*'" "${WORKFLOW}" || {
   echo "Release version resolution must account for unfinished version reservations." >&2
+  exit 1
+}
+
+grep -Fq 'resume_existing=true' "${WORKFLOW}" || {
+  echo "Release resolution must support safe same-commit retries." >&2
   exit 1
 }
 

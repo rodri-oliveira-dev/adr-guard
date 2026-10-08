@@ -25,6 +25,7 @@ internal static class DiagnosticBaselineService
         ArgumentNullException.ThrowIfNull(result);
         var entries = result.Issues
             .Select(issue => CreateEntry(issue, checkedDirectory))
+            .DistinctBy(entry => entry.Fingerprint, StringComparer.Ordinal)
             .OrderBy(entry => entry.Fingerprint, StringComparer.Ordinal)
             .ToArray();
         return new DiagnosticBaseline(SchemaVersion, entries);
