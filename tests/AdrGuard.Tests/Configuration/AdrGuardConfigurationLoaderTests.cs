@@ -91,6 +91,28 @@ public sealed class AdrGuardConfigurationLoaderTests
         Assert.Same(legacy, ConfigurationArguments.Apply(legacy, null));
     }
 
+    [Theory]
+    [InlineData("check", "--help")]
+    [InlineData("check", "-h")]
+    [InlineData("index", "--help")]
+    [InlineData("index", "-h")]
+    [InlineData("new", "--help")]
+    [InlineData("new", "-h")]
+    [InlineData("draft", "--help")]
+    [InlineData("draft", "-h")]
+    public void ApplyPreservesCommandHelpWithConfiguration(string command, string helpOption)
+    {
+        var configuration = new AdrGuardConfiguration(
+            Path.GetFullPath("repo"),
+            "docs/decisions",
+            "extended",
+            null,
+            null);
+        var args = new[] { command, helpOption };
+
+        Assert.Same(args, ConfigurationArguments.Apply(args, configuration));
+    }
+
     private static string CreateTempDirectory()
     {
         var path = Path.Combine(Path.GetTempPath(), $"adr-guard-config-{Guid.NewGuid():N}");

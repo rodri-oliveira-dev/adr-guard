@@ -47,23 +47,40 @@ internal static class CheckCommand
         {
             cancellationToken.ThrowIfCancellationRequested();
             var documents = AdrDocumentLoader.LoadDirectory(directoryPath, cancellationToken);
-            var result = AdrValidator.Validate(documents, adrFormat);
+            var fullResult = AdrValidator.Validate(documents, adrFormat);
+            var result = fullResult;
+            IReadOnlySet<string>? changedPaths = null;
             if (changed)
             {
                 var changeSet = GitChangeDetector.Detect(
                     directoryPath,
                     baseReference!,
                     cancellationToken);
-                result = IncrementalValidation.Select(result, changeSet.CurrentPaths);
+                changedPaths = changeSet.CurrentPaths;
+                result = IncrementalValidation.Select(fullResult, changedPaths);
             }
 
             DiagnosticBaselineComparison? baseline = null;
             if (baselinePath is not null)
             {
-                baseline = DiagnosticBaselineService.Compare(
-                    result,
+                // Compare the complete current ADR set to the baseline before
+                // filtering unchanged local debt. Otherwise unchanged findings
+                // would be incorrectly classified as resolved.
+                var comparison = DiagnosticBaselineService.Compare(
+                    fullResult,
                     DiagnosticBaselineService.Load(baselinePath),
                     directoryPath);
+                baseline = changedPaths is null
+                    ? comparison
+                    : comparison with
+                    {
+                        NewIssues = IncrementalValidation.Select(
+                            new ValidationResult(comparison.NewIssues),
+                            changedPaths).Issues,
+                        ExistingIssues = IncrementalValidation.Select(
+                            new ValidationResult(comparison.ExistingIssues),
+                            changedPaths).Issues,
+                    };
             }
 
             switch (format)

@@ -80,9 +80,11 @@ internal static class AdrMarkdownParser
             ?.Content
             .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .FirstOrDefault();
-        var status = metadata.TryGetValue("status", out var metadataStatus)
+        // Canonical ADRs take their status from the level-two Status section.
+        // MADR-only documents without that section can still expose front matter.
+        var status = sectionStatus ?? (metadata.TryGetValue("status", out var metadataStatus)
             ? metadataStatus
-            : sectionStatus;
+            : null);
 
         return new AdrDocument(
             filePath,

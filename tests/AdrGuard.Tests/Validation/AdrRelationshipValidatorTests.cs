@@ -85,6 +85,47 @@ public sealed class AdrRelationshipValidatorTests
     }
 
     [Fact]
+    public void CanonicalStatusSectionCannotBeOverriddenByFrontMatter()
+    {
+        var accepted = Parse(
+            "0001-current.md",
+            "---\nstatus: Superseded\n---\n" + Canonical("Current", "Accepted"));
+        var superseded = Parse(
+            "0002-old.md",
+            "---\nstatus: Accepted\n---\n" + Canonical("Old", "Superseded"));
+
+        Assert.Equal("Accepted", accepted.Status);
+        Assert.Equal("Superseded", superseded.Status);
+
+        var result = AdrValidator.Validate([accepted, superseded]);
+
+        Assert.Contains(result.Issues, issue =>
+            issue.FilePath.EndsWith("0002-old.md", StringComparison.Ordinal)
+            && issue.Code == ValidationCodes.MissingSupersededBy);
+        Assert.DoesNotContain(result.Issues, issue =>
+            issue.FilePath.EndsWith("0001-current.md", StringComparison.Ordinal)
+            && issue.Code == ValidationCodes.MissingSupersededBy);
+    }
+
+    [Fact]
+    public void NestedRelationshipHeadingsAreNotGraphDeclarations()
+    {
+        var old = Parse("0001-old.md", Canonical("Old", "Deprecated"));
+        var narrative = Parse(
+            "0002-narrative.md",
+            Canonical("Narrative", "Accepted",
+                "## References\n### Dependencies\n[Old](0001-old.md)\n### Superseded by\n[Old](0001-old.md)\n### Supersedes\n[Old](0001-old.md)"));
+
+        var result = AdrValidator.Validate([old, narrative]);
+
+        Assert.True(result.IsValid);
+        Assert.DoesNotContain(result.Issues, issue =>
+            issue.Code is ValidationCodes.InactiveDependency
+                or ValidationCodes.InconsistentSupersession
+                or ValidationCodes.SupersessionCycle);
+    }
+
+    [Fact]
     public void MadrSupersededByStatusResolvesByUniqueId()
     {
         var old = Parse(

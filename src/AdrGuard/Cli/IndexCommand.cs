@@ -51,7 +51,7 @@ internal static class IndexCommand
                 return ExitCodes.ValidationFailed;
             }
 
-            var content = AdrIndexGenerator.Generate(documents);
+            var content = AdrIndexGenerator.Generate(AdrStatusResolver.ForFormat(documents, adrFormat));
 
             if (File.Exists(resolvedOutputPath)
                 && string.Equals(

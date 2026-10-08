@@ -16,6 +16,8 @@ internal static class CheckReportRenderer
         TextWriter output) =>
         WriteDocument(output, writer =>
         {
+            // All report paths use one root for stable JSON/SARIF identity.
+            var reportRoot = GetReportRoot(checkedDirectory);
             writer.WriteStartObject();
             writer.WriteString("schemaVersion", "1.0");
             writer.WriteBoolean(
@@ -29,7 +31,7 @@ internal static class CheckReportRenderer
             writer.WriteStartArray("files");
             foreach (var document in documents.OrderBy(item => item.FilePath, StringComparer.Ordinal))
             {
-                writer.WriteStringValue(ToReportPath(document.FilePath, checkedDirectory));
+                writer.WriteStringValue(ToReportPath(document.FilePath, reportRoot));
             }
 
             writer.WriteEndArray();
@@ -39,7 +41,7 @@ internal static class CheckReportRenderer
                 writer.WriteStartObject();
                 writer.WriteString("code", issue.Code);
                 writer.WriteString("message", issue.Message);
-                writer.WriteString("file", ToReportPath(issue.FilePath, checkedDirectory));
+                writer.WriteString("file", ToReportPath(issue.FilePath, reportRoot));
                 WriteJsonBaselineState(writer, issue, checkedDirectory, baseline);
                 writer.WriteEndObject();
             }
@@ -55,6 +57,8 @@ internal static class CheckReportRenderer
         TextWriter output) =>
         WriteDocument(output, writer =>
         {
+            // All report paths use one root for stable JSON/SARIF identity.
+            var reportRoot = GetReportRoot(checkedDirectory);
             writer.WriteStartObject();
             writer.WriteString(
                 "$schema",
@@ -106,7 +110,7 @@ internal static class CheckReportRenderer
                 writer.WriteStartObject();
                 writer.WriteStartObject("physicalLocation");
                 writer.WriteStartObject("artifactLocation");
-                writer.WriteString("uri", ToReportPath(issue.FilePath, checkedDirectory));
+                writer.WriteString("uri", ToSarifUri(ToReportPath(issue.FilePath, reportRoot)));
                 writer.WriteEndObject();
                 writer.WriteEndObject();
                 writer.WriteEndObject();
@@ -196,17 +200,23 @@ internal static class CheckReportRenderer
         output.WriteLine(Encoding.UTF8.GetString(stream.ToArray()));
     }
 
-    private static string ToReportPath(string filePath, string checkedDirectory)
+    private static string GetReportRoot(string checkedDirectory)
     {
-        var fullPath = Path.GetFullPath(filePath);
         var invocationRoot = Path.GetFullPath(Directory.GetCurrentDirectory());
-        var root = IsContained(invocationRoot, fullPath)
-            ? invocationRoot
-            : Path.GetFullPath(checkedDirectory);
+        var checkedRoot = Path.GetFullPath(checkedDirectory);
 
-        return Path.GetRelativePath(root, fullPath)
-            .Replace(Path.DirectorySeparatorChar, '/');
+        // Use workspace-relative paths when the checked directory belongs to it.
+        return IsContained(invocationRoot, checkedRoot)
+            ? invocationRoot
+            : checkedRoot;
     }
+
+    private static string ToReportPath(string filePath, string reportRoot) =>
+        Path.GetRelativePath(reportRoot, Path.GetFullPath(filePath))
+            .Replace(Path.DirectorySeparatorChar, '/');
+
+    private static string ToSarifUri(string reportPath) =>
+        string.Join("/", reportPath.Split('/').Select(Uri.EscapeDataString));
 
     private static bool IsContained(string root, string path)
     {

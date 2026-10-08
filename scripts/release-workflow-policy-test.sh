@@ -10,6 +10,15 @@ grep -Fq '  workflow_dispatch:' "${WORKFLOW}" || {
   exit 1
 }
 
+grep -Fq '      version:' "${WORKFLOW}" && grep -Fq '        required: true' "${WORKFLOW}" || {
+  echo "Manual release must require an explicit version input." >&2
+  exit 1
+}
+grep -Fq 'RELEASE_VERSION: ${{ inputs.version }}' "${WORKFLOW}" || {
+  echo "Release resolver must read the explicit dispatch version." >&2
+  exit 1
+}
+
 if grep -Fq 'workflow_run:' "${WORKFLOW}" || grep -Fq 'github.event.workflow_run' "${WORKFLOW}"; then
   echo "Release workflow must not publish automatically after CI." >&2
   exit 1
@@ -45,8 +54,8 @@ grep -Fq 'select(.conclusion == "success")' "${WORKFLOW}" || {
   exit 1
 }
 
-grep -Fq '<VersionPrefix>1.1.0</VersionPrefix>' "${PROJECT}" || {
-  echo "The coordinated template release must start at 1.1.0 while retaining the existing @v1 compatibility line." >&2
+grep -Fq '<VersionPrefix>1.2.0</VersionPrefix>' "${PROJECT}" || {
+  echo "The next feature release must set the project baseline to 1.2.0." >&2
   exit 1
 }
 
@@ -76,6 +85,11 @@ fi
 
 grep -Fq "git tag --list 'release-reservation/v*'" "${WORKFLOW}" || {
   echo "Release version resolution must account for unfinished version reservations." >&2
+  exit 1
+}
+
+grep -Fq 'resume_existing=true' "${WORKFLOW}" || {
+  echo "Release resolution must support safe same-commit retries." >&2
   exit 1
 }
 

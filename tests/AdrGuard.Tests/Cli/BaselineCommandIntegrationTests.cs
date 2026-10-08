@@ -46,6 +46,29 @@ public sealed class BaselineCommandIntegrationTests
     }
 
     [Fact]
+    public void RepeatedBrokenReferenceCanBeCapturedInABaseline()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "0001-broken.md"),
+                ValidMarkdown + "\n## References\n[Missing](missing.md) and [Missing](missing.md)\n");
+            var baselinePath = Path.Combine(root, "repeated.json");
+
+            var generated = Run(["baseline", root, "--output", baselinePath]);
+
+            Assert.Equal(ExitCodes.Success, generated.ExitCode);
+            using var json = JsonDocument.Parse(File.ReadAllText(baselinePath));
+            var entries = json.RootElement.GetProperty("diagnostics");
+            Assert.Equal(1, entries.GetArrayLength());
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void InvalidBaselineDoesNotTurnOperationalFailureIntoSuccess()
     {
         var root = CreateTempDirectory();

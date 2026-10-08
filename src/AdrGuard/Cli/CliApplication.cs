@@ -8,6 +8,7 @@ using AdrGuard.Review.Providers;
 using AdrGuard.Review.Reporting;
 using AdrGuard.Review.Security;
 using AdrGuard.Validation;
+using AdrGuard.Git;
 
 namespace AdrGuard.Cli;
 
@@ -389,7 +390,17 @@ internal static class CliApplication
                     return false;
                 }
 
-                baseReference = args[++index];
+                var candidate = args[++index];
+                try
+                {
+                    GitChangeDetector.ValidateReference(candidate);
+                }
+                catch (ArgumentException)
+                {
+                    return false;
+                }
+
+                baseReference = candidate;
                 continue;
             }
 
