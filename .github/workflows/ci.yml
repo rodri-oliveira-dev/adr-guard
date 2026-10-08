@@ -23,7 +23,6 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       DOTNET_NOLOGO: "true"
       NUGET_XMLDOC_MODE: skip
-      ADR_GUARD_VERSION: "1.1.0"
 
     steps:
       - name: Checkout
@@ -33,6 +32,14 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
+
+      - name: Resolve package version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:VersionPrefix | tr -d '\r' | tail -n 1)"
+          [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "ADR_GUARD_VERSION=${version}" >> "${GITHUB_ENV}"
 
       - name: Restore
         run: dotnet restore AdrGuard.slnx
@@ -54,10 +61,10 @@ jobs:
       - name: Pack .NET Tool
         run: dotnet pack src/AdrGuard/AdrGuard.csproj --configuration Release --no-build --output artifacts/package
 
-      - name: Verify versioned 1.1.0 package and MSBuild metadata
+      - name: Verify versioned package and MSBuild metadata
         run: |
-          test -s "artifacts/package/RodriOliveira.AdrGuard.1.1.0.nupkg"
-          test "$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:PackageVersion | tr -d '\r' | tail -n 1)" = 1.1.0
+          test -s "artifacts/package/RodriOliveira.AdrGuard.${ADR_GUARD_VERSION}.nupkg"
+          test "$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:PackageVersion | tr -d '\r' | tail -n 1)" = "${ADR_GUARD_VERSION}"
 
       - name: Install packaged tool
         run: >
