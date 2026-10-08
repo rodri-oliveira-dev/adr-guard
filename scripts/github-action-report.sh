@@ -48,7 +48,7 @@ if [[ "$status" == 1 ]]; then
       continue
     fi
 
-    if [[ ! "$line" =~ ^(.+):\ (ADR00[1-9])\ (.+)$ ]]; then
+    if [[ ! "$line" =~ ^(.+):\ (ADR00[1-9]|ADR01[0-4])\ (.+)$ ]]; then
       valid_format=false
       break
     fi
@@ -118,7 +118,7 @@ if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
     if [[ "$trusted" == true ]]; then
       printf '| Validated diagnostic count | %s |\n' "$diagnostic_count"
       printf '| File annotations | %s (cap: %s) |\n' "${#annotation_paths[@]}" "$annotation_limit"
-      for code in ADR001 ADR002 ADR003 ADR004 ADR005 ADR006 ADR007 ADR008 ADR009; do
+      for code in ADR001 ADR002 ADR003 ADR004 ADR005 ADR006 ADR007 ADR008 ADR009 ADR010 ADR011 ADR012 ADR013 ADR014; do
         if (( ${counts["$code"]:-0} > 0 )); then
           printf '| %s | %s |\n' "$code" "${counts["$code"]}"
         fi

@@ -214,7 +214,9 @@ adr-guard index docs/adr
 
 `--dry-run` equivale a `--preview`; nenhum dos dois grava ADR, atualiza o índice ou reserva ID. `new` não atualiza o índice automaticamente: execute `check` e `index` explicitamente. `--template minimal|extended` e `--template-file <caminho>` são mutuamente exclusivos. `--culture en-US|pt-BR` traduz instruções editoriais, mas **não** os títulos canônicos `Status`, `Context`, `Decision`, `Consequences` nem o status inicial `Proposed`. O arquivo personalizado deve ser um `.md` UTF-8 de até 65.536 bytes, selecionado individualmente e resolvido a partir do diretório de invocação; mantenha templates fora da pasta de ADRs. O novo ID é calculado após o maior ID existente; criadores cooperantes no mesmo host compartilham o bloqueio e a gravação atômica sem sobrescrita; `{{id}}` recebe o ID alocado definitivo. **Validação estrutural não é aprovação arquitetural:** um responsável deve revisar o conteúdo e substituir as instruções.
 
-**Exemplos válidos:** [Minimal EN](docs/examples/generated/minimal/0001-adopt-redis.md), [Extended pt-BR](docs/examples/generated/extended/0001-adotar-redis.md), [Custom EN](docs/examples/generated/custom/0001-adopt-cache.md), [Custom pt-BR](docs/examples/generated/custom-pt-BR/0001-adotar-cache.md). Consulte o [guia completo de criação offline e códigos de saída](docs/creation.pt-BR.md) e as [regras de placeholders](docs/custom-templates.pt-BR.md). A validação nativa de MADR/formatos alternativos não é suportada.
+**Exemplos válidos:** [Minimal EN](docs/examples/generated/minimal/0001-adopt-redis.md), [Extended pt-BR](docs/examples/generated/extended/0001-adotar-redis.md), [Custom EN](docs/examples/generated/custom/0001-adopt-cache.md), [Custom pt-BR](docs/examples/generated/custom-pt-BR/0001-adotar-cache.md). Consulte o [guia completo de criação offline e códigos de saída](docs/creation.pt-BR.md) e as [regras de placeholders](docs/custom-templates.pt-BR.md).
+
+> **Preparação da v1.3.0:** builds do código-fonte na branch encadeada da v1.3 adicionam suporte explícito a MADR 4.0 com `--adr-format madr-4` e governança determinística de relacionamentos. O formato canônico permanece como default; estes recursos não são publicados até a conclusão da release independente v1.3.0. Consulte o [guia MADR](docs/madr-4.pt-BR.md) e o [guia de governança](docs/relationship-governance.pt-BR.md).
 
 ## Validar ADRs
 
@@ -482,6 +484,11 @@ Para o contrato público completo, exemplo de relatório, semântica de evidênc
 | `ADR007` | Referência relativa para ADR quebrada |
 | `ADR008` | ADR substituído sem link válido em `Superseded by` |
 | `ADR009` | Seção canônica de nível dois do ADR está duplicada |
+| `ADR010` | Grafo de substituição contém ciclo |
+| `ADR011` | ADR declara a si próprio como decisão substituta |
+| `ADR012` | ADR declara múltiplas decisões substitutas |
+| `ADR013` | Declarações explícitas de substituição conflitam com status/target |
+| `ADR014` | `Depends on`/`Dependencies` explícito aponta para decisão inativa |
 
 A numeração não precisa ser contínua. Lacunas são aceitas porque ADRs podem ser arquivados, migrados ou removidos sem renumerar decisões históricas.
 

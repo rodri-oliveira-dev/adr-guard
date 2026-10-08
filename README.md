@@ -214,7 +214,9 @@ adr-guard index docs/adr
 
 `--dry-run` is an alias for `--preview`; neither writes an ADR, updates the index, or reserves an ID. `new` never updates the index automatically: run `check` and then `index` explicitly. `--template minimal|extended` and `--template-file <path>` are mutually exclusive. `--culture en-US|pt-BR` localizes instructional text, **not** the invariant headings `Status`, `Context`, `Decision`, `Consequences` or initial `Proposed` status. Custom files must be UTF-8 `.md`, at most 65,536 bytes, selected individually and resolved relative to the invocation directory; store templates outside the ADR directory. Creating uses the next ID after the highest existing ID, locks cooperating same-host creators and writes atomically without overwrite; `{{id}}` is regenerated using the final allocated ID. Structural validation is **not architectural approval**; an architect must review and replace the editable notes.
 
-**Validator-compliant samples:** [Minimal EN](docs/examples/generated/minimal/0001-adopt-redis.md), [Extended pt-BR](docs/examples/generated/extended/0001-adotar-redis.md), [Custom EN](docs/examples/generated/custom/0001-adopt-cache.md), [Custom pt-BR](docs/examples/generated/custom-pt-BR/0001-adotar-cache.md). Read the [full offline creation and exit-code guide](docs/creation.md) and [custom placeholder rules](docs/custom-templates.md). Native MADR/alternate-format validation is not supported.
+**Validator-compliant samples:** [Minimal EN](docs/examples/generated/minimal/0001-adopt-redis.md), [Extended pt-BR](docs/examples/generated/extended/0001-adotar-redis.md), [Custom EN](docs/examples/generated/custom/0001-adopt-cache.md), [Custom pt-BR](docs/examples/generated/custom-pt-BR/0001-adotar-cache.md). Read the [full offline creation and exit-code guide](docs/creation.md) and [custom placeholder rules](docs/custom-templates.md).
+
+> **v1.3.0 preparation:** source builds on the chained v1.3 branch add explicit MADR 4.0 support with `--adr-format madr-4` and deterministic relationship governance. Canonical remains the default; these capabilities are not published until the independent v1.3.0 release completes. See the [MADR guide](docs/madr-4.md) and [relationship governance guide](docs/relationship-governance.md).
 
 ## Validate ADRs
 
@@ -482,6 +484,11 @@ For the complete public contract, report example, evidence semantics, policy mat
 | `ADR007` | Relative ADR reference is broken |
 | `ADR008` | Superseded ADR has no valid `Superseded by` link |
 | `ADR009` | Canonical level-two ADR section is duplicated |
+| `ADR010` | Supersession graph contains a cycle |
+| `ADR011` | ADR declares itself as its superseding decision |
+| `ADR012` | ADR declares multiple superseding decisions |
+| `ADR013` | Explicit supersession declarations conflict with status/target |
+| `ADR014` | Explicit `Depends on`/`Dependencies` points to an inactive decision |
 
 ADR IDs do not need to be contiguous. Gaps are allowed because ADRs may be archived, migrated, or removed without renumbering historical decisions.
 
