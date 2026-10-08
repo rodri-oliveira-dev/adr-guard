@@ -1,0 +1,131 @@
+name: VS Code Marketplace Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version in extensions/vscode/package.json (for example 0.1.0)"
+        required: true
+        type: string
+      confirmation:
+        description: "Type publish-rodrioliveira.adr-guard to explicitly authorize publication"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vscode-marketplace-release
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Validate and package VSIX
+    if: github.ref == 'refs/heads/main' && inputs.confirmation == 'publish-rodrioliveira.adr-guard'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: extensions/vscode
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node 22
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: extensions/vscode/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check Marketplace identity and version
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          node - <<'NODE'
+          const manifest = require('./package.json');
+          if (manifest.name !== 'adr-guard' || manifest.publisher !== 'rodrioliveira') {
+            throw new Error('Unexpected Marketplace extension ID');
+          }
+          if (manifest.version !== process.env.EXPECTED_VERSION) {
+            throw new Error('Requested version must match the manifest');
+          }
+          NODE
+
+      - name: Audit
+        run: npm audit --audit-level=low
+
+      - name: Lint and typecheck
+        run: npm run lint && npm run typecheck
+
+      - name: Build and test
+        run: |
+          npm run build
+          npm run test:unit
+          npm run test:l10n
+          xvfb-run -a npm run test:integration
+
+      - name: Package and smoke test
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          npm run package:vsix
+          test -f "adr-guard-${RELEASE_VERSION}.vsix"
+          xvfb-run -a npm run test:vsix
+
+      - name: Upload validated VSIX
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vscode-marketplace-vsix
+          path: extensions/vscode/adr-guard-*.vsix
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish approved VSIX via OIDC
+    needs: package
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    environment: vscode-marketplace
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: extensions/vscode
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node 22
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: extensions/vscode/package-lock.json
+
+      - name: Install publishing tool
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Download validated VSIX
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: vscode-marketplace-vsix
+          path: extensions/vscode
+
+      - name: Publish with Marketplace trusted publishing
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          test -f "adr-guard-${RELEASE_VERSION}.vsix"
+          npx --no-install vsce publish --oidc --packagePath "adr-guard-${RELEASE_VERSION}.vsix"
