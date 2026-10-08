@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/ci.yml)
 [![NuGet](https://img.shields.io/nuget/v/RodriOliveira.AdrGuard.svg)](https://www.nuget.org/packages/RodriOliveira.AdrGuard)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/rodrioliveira.adr-guard?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard)
 [![GitHub Release](https://img.shields.io/github/v/release/rodri-oliveira-dev/adr-guard)](https://github.com/rodri-oliveira-dev/adr-guard/releases)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 [![License](https://img.shields.io/github/license/rodri-oliveira-dev/adr-guard)](LICENSE)
@@ -55,6 +56,24 @@ The installed command is:
 ```bash
 adr-guard
 ```
+
+## VS Code extension
+
+[**ADR Guard for VS Code**](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) is available on the Visual Studio Marketplace. The extension integrates ADR Guard with the editor through commands, Problems diagnostics, and an ADR Explorer.
+
+Install it from the VS Code **Extensions** view by searching for **ADR Guard**, or use:
+
+```bash
+code --install-extension rodrioliveira.adr-guard
+```
+
+The extension **does not bundle or install the CLI**. Install a compatible ADR Guard .NET Tool (**v1.3.0 or newer**) in the local or remote environment running the workspace extension host, using the instructions above, then verify it:
+
+```bash
+adr-guard --version
+```
+
+Open a trusted workspace and run **ADR Guard: Check Installation** from the Command Palette. For setup, requirements, remote workspaces, and commands, see the [VS Code extension guide](extensions/vscode/README.md). Extension versions are independent from NuGet versions.
 
 ## Container images
 
