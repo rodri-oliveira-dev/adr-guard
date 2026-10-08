@@ -9,11 +9,12 @@ internal static class CheckCommand
         string directoryPath,
         TextWriter output,
         TextWriter error) =>
-        Run(directoryPath, CheckOutputFormat.Text, output, error);
+        Run(directoryPath, CheckOutputFormat.Text, AdrFormat.Canonical, output, error);
 
     internal static int Run(
         string directoryPath,
         CheckOutputFormat format,
+        AdrFormat adrFormat,
         TextWriter output,
         TextWriter error)
     {
@@ -30,7 +31,7 @@ internal static class CheckCommand
         try
         {
             var documents = AdrDocumentLoader.LoadDirectory(directoryPath);
-            var result = AdrValidator.Validate(documents);
+            var result = AdrValidator.Validate(documents, adrFormat);
 
             switch (format)
             {

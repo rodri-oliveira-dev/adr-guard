@@ -19,6 +19,7 @@ internal static class ConfigurationArguments
             case "check":
             case "index":
                 AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
+                AddAdrFormatIfMissing(configured, configuration);
                 break;
             case "new":
             case "draft":
@@ -70,7 +71,22 @@ internal static class ConfigurationArguments
         or "--context-file"
         or "--policy"
         or "--policy-file"
-        or "--format";
+        or "--format"
+        or "--adr-format";
+
+    private static void AddAdrFormatIfMissing(
+        List<string> args,
+        AdrGuardConfiguration configuration)
+    {
+        if (configuration.AdrFormat is null
+            || args.Contains("--adr-format", StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        args.Add("--adr-format");
+        args.Add(configuration.AdrFormat);
+    }
 
     private static void AddTemplateIfMissing(
         List<string> args,

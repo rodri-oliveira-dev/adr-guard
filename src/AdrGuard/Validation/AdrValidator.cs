@@ -19,6 +19,13 @@ internal static class AdrValidator
         "Consequences",
     ];
 
+    private static readonly string[] Madr4RequiredSections =
+    [
+        "Context and Problem Statement",
+        "Considered Options",
+        "Decision Outcome",
+    ];
+
     private static readonly string[] CanonicalSections =
     [
         "Status",
@@ -31,11 +38,23 @@ internal static class AdrValidator
         IReadOnlyList<AdrDocument> documents) =>
         Validate(
             documents,
-            additionalKnownPaths: null);
+            additionalKnownPaths: null,
+            AdrFormat.Canonical);
 
     internal static ValidationResult Validate(
         IReadOnlyList<AdrDocument> documents,
-        IEnumerable<string>? additionalKnownPaths)
+        AdrFormat format) =>
+        Validate(documents, additionalKnownPaths: null, format);
+
+    internal static ValidationResult Validate(
+        IReadOnlyList<AdrDocument> documents,
+        IEnumerable<string>? additionalKnownPaths) =>
+        Validate(documents, additionalKnownPaths, AdrFormat.Canonical);
+
+    internal static ValidationResult Validate(
+        IReadOnlyList<AdrDocument> documents,
+        IEnumerable<string>? additionalKnownPaths,
+        AdrFormat format)
     {
         ArgumentNullException.ThrowIfNull(documents);
 
@@ -57,7 +76,7 @@ internal static class AdrValidator
 
         foreach (var document in documents)
         {
-            ValidateDocument(document, knownPaths, issues);
+            ValidateDocument(document, knownPaths, issues, format);
         }
 
         ValidateDuplicateIds(documents, issues);
@@ -73,15 +92,60 @@ internal static class AdrValidator
     private static void ValidateDocument(
         AdrDocument document,
         HashSet<string> knownPaths,
-        List<ValidationIssue> issues)
+        List<ValidationIssue> issues,
+        AdrFormat format)
     {
         ValidateFileName(document, issues);
         ValidateTitle(document, issues);
-        ValidateUniqueCanonicalSections(document, issues);
-        ValidateStatus(document, issues);
-        ValidateRequiredSections(document, issues);
+        if (format == AdrFormat.Canonical)
+        {
+            ValidateUniqueCanonicalSections(document, issues);
+            ValidateStatus(document, issues);
+            ValidateRequiredSections(document, RequiredSections, issues);
+        }
+        else
+        {
+            ValidateMadr4(document, issues);
+        }
         ValidateReferences(document, knownPaths, issues);
         ValidateSupersededBy(document, knownPaths, issues);
+    }
+
+    private static void ValidateMadr4(
+        AdrDocument document,
+        List<ValidationIssue> issues)
+    {
+        ValidateUniqueSections(document, Madr4RequiredSections, issues);
+        ValidateRequiredSections(document, Madr4RequiredSections, issues);
+
+        if (document.Metadata?.ContainsKey("status") == true
+            && string.IsNullOrWhiteSpace(document.Status))
+        {
+            issues.Add(new ValidationIssue(
+                ValidationCodes.MissingStatus,
+                document.FilePath,
+                "MADR 4.0 status metadata, when present, must be non-empty."));
+        }
+    }
+
+    private static void ValidateUniqueSections(
+        AdrDocument document,
+        IEnumerable<string> sectionNames,
+        List<ValidationIssue> issues)
+    {
+        foreach (var sectionName in sectionNames)
+        {
+            var count = document.Sections.Count(section =>
+                section.Level == 2
+                && string.Equals(section.Heading, sectionName, StringComparison.OrdinalIgnoreCase));
+            if (count > 1)
+            {
+                issues.Add(new ValidationIssue(
+                    ValidationCodes.DuplicateCanonicalSection,
+                    document.FilePath,
+                    $"ADR must define exactly one level-two '{sectionName}' section; found {count}."));
+            }
+        }
     }
 
     private static void ValidateFileName(
@@ -218,9 +282,10 @@ internal static class AdrValidator
 
     private static void ValidateRequiredSections(
         AdrDocument document,
+        IEnumerable<string> requiredSections,
         List<ValidationIssue> issues)
     {
-        foreach (var requiredSection in RequiredSections)
+        foreach (var requiredSection in requiredSections)
         {
             var section = document.Sections.FirstOrDefault(candidate =>
                 candidate.Level == 2

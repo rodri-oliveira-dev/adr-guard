@@ -13,6 +13,7 @@ internal static class AdrMarkdownParser
 
         var fileName = Path.GetFileName(filePath);
         var (id, slug) = ParseFileName(fileName);
+        var metadata = ParseFrontMatter(markdown);
         var sections = new List<AdrSection>();
         string? title = null;
 
@@ -69,7 +70,7 @@ internal static class AdrMarkdownParser
 
         FlushSection(sections, currentHeading, currentLevel, currentContent);
 
-        var status = sections
+        var sectionStatus = sections
             .FirstOrDefault(section =>
                 section.Level == 2
                 && string.Equals(
@@ -79,6 +80,9 @@ internal static class AdrMarkdownParser
             ?.Content
             .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .FirstOrDefault();
+        var status = metadata.TryGetValue("status", out var metadataStatus)
+            ? metadataStatus
+            : sectionStatus;
 
         return new AdrDocument(
             filePath,
@@ -87,7 +91,46 @@ internal static class AdrMarkdownParser
             slug,
             title,
             status,
-            sections);
+            sections,
+            metadata);
+    }
+
+    private static Dictionary<string, string> ParseFrontMatter(string markdown)
+    {
+        var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        using var reader = new StringReader(markdown);
+
+        if (!string.Equals(reader.ReadLine()?.Trim(), "---", StringComparison.Ordinal))
+        {
+            return metadata;
+        }
+
+        while (reader.ReadLine() is { } line)
+        {
+            if (string.Equals(line.Trim(), "---", StringComparison.Ordinal))
+            {
+                return metadata;
+            }
+
+            var separator = line.IndexOf(':');
+            if (separator <= 0)
+            {
+                continue;
+            }
+
+            var key = line[..separator].Trim();
+            var value = line[(separator + 1)..].Trim();
+            if (value.Length >= 2
+                && ((value[0] == '"' && value[^1] == '"')
+                    || (value[0] == '\'' && value[^1] == '\'')))
+            {
+                value = value[1..^1];
+            }
+
+            metadata.TryAdd(key, value);
+        }
+
+        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     }
 
     private static (int? Id, string? Slug) ParseFileName(string fileName)

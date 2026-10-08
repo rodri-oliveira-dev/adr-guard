@@ -7,6 +7,7 @@ using AdrGuard.Review.Policy;
 using AdrGuard.Review.Providers;
 using AdrGuard.Review.Reporting;
 using AdrGuard.Review.Security;
+using AdrGuard.Validation;
 
 namespace AdrGuard.Cli;
 
@@ -21,8 +22,8 @@ internal static class CliApplication
 
         Usage:
           adr-guard init [repository] [options]
-          adr-guard check [directory] [--format text|json|sarif]
-          adr-guard index [directory] [--output <file>]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4]
+          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
           adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
@@ -50,15 +51,16 @@ internal static class CliApplication
 
     private const string CheckHelpText = """
         Usage:
-          adr-guard check [directory] [--format text|json|sarif]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4]
 
         Validate ADR files recursively. The directory defaults to the configured ADR directory or current directory.
         Text is the default. JSON and SARIF 2.1.0 are deterministic data documents written to stdout.
+        ADR format defaults to canonical; MADR 4.0 is selected explicitly with --adr-format madr-4.
         """;
 
     private const string IndexHelpText = """
         Usage:
-          adr-guard index [directory] [--output <file>]
+          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4]
 
         Validate ADR files and generate a Markdown index.
         The directory defaults to the current directory.
@@ -305,23 +307,26 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        if (!TryParseCheckArguments(args, out var directoryPath, out var format))
+        if (!TryParseCheckArguments(args, out var directoryPath, out var format, out var adrFormat))
         {
             return WriteCommandUsageError("check", error);
         }
 
-        return CheckCommand.Run(directoryPath, format, output, error);
+        return CheckCommand.Run(directoryPath, format, adrFormat, output, error);
     }
 
     private static bool TryParseCheckArguments(
         IReadOnlyList<string> args,
         out string directoryPath,
-        out CheckOutputFormat format)
+        out CheckOutputFormat format,
+        out AdrFormat adrFormat)
     {
         directoryPath = ".";
         format = CheckOutputFormat.Text;
+        adrFormat = AdrFormat.Canonical;
         var directoryAssigned = false;
         var formatAssigned = false;
+        var adrFormatAssigned = false;
 
         for (var index = 1; index < args.Count; index++)
         {
@@ -346,6 +351,28 @@ internal static class CliApplication
                 }
 
                 formatAssigned = true;
+                continue;
+            }
+
+            if (argument == "--adr-format")
+            {
+                if (adrFormatAssigned || index + 1 >= args.Count)
+                {
+                    return false;
+                }
+
+                adrFormat = args[++index] switch
+                {
+                    "canonical" => AdrFormat.Canonical,
+                    "madr-4" => AdrFormat.Madr4,
+                    _ => (AdrFormat)(-1),
+                };
+                if (!Enum.IsDefined(adrFormat))
+                {
+                    return false;
+                }
+
+                adrFormatAssigned = true;
                 continue;
             }
 
@@ -375,7 +402,8 @@ internal static class CliApplication
         if (!TryParseIndexArguments(
                 args,
                 out var directoryPath,
-                out var outputPath))
+                out var outputPath,
+                out var adrFormat))
         {
             return WriteCommandUsageError("index", error);
         }
@@ -383,6 +411,7 @@ internal static class CliApplication
         return IndexCommand.Run(
             directoryPath,
             outputPath,
+            adrFormat,
             output,
             error);
     }
@@ -697,11 +726,14 @@ internal static class CliApplication
     private static bool TryParseIndexArguments(
         IReadOnlyList<string> args,
         out string directoryPath,
-        out string? outputPath)
+        out string? outputPath,
+        out AdrFormat adrFormat)
     {
         directoryPath = ".";
         outputPath = null;
+        adrFormat = AdrFormat.Canonical;
         var directoryAssigned = false;
+        var adrFormatAssigned = false;
 
         for (var index = 1; index < args.Count; index++)
         {
@@ -722,6 +754,28 @@ internal static class CliApplication
                     return false;
                 }
 
+                continue;
+            }
+
+            if (argument == "--adr-format")
+            {
+                if (adrFormatAssigned || index + 1 >= args.Count)
+                {
+                    return false;
+                }
+
+                adrFormat = args[++index] switch
+                {
+                    "canonical" => AdrFormat.Canonical,
+                    "madr-4" => AdrFormat.Madr4,
+                    _ => (AdrFormat)(-1),
+                };
+                if (!Enum.IsDefined(adrFormat))
+                {
+                    return false;
+                }
+
+                adrFormatAssigned = true;
                 continue;
             }
 

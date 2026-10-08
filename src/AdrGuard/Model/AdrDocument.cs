@@ -7,4 +7,5 @@ internal sealed record AdrDocument(
     string? Slug,
     string? Title,
     string? Status,
-    IReadOnlyList<AdrSection> Sections);
+    IReadOnlyList<AdrSection> Sections,
+    IReadOnlyDictionary<string, string>? Metadata = null);
