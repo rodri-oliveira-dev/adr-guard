@@ -24,7 +24,8 @@ It is designed for repositories that want ADR conventions to be explicit, review
 - enforces a valid `Superseded by` link for superseded decisions;
 - generates a deterministic Markdown index;
 - avoids rewriting an index that is already current;
-- exposes stable validation codes (`ADR001` through `ADR009`);
+- exposes stable validation codes (`ADR001` through `ADR009`), plus opt-in relationship-governance diagnostics (`ADR010` through `ADR014`) introduced in v1.3.0;
+- supports MADR 4.0 validation through explicit `--adr-format madr-4` or configuration, while preserving the canonical default;
 - exposes predictable exit codes for CI/CD;
 - creates human-editable `Proposed` ADRs offline using built-in or custom Markdown templates;
 - supports human-reviewed AI-assisted `Proposed` ADR drafting through explicit providers and context;

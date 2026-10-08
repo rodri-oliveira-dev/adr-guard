@@ -24,7 +24,8 @@ A proposta é permitir que convenções de ADR sejam explícitas, revisáveis e 
 - exige um link válido em `Superseded by` para decisões substituídas;
 - gera um índice Markdown determinístico;
 - evita reescrever um índice que já está atualizado;
-- fornece códigos de validação estáveis (`ADR001` até `ADR009`);
+- fornece códigos de validação estáveis (`ADR001` até `ADR009`), além dos diagnósticos de governança de relacionamentos (`ADR010` até `ADR014`) introduzidos na v1.3.0;
+- suporta validação MADR 4.0 com `--adr-format madr-4` explícito ou configuração, preservando o padrão canônico;
 - fornece exit codes previsíveis para CI/CD;
 - cria ADRs `Proposed` editáveis offline usando templates Markdown internos ou personalizados;
 - oferece criação assistida por IA de ADRs `Proposed`, com revisão humana, providers e contexto explícitos;
