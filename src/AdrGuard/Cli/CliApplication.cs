@@ -1,3 +1,4 @@
+using System.Reflection;
 using AdrGuard.Generation;
 using AdrGuard.Generation.Providers;
 using AdrGuard.Review;
@@ -5,7 +6,6 @@ using AdrGuard.Review.Policy;
 using AdrGuard.Review.Providers;
 using AdrGuard.Review.Reporting;
 using AdrGuard.Review.Security;
-using System.Reflection;
 
 namespace AdrGuard.Cli;
 
@@ -19,6 +19,7 @@ internal static class CliApplication
         Validate and maintain Architecture Decision Records from the command line.
 
         Usage:
+          adr-guard init [repository] [options]
           adr-guard check [directory]
           adr-guard index [directory] [--output <file>]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
@@ -27,6 +28,7 @@ internal static class CliApplication
           adr-guard [options]
 
         Commands:
+          init     Initialize ADR Guard configuration in an existing repository.
           check    Validate ADR files. Defaults to the current directory.
           index    Validate ADR files and generate an index. Defaults to README.md.
           new      Create a Proposed ADR from an offline Markdown template.
@@ -252,6 +254,7 @@ internal static class CliApplication
 
         return args[0] switch
         {
+            "init" => InitCommand.Run(args, output, error),
             "check" => RunCheck(args, output, error),
             "index" => RunIndex(args, output, error),
             "new" => NewCommand.Run(args, output, error, cancellationToken),
