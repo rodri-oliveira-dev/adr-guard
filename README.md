@@ -25,7 +25,7 @@ It is designed for repositories that want ADR conventions to be explicit, review
 - generates a deterministic Markdown index;
 - avoids rewriting an index that is already current;
 - exposes stable validation codes (`ADR001` through `ADR009`) and relationship-governance diagnostics (`ADR010` through `ADR014`);
-- supports opt-in MADR 4.0 validation, Git-aware incremental checks, versioned diagnostic baselines, and comparative ADR review (all included in upcoming v1.3.0);
+- supports opt-in MADR 4.0 validation, Git-aware incremental checks, versioned diagnostic baselines, and comparative ADR review (published in v1.3.0);
 - exposes predictable exit codes for CI/CD;
 - creates human-editable `Proposed` ADRs offline using built-in or custom Markdown templates;
 - supports human-reviewed AI-assisted `Proposed` ADR drafting through explicit providers and context;
@@ -217,7 +217,7 @@ adr-guard index docs/adr
 
 **Validator-compliant samples:** [Minimal EN](docs/examples/generated/minimal/0001-adopt-redis.md), [Extended pt-BR](docs/examples/generated/extended/0001-adotar-redis.md), [Custom EN](docs/examples/generated/custom/0001-adopt-cache.md), [Custom pt-BR](docs/examples/generated/custom-pt-BR/0001-adotar-cache.md). Read the [full offline creation and exit-code guide](docs/creation.md) and [custom placeholder rules](docs/custom-templates.md).
 
-> **v1.3.0 release preparation (combined v1.3 + v1.4 scope):** the next manual release includes opt-in MADR 4.0, relationship governance, Git-aware changed-ADR validation, diagnostic baselines, and explicit two-version comparative AI review. Canonical and full validation remain the defaults. These features are present in source but should not be treated as published until the independent v1.3.0 release succeeds. See the [MADR guide](docs/madr-4.md), [relationship guide](docs/relationship-governance.md), [incremental/baseline guide](docs/incremental-validation.md), and [comparative review guide](docs/comparative-review.md).
+> **Published in v1.3.0 (combined v1.3 + v1.4 development scope):** the stable [v1.3.0 release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0) includes opt-in MADR 4.0, relationship governance, Git-aware changed-ADR validation, diagnostic baselines, and explicit comparative AI review of two revisions. Canonical and full validation remain the defaults; existing projects require no migration. See the [MADR guide](docs/madr-4.md), [relationship guide](docs/relationship-governance.md), [incremental/baseline guide](docs/incremental-validation.md), and [comparative review guide](docs/comparative-review.md).
 
 ## Validate ADRs
 

@@ -13,6 +13,6 @@ Initial review-ready MVP:
 - Explicit changed-ADR and read-only baseline validation adapters for the CLI contracts consolidated into NuGet v1.3.0.
 - Multi-root workspace handling, cancellation, stale-result protection, English/pt-BR localization, deterministic tests, isolated CI, and minimal VSIX packaging.
 
-The extension has not been published to the Visual Studio Marketplace. Its Marketplace publisher ID is registered as `rodrioliveira`. Advanced MADR, relationship, changed-file, and baseline features require the compatible CLI planned for NuGet v1.3.0; the extension release does not imply that the CLI is published.
+The extension has not been published to the Visual Studio Marketplace. Its Marketplace publisher ID is registered as `rodrioliveira`. Advanced MADR, relationship, changed-file, and baseline features require the compatible CLI published as NuGet v1.3.0; the extension remains unpublished in the Marketplace.
 
-Planned after review: validate the publisher-bearing VSIX, wait for a public compatible CLI release, and separately authorize Marketplace publication. No publication is triggered by the CI workflow.
+Planned after review: validate the publisher-bearing VSIX and separately authorize Marketplace publication. Compatible CLI v1.3.0 is already published; no Marketplace publication is triggered by the CI workflow.
