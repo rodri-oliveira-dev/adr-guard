@@ -119,10 +119,14 @@ grep -Fiq 'tag móvel `@v1` está publicada' "${README_PT}" || {
   exit 1
 }
 
-if grep -Eq 'github\.com/marketplace/actions/' "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}"; then
-  echo "Marketplace URL must not be published before a verified listing exists." >&2
-  exit 1
-fi
+# The owner supplied the canonical listing URL; static checks only ensure bilingual consistency.
+marketplace_url="https://github.com/marketplace/actions/adr-guard-architecture-decision-validator"
+for page in "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}"; do
+  grep -Fq "${marketplace_url}" "${page}" || {
+    echo "Marketplace URL missing from ${page}." >&2
+    exit 1
+  }
+done
 
 for audit in "${AUDIT_EN}" "${AUDIT_PT}"; do
   grep -Fq 'v1.1.6' "${audit}"

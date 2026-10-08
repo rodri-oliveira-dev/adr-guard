@@ -48,9 +48,9 @@ grep -Fq 'MIT License' "${ROOT_DIR}/LICENSE"
 grep -Fq 'https://github.com/rodri-oliveira-dev/adr-guard/issues' "${ROOT_DIR}/SUPPORT.md"
 grep -Fq 'Reporting a vulnerability' "${ROOT_DIR}/SECURITY.md"
 grep -Fq 'Independent pre-release repository verification: passed.' "${ROOT_DIR}/docs/github-action-external-verification.md"
-grep -Fq 'Production Marketplace verification: pending owner publication.' "${ROOT_DIR}/docs/github-action-external-verification.md"
+grep -Fq 'Published `@v1` verification in an independent repository: passed on 2026-10-07.' "${ROOT_DIR}/docs/github-action-external-verification.md"
 grep -Fq 'Verificação pré-release em repositório independente: aprovada.' "${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
-grep -Fq 'Verificação de produção no Marketplace: pendente de publicação pelo proprietário.' "${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
+grep -Fq 'Verificação do `@v1` publicado em repositório independente: aprovada em 07/10/2026.' "${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
 
 grep -Fq '2026-09-27' "${MARKETPLACE_EN}"
 grep -Fq '27/09/2026' "${MARKETPLACE_PT}"
@@ -77,10 +77,18 @@ if grep -Eq '^[[:space:]]*(category|categories):' "${ACTION}"; then
   exit 1
 fi
 
-# Until publication is manually verified, public docs must not claim a live Marketplace URL.
-if grep -R -E 'github\.com/marketplace/actions/'   "${ROOT_DIR}/README.md"   "${ROOT_DIR}/README.pt-BR.md"   "${ROOT_DIR}/docs/github-action.md"   "${ROOT_DIR}/docs/github-action.pt-BR.md" >/dev/null; then
-  echo "Marketplace listing URL found before the listing has been manually verified." >&2
-  exit 1
-fi
+# The repository owner supplied the canonical Marketplace URL. Validate content consistency;
+# anonymous accessibility is separately confirmed by a human in issue #49.
+marketplace_url="https://github.com/marketplace/actions/adr-guard-architecture-decision-validator"
+for page in "${ROOT_DIR}/README.md" "${ROOT_DIR}/README.pt-BR.md" "${ROOT_DIR}/docs/github-action.md" "${ROOT_DIR}/docs/github-action.pt-BR.md" "${MARKETPLACE_EN}" "${MARKETPLACE_PT}"; do
+  grep -Fq "${marketplace_url}" "${page}" || {
+    echo "Marketplace URL missing from ${page}." >&2
+    exit 1
+  }
+done
+for evidence in "${ROOT_DIR}/docs/github-action-external-verification.md" "${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"; do
+  grep -Fq '37707510792' "${evidence}"
+  grep -Fq '37707510728' "${evidence}"
+done
 
 echo "GitHub Marketplace readiness checks passed."
