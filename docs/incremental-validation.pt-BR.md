@@ -1,6 +1,6 @@
 # Validação incremental e baseline de diagnósticos
 
-> Status de preparação: estes contratos opt-in estão implementados na branch encadeada da v1.4 e não são publicados até a conclusão da release manual v1.4.0.
+> Disponibilidade: a validação incremental com Git e os baselines de diagnósticos estão publicados no [ADR Guard v1.3.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0), incluindo o antigo escopo de desenvolvimento v1.4; ambos permanecem opcionais.
 
 ## ADRs alterados
 

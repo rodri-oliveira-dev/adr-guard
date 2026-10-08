@@ -1,6 +1,6 @@
 # Review comparativo explícito por IA
 
-> Status de preparação: este modo opt-in está implementado na branch encadeada da v1.4 e não é publicado até a conclusão da release manual v1.4.0.
+> Disponibilidade: a revisão comparativa assistida por IA está publicada no [ADR Guard v1.3.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0), incluindo o antigo escopo de desenvolvimento v1.4; permanece opcional e exige revisão humana.
 
 ```bash
 adr-guard review docs/adr/0007-cache-strategy.md \
