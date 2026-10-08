@@ -1,6 +1,7 @@
 **
 !dist/extension.js
 !l10n/**
+!images/icon-vscode.png
 !package.json
 !package.nls.json
 !package.nls.pt-br.json

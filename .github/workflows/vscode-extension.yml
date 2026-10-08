@@ -84,6 +84,7 @@ jobs:
           grep -Fxq 'extension/changelog.md' <<< "${listing}"
           grep -Fxq 'extension/LICENSE.txt' <<< "${listing}"
           grep -Fxq 'extension/l10n/bundle.l10n.pt-br.json' <<< "${listing}"
+          grep -Fxq 'extension/images/icon-vscode.png' <<< "${listing}"
           if grep -Eiq '(^|/)(src|test|out|node_modules|\.env)(/|$)|\.map$|\.dll$|\.exe$|\.pdb$' <<< "${listing}"; then
             echo 'Forbidden development, secret, source-map, or .NET content found in VSIX.' >&2
             exit 1

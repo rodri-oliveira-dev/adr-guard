@@ -4,6 +4,7 @@
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
   "version": "0.1.0",
+  "icon": "images/icon-vscode.png",
   "private": true,
   "license": "MIT",
   "homepage": "https://github.com/rodri-oliveira-dev/adr-guard/tree/main/extensions/vscode#readme",

@@ -64,6 +64,10 @@ jobs:
       - name: Verify versioned package and MSBuild metadata
         run: |
           test -s "artifacts/package/RodriOliveira.AdrGuard.${ADR_GUARD_VERSION}.nupkg"
+          package_file="artifacts/package/RodriOliveira.AdrGuard.${ADR_GUARD_VERSION}.nupkg"
+          unzip -Z1 "${package_file}" | grep -Fxq 'icon-nuget.png'
+          unzip -p "${package_file}" RodriOliveira.AdrGuard.nuspec | grep -Fq '<icon>icon-nuget.png</icon>'
+          cmp images/icon-nuget.png <(unzip -p "${package_file}" icon-nuget.png)
           test "$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:PackageVersion | tr -d '\r' | tail -n 1)" = "${ADR_GUARD_VERSION}"
 
       - name: Install packaged tool
