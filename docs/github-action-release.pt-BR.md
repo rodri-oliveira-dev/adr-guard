@@ -72,7 +72,7 @@ A tag SemVer exata é imutável. Em uma reexecução:
 - se aponta para qualquer outro commit, a release falha em vez de repontá-la;
 - se `vMAJOR` já aponta para a mesma release, nada é alterado;
 - se `vMAJOR` aponta para uma release mais antiga da mesma major, ela avança;
-- se uma release antiga for reexecutada depois de uma release mais nova, `vMAJOR` permanece na mais nova;
+- se uma versão mais nova já foi reservada ou publicada, o workflow manual rejeita reexecutar uma versão anterior; o script de publicação das tags da Action também impede que `vMAJOR` volte para trás;
 - se a tag major existente não puder ser associada a uma tag imutável de release, o workflow se recusa a sobrescrevê-la.
 
 Uma GitHub Release já existente também é tratada como imutável. Um asset ausente pode ser completado, mas um asset existente não é substituído com `--clobber`.
