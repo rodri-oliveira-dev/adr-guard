@@ -2,7 +2,7 @@
 
 ADR Guard for VS Code is a workspace extension that presents the existing ADR Guard CLI inside the editor. It provides native commands, Problems diagnostics, and an ADR Explorer while leaving parsing, validation, policy, generation, and Git-aware analysis in the .NET CLI.
 
-> Status: extension version **0.1.0** is an MVP distributed for review as a VSIX. It is not published in the Visual Studio Marketplace. The publisher identifier is not yet confirmed. The v1.4 CLI capabilities used by the advanced commands currently live on the repository's unmerged v1.4 branch and are not claimed as a published CLI release.
+> Status: extension version **0.1.0** is an MVP distributed for review as a VSIX. It is not published in the Visual Studio Marketplace. The Marketplace publisher has been registered as `rodrioliveira`; publication is still pending. Advanced commands require compatible CLI v1.4 functionality, which must be available to users before the Marketplace launch.
 
 ## Features
 

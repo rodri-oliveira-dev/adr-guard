@@ -13,6 +13,6 @@ Initial review-ready MVP:
 - Explicit changed-ADR and read-only baseline validation adapters for the v1.4 CLI contracts.
 - Multi-root workspace handling, cancellation, stale-result protection, English/pt-BR localization, deterministic tests, isolated CI, and minimal VSIX packaging.
 
-The extension has not been published to the Visual Studio Marketplace. Its publisher identifier remains to be confirmed by the repository owner. The advanced MADR, relationship, changed-file, and baseline CLI contracts are implemented on the unmerged v1.3/v1.4 branch chain and are not presented as capabilities of a published CLI release.
+The extension has not been published to the Visual Studio Marketplace. Its Marketplace publisher ID is registered as `rodrioliveira`. Advanced MADR, relationship, changed-file, and baseline features require a compatible v1.4 CLI; the extension release does not imply that the CLI is published.
 
-Planned after review: confirm a Marketplace publisher identity, retarget after the dependent CLI pull requests merge, and perform any separately authorized Marketplace publication. No publication is part of `0.1.0` preparation.
+Planned after review: integrate the remaining CLI changes, validate the publisher-bearing VSIX, and separately authorize Marketplace publication. No publication is triggered by the CI workflow.
