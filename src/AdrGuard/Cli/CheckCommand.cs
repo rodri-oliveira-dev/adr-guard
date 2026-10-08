@@ -8,6 +8,13 @@ internal static class CheckCommand
     internal static int Run(
         string directoryPath,
         TextWriter output,
+        TextWriter error) =>
+        Run(directoryPath, CheckOutputFormat.Text, output, error);
+
+    internal static int Run(
+        string directoryPath,
+        CheckOutputFormat format,
+        TextWriter output,
         TextWriter error)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
@@ -25,13 +32,31 @@ internal static class CheckCommand
             var documents = AdrDocumentLoader.LoadDirectory(directoryPath);
             var result = AdrValidator.Validate(documents);
 
+            switch (format)
+            {
+                case CheckOutputFormat.Json:
+                    CheckReportRenderer.WriteJson(documents, result, directoryPath, output);
+                    break;
+                case CheckOutputFormat.Sarif:
+                    CheckReportRenderer.WriteSarif(result, directoryPath, output);
+                    break;
+            }
+
             if (!result.IsValid)
             {
-                ValidationOutput.WriteIssues(result, error);
+                if (format == CheckOutputFormat.Text)
+                {
+                    ValidationOutput.WriteIssues(result, error);
+                }
+
                 return ExitCodes.ValidationFailed;
             }
 
-            output.WriteLine($"Validated {documents.Count} ADR(s): no issues found.");
+            if (format == CheckOutputFormat.Text)
+            {
+                output.WriteLine($"Validated {documents.Count} ADR(s): no issues found.");
+            }
+
             return ExitCodes.Success;
         }
         catch (IOException exception)

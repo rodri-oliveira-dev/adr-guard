@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/schemas/adr-check-report-v1.schema.json",
+  "title": "ADR Guard check report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "valid", "summary", "files", "diagnostics"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "valid": { "type": "boolean" },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files", "diagnostics"],
+      "properties": {
+        "files": { "type": "integer", "minimum": 0 },
+        "diagnostics": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message", "file"],
+        "properties": {
+          "code": { "type": "string", "pattern": "^ADR[0-9]{3}$" },
+          "message": { "type": "string", "minLength": 1 },
+          "file": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}
