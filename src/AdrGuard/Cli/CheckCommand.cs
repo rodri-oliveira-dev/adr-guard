@@ -45,6 +45,7 @@ internal static class CheckCommand
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var documents = AdrDocumentLoader.LoadDirectory(directoryPath, cancellationToken);
             var result = AdrValidator.Validate(documents, adrFormat);
             if (changed)

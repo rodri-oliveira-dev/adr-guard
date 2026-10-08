@@ -23,6 +23,7 @@ internal static class BaselineCommand
 
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var documents = AdrDocumentLoader.LoadDirectory(directoryPath, cancellationToken);
             var result = AdrValidator.Validate(documents, format);
             var baseline = DiagnosticBaselineService.Create(result, directoryPath);

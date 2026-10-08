@@ -222,6 +222,8 @@ adr-guard index docs/adr
 
 > **Preparação da v1.2.0:** `init`, `.adrguard.yml` e `check --format json|sarif` estão disponíveis via build do código-fonte na branch de desenvolvimento da v1.2. Eles não fazem parte de uma release publicada até a conclusão do processo manual e independente da v1.2.0.
 
+> **Preparação da v1.4.0:** a branch encadeada da v1.4 adiciona validação opt-in de mudanças Git, baseline explícito de diagnósticos e review comparativo por IA. A validação completa permanece como default. Estes recursos não são publicados até a conclusão da release independente v1.4.0; consulte o [guia de validação incremental/baseline](docs/incremental-validation.pt-BR.md) e o [guia de review comparativo](docs/comparative-review.pt-BR.md).
+
 Para validar recursivamente uma pasta:
 
 ```bash

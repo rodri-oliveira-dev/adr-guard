@@ -72,6 +72,14 @@ internal static class CliApplication
         Relative --output paths are resolved from the current working directory.
         """;
 
+    private const string BaselineHelpText = """
+        Usage:
+          adr-guard baseline [directory] --output <file.json> [--update] [--adr-format canonical|madr-4]
+
+        Explicitly generate a versioned diagnostic baseline. Existing output is replaced only with --update.
+        Baselines classify structural debt but never suppress global integrity or operational failures.
+        """;
+
     private const string DraftHelpText = """
         Usage:
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
@@ -462,6 +470,12 @@ internal static class CliApplication
         TextWriter error,
         CancellationToken cancellationToken)
     {
+        if (args.Count == 2 && IsHelpOption(args[1]))
+        {
+            output.WriteLine(BaselineHelpText);
+            return ExitCodes.Success;
+        }
+
         var directory = ".";
         string? outputPath = null;
         var update = false;
