@@ -1,0 +1,100 @@
+{
+  "name": "adr-guard",
+  "displayName": "ADR Guard",
+  "description": "Use the ADR Guard CLI safely from a trusted VS Code workspace.",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rodri-oliveira-dev/adr-guard.git",
+    "directory": "extensions/vscode"
+  },
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "ADR Guard runs a local CLI and is disabled until the workspace is trusted."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "ADR Guard requires a local file-system workspace in the workspace extension host."
+    }
+  },
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCommand:adrGuard.checkInstallation"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "adrGuard.checkInstallation",
+        "title": "Check Installation",
+        "category": "ADR Guard"
+      }
+    ],
+    "configuration": {
+      "title": "ADR Guard",
+      "properties": {
+        "adrGuard.cli.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Absolute path to the trusted ADR Guard executable. When empty, the workspace extension host PATH is searched."
+        },
+        "adrGuard.cli.timeoutMilliseconds": {
+          "type": "number",
+          "default": 15000,
+          "minimum": 1000,
+          "maximum": 120000,
+          "scope": "machine",
+          "description": "Maximum time in milliseconds for an ADR Guard CLI invocation."
+        },
+        "adrGuard.cli.maxOutputBytes": {
+          "type": "number",
+          "default": 262144,
+          "minimum": 1024,
+          "maximum": 1048576,
+          "scope": "machine",
+          "description": "Maximum bytes captured separately from stdout and stderr for an ADR Guard CLI invocation."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true});require('node:fs').rmSync('out',{recursive:true,force:true})\"",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "compile:tests": "tsc -p tsconfig.test.json",
+    "build": "node esbuild.mjs",
+    "test:unit": "npm run compile:tests && node --test \"out/test/unit/*.test.js\"",
+    "test:integration": "npm run compile:tests && npm run build && vscode-test",
+    "test": "npm run test:unit && npm run test:integration",
+    "vscode:prepublish": "npm run typecheck && npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/mocha": "10.0.10",
+    "@types/node": "20.19.43",
+    "@types/vscode": "1.100.0",
+    "@vscode/test-cli": "0.0.15",
+    "@vscode/test-electron": "3.1.0",
+    "esbuild": "0.28.2",
+    "eslint": "10.0.1",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.71.1"
+  },
+  "overrides": {
+    "diff": "8.0.3",
+    "serialize-javascript": "7.0.5"
+  }
+}
