@@ -1,9 +1,10 @@
-import { realpath } from 'node:fs/promises';
+import { lstat, realpath } from 'node:fs/promises';
 import path from 'node:path';
 import * as vscode from 'vscode';
-import { CliExecutor } from '../cli/executor';
+import { CliExecutor, safeErrorLine } from '../cli/executor';
 import { CheckReportError, parseCheckReport, type AdrCheckReport } from '../contracts/checkReport';
 import { OperationalLog } from '../logging';
+import { buildCheckArguments, type AdrFormat } from '../commands/arguments';
 import { asLocation } from '../workspace';
 import {
   ensureResourceWithinWorkspace,
@@ -16,6 +17,23 @@ export interface ValidationResult {
   readonly report: AdrCheckReport;
   readonly workspaceRoot: string;
   readonly adrDirectory: string;
+}
+
+export interface ValidationOptions {
+  readonly adrFormat?: AdrFormat;
+  readonly changed?: boolean;
+  readonly baseReference?: string;
+  readonly baselineSetting?: string;
+}
+
+export class CliCapabilityError extends Error {
+  public constructor(public readonly options: readonly string[]) {
+    super(vscode.l10n.t(
+      'The installed ADR Guard CLI does not support the requested option(s): {0}. Install a CLI build with the v1.4 contracts.',
+      options.join(', '),
+    ));
+    this.name = 'CliCapabilityError';
+  }
 }
 
 export class DiagnosticManager implements vscode.Disposable {
@@ -31,15 +49,22 @@ export class DiagnosticManager implements vscode.Disposable {
     folder: vscode.WorkspaceFolder,
     directorySetting: string,
     signal?: AbortSignal,
+    options: ValidationOptions = {},
   ): Promise<ValidationResult> {
     const workspaceRoot = await resolveWorkspaceRoot(asLocation(folder));
     const configuredDirectory = resolveWorkspaceRelativePath(workspaceRoot, directorySetting);
     const adrDirectory = await ensureResourceWithinWorkspace(configuredDirectory, workspaceRoot);
-    const execution = await this.executor.execute(
-      folder,
-      ['check', adrDirectory, '--format', 'json'],
-      signal,
-    );
+    const baselinePath = options.baselineSetting === undefined
+      ? undefined
+      : await resolveBaselinePath(options.baselineSetting, workspaceRoot);
+    const args = buildCheckArguments({
+      directory: adrDirectory,
+      adrFormat: options.adrFormat ?? 'canonical',
+      ...(options.changed === undefined ? {} : { changed: options.changed }),
+      ...(options.baseReference === undefined ? {} : { baseReference: options.baseReference }),
+      ...(baselinePath === undefined ? {} : { baselinePath }),
+    });
+    const execution = await this.executor.execute(folder, args, signal);
     const { result } = execution;
     if (result.termination !== 'exited') {
       if (result.termination === 'cancelled') {
@@ -53,10 +78,17 @@ export class DiagnosticManager implements vscode.Disposable {
       throw new Error(message);
     }
     if (result.exitCode !== 0 && result.exitCode !== 1) {
-      throw new Error(vscode.l10n.t(
-        'ADR Guard failed with exit code {0}. See ADR Guard Output for details.',
-        result.exitCode ?? 'unknown',
-      ));
+      const requestedOptions = advancedOptions(args);
+      if (result.exitCode === 2 && requestedOptions.length > 0) {
+        throw new CliCapabilityError(requestedOptions);
+      }
+      const detail = safeErrorLine(result.stderr);
+      throw new Error(detail === undefined
+        ? vscode.l10n.t(
+          'ADR Guard failed with exit code {0}. See ADR Guard Output for details.',
+          result.exitCode ?? 'unknown',
+        )
+        : vscode.l10n.t('ADR Guard failed with exit code {0}. {1}', result.exitCode ?? 'unknown', detail));
     }
     let report: AdrCheckReport;
     try {
@@ -113,7 +145,11 @@ export class DiagnosticManager implements vscode.Disposable {
       const uri = vscode.Uri.file(safePath);
       const diagnostic = new vscode.Diagnostic(
         new vscode.Range(0, 0, 0, 0),
-        finding.message,
+        finding.baselineState === undefined
+          ? finding.message
+          : finding.baselineState === 'new'
+            ? vscode.l10n.t('New since baseline: {0}', finding.message)
+            : vscode.l10n.t('Existing in baseline: {0}', finding.message),
         vscode.DiagnosticSeverity.Error,
       );
       diagnostic.code = finding.code;
@@ -142,4 +178,26 @@ export class DiagnosticManager implements vscode.Disposable {
     this.ownedUris.set(workspaceRoot, owned);
     this.log.info(`Published ${[...diagnostics.values()].reduce((total, item) => total + item.diagnostics.length, 0)} ADR Guard diagnostic(s).`);
   }
+}
+
+async function resolveBaselinePath(setting: string, workspaceRoot: string): Promise<string> {
+  const candidate = resolveWorkspaceRelativePath(workspaceRoot, setting);
+  let candidateStat;
+  try {
+    candidateStat = await lstat(candidate);
+  } catch (error: unknown) {
+    throw new Error(vscode.l10n.t('The configured diagnostic baseline is missing or inaccessible.'), { cause: error });
+  }
+  if (!candidateStat.isFile() || candidateStat.isSymbolicLink()) {
+    throw new Error(vscode.l10n.t('The diagnostic baseline must be a regular, non-symbolic-link JSON file.'));
+  }
+  const safe = await ensureResourceWithinWorkspace(candidate, workspaceRoot);
+  if (path.extname(safe).toLowerCase() !== '.json') {
+    throw new Error(vscode.l10n.t('The diagnostic baseline must be a JSON file inside the selected workspace.'));
+  }
+  return candidate;
+}
+
+function advancedOptions(args: readonly string[]): string[] {
+  return ['--adr-format', '--changed', '--baseline'].filter((option) => args.includes(option));
 }

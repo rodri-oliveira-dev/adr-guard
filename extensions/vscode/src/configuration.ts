@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { AdrFormat } from './commands/arguments';
 
 export interface AdrGuardConfiguration {
   readonly executablePath?: string;
@@ -9,6 +10,8 @@ export interface AdrGuardConfiguration {
 
 export interface ValidationConfiguration {
   readonly directory: string;
+  readonly adrFormat: AdrFormat;
+  readonly baseline: string;
   readonly onSave: boolean;
   readonly debounceMilliseconds: number;
 }
@@ -40,6 +43,8 @@ export function readValidationConfiguration(scope?: vscode.ConfigurationScope): 
   const configuration = vscode.workspace.getConfiguration('adrGuard.validation', scope);
   return {
     directory: configuration.get<string>('directory', 'docs/adr').trim() || 'docs/adr',
+    adrFormat: configuration.get<AdrFormat>('adrFormat', 'canonical') === 'madr-4' ? 'madr-4' : 'canonical',
+    baseline: configuration.get<string>('baseline', '.adrguard-baseline.json').trim() || '.adrguard-baseline.json',
     onSave: configuration.get<boolean>('onSave', false),
     debounceMilliseconds: clampInteger(
       configuration.get<number>('debounceMilliseconds', 750),

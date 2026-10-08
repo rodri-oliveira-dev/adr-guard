@@ -67,6 +67,18 @@ export function parseCheckReport(output: string): AdrCheckReport {
     throw new CheckReportError('summary counts do not match report arrays');
   }
   const baseline = root.baseline === undefined ? undefined : parseBaseline(root.baseline);
+  const baselineStates = diagnostics.map((item) => item.baselineState);
+  if (baseline === undefined && baselineStates.some((state) => state !== undefined)) {
+    throw new CheckReportError('baselineState requires a baseline summary');
+  }
+  if (baseline !== undefined) {
+    if (baselineStates.some((state) => state === undefined)
+      || baseline.new !== baselineStates.filter((state) => state === 'new').length
+      || baseline.existing !== baselineStates.filter((state) => state === 'existing').length
+      || root.valid !== (baseline.new === 0)) {
+      throw new CheckReportError('baseline summary, states, and valid must agree');
+    }
+  }
   return {
     schemaVersion: '1.0',
     valid: root.valid,

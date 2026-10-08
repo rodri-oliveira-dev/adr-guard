@@ -36,7 +36,14 @@
     "onCommand:adrGuard.initializeRepository",
     "onCommand:adrGuard.createAdr",
     "onCommand:adrGuard.validateAdrs",
+    "onCommand:adrGuard.validateChangedAdrs",
+    "onCommand:adrGuard.validateWithBaseline",
     "onCommand:adrGuard.generateIndex",
+    "onCommand:adrGuard.selectAdrFormat",
+    "onCommand:adrGuard.refreshExplorer",
+    "onCommand:adrGuard.openAdr",
+    "onCommand:adrGuard.revealCurrentAdr",
+    "onView:adrGuard.adrExplorer",
     "workspaceContains:.adrguard.yml"
   ],
   "contributes": {
@@ -65,8 +72,83 @@
         "command": "adrGuard.generateIndex",
         "title": "%command.generateIndex%",
         "category": "%command.category%"
+      },
+      {
+        "command": "adrGuard.validateChangedAdrs",
+        "title": "%command.validateChangedAdrs%",
+        "category": "%command.category%"
+      },
+      {
+        "command": "adrGuard.validateWithBaseline",
+        "title": "%command.validateWithBaseline%",
+        "category": "%command.category%"
+      },
+      {
+        "command": "adrGuard.selectAdrFormat",
+        "title": "%command.selectAdrFormat%",
+        "category": "%command.category%",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "adrGuard.refreshExplorer",
+        "title": "%command.refreshExplorer%",
+        "category": "%command.category%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "adrGuard.openAdr",
+        "title": "%command.openAdr%",
+        "category": "%command.category%"
+      },
+      {
+        "command": "adrGuard.revealCurrentAdr",
+        "title": "%command.revealCurrentAdr%",
+        "category": "%command.category%",
+        "icon": "$(target)"
       }
     ],
+    "views": {
+      "explorer": [
+        {
+          "id": "adrGuard.adrExplorer",
+          "name": "%view.adrExplorer%",
+          "icon": "$(book)"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "adrGuard.adrExplorer",
+        "contents": "%view.adrExplorer.welcome%",
+        "when": "workspaceFolderCount == 0"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "adrGuard.refreshExplorer",
+          "when": "view == adrGuard.adrExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "adrGuard.revealCurrentAdr",
+          "when": "view == adrGuard.adrExplorer",
+          "group": "navigation"
+        },
+        {
+          "command": "adrGuard.selectAdrFormat",
+          "when": "view == adrGuard.adrExplorer",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "adrGuard.openAdr",
+          "when": "view == adrGuard.adrExplorer && (viewItem == adrFile || viewItem == adrRelationship)",
+          "group": "inline"
+        }
+      ]
+    },
     "configuration": {
       "title": "%configuration.title%",
       "properties": {
@@ -97,6 +179,22 @@
           "default": "docs/adr",
           "scope": "resource",
           "description": "%configuration.validation.directory%"
+        },
+        "adrGuard.validation.adrFormat": {
+          "type": "string",
+          "enum": [
+            "canonical",
+            "madr-4"
+          ],
+          "default": "canonical",
+          "scope": "resource",
+          "description": "%configuration.validation.adrFormat%"
+        },
+        "adrGuard.validation.baseline": {
+          "type": "string",
+          "default": ".adrguard-baseline.json",
+          "scope": "resource",
+          "description": "%configuration.validation.baseline%"
         },
         "adrGuard.validation.onSave": {
           "type": "boolean",

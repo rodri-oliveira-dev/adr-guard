@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {
+      "name": "with-adrs",
+      "path": "workspace"
+    },
+    {
+      "name": "empty-adrs",
+      "path": "workspace-empty"
+    }
+  ]
+}

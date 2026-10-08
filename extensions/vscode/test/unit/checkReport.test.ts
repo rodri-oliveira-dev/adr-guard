@@ -39,6 +39,8 @@ describe('ADR check report v1 parser', () => {
       JSON.stringify({ schemaVersion: '1.0', valid: true, summary: { files: 0, diagnostics: 1 }, files: [], diagnostics: [] }),
       JSON.stringify({ schemaVersion: '1.0', valid: true, summary: { files: 0, diagnostics: 0 }, files: [], diagnostics: [], extra: true }),
       JSON.stringify({ schemaVersion: '1.0', valid: false, summary: { files: 1, diagnostics: 1 }, files: ['a.md'], diagnostics: [{ code: 'BAD', message: 'x', file: 'a.md' }] }),
+      JSON.stringify({ schemaVersion: '1.0', valid: true, summary: { files: 1, diagnostics: 1 }, files: ['a.md'], diagnostics: [{ code: 'ADR001', message: 'x', file: 'a.md', baselineState: 'existing' }] }),
+      JSON.stringify({ schemaVersion: '1.0', valid: false, summary: { files: 1, diagnostics: 1 }, files: ['a.md'], baseline: { new: 0, existing: 1, resolved: 0 }, diagnostics: [{ code: 'ADR001', message: 'x', file: 'a.md', baselineState: 'existing' }] }),
     ];
     invalid.forEach((value) => assert.throws(() => parseCheckReport(value), CheckReportError));
   });

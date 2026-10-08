@@ -71,7 +71,7 @@ export function requireSuccessfulResult(result: CliRunResult): void {
   }
 }
 
-function safeErrorLine(stderr: string): string | undefined {
+export function safeErrorLine(stderr: string): string | undefined {
   const line = stderr.split(/\r?\n/u, 1)[0]?.trim();
   if (line === undefined || line.length === 0 || line.length > 512 || containsUnsafeControlCharacter(line)) {
     return undefined;

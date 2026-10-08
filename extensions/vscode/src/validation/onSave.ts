@@ -55,7 +55,14 @@ export class SaveValidationController implements vscode.Disposable {
       let scheduler = this.schedulers.get(root);
       if (scheduler === undefined) {
         scheduler = new ValidationScheduler(
-          async (signal) => { await this.diagnostics.validate(folder, configuration.directory, signal); },
+          async (signal) => {
+            await this.diagnostics.validate(
+              folder,
+              configuration.directory,
+              signal,
+              { adrFormat: configuration.adrFormat },
+            );
+          },
           (error) => this.log.info(`Automatic validation failed: ${error instanceof Error ? error.message : 'unknown error'}`),
         );
         this.schedulers.set(root, scheduler);

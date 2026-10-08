@@ -4,7 +4,7 @@ import { CliExecutor, requireSuccessfulResult, withCancellationProgress } from '
 import { CliDiscoveryError } from '../cli/discovery';
 import { readValidationConfiguration } from '../configuration';
 import { OperationalLog } from '../logging';
-import { DiagnosticManager } from '../validation/diagnostics';
+import { CliCapabilityError, DiagnosticManager } from '../validation/diagnostics';
 import { selectWorkspaceFolder, asLocation } from '../workspace';
 import {
   ensureResourceWithinWorkspace,
@@ -15,7 +15,10 @@ import {
 } from '../workspacePolicy';
 import {
   buildInitArguments,
+  buildIndexArguments,
   buildNewArguments,
+  isSafeGitBaseReference,
+  type AdrFormat,
   parseCreatedAdrPath,
   type TemplateSelection,
 } from './arguments';
@@ -127,14 +130,98 @@ export async function validateAdrs(dependencies: CoreCommandDependencies): Promi
     const configuration = readValidationConfiguration(selected.uri);
     const result = await withCancellationProgress(
       vscode.l10n.t('Validate ADRs'),
-      async (signal) => dependencies.diagnostics.validate(selected, configuration.directory, signal),
+      async (signal) => dependencies.diagnostics.validate(
+        selected,
+        configuration.directory,
+        signal,
+        { adrFormat: configuration.adrFormat },
+      ),
     );
-    await vscode.window.showInformationMessage(
-      result.report.valid
-        ? vscode.l10n.t('ADR validation completed with no new issues.')
-        : vscode.l10n.t('ADR validation found {0} issue(s).', result.report.summary.diagnostics),
-    );
+    await showValidationResult(result.report);
   });
+}
+
+export async function validateChangedAdrs(dependencies: CoreCommandDependencies): Promise<void> {
+  await runExplicit(dependencies.log, async () => {
+    const selected = await selectWorkspaceFolder();
+    if (selected === undefined) return;
+    const baseReference = await vscode.window.showInputBox({
+      title: vscode.l10n.t('Git base reference'),
+      prompt: vscode.l10n.t('Enter a local Git reference such as main or origin/main. No fetch will be performed.'),
+      value: 'main',
+      ignoreFocusOut: true,
+      validateInput: (value) => isSafeGitBaseReference(value.trim())
+        ? undefined
+        : vscode.l10n.t('Enter a non-empty Git reference that does not start with a dash or contain whitespace or control characters.'),
+    });
+    if (baseReference === undefined) return;
+    const configuration = readValidationConfiguration(selected.uri);
+    try {
+      const result = await withCancellationProgress(
+        vscode.l10n.t('Validate Changed ADRs'),
+        async (signal) => dependencies.diagnostics.validate(
+          selected,
+          configuration.directory,
+          signal,
+          { adrFormat: configuration.adrFormat, changed: true, baseReference: baseReference.trim() },
+        ),
+      );
+      await showValidationResult(result.report);
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === 'AbortError') throw error;
+      const fallback = vscode.l10n.t('Run Full Validation');
+      const selectedAction = await vscode.window.showErrorMessage(
+        vscode.l10n.t('Incremental validation could not run: {0}', userErrorMessage(error)),
+        fallback,
+      );
+      if (selectedAction !== fallback) return;
+      const result = await withCancellationProgress(
+        vscode.l10n.t('Validate ADRs'),
+        async (signal) => dependencies.diagnostics.validate(
+          selected,
+          configuration.directory,
+          signal,
+          { adrFormat: configuration.adrFormat },
+        ),
+      );
+      await showValidationResult(result.report);
+    }
+  });
+}
+
+export async function validateWithBaseline(dependencies: CoreCommandDependencies): Promise<void> {
+  await runExplicit(dependencies.log, async () => {
+    const selected = await selectWorkspaceFolder();
+    if (selected === undefined) return;
+    const configuration = readValidationConfiguration(selected.uri);
+    const result = await withCancellationProgress(
+      vscode.l10n.t('Validate ADRs with Baseline'),
+      async (signal) => dependencies.diagnostics.validate(
+        selected,
+        configuration.directory,
+        signal,
+        { adrFormat: configuration.adrFormat, baselineSetting: configuration.baseline },
+      ),
+    );
+    await showValidationResult(result.report);
+  });
+}
+
+export async function selectAdrFormat(): Promise<void> {
+  const selected = await selectWorkspaceFolder();
+  if (selected === undefined) return;
+  const current = readValidationConfiguration(selected.uri).adrFormat;
+  const items: (vscode.QuickPickItem & { readonly value: AdrFormat })[] = [
+    { label: 'Canonical', ...(current === 'canonical' ? { description: vscode.l10n.t('Current') } : {}), value: 'canonical' },
+    { label: 'MADR 4.0', ...(current === 'madr-4' ? { description: vscode.l10n.t('Current') } : {}), value: 'madr-4' },
+  ];
+  const choice = await vscode.window.showQuickPick(items, {
+    placeHolder: vscode.l10n.t('Select the ADR format for this workspace folder'),
+  });
+  if (choice === undefined) return;
+  await vscode.workspace.getConfiguration('adrGuard.validation', selected.uri)
+    .update('adrFormat', choice.value, vscode.ConfigurationTarget.WorkspaceFolder);
+  await vscode.window.showInformationMessage(vscode.l10n.t('ADR format set to {0}.', formatLabel(choice.value)));
 }
 
 export async function generateIndex(dependencies: CoreCommandDependencies): Promise<void> {
@@ -155,8 +242,16 @@ export async function generateIndex(dependencies: CoreCommandDependencies): Prom
     );
     const execution = await withCancellationProgress(
       vscode.l10n.t('Generate Index'),
-      async (signal) => dependencies.executor.execute(selected, ['index', adrDirectory], signal),
+      async (signal) => dependencies.executor.execute(
+        selected,
+        buildIndexArguments(adrDirectory, configuration.adrFormat),
+        signal,
+      ),
     );
+    if (execution.result.termination === 'exited' && execution.result.exitCode === 2
+      && configuration.adrFormat === 'madr-4') {
+      throw new CliCapabilityError(['--adr-format']);
+    }
     requireSuccessfulResult(execution.result);
     const index = await ensureResourceWithinWorkspace(path.join(adrDirectory, 'README.md'), root);
     if (!isResolvedPathWithin(index, adrDirectory)) {
@@ -166,6 +261,35 @@ export async function generateIndex(dependencies: CoreCommandDependencies): Prom
     await vscode.window.showTextDocument(document, { preview: true });
     await vscode.window.showInformationMessage(vscode.l10n.t('ADR Guard generated the ADR index.'));
   });
+}
+
+async function showValidationResult(report: import('../contracts/checkReport').AdrCheckReport): Promise<void> {
+  if (report.baseline !== undefined) {
+    const message = report.valid
+      ? vscode.l10n.t(
+        'Baseline validation passed: {0} new, {1} existing, {2} resolved.',
+        report.baseline.new,
+        report.baseline.existing,
+        report.baseline.resolved,
+      )
+      : vscode.l10n.t(
+        'Baseline validation failed: {0} new, {1} existing, {2} resolved.',
+        report.baseline.new,
+        report.baseline.existing,
+        report.baseline.resolved,
+      );
+    await vscode.window.showInformationMessage(message);
+    return;
+  }
+  await vscode.window.showInformationMessage(
+    report.valid
+      ? vscode.l10n.t('ADR validation completed with no new issues.')
+      : vscode.l10n.t('ADR validation found {0} issue(s).', report.summary.diagnostics),
+  );
+}
+
+function formatLabel(format: AdrFormat): string {
+  return format === 'canonical' ? 'Canonical' : 'MADR 4.0';
 }
 
 async function promptDirectory(folder: vscode.WorkspaceFolder): Promise<string | undefined> {
