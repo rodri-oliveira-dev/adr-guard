@@ -2,7 +2,7 @@
 
 ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existente do ADR Guard dentro do editor. Ela oferece comandos nativos, diagnósticos no Problems e um ADR Explorer, mantendo parser, validação, políticas, geração e análise baseada em Git na CLI .NET.
 
-> **Publicado:** [ADR Guard no Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard), identificador `rodrioliveira.adr-guard` (versão **0.1.1** no lançamento inicial). O versionamento da extensão é independente do NuGet CLI. Os comandos avançados exigem a CLI compatível, publicada desde a **v1.3.0**. A extensão não inclui a CLI.
+> **Publicado:** o [ADR Guard para VS Code 0.1.1](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) está disponível no Visual Studio Marketplace como `rodrioliveira.adr-guard`. Os contratos compatíveis da CLI ADR Guard foram publicados no NuGet **v1.3.0** (incluindo o antigo escopo de desenvolvimento v1.4). A extensão VS Code e a CLI .NET são distribuídas e versionadas separadamente; a extensão não inclui a CLI.
 
 ## Funcionalidades
 
@@ -23,7 +23,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 - Workspace local `file:` e confiável.
 - Executável `adr-guard` compatível instalado no ambiente em que o **workspace extension host** é executado.
 
-Instale a CLI ADR Guard compatível (v1.3.0 ou superior) como ferramenta .NET no ambiente do host da extensão:
+Instale a CLI compatível (v1.3.0 ou superior) no ambiente local ou remoto do host da extensão de workspace:
 
 ```shell
 dotnet tool install --global RodriOliveira.AdrGuard
@@ -38,7 +38,7 @@ Instale a extensão publicada pela aba **Extensões** do VS Code (pesquise **ADR
 code --install-extension rodrioliveira.adr-guard
 ```
 
-Somente para builds de desenvolvimento, também é possível usar **Extensions: Install from VSIX...** com o arquivo `adr-guard-0.1.0.vsix` gerado pelo repositório. A versão do manifesto/VSIX no código-fonte pode ser diferente da versão atualmente publicada no Marketplace.
+Para testar manualmente um VSIX gerado localmente, use **Extensions: Install from VSIX...** e selecione `adr-guard-0.1.1.vsix`. Esse processo é diferente da instalação pelo Marketplace.
 
 ## Comandos
 

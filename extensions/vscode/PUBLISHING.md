@@ -12,8 +12,8 @@ The VS Code extension is versioned independently from the ADR Guard CLI and GitH
 ## First release
 
 1. Confirm the combined CLI capabilities (previous v1.3 and v1.4 development scopes) have been released in NuGet v1.3.0; the VS Code extension and release automation are already integrated into `main`.
-2. Check `extensions/vscode/package.json` for publisher `rodrioliveira`, package name `adr-guard` and version `0.1.0`. Keep the VSIX output filename and smoke test aligned with the chosen version for future releases.
-3. Open GitHub Actions and select **VS Code Marketplace Release**. Choose the `main` branch, specify version `0.1.0` and enter exactly `publish-rodrioliveira.adr-guard` as confirmation.
+2. Check `extensions/vscode/package.json` for publisher `rodrioliveira`, package name `adr-guard` and version `0.1.1`. Keep the VSIX output filename and smoke test aligned with the chosen version for future releases.
+3. Open GitHub Actions and select **VS Code Marketplace Release**. Choose the `main` branch, specify version `0.1.1` and enter exactly `publish-rodrioliveira.adr-guard` as confirmation.
 4. The package job verifies the manifest and reruns dependency auditing, lint, typecheck, build, unit, localization and VS Code host integration tests. It then creates and tests the VSIX.
 5. After the protected `vscode-marketplace` environment approval, the separate publishing job downloads that validated VSIX and runs `vsce publish --oidc --packagePath`. No personal access tokens or GitHub repository secrets are needed for Marketplace authentication.
 6. Verify the listing at https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard and independently test installation from VS Code.

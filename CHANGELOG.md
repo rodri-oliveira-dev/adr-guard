@@ -4,9 +4,9 @@ Notable changes to **ADR Guard** (`RodriOliveira.AdrGuard`, the .NET CLI/Tool an
 
 Version links below point to GitHub Releases. Dates and previously shipped highlights follow the published release history. Detailed current release notes are available in [English](docs/releases/v1.3.0.md) and [Portuguese](docs/releases/v1.3.0.pt-BR.md).
 
-## [1.3.0] — Unreleased
+## [1.3.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0) — 2026-10-08
 
-**Combined release:** includes the complete feature scope previously developed as v1.3 and v1.4. This version is prepared but **has not been published** to NuGet or the other distribution channels.
+**Combined stable release:** v1.3.0 includes the full feature scope previously developed across the v1.3 and v1.4 branches. The [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0) was published on 2026-10-08, with the `RodriOliveira.AdrGuard.1.3.0.nupkg` artifact attached.
 
 ### Added
 - Explicit, opt-in MADR 4.0 validation; canonical format stays the default.
@@ -20,7 +20,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 - Combined the capabilities originally planned for a separate v1.4.0 into NuGet **1.3.0**; no separate v1.4.0 feature publication is needed for that scope.
 - Updated relevant user documentation and retained the existing manual, validated release process and security defaults.
 
-**Details:** [v1.3.0 release notes](docs/releases/v1.3.0.md) · [Notas em português](docs/releases/v1.3.0.pt-BR.md) · [Preparation PR #116](https://github.com/rodri-oliveira-dev/adr-guard/pull/116)
+**Details:** [v1.3.0 release notes](docs/releases/v1.3.0.md) · [Notas em português](docs/releases/v1.3.0.pt-BR.md) · [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0) · [Release PR #116](https://github.com/rodri-oliveira-dev/adr-guard/pull/116) · [Full Changelog: v1.2.0...v1.3.0](https://github.com/rodri-oliveira-dev/adr-guard/compare/v1.2.0...v1.3.0)
 
 ## [1.2.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.2.0) — 2026-10-08
 

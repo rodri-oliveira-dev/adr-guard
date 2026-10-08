@@ -1,6 +1,6 @@
 # Compatibilidade com MADR 4.0
 
-> Status de preparação: este suporte está implementado na branch encadeada da v1.3 e não é publicado até a conclusão da release manual v1.3.0.
+> Disponibilidade: a validação MADR 4.0 está publicada no [ADR Guard v1.3.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0) e permanece opcional.
 
 O ADR Guard implementa um subconjunto explícito alinhado aos [templates oficiais MADR 4.0.0](https://github.com/adr/madr/tree/4.0.0/template). O formato nunca é inferido:
 

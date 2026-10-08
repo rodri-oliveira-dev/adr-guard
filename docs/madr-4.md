@@ -1,6 +1,6 @@
 # MADR 4.0 compatibility
 
-> Preparation status: this support is implemented on the chained v1.3 branch and is not published until the manual v1.3.0 release completes.
+> Availability: MADR 4.0 validation is published in [ADR Guard v1.3.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0) and remains opt-in.
 
 ADR Guard implements an explicit subset aligned with the official [MADR 4.0.0 templates](https://github.com/adr/madr/tree/4.0.0/template). It never guesses a format:
 
