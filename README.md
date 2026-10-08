@@ -218,6 +218,8 @@ adr-guard index docs/adr
 
 ## Validate ADRs
 
+> **v1.2.0 preparation:** `init`, `.adrguard.yml`, and `check --format json|sarif` are available from source on the v1.2 development branch. They are not part of a published release until the independent manual v1.2.0 release completes.
+
 Validate a directory recursively:
 
 ```bash
@@ -238,6 +240,24 @@ Example:
 docs/adr/0002-use-cache.md: ADR004 Status 'Approved' is invalid. Allowed values: Proposed, Accepted, Deprecated, Superseded.
 Validation failed with 1 issue(s).
 ```
+
+Source builds prepared for v1.2.0 can initialize a repository and reuse optional configuration:
+
+```bash
+adr-guard init --adr-directory docs/adr --template minimal --github-actions
+adr-guard check
+```
+
+Precedence is explicit CLI arguments, then `.adrguard.yml`, then legacy defaults. Without configuration, all existing commands retain their previous defaults. The configuration file accepts only the documented scalar schema; it never executes tags, aliases, substitutions, or commands. See the [v1.2 CLI and configuration reference](docs/cli-reference.md).
+
+`check` keeps text output as the default and can emit deterministic JSON or SARIF 2.1.0 to stdout:
+
+```bash
+adr-guard check docs/adr --format json
+adr-guard check docs/adr --format sarif > adr-guard.sarif
+```
+
+Machine-readable output remains a valid document when validation returns exit code `1`; operational messages use stderr. The [JSON schema](docs/schemas/adr-check-report-v1.schema.json), [reporting guide](docs/check-reports.md), and least-privilege Code Scanning example define the contracts.
 
 ## Generate the ADR index
 

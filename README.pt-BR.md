@@ -218,6 +218,8 @@ adr-guard index docs/adr
 
 ## Validar ADRs
 
+> **Preparação da v1.2.0:** `init`, `.adrguard.yml` e `check --format json|sarif` estão disponíveis via build do código-fonte na branch de desenvolvimento da v1.2. Eles não fazem parte de uma release publicada até a conclusão do processo manual e independente da v1.2.0.
+
 Para validar recursivamente uma pasta:
 
 ```bash
@@ -238,6 +240,24 @@ Exemplo:
 docs/adr/0002-use-cache.md: ADR004 Status 'Approved' is invalid. Allowed values: Proposed, Accepted, Deprecated, Superseded.
 Validation failed with 1 issue(s).
 ```
+
+Builds do código-fonte preparados para a v1.2.0 podem inicializar um repositório e reutilizar configuração opcional:
+
+```bash
+adr-guard init --adr-directory docs/adr --template minimal --github-actions
+adr-guard check
+```
+
+A precedência é: argumentos explícitos da CLI, `.adrguard.yml` e, por fim, os defaults legados. Sem configuração, todos os comandos existentes preservam seus defaults anteriores. O arquivo aceita somente o esquema escalar documentado; tags, aliases, substituições e comandos nunca são executados. Consulte a [referência da CLI e configuração da v1.2](docs/cli-reference.pt-BR.md).
+
+O `check` mantém texto como saída padrão e pode emitir JSON determinístico ou SARIF 2.1.0 no stdout:
+
+```bash
+adr-guard check docs/adr --format json
+adr-guard check docs/adr --format sarif > adr-guard.sarif
+```
+
+A saída estruturada continua sendo um documento válido quando a validação retorna exit code `1`; mensagens operacionais usam stderr. O [schema JSON](docs/schemas/adr-check-report-v1.schema.json), o [guia de relatórios](docs/check-reports.pt-BR.md) e o exemplo de Code Scanning com privilégio mínimo definem os contratos.
 
 ## Gerar o índice de ADRs
 

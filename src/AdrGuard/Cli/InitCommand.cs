@@ -217,7 +217,7 @@ internal static class InitCommand
           adr-guard:
             runs-on: ubuntu-latest
             steps:
-              - uses: actions/checkout@v7
+              - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
                 with:
                   persist-credentials: false
               - uses: rodri-oliveira-dev/adr-guard@v1
