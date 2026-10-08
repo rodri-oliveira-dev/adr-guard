@@ -200,7 +200,7 @@ internal static class GitChangeDetector
         }
     }
 
-    private static void ValidateReference(string reference)
+    internal static void ValidateReference(string reference)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reference);
         if (reference.Length > 256

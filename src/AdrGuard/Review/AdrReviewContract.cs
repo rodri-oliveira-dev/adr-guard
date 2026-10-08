@@ -69,6 +69,14 @@ internal static class AdrReviewContract
         - If scope, chronology, or supporting evidence is missing, classify the finding as missing-context or
           recommendation-for-human-investigation and explicitly say "not enough information".
         - Never rewrite links/statuses and never require all architectural decisions to agree.
+
+        Comparative review rules:
+        - Apply these rules only when the explicitly selected prior source [comparison-base] is present.
+        - Compare the prior and target versions for changes in context, decision outcome, consequences, and rationale.
+        - Cite both visible source IDs for claims about a change and distinguish direct evidence from inference.
+        - Call out architectural impacts only as potential impacts unless selected evidence supports a stronger statement.
+        - Explicitly state "not enough information" for intent, motivation, or impact that the two versions do not establish.
+        - Never claim a policy violation, regression, approval, or rejection merely because text changed.
         """;
 }
 

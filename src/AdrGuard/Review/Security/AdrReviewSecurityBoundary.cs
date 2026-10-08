@@ -88,6 +88,15 @@ internal sealed class AdrReviewSecurityBoundary
             };
         }
 
+        var comparison = context.Comparison is null
+            ? null
+            : context.Comparison with
+            {
+                Reference = SanitizeDisplayName(context.Comparison.Reference),
+                FileName = SanitizeDisplayName(context.Comparison.FileName),
+                Content = Redact(context.Comparison.Content),
+            };
+
         return context with
         {
             TargetSourceName =
@@ -96,6 +105,7 @@ internal sealed class AdrReviewSecurityBoundary
             ExplicitFiles = explicitFiles,
             ExistingAdrs = existing,
             CrossAdrEvidence = crossAdr,
+            Comparison = comparison,
         };
     }
 

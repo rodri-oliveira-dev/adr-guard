@@ -27,7 +27,7 @@ internal static class CliApplication
           adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
-          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
+          adr-guard review <adr-file> --provider <provider> --model <model> [--compare-ref <ref>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
           adr-guard [options]
 
         Commands:
@@ -121,7 +121,7 @@ internal static class CliApplication
 
     private const string ReviewHelpText = """
         Usage:
-          adr-guard review <adr-file> --provider <provider> --model <model> [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
+          adr-guard review <adr-file> --provider <provider> --model <model> [--compare-ref <ref>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
 
         Request an AI-assisted technical review of one existing, structurally valid ADR.
         The command is advisory and read-only: it does not edit the ADR, change its status,
@@ -132,6 +132,8 @@ internal static class CliApplication
           --model <model>         Provider model identifier. ADR Guard does not choose a default model.
 
         Optional options:
+          --compare-ref <ref>     Explicitly compare the current ADR with the same path at one Git reference.
+                                  Only those two versions are selected; repository history is not transmitted.
           --endpoint <uri>        Required only for openai-compatible; rejected for official providers.
           --context-file <path>    Explicit UTF-8 .md or .txt context file; repeatable.
                                   Each file is limited to 50000 characters and 150000 bytes.
@@ -634,6 +636,7 @@ internal static class CliApplication
                     () => injectedProvider!,
                     output,
                     error,
+                    reviewArguments.CompareReference,
                     cancellationToken);
             }
 
@@ -672,6 +675,7 @@ internal static class CliApplication
                     },
                     output,
                     error,
+                    reviewArguments.CompareReference,
                     cancellationToken);
             }
             finally
@@ -958,6 +962,7 @@ internal static class CliApplication
         string? providerName = null;
         string? model = null;
         string? endpoint = null;
+        string? compareReference = null;
         string? outputPath = null;
         string? policyFilePath = null;
         var contextFilePaths = new List<string>();
@@ -999,6 +1004,7 @@ internal static class CliApplication
             if (argument is
                 "--provider"
                 or "--model"
+                or "--compare-ref"
                 or "--endpoint"
                 or "--context-file"
                 or "--policy"
@@ -1041,6 +1047,16 @@ internal static class CliApplication
                         }
 
                         model = value;
+                        break;
+
+                    case "--compare-ref":
+                        if (compareReference is not null)
+                        {
+                            reviewArguments = ReviewArguments.Empty;
+                            return false;
+                        }
+
+                        compareReference = value;
                         break;
 
                     case "--endpoint":
@@ -1155,7 +1171,8 @@ internal static class CliApplication
             outputPath,
             overwriteOutput,
             policyMode,
-            policyFilePath);
+            policyFilePath,
+            compareReference);
 
         return !string.IsNullOrWhiteSpace(targetPath);
     }
@@ -1429,7 +1446,8 @@ internal static class CliApplication
         string? OutputPath,
         bool OverwriteOutput,
         AdrReviewPolicyMode PolicyMode,
-        string? PolicyFilePath)
+        string? PolicyFilePath,
+        string? CompareReference)
     {
         internal static ReviewArguments Empty { get; } =
             new(
@@ -1443,6 +1461,7 @@ internal static class CliApplication
                 null,
                 false,
                 AdrReviewPolicyMode.Advisory,
+                null,
                 null);
     }
 

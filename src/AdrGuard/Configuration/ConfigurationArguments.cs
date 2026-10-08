@@ -75,7 +75,8 @@ internal static class ConfigurationArguments
         or "--format"
         or "--adr-format"
         or "--base-ref"
-        or "--baseline";
+        or "--baseline"
+        or "--compare-ref";
 
     private static void AddAdrFormatIfMissing(
         List<string> args,

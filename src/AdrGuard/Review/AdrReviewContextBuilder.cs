@@ -1,6 +1,7 @@
 using AdrGuard.Generation;
 using AdrGuard.Model;
 using AdrGuard.Parsing;
+using AdrGuard.Git;
 using System.Text.Json;
 
 namespace AdrGuard.Review;
@@ -10,7 +11,8 @@ internal sealed record AdrReviewContext(
     string TargetMarkdown,
     IReadOnlyList<ExplicitContextFile> ExplicitFiles,
     ExistingAdrContext? ExistingAdrs,
-    AdrCrossAdrEvidence? CrossAdrEvidence);
+    AdrCrossAdrEvidence? CrossAdrEvidence,
+    GitHistoricalFile? Comparison = null);
 
 internal static class AdrReviewContextBuilder
 {
@@ -24,7 +26,8 @@ internal static class AdrReviewContextBuilder
         string targetMarkdown,
         IReadOnlyList<string> contextFilePaths,
         bool includeExistingAdrs,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        GitHistoricalFile? comparison = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
         ArgumentNullException.ThrowIfNull(targetMarkdown);
@@ -83,7 +86,8 @@ internal static class AdrReviewContextBuilder
             targetMarkdown,
             explicitFiles,
             existingContext,
-            crossAdrEvidence);
+            crossAdrEvidence,
+            comparison);
 
         ValidatePromptSize(context);
 
@@ -104,6 +108,17 @@ internal static class AdrReviewContextBuilder
                 context.TargetSourceName,
                 context.TargetMarkdown.Trim()),
         };
+
+        if (context.Comparison is { } comparison)
+        {
+            sources.Add(
+                new ProviderContextSource(
+                    "comparison-base",
+                    "explicit-prior-adr",
+                    $"Prior ADR source [comparison-base] selected from Git reference: {comparison.Reference}",
+                    comparison.FileName,
+                    comparison.Content.Trim()));
+        }
 
         for (var index = 0;
              index < context.ExplicitFiles.Count;

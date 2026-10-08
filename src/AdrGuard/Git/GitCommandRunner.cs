@@ -29,11 +29,26 @@ internal static class GitCommandRunner
         {
             using var process = Process.Start(startInfo)
                 ?? throw new GitOperationException("Unable to start Git.");
-            var standardOutput = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var standardError = process.StandardError.ReadToEndAsync(cancellationToken);
-            process.WaitForExitAsync(cancellationToken).GetAwaiter().GetResult();
-            var output = standardOutput.GetAwaiter().GetResult();
-            var error = standardError.GetAwaiter().GetResult().Trim();
+            string output;
+            string error;
+            try
+            {
+                var standardOutput = process.StandardOutput.ReadToEndAsync(cancellationToken);
+                var standardError = process.StandardError.ReadToEndAsync(cancellationToken);
+                process.WaitForExitAsync(cancellationToken).GetAwaiter().GetResult();
+                output = standardOutput.GetAwaiter().GetResult();
+                error = standardError.GetAwaiter().GetResult().Trim();
+            }
+            catch (OperationCanceledException)
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit();
+                }
+
+                throw;
+            }
 
             if (process.ExitCode != 0)
             {
