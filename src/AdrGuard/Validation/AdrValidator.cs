@@ -111,7 +111,10 @@ internal static class AdrValidator
             ValidateMadr4(document, issues);
         }
         ValidateReferences(document, knownPaths, issues);
-        ValidateSupersededBy(document, knownPaths, issues);
+        if (format == AdrFormat.Canonical)
+        {
+            ValidateSupersededBy(document, knownPaths, issues);
+        }
     }
 
     private static void ValidateMadr4(

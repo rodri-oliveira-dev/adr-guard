@@ -8,7 +8,7 @@ internal static class ConfigurationArguments
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        // Preserve unmodified help handling even with repository configuration.
+        // --help must not be rewritten as a configured positional directory.
         if (configuration is null || args.Count == 0
             || (args.Count == 2 && args[1] is "-h" or "--help"))
         {
@@ -20,7 +20,6 @@ internal static class ConfigurationArguments
         {
             case "check":
             case "index":
-            case "baseline":
                 AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
                 AddAdrFormatIfMissing(configured, configuration);
                 break;
@@ -75,10 +74,7 @@ internal static class ConfigurationArguments
         or "--policy"
         or "--policy-file"
         or "--format"
-        or "--adr-format"
-        or "--base-ref"
-        or "--baseline"
-        or "--compare-ref";
+        or "--adr-format";
 
     private static void AddAdrFormatIfMissing(
         List<string> args,

@@ -5,7 +5,6 @@ using AdrGuard.Review.Policy;
 using AdrGuard.Review.Reporting;
 using AdrGuard.Review.Security;
 using AdrGuard.Validation;
-using AdrGuard.Git;
 
 namespace AdrGuard.Cli;
 
@@ -26,42 +25,7 @@ internal static class ReviewCommand
         Func<IAdrReviewProvider> providerFactory,
         TextWriter output,
         TextWriter error,
-        CancellationToken cancellationToken = default) =>
-        Run(
-            targetPath,
-            contextFilePaths,
-            includeExistingAdrs,
-            providerName,
-            model,
-            format,
-            outputPath,
-            overwriteOutput,
-            policyMode,
-            policyFilePath,
-            securityBoundary,
-            providerFactory,
-            output,
-            error,
-            compareReference: null,
-            cancellationToken);
-
-    internal static int Run(
-        string targetPath,
-        IReadOnlyList<string> contextFilePaths,
-        bool includeExistingAdrs,
-        string providerName,
-        string model,
-        AdrReviewOutputFormat format,
-        string? outputPath,
-        bool overwriteOutput,
-        AdrReviewPolicyMode policyMode,
-        string? policyFilePath,
-        AdrReviewSecurityBoundary securityBoundary,
-        Func<IAdrReviewProvider> providerFactory,
-        TextWriter output,
-        TextWriter error,
-        string? compareReference,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(targetPath);
         ArgumentNullException.ThrowIfNull(contextFilePaths);
@@ -71,21 +35,6 @@ internal static class ReviewCommand
         ArgumentNullException.ThrowIfNull(providerFactory);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
-
-        if (compareReference is not null)
-        {
-            try
-            {
-                GitChangeDetector.ValidateReference(compareReference);
-            }
-            catch (ArgumentException exception)
-            {
-                error.WriteLine(
-                    securityBoundary.SanitizeDiagnostic(
-                        $"Invalid comparison reference: {exception.Message}"));
-                return ExitCodes.UsageError;
-            }
-        }
 
         var fullPath = Path.GetFullPath(targetPath);
 
@@ -135,12 +84,6 @@ internal static class ReviewCommand
             cancellationToken.ThrowIfCancellationRequested();
 
             var markdown = File.ReadAllText(fullPath);
-            var comparison = compareReference is null
-                ? null
-                : GitHistoricalFileReader.Read(
-                    fullPath,
-                    compareReference,
-                    cancellationToken);
             var directory = Path.GetDirectoryName(fullPath)
                 ?? Directory.GetCurrentDirectory();
             var document = AdrMarkdownParser.Parse(
@@ -256,8 +199,7 @@ internal static class ReviewCommand
                         markdown,
                         contextFilePaths,
                         includeExistingAdrs,
-                        cancellationToken,
-                        comparison)
+                        cancellationToken)
                     .GetAwaiter()
                     .GetResult();
             }
@@ -448,13 +390,6 @@ internal static class ReviewCommand
                     $"Unable to review ADR: {exception.Message}"));
             return ExitCodes.OperationalError;
         }
-        catch (GitOperationException exception)
-        {
-            error.WriteLine(
-                securityBoundary.SanitizeDiagnostic(
-                    $"Unable to compare ADR versions: {exception.Message}"));
-            return ExitCodes.OperationalError;
-        }
         catch (ArgumentException exception)
         {
             error.WriteLine(
@@ -501,12 +436,6 @@ internal static class ReviewCommand
             "Review material sent to the configured external provider:");
         writer.WriteLine(
             $"- target ADR [target]: {reviewContext.TargetSourceName}");
-
-        if (reviewContext.Comparison is { } comparison)
-        {
-            writer.WriteLine(
-                $"- prior ADR [comparison-base] from explicit Git reference '{comparison.Reference}': {comparison.FileName}");
-        }
 
         for (var index = 0;
              index < reviewContext.ExplicitFiles.Count;
