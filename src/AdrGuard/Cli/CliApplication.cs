@@ -22,7 +22,8 @@ internal static class CliApplication
 
         Usage:
           adr-guard init [repository] [options]
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--changed --base-ref <ref>]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--changed --base-ref <ref>] [--baseline <file>]
+          adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4]
           adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
@@ -32,6 +33,7 @@ internal static class CliApplication
         Commands:
           init     Initialize ADR Guard configuration in an existing repository.
           check    Validate ADR files. Defaults to the current directory.
+          baseline Generate or explicitly update a versioned diagnostic baseline.
           index    Validate ADR files and generate an index. Defaults to README.md.
           new      Create a Proposed ADR from an offline Markdown template.
           draft    Generate a Proposed ADR draft through a configured AI provider.
@@ -51,12 +53,13 @@ internal static class CliApplication
 
     private const string CheckHelpText = """
         Usage:
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--changed --base-ref <ref>]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--changed --base-ref <ref>] [--baseline <file>]
 
         Validate ADR files recursively. The directory defaults to the configured ADR directory or current directory.
         Text is the default. JSON and SARIF 2.1.0 are deterministic data documents written to stdout.
         ADR format defaults to canonical; MADR 4.0 is selected explicitly with --adr-format madr-4.
         --changed is opt-in and requires --base-ref. Git failures or insufficient history are operational errors.
+        --baseline classifies new/existing/resolved diagnostics; global integrity diagnostics cannot be suppressed.
         """;
 
     private const string IndexHelpText = """
@@ -275,6 +278,7 @@ internal static class CliApplication
         {
             "init" => InitCommand.Run(effectiveArgs, output, error),
             "check" => RunCheck(effectiveArgs, output, error, cancellationToken),
+            "baseline" => RunBaseline(effectiveArgs, output, error, cancellationToken),
             "index" => RunIndex(effectiveArgs, output, error),
             "new" => NewCommand.Run(effectiveArgs, output, error, cancellationToken),
             "draft" => RunDraft(
@@ -315,7 +319,8 @@ internal static class CliApplication
                 out var format,
                 out var adrFormat,
                 out var changed,
-                out var baseReference))
+                out var baseReference,
+                out var baselinePath))
         {
             return WriteCommandUsageError("check", error);
         }
@@ -326,6 +331,7 @@ internal static class CliApplication
             adrFormat,
             changed,
             baseReference,
+            baselinePath,
             output,
             error,
             cancellationToken);
@@ -337,13 +343,15 @@ internal static class CliApplication
         out CheckOutputFormat format,
         out AdrFormat adrFormat,
         out bool changed,
-        out string? baseReference)
+        out string? baseReference,
+        out string? baselinePath)
     {
         directoryPath = ".";
         format = CheckOutputFormat.Text;
         adrFormat = AdrFormat.Canonical;
         changed = false;
         baseReference = null;
+        baselinePath = null;
         var directoryAssigned = false;
         var formatAssigned = false;
         var adrFormatAssigned = false;
@@ -374,6 +382,21 @@ internal static class CliApplication
                 baseReference = args[++index];
                 continue;
             }
+
+            if (argument == "--baseline")
+            {
+                if (baselinePath is not null
+                    || index + 1 >= args.Count
+                    || string.IsNullOrWhiteSpace(args[index + 1])
+                    || args[index + 1].StartsWith('-'))
+                {
+                    return false;
+                }
+
+                baselinePath = args[++index];
+                continue;
+            }
+
             if (argument == "--format")
             {
                 if (formatAssigned || index + 1 >= args.Count)
@@ -429,6 +452,98 @@ internal static class CliApplication
         }
 
         return changed == (baseReference is not null);
+    }
+
+    private static int RunBaseline(
+        IReadOnlyList<string> args,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken)
+    {
+        var directory = ".";
+        string? outputPath = null;
+        var update = false;
+        var format = AdrFormat.Canonical;
+        var directoryAssigned = false;
+        var formatAssigned = false;
+
+        for (var index = 1; index < args.Count; index++)
+        {
+            var argument = args[index];
+            if (argument == "--update")
+            {
+                if (update)
+                {
+                    return WriteCommandUsageError("baseline", error);
+                }
+
+                update = true;
+                continue;
+            }
+
+            if (argument is "--output" or "--adr-format")
+            {
+                if (index + 1 >= args.Count || args[index + 1].StartsWith('-'))
+                {
+                    return WriteCommandUsageError("baseline", error);
+                }
+
+                var value = args[++index];
+                if (argument == "--output")
+                {
+                    if (outputPath is not null)
+                    {
+                        return WriteCommandUsageError("baseline", error);
+                    }
+
+                    outputPath = value;
+                }
+                else
+                {
+                    if (formatAssigned)
+                    {
+                        return WriteCommandUsageError("baseline", error);
+                    }
+
+                    format = value switch
+                    {
+                        "canonical" => AdrFormat.Canonical,
+                        "madr-4" => AdrFormat.Madr4,
+                        _ => (AdrFormat)(-1),
+                    };
+                    if (!Enum.IsDefined(format))
+                    {
+                        return WriteCommandUsageError("baseline", error);
+                    }
+
+                    formatAssigned = true;
+                }
+
+                continue;
+            }
+
+            if (argument.StartsWith('-') || directoryAssigned)
+            {
+                return WriteCommandUsageError("baseline", error);
+            }
+
+            directory = argument;
+            directoryAssigned = true;
+        }
+
+        if (outputPath is null)
+        {
+            return WriteCommandUsageError("baseline", error);
+        }
+
+        return BaselineCommand.Run(
+            directory,
+            outputPath,
+            update,
+            format,
+            output,
+            error,
+            cancellationToken);
     }
 
     private static int RunIndex(

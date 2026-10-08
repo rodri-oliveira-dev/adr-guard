@@ -18,6 +18,7 @@ internal static class ConfigurationArguments
         {
             case "check":
             case "index":
+            case "baseline":
                 AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
                 AddAdrFormatIfMissing(configured, configuration);
                 break;
@@ -73,7 +74,8 @@ internal static class ConfigurationArguments
         or "--policy-file"
         or "--format"
         or "--adr-format"
-        or "--base-ref";
+        or "--base-ref"
+        or "--baseline";
 
     private static void AddAdrFormatIfMissing(
         List<string> args,

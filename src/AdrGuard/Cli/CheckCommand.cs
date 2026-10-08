@@ -1,6 +1,7 @@
 using AdrGuard.Parsing;
 using AdrGuard.Validation;
 using AdrGuard.Git;
+using AdrGuard.Baselines;
 
 namespace AdrGuard.Cli;
 
@@ -16,6 +17,7 @@ internal static class CheckCommand
             AdrFormat.Canonical,
             changed: false,
             baseReference: null,
+            baselinePath: null,
             output,
             error,
             default);
@@ -26,6 +28,7 @@ internal static class CheckCommand
         AdrFormat adrFormat,
         bool changed,
         string? baseReference,
+        string? baselinePath,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
@@ -53,21 +56,47 @@ internal static class CheckCommand
                 result = IncrementalValidation.Select(result, changeSet.CurrentPaths);
             }
 
+            DiagnosticBaselineComparison? baseline = null;
+            if (baselinePath is not null)
+            {
+                baseline = DiagnosticBaselineService.Compare(
+                    result,
+                    DiagnosticBaselineService.Load(baselinePath),
+                    directoryPath);
+            }
+
             switch (format)
             {
                 case CheckOutputFormat.Json:
-                    CheckReportRenderer.WriteJson(documents, result, directoryPath, output);
+                    CheckReportRenderer.WriteJson(
+                        documents,
+                        result,
+                        directoryPath,
+                        baseline,
+                        output);
                     break;
                 case CheckOutputFormat.Sarif:
-                    CheckReportRenderer.WriteSarif(result, directoryPath, output);
+                    CheckReportRenderer.WriteSarif(
+                        result,
+                        directoryPath,
+                        baseline,
+                        output);
                     break;
             }
 
-            if (!result.IsValid)
+            var failingResult = baseline is null
+                ? result
+                : new ValidationResult(baseline.NewIssues);
+            if (!failingResult.IsValid)
             {
                 if (format == CheckOutputFormat.Text)
                 {
-                    ValidationOutput.WriteIssues(result, error);
+                    ValidationOutput.WriteIssues(failingResult, error);
+                    if (baseline is not null)
+                    {
+                        error.WriteLine(
+                            $"Baseline: {baseline.NewIssues.Count} new, {baseline.ExistingIssues.Count} existing, {baseline.ResolvedEntries.Count} resolved issue(s).");
+                    }
                 }
 
                 return ExitCodes.ValidationFailed;
@@ -75,7 +104,10 @@ internal static class CheckCommand
 
             if (format == CheckOutputFormat.Text)
             {
-                output.WriteLine($"Validated {documents.Count} ADR(s): no issues found.");
+                output.WriteLine(
+                    baseline is null
+                        ? $"Validated {documents.Count} ADR(s): no issues found."
+                        : $"Validated {documents.Count} ADR(s): no new issues. Baseline: {baseline.ExistingIssues.Count} existing, {baseline.ResolvedEntries.Count} resolved issue(s).");
             }
 
             return ExitCodes.Success;
@@ -85,6 +117,14 @@ internal static class CheckCommand
             return WriteOperationalError(exception, error);
         }
         catch (UnauthorizedAccessException exception)
+        {
+            return WriteOperationalError(exception, error);
+        }
+        catch (InvalidDataException exception)
+        {
+            return WriteOperationalError(exception, error);
+        }
+        catch (InvalidOperationException exception)
         {
             return WriteOperationalError(exception, error);
         }

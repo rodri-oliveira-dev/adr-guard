@@ -14,6 +14,8 @@ internal static class IncrementalValidation
         ValidationCodes.InactiveDependency,
     ];
 
+    internal static bool IsGlobalCode(string code) => GlobalCodes.Contains(code);
+
     internal static ValidationResult Select(
         ValidationResult fullResult,
         IReadOnlySet<string> changedPaths)
