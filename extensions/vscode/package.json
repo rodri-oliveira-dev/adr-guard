@@ -3,7 +3,7 @@
   "publisher": "rodrioliveira",
   "displayName": "%extension.displayName%",
   "description": "%extension.description%",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "icon": "images/icon-vscode.png",
   "private": true,
   "license": "MIT",
@@ -236,7 +236,7 @@
     "test": "npm run test:unit && npm run test:integration",
     "test:l10n": "npm run compile:tests && node --test out/test/unit/localization.test.js",
     "package:list": "vsce ls --no-dependencies",
-    "package:vsix": "vsce package --no-dependencies --out adr-guard-0.1.0.vsix",
+    "package:vsix": "vsce package --no-dependencies --out adr-guard-0.1.1.vsix",
     "test:vsix": "node scripts/verify-vsix.mjs",
     "vscode:prepublish": "npm run typecheck && npm run build"
   },

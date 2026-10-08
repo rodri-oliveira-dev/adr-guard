@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version in extensions/vscode/package.json (for example 0.1.0)"
+        description: "Version in extensions/vscode/package.json (for example 0.1.1)"
         required: true
         type: string
       confirmation:

@@ -1,6 +1,6 @@
 # ADR Guard for VS Code development
 
-This extension is versioned independently from the .NET CLI. Version `0.1.0` targets VS Code `^1.100.0` and its Node workspace extension host. Development and tests use Node.js 22 or newer because the pinned official VS Code test tooling requires it; the runtime bundle targets Node.js 20-compatible JavaScript.
+This extension is versioned independently from the .NET CLI. Version `0.1.1` targets VS Code `^1.100.0` and its Node workspace extension host. Development and tests use Node.js 22 or newer because the pinned official VS Code test tooling requires it; the runtime bundle targets Node.js 20-compatible JavaScript.
 
 Use the lockfile from this directory:
 

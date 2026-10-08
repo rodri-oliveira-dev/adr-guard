@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 import { downloadAndUnzipVSCode, runVSCodeCommand } from '@vscode/test-electron';
 
 const root = path.resolve(import.meta.dirname, '..');
-const vsixPath = path.join(root, 'adr-guard-0.1.0.vsix');
+const vsixPath = path.join(root, 'adr-guard-0.1.1.vsix');
 const workspaceFolder = path.join(root, 'test', 'fixtures', 'workspace');
 const testHarness = path.join(root, 'test', 'fixtures', 'extension-test-harness');
 const testFile = path.join(root, 'out', 'test', 'integration', 'packagedActivation.test.js');
@@ -31,8 +31,8 @@ try {
     [...profileArgs, '--list-extensions', '--show-versions'],
     { version: '1.100.0' },
   );
-  if (!installed.stdout.toLowerCase().includes('adr-guard@0.1.0')) {
-    throw new Error(`Installed extension list does not contain ADR Guard 0.1.0: ${installed.stdout}`);
+  if (!installed.stdout.toLowerCase().includes('adr-guard@0.1.1')) {
+    throw new Error(`Installed extension list does not contain ADR Guard 0.1.1: ${installed.stdout}`);
   }
 
   const executable = await downloadAndUnzipVSCode({ version: '1.100.0' });

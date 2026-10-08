@@ -2,7 +2,7 @@
 
 ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existente do ADR Guard dentro do editor. Ela oferece comandos nativos, diagnósticos no Problems e um ADR Explorer, mantendo parser, validação, políticas, geração e análise baseada em Git na CLI .NET.
 
-> Estado: a versão **0.1.0** da extensão é um MVP distribuído para revisão por VSIX. Ela não está publicada no Visual Studio Marketplace. O Publisher no Marketplace foi registrado como `rodrioliveira`; a publicação ainda está pendente. Os comandos avançados exigem os contratos compatíveis da CLI previstos no NuGet v1.3.0 (incluindo o antigo escopo de desenvolvimento v1.4); essa release pública da CLI deve estar disponível antes da publicação no Marketplace.
+> Estado: a versão **0.1.1** da extensão está preparada como VSIX validado para publicação manual. Ela ainda não está publicada no Visual Studio Marketplace. O Publisher no Marketplace está registrado como `rodrioliveira`. Os comandos avançados exigem os contratos compatíveis do ADR Guard CLI v1.3.0 (incluindo o antigo escopo de desenvolvimento v1.4); confirme que essa versão da CLI está disponível publicamente antes da publicação no Marketplace.
 
 ## Funcionalidades
 
@@ -32,10 +32,10 @@ adr-guard --version
 
 Para capacidades de desenvolvimento ainda não publicadas, compile ou instale a CLI da branch correspondente do repositório e informe o caminho absoluto confiável em `adrGuard.cli.path`. Caso contrário, a extensão pesquisa diretórios absolutos no `PATH` do host. Ela nunca baixa nem instala a CLI.
 
-Para instalar manualmente o artefato de revisão, execute **Extensions: Install from VSIX...** e selecione `adr-guard-0.1.0.vsix`, ou use:
+Para instalar manualmente o artefato da versão, execute **Extensions: Install from VSIX...** e selecione `adr-guard-0.1.1.vsix`, ou use:
 
 ```shell
-code --install-extension adr-guard-0.1.0.vsix
+code --install-extension adr-guard-0.1.1.vsix
 ```
 
 ## Comandos
