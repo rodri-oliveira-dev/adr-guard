@@ -1,0 +1,101 @@
+name: VS Code Extension CI
+
+on:
+  push:
+    branches:
+      - main
+      - feat/adr-guard-v1.3-governance
+      - feat/adr-guard-v1.4-integration
+      - feat/vscode-extension-mvp
+    paths:
+      - extensions/vscode/**
+      - .github/workflows/vscode-extension.yml
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vscode-extension-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-and-package:
+    name: Quality, extension host, and VSIX
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: extensions/vscode
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: extensions/vscode/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Audit dependencies
+        run: npm audit --audit-level=low
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Localization tests
+        run: npm run test:l10n
+
+      - name: Extension-host integration tests
+        run: xvfb-run -a npm run test:integration
+
+      - name: Preview VSIX allowlist
+        run: npm run package:list
+
+      - name: Package VSIX
+        run: npm run package:vsix
+
+      - name: Inspect VSIX
+        shell: bash
+        run: |
+          set -euo pipefail
+          listing="$(unzip -Z1 adr-guard-0.1.0.vsix)"
+          printf '%s\n' "${listing}"
+          grep -Fxq 'extension/dist/extension.js' <<< "${listing}"
+          grep -Fxq 'extension/package.json' <<< "${listing}"
+          grep -Fxq 'extension/readme.md' <<< "${listing}"
+          grep -Fxq 'extension/README.pt-BR.md' <<< "${listing}"
+          grep -Fxq 'extension/changelog.md' <<< "${listing}"
+          grep -Fxq 'extension/LICENSE.txt' <<< "${listing}"
+          grep -Fxq 'extension/l10n/bundle.l10n.pt-br.json' <<< "${listing}"
+          if grep -Eiq '(^|/)(src|test|out|node_modules|\.env)(/|$)|\.map$|\.dll$|\.exe$|\.pdb$' <<< "${listing}"; then
+            echo 'Forbidden development, secret, source-map, or .NET content found in VSIX.' >&2
+            exit 1
+          fi
+
+      - name: Smoke-test VSIX installation and activation
+        run: xvfb-run -a npm run test:vsix
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: adr-guard-vscode-0.1.0
+          path: extensions/vscode/adr-guard-0.1.0.vsix
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,14 @@
+{
+  "name": "adr-guard-vsix-test-harness",
+  "displayName": "ADR Guard VSIX Test Harness",
+  "publisher": "adr-guard-tests",
+  "version": "0.0.0",
+  "private": true,
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "*"
+  ]
+}

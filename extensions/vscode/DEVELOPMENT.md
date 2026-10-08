@@ -11,11 +11,15 @@ npm run typecheck
 npm run build
 npm run test:unit
 npm run test:integration
+npm run package:vsix
+npm run test:vsix
 ```
 
 `esbuild.mjs` bundles the runtime into `dist/extension.js`. The host-provided `vscode` module remains external, and there are no extension runtime npm dependencies. The extension-host tests are pinned to VS Code 1.100.0 through `.vscode-test.mjs`.
 
 The extension runs where the workspace lives. On desktop that is the local Node extension host; with WSL, Remote-SSH, or Dev Containers it is the corresponding remote Node extension host, whose filesystem and `PATH` are used. Pure web and virtual workspaces cannot run the CLI and are declared unsupported. CLI execution also requires Workspace Trust and a local `file:` folder.
+
+Trusted extension-host configurations use unique temporary user-data directories. The official `@vscode/test-electron` launcher currently adds `--disable-workspace-trust` unconditionally, so `scripts/run-untrusted-tests.mjs` launches the same pinned VS Code and `@vscode/test-cli` runner directly without that flag, using isolated user-data and extension directories. This makes the Restricted Mode assertion real rather than reusing or disabling trust state. `scripts/verify-vsix.mjs` installs the generated VSIX into another isolated profile and activates that installed package in the pinned host.
 
 `adrGuard.cli.path` has machine scope so repository settings cannot select a binary. When it is empty, discovery searches only absolute directories in the extension host `PATH`, rejects candidates resolving inside an open workspace, and never downloads a CLI. The process adapter uses argument arrays with `shell: false`, bounded output and time, cancellation, and disposal cleanup.
 

@@ -5,6 +5,10 @@
   "version": "0.1.0",
   "private": true,
   "license": "MIT",
+  "homepage": "https://github.com/rodri-oliveira-dev/adr-guard/tree/main/extensions/vscode#readme",
+  "bugs": {
+    "url": "https://github.com/rodri-oliveira-dev/adr-guard/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/rodri-oliveira-dev/adr-guard.git",
@@ -16,6 +20,13 @@
   "categories": [
     "Linters",
     "Other"
+  ],
+  "keywords": [
+    "adr",
+    "architecture",
+    "architecture decision records",
+    "governance",
+    "madr"
   ],
   "extensionKind": [
     "workspace"
@@ -43,8 +54,7 @@
     "onCommand:adrGuard.refreshExplorer",
     "onCommand:adrGuard.openAdr",
     "onCommand:adrGuard.revealCurrentAdr",
-    "onView:adrGuard.adrExplorer",
-    "workspaceContains:.adrguard.yml"
+    "onView:adrGuard.adrExplorer"
   ],
   "contributes": {
     "commands": [
@@ -220,9 +230,12 @@
     "compile:tests": "tsc -p tsconfig.test.json",
     "build": "node esbuild.mjs",
     "test:unit": "npm run compile:tests && node --test \"out/test/unit/*.test.js\"",
-    "test:integration": "npm run compile:tests && npm run build && vscode-test",
+    "test:integration": "npm run compile:tests && npm run build && vscode-test && node scripts/run-untrusted-tests.mjs",
     "test": "npm run test:unit && npm run test:integration",
     "test:l10n": "npm run compile:tests && node --test out/test/unit/localization.test.js",
+    "package:list": "vsce ls --no-dependencies",
+    "package:vsix": "vsce package --no-dependencies --out adr-guard-0.1.0.vsix",
+    "test:vsix": "node scripts/verify-vsix.mjs",
     "vscode:prepublish": "npm run typecheck && npm run build"
   },
   "devDependencies": {
@@ -232,6 +245,7 @@
     "@types/vscode": "1.100.0",
     "@vscode/test-cli": "0.0.15",
     "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.0.0",
     "esbuild": "0.28.2",
     "eslint": "10.0.1",
     "typescript": "5.9.3",

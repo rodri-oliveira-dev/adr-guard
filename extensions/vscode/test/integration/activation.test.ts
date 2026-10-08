@@ -22,7 +22,6 @@ suite('ADR Guard extension activation', () => {
       'onCommand:adrGuard.openAdr',
       'onCommand:adrGuard.revealCurrentAdr',
       'onView:adrGuard.adrExplorer',
-      'workspaceContains:.adrguard.yml',
     ]);
     assert.equal(activationEvents.includes('*'), false);
     assert.equal(activationEvents.includes('onStartupFinished'), false);
