@@ -6,7 +6,7 @@
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 [![License](https://img.shields.io/github/license/rodri-oliveira-dev/adr-guard)](LICENSE)
 
-[Português (Brasil)](README.pt-BR.md)
+[Português (Brasil)](README.pt-BR.md) · [Changelog](CHANGELOG.md)
 
 **GitHub Action consumers:** see the [consumer guide](docs/github-action.md), [AI review guide](docs/github-action-review.md), [release policy](docs/github-action-release.md), [security model](docs/github-action-security.md), [public release audit](docs/public-release-audit.md), [external verification evidence](docs/github-action-external-verification.md), and [Marketplace publication checklist](docs/github-marketplace.md). The moving `@v1` tag is published and exercised by CI against its public `check`/`index` contract; opt-in `review` is published on the `v1` line since `v1.1.6`. Marketplace listing: [ADR Guard - Architecture Decision Validator](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). The listing URL was supplied by the repository owner on 2026-10-07; independent logged-out verification is still pending. Support is available through [SUPPORT.md](SUPPORT.md); security reports follow [SECURITY.md](SECURITY.md).
 

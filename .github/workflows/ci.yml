@@ -68,6 +68,15 @@ jobs:
           unzip -Z1 "${package_file}" | grep -Fxq 'icon-nuget.png'
           unzip -p "${package_file}" RodriOliveira.AdrGuard.nuspec | grep -Fq '<icon>icon-nuget.png</icon>'
           cmp images/icon-nuget.png <(unzip -p "${package_file}" icon-nuget.png)
+          test -s CHANGELOG.md
+          grep -Fq "## [${ADR_GUARD_VERSION}]" CHANGELOG.md
+          unzip -Z1 "${package_file}" | grep -Fxq "CHANGELOG.md"
+          cmp CHANGELOG.md <(unzip -p "${package_file}" CHANGELOG.md)
+          nuspec="$(unzip -p "${package_file}" RodriOliveira.AdrGuard.nuspec)"
+          grep -Fq '<releaseNotes>' <<< "${nuspec}"
+          grep -Fq 'MADR 4.0 validation' <<< "${nuspec}"
+          grep -Fq 'Git-aware incremental checks' <<< "${nuspec}"
+          grep -Fq "releases/tag/v${ADR_GUARD_VERSION}" <<< "${nuspec}"
           test "$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:PackageVersion | tr -d '\r' | tail -n 1)" = "${ADR_GUARD_VERSION}"
 
       - name: Install packaged tool

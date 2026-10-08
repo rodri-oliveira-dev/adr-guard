@@ -6,7 +6,7 @@
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 [![License](https://img.shields.io/github/license/rodri-oliveira-dev/adr-guard)](LICENSE)
 
-[English](README.md)
+[English](README.md) · [Histórico de alterações](CHANGELOG.md)
 
 **Consumidores da GitHub Action:** consulte o [guia de consumo](docs/github-action.pt-BR.md), o [guia de review por IA](docs/github-action-review.pt-BR.md), a [política de release](docs/github-action-release.pt-BR.md), o [modelo de segurança](docs/github-action-security.pt-BR.md), a [auditoria da release pública](docs/public-release-audit.pt-BR.md), as [evidências de verificação externa](docs/github-action-external-verification.pt-BR.md) e o [checklist de publicação no Marketplace](docs/github-marketplace.pt-BR.md). A tag móvel `@v1` está publicada e é exercitada pelo CI no contrato público de `check`/`index`; o `review` opt-in está publicado na linha `v1` desde a `v1.1.6`. Listagem no Marketplace: [ADR Guard - Architecture Decision Validator](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). A URL foi fornecida pelo proprietário em 07/10/2026; a verificação independente em sessão deslogada ainda está pendente. O suporte está em [SUPPORT.md](SUPPORT.md) e relatos de segurança seguem [SECURITY.md](SECURITY.md).
 

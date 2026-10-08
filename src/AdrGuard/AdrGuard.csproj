@@ -18,6 +18,11 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon-nuget.png</PackageIcon>
+    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '1.3.0'">MADR 4.0 validation and deterministic ADR relationship governance (ADR010-ADR014).
+Git-aware incremental checks and strict, versioned diagnostic baselines.
+Explicit two-revision AI-assisted architectural review, preserving opt-in safety controls.
+Includes both former v1.3 and v1.4 development feature sets as NuGet 1.3.0.
+Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/rodri-oliveira-dev/adr-guard</PackageProjectUrl>
     <RepositoryUrl>https://github.com/rodri-oliveira-dev/adr-guard</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -29,6 +34,7 @@
     <InternalsVisibleTo Include="AdrGuard.Tests" />
     <None Include="../../README.md" Pack="true" PackagePath="/" />
     <None Include="../../README.pt-BR.md" Pack="true" PackagePath="/" />
+    <None Include="../../CHANGELOG.md" Pack="true" PackagePath="/" />
     <None Include="../../images/icon-nuget.png" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>
