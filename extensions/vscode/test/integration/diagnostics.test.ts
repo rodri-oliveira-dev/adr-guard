@@ -4,6 +4,7 @@ import type { CliExecutor } from '../../src/cli/executor';
 import type { CliRunResult } from '../../src/cli/runner';
 import type { OperationalLog } from '../../src/logging';
 import { DiagnosticManager } from '../../src/validation/diagnostics';
+import { SaveValidationController } from '../../src/validation/onSave';
 
 suite('ADR Guard Problems diagnostics', () => {
   test('publishes ADR005 at document start and clears it after correction', async () => {
@@ -100,6 +101,31 @@ suite('ADR Guard Problems diagnostics', () => {
         error instanceof DOMException && error.name === 'AbortError');
     } finally {
       manager.dispose();
+    }
+  });
+
+  test('preserves workspace diagnostics when an editor closes', async () => {
+    const uri = vscode.Uri.parse('adr-guard-test:/close-lifecycle.md');
+    const deleted: string[] = [];
+    const diagnostics = {
+      delete: (target: vscode.Uri) => deleted.push(target.toString()),
+    } as unknown as DiagnosticManager;
+    const controller = new SaveValidationController(
+      diagnostics,
+      { info: () => undefined } as unknown as OperationalLog,
+    );
+    const provider = vscode.workspace.registerTextDocumentContentProvider('adr-guard-test', {
+      provideTextDocumentContent: () => '# Temporary ADR',
+    });
+    try {
+      const document = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(document);
+      await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      assert.deepEqual(deleted, []);
+    } finally {
+      controller.dispose();
+      provider.dispose();
     }
   });
 });

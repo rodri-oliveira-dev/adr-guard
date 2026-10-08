@@ -43,6 +43,22 @@ describe('CliRunner', () => {
     assert.equal(result.termination, 'timed-out');
   });
 
+  it('force-kills a process that ignores graceful termination', { skip: process.platform === 'win32' }, async () => {
+    const runner = new CliRunner();
+    const started = Date.now();
+    const result = await runner.run(request(['ignore-term'], { timeoutMilliseconds: 50 }));
+    assert.equal(result.termination, 'timed-out');
+    assert.ok(Date.now() - started < 3000, 'forced termination must remain bounded');
+  });
+
+  it('terminates descendants that inherit the CLI output pipes', async () => {
+    const runner = new CliRunner();
+    const started = Date.now();
+    const result = await runner.run(request(['process-tree'], { timeoutMilliseconds: 50 }));
+    assert.equal(result.termination, 'timed-out');
+    assert.ok(Date.now() - started < 3000, 'process-tree termination must remain bounded');
+  });
+
   it('terminates cancelled processes', async () => {
     const runner = new CliRunner();
     const controller = new AbortController();

@@ -18,7 +18,6 @@ export class SaveValidationController implements vscode.Disposable {
   ) {
     this.subscriptions = [
       vscode.workspace.onDidSaveTextDocument((document) => { void this.saved(document); }),
-      vscode.workspace.onDidCloseTextDocument((document) => this.diagnostics.delete(document.uri)),
       vscode.workspace.onDidDeleteFiles((event) => event.files.forEach((uri) => this.diagnostics.delete(uri))),
       vscode.workspace.onDidRenameFiles((event) => event.files.forEach(({ oldUri }) => this.diagnostics.delete(oldUri))),
       vscode.workspace.onDidChangeWorkspaceFolders((event) => {

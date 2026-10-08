@@ -1,3 +1,5 @@
+const { spawn } = require('node:child_process');
+
 const mode = process.argv[2];
 
 switch (mode) {
@@ -9,6 +11,16 @@ switch (mode) {
     process.exitCode = Number(process.argv[3]);
     break;
   case 'wait':
+    setInterval(() => {}, 1000);
+    break;
+  case 'ignore-term':
+    process.on('SIGTERM', () => {});
+    setInterval(() => {}, 1000);
+    break;
+  case 'process-tree':
+    spawn(process.execPath, ['-e', "process.on('SIGTERM', () => {}); setInterval(() => {}, 1000)"], {
+      stdio: ['ignore', 'inherit', 'inherit'],
+    });
     setInterval(() => {}, 1000);
     break;
   case 'output':

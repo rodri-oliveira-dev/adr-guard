@@ -2,6 +2,9 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import { classifyExitCode, type CliExitKind } from '../contracts/cli';
 
+const terminationGraceMilliseconds = 500;
+const forcedSettlementMilliseconds = 500;
+
 export interface CliRunRequest {
   readonly executable: string;
   readonly args: readonly string[];
@@ -65,20 +68,56 @@ export class CliRunner {
       let termination: CliTermination = 'exited';
       let spawnError: string | undefined;
       let settled = false;
+      let forceKillTimeout: NodeJS.Timeout | undefined;
+      let forcedSettlementTimeout: NodeJS.Timeout | undefined;
 
       const child = this.spawnProcess(request.executable, [...request.args], {
         cwd: request.cwd,
+        detached: process.platform !== 'win32',
         shell: false,
         windowsHide: true,
         stdio: ['ignore', 'pipe', 'pipe'],
       });
+
+      const settle = (exitCode: number | null, exitSignal: NodeJS.Signals | null): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timeout);
+        if (forceKillTimeout !== undefined) clearTimeout(forceKillTimeout);
+        if (forcedSettlementTimeout !== undefined) clearTimeout(forcedSettlementTimeout);
+        signal.removeEventListener('abort', onAbort);
+        if (termination !== 'exited') {
+          child.stdout.destroy();
+          child.stderr.destroy();
+          child.unref();
+        }
+        const normalizedExitCode = typeof exitCode === 'number' ? exitCode : null;
+        const base = {
+          termination,
+          exitCode: normalizedExitCode,
+          exitKind: normalizedExitCode === null ? null : classifyExitCode(normalizedExitCode),
+          stdout: stdout.toString('utf8'),
+          stderr: stderr.toString('utf8'),
+          signal: exitSignal,
+        };
+        resolve(spawnError === undefined ? base : { ...base, error: spawnError });
+      };
 
       const terminate = (reason: Exclude<CliTermination, 'exited' | 'spawn-error'>): void => {
         if (termination !== 'exited') {
           return;
         }
         termination = reason;
-        safelyKill(child);
+        terminateProcessTree(child, false);
+        forceKillTimeout = setTimeout(() => {
+          terminateProcessTree(child, true);
+          forcedSettlementTimeout = setTimeout(
+            () => settle(child.exitCode, child.signalCode),
+            forcedSettlementMilliseconds,
+          );
+        }, terminationGraceMilliseconds);
       };
 
       const timeout = setTimeout(() => terminate('timed-out'), request.timeoutMilliseconds);
@@ -102,24 +141,10 @@ export class CliRunner {
       child.once('error', (error) => {
         termination = 'spawn-error';
         spawnError = error.message;
+        settle(null, null);
       });
       child.once('close', (exitCode, exitSignal) => {
-        if (settled) {
-          return;
-        }
-        settled = true;
-        clearTimeout(timeout);
-        signal.removeEventListener('abort', onAbort);
-        const normalizedExitCode = typeof exitCode === 'number' ? exitCode : null;
-        const base = {
-          termination,
-          exitCode: normalizedExitCode,
-          exitKind: normalizedExitCode === null ? null : classifyExitCode(normalizedExitCode),
-          stdout: stdout.toString('utf8'),
-          stderr: stderr.toString('utf8'),
-          signal: exitSignal,
-        };
-        resolve(spawnError === undefined ? base : { ...base, error: spawnError });
+        settle(exitCode, exitSignal);
       });
     });
   }
@@ -148,14 +173,45 @@ function appendBounded(current: Buffer, chunk: Buffer, limit: number): { value: 
   };
 }
 
-function safelyKill(child: ChildProcess): void {
-  if (child.exitCode !== null || child.signalCode !== null) {
+function terminateProcessTree(child: ChildProcess, force: boolean): void {
+  if (child.pid === undefined) {
     return;
   }
+
+  if (process.platform === 'win32') {
+    terminateWindowsProcessTree(child.pid, force);
+    return;
+  }
+
+  const signal: NodeJS.Signals = force ? 'SIGKILL' : 'SIGTERM';
   try {
-    child.kill('SIGTERM');
+    process.kill(-child.pid, signal);
   } catch {
-    // The close/error event still determines the controlled result.
+    try {
+      child.kill(signal);
+    } catch {
+      // The forced-settlement deadline still returns a controlled result.
+    }
+  }
+}
+
+function terminateWindowsProcessTree(pid: number, force: boolean): void {
+  const windowsDirectory = process.env.WINDIR;
+  const trustedWindowsDirectory = windowsDirectory !== undefined && path.win32.isAbsolute(windowsDirectory)
+    ? windowsDirectory
+    : 'C:\\Windows';
+  const args = ['/PID', String(pid), '/T'];
+  if (force) args.push('/F');
+  try {
+    const killer = spawn(path.win32.join(trustedWindowsDirectory, 'System32', 'taskkill.exe'), args, {
+      shell: false,
+      windowsHide: true,
+      stdio: 'ignore',
+    });
+    killer.once('error', () => undefined);
+    killer.unref();
+  } catch {
+    // The forced-settlement deadline still returns a controlled result.
   }
 }
 
