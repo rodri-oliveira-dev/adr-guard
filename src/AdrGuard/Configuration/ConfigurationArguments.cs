@@ -72,7 +72,8 @@ internal static class ConfigurationArguments
         or "--policy"
         or "--policy-file"
         or "--format"
-        or "--adr-format";
+        or "--adr-format"
+        or "--base-ref";
 
     private static void AddAdrFormatIfMissing(
         List<string> args,

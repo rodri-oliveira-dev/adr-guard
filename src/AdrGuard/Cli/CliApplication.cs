@@ -22,7 +22,7 @@ internal static class CliApplication
 
         Usage:
           adr-guard init [repository] [options]
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--changed --base-ref <ref>]
           adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
@@ -51,11 +51,12 @@ internal static class CliApplication
 
     private const string CheckHelpText = """
         Usage:
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--changed --base-ref <ref>]
 
         Validate ADR files recursively. The directory defaults to the configured ADR directory or current directory.
         Text is the default. JSON and SARIF 2.1.0 are deterministic data documents written to stdout.
         ADR format defaults to canonical; MADR 4.0 is selected explicitly with --adr-format madr-4.
+        --changed is opt-in and requires --base-ref. Git failures or insufficient history are operational errors.
         """;
 
     private const string IndexHelpText = """
@@ -273,7 +274,7 @@ internal static class CliApplication
         return effectiveArgs[0] switch
         {
             "init" => InitCommand.Run(effectiveArgs, output, error),
-            "check" => RunCheck(effectiveArgs, output, error),
+            "check" => RunCheck(effectiveArgs, output, error, cancellationToken),
             "index" => RunIndex(effectiveArgs, output, error),
             "new" => NewCommand.Run(effectiveArgs, output, error, cancellationToken),
             "draft" => RunDraft(
@@ -299,7 +300,8 @@ internal static class CliApplication
     private static int RunCheck(
         IReadOnlyList<string> args,
         TextWriter output,
-        TextWriter error)
+        TextWriter error,
+        CancellationToken cancellationToken)
     {
         if (args.Count == 2 && IsHelpOption(args[1]))
         {
@@ -307,23 +309,41 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        if (!TryParseCheckArguments(args, out var directoryPath, out var format, out var adrFormat))
+        if (!TryParseCheckArguments(
+                args,
+                out var directoryPath,
+                out var format,
+                out var adrFormat,
+                out var changed,
+                out var baseReference))
         {
             return WriteCommandUsageError("check", error);
         }
 
-        return CheckCommand.Run(directoryPath, format, adrFormat, output, error);
+        return CheckCommand.Run(
+            directoryPath,
+            format,
+            adrFormat,
+            changed,
+            baseReference,
+            output,
+            error,
+            cancellationToken);
     }
 
     private static bool TryParseCheckArguments(
         IReadOnlyList<string> args,
         out string directoryPath,
         out CheckOutputFormat format,
-        out AdrFormat adrFormat)
+        out AdrFormat adrFormat,
+        out bool changed,
+        out string? baseReference)
     {
         directoryPath = ".";
         format = CheckOutputFormat.Text;
         adrFormat = AdrFormat.Canonical;
+        changed = false;
+        baseReference = null;
         var directoryAssigned = false;
         var formatAssigned = false;
         var adrFormatAssigned = false;
@@ -331,6 +351,29 @@ internal static class CliApplication
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
+            if (argument == "--changed")
+            {
+                if (changed)
+                {
+                    return false;
+                }
+
+                changed = true;
+                continue;
+            }
+
+            if (argument == "--base-ref")
+            {
+                if (baseReference is not null
+                    || index + 1 >= args.Count
+                    || string.IsNullOrWhiteSpace(args[index + 1]))
+                {
+                    return false;
+                }
+
+                baseReference = args[++index];
+                continue;
+            }
             if (argument == "--format")
             {
                 if (formatAssigned || index + 1 >= args.Count)
@@ -385,7 +428,7 @@ internal static class CliApplication
             directoryAssigned = true;
         }
 
-        return true;
+        return changed == (baseReference is not null);
     }
 
     private static int RunIndex(

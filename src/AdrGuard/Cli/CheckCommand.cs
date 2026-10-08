@@ -1,5 +1,6 @@
 using AdrGuard.Parsing;
 using AdrGuard.Validation;
+using AdrGuard.Git;
 
 namespace AdrGuard.Cli;
 
@@ -9,14 +10,25 @@ internal static class CheckCommand
         string directoryPath,
         TextWriter output,
         TextWriter error) =>
-        Run(directoryPath, CheckOutputFormat.Text, AdrFormat.Canonical, output, error);
+        Run(
+            directoryPath,
+            CheckOutputFormat.Text,
+            AdrFormat.Canonical,
+            changed: false,
+            baseReference: null,
+            output,
+            error,
+            default);
 
     internal static int Run(
         string directoryPath,
         CheckOutputFormat format,
         AdrFormat adrFormat,
+        bool changed,
+        string? baseReference,
         TextWriter output,
-        TextWriter error)
+        TextWriter error,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentNullException.ThrowIfNull(output);
@@ -30,8 +42,16 @@ internal static class CheckCommand
 
         try
         {
-            var documents = AdrDocumentLoader.LoadDirectory(directoryPath);
+            var documents = AdrDocumentLoader.LoadDirectory(directoryPath, cancellationToken);
             var result = AdrValidator.Validate(documents, adrFormat);
+            if (changed)
+            {
+                var changeSet = GitChangeDetector.Detect(
+                    directoryPath,
+                    baseReference!,
+                    cancellationToken);
+                result = IncrementalValidation.Select(result, changeSet.CurrentPaths);
+            }
 
             switch (format)
             {
@@ -67,6 +87,15 @@ internal static class CheckCommand
         catch (UnauthorizedAccessException exception)
         {
             return WriteOperationalError(exception, error);
+        }
+        catch (GitOperationException exception)
+        {
+            return WriteOperationalError(exception, error);
+        }
+        catch (OperationCanceledException)
+        {
+            error.WriteLine("ADR validation was canceled.");
+            return ExitCodes.OperationalError;
         }
     }
 
