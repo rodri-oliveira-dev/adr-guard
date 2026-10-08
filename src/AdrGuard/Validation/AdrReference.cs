@@ -21,6 +21,24 @@ internal sealed record AdrReference(
         return references;
     }
 
+    internal static IReadOnlyList<AdrReference> FindInSections(
+        AdrDocument document,
+        params string[] headings)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(headings);
+
+        var selected = document.Sections.Where(section =>
+            headings.Contains(section.Heading, StringComparer.OrdinalIgnoreCase));
+        var references = new List<AdrReference>();
+        foreach (var section in selected)
+        {
+            ExtractReferences(document, section.Content, references);
+        }
+
+        return references;
+    }
+
     private static void ExtractReferences(
         AdrDocument document,
         string content,

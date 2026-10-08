@@ -80,6 +80,7 @@ internal static class AdrValidator
         }
 
         ValidateDuplicateIds(documents, issues);
+        AdrRelationshipValidator.Validate(documents, issues);
 
         return new ValidationResult(
             issues

@@ -13,6 +13,11 @@ internal static class ValidationRuleCatalog
         ValidationCodes.BrokenReference => "ADR reference is broken",
         ValidationCodes.MissingSupersededBy => "Superseded ADR target is missing",
         ValidationCodes.DuplicateCanonicalSection => "Canonical ADR section is duplicated",
+        ValidationCodes.SupersessionCycle => "ADR supersession relationship contains a cycle",
+        ValidationCodes.SelfSupersession => "ADR supersedes itself",
+        ValidationCodes.MultipleSuperseders => "ADR declares multiple superseding decisions",
+        ValidationCodes.InconsistentSupersession => "ADR supersession relationship is inconsistent",
+        ValidationCodes.InactiveDependency => "ADR depends on an inactive decision",
         _ => "ADR validation diagnostic",
     };
 }
