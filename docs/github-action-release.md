@@ -72,7 +72,7 @@ The exact SemVer tag is immutable. On a rerun:
 - if it points anywhere else, the release fails instead of repointing it;
 - if `vMAJOR` already points to the same release, no update occurs;
 - if `vMAJOR` points to an older release in the same major line, it advances;
-- if an older release workflow is rerun after a newer release, `vMAJOR` remains on the newer release;
+- if a newer version has already been reserved or published, the manual workflow rejects retrying an older version; the Action-tag publication script independently prevents `vMAJOR` from moving backwards;
 - if the existing major tag cannot be traced to an immutable release tag, the workflow refuses to overwrite it.
 
 An existing GitHub Release is also treated as immutable. A missing package asset may be completed, but an existing asset is not overwritten with `--clobber`.
