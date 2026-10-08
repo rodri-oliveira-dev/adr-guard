@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "1.0",
+  "valid": false,
+  "summary": { "files": 2, "diagnostics": 2 },
+  "files": [
+    "docs/adr/0001-use-postgresql.md",
+    "docs/adr/0002-use-redis.md"
+  ],
+  "diagnostics": [
+    {
+      "code": "ADR005",
+      "message": "Required section 'Decision' is missing.",
+      "file": "docs/adr/0002-use-redis.md"
+    },
+    {
+      "code": "ADR003",
+      "message": "ADR status is not recognized.",
+      "file": "docs/adr/0001-use-postgresql.md"
+    }
+  ]
+}

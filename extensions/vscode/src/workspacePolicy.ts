@@ -43,6 +43,15 @@ export function eligibleWorkspaceFolders(
   return localFolders;
 }
 
+export function preferredWorkspaceLocation(
+  eligible: readonly WorkspaceLocation[],
+  activeFsPath: string | undefined,
+): WorkspaceLocation | undefined {
+  if (eligible.length === 1) return eligible[0];
+  if (activeFsPath === undefined) return undefined;
+  return eligible.find((folder) => folder.fsPath === activeFsPath);
+}
+
 export async function resolveWorkspaceRoot(folder: WorkspaceLocation): Promise<string> {
   if (folder.scheme !== 'file' || !path.isAbsolute(folder.fsPath)) {
     throw new WorkspacePolicyError('The selected workspace folder is not a valid local path.', 'invalid-path');
@@ -85,4 +94,27 @@ export async function ensureResourceWithinWorkspace(
 function normalizeForPlatform(value: string): string {
   const resolved = path.resolve(value);
   return process.platform === 'win32' ? resolved.toLowerCase() : resolved;
+}
+
+export function isResolvedPathWithin(candidate: string, root: string): boolean {
+  const relative = path.relative(normalizeForPlatform(root), normalizeForPlatform(candidate));
+  return relative === ''
+    || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
+
+export function resolveWorkspaceRelativePath(workspaceRoot: string, relativePath: string): string {
+  if (relativePath.trim().length === 0 || path.isAbsolute(relativePath) || relativePath.includes('\0')) {
+    throw new WorkspacePolicyError(
+      'The ADR directory must be a relative path inside the workspace.',
+      'invalid-path',
+    );
+  }
+  const candidate = path.resolve(workspaceRoot, relativePath);
+  if (!isResolvedPathWithin(candidate, workspaceRoot)) {
+    throw new WorkspacePolicyError(
+      'The ADR directory must be a relative path inside the workspace.',
+      'outside-workspace',
+    );
+  }
+  return candidate;
 }

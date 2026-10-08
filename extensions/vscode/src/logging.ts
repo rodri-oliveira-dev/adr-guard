@@ -11,6 +11,12 @@ export class OperationalLog implements vscode.Disposable {
     this.channel.show(true);
   }
 
+  public detail(title: string, content: string): void {
+    this.channel.appendLine(`[${new Date().toISOString()}] ${title}`);
+    this.channel.appendLine(content);
+    this.channel.show(true);
+  }
+
   public dispose(): void {
     this.channel.dispose();
   }

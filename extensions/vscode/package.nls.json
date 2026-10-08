@@ -1,0 +1,17 @@
+{
+  "extension.displayName": "ADR Guard",
+  "extension.description": "Use the ADR Guard CLI safely from a trusted VS Code workspace.",
+  "command.category": "ADR Guard",
+  "command.checkInstallation": "Check Installation",
+  "command.initializeRepository": "Initialize Repository",
+  "command.createAdr": "Create ADR",
+  "command.validateAdrs": "Validate ADRs",
+  "command.generateIndex": "Generate ADR Index",
+  "configuration.title": "ADR Guard",
+  "configuration.cli.path": "Absolute path to the trusted ADR Guard executable. When empty, the workspace extension host PATH is searched.",
+  "configuration.cli.timeoutMilliseconds": "Maximum time in milliseconds for an ADR Guard CLI invocation.",
+  "configuration.cli.maxOutputBytes": "Maximum bytes captured separately from stdout and stderr for an ADR Guard CLI invocation.",
+  "configuration.validation.directory": "Workspace-relative ADR directory used by validation and ADR creation.",
+  "configuration.validation.onSave": "Validate ADRs after saving a Markdown file in the configured ADR directory. Disabled by default.",
+  "configuration.validation.debounceMilliseconds": "Delay in milliseconds used to coalesce validation after saves."
+}

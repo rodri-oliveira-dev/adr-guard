@@ -1,0 +1,7 @@
+{
+  "schemaVersion": "1.0",
+  "valid": true,
+  "summary": { "files": 1, "diagnostics": 0 },
+  "files": ["docs/adr/0001-use-postgresql.md"],
+  "diagnostics": []
+}

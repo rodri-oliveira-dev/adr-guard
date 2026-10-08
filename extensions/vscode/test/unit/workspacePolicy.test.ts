@@ -6,6 +6,7 @@ import { afterEach, describe, it } from 'node:test';
 import {
   eligibleWorkspaceFolders,
   ensureResourceWithinWorkspace,
+  preferredWorkspaceLocation,
   resolveWorkspaceRoot,
   WorkspacePolicyError,
 } from '../../src/workspacePolicy';
@@ -23,6 +24,15 @@ async function temporaryDirectory(): Promise<string> {
 }
 
 describe('workspace policy', () => {
+  it('uses the active folder in a multi-root workspace and otherwise requests a choice', () => {
+    const folders = [
+      { name: 'one', scheme: 'file', fsPath: 'C:\\one' },
+      { name: 'two', scheme: 'file', fsPath: 'C:\\two' },
+    ];
+    assert.equal(preferredWorkspaceLocation(folders, 'C:\\two')?.name, 'two');
+    assert.equal(preferredWorkspaceLocation(folders, undefined), undefined);
+    assert.equal(preferredWorkspaceLocation([folders[0]!], undefined)?.name, 'one');
+  });
   it('blocks untrusted workspaces before inspecting folders', () => {
     assert.throws(
       () => eligibleWorkspaceFolders(false, []),
