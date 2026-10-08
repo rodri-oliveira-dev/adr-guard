@@ -6,6 +6,7 @@ import { afterEach, describe, it } from 'node:test';
 import {
   eligibleWorkspaceFolders,
   ensureResourceWithinWorkspace,
+  isResolvedPathWithin,
   preferredWorkspaceLocation,
   resolveWorkspaceRoot,
   WorkspacePolicyError,
@@ -24,6 +25,14 @@ async function temporaryDirectory(): Promise<string> {
 }
 
 describe('workspace policy', () => {
+  it('uses host-appropriate case sensitivity for resolved boundaries', () => {
+    const root = path.resolve('C:\\Workspace');
+    assert.equal(
+      isResolvedPathWithin(path.join(root.toLowerCase(), 'docs', 'adr'), root),
+      process.platform === 'win32',
+    );
+  });
+
   it('uses the active folder in a multi-root workspace and otherwise requests a choice', () => {
     const folders = [
       { name: 'one', scheme: 'file', fsPath: 'C:\\one' },

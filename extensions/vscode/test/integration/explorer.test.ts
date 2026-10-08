@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { rm, writeFile } from 'node:fs/promises';
+import { rename, rm, writeFile } from 'node:fs/promises';
 import { setTimeout as delay } from 'node:timers/promises';
 import * as vscode from 'vscode';
 import type { OperationalLog } from '../../src/logging';
@@ -47,6 +47,7 @@ suite('ADR Guard Explorer', () => {
     const folder = vscode.workspace.workspaceFolders?.[0];
     assert.ok(folder);
     const uri = vscode.Uri.joinPath(folder.uri, 'docs', 'adr', '0002-watched.md');
+    const renamedUri = vscode.Uri.joinPath(folder.uri, 'docs', 'adr', '0003-renamed.md');
     const provider = new AdrExplorerProvider({ info: () => undefined } as unknown as OperationalLog);
     let refreshes = 0;
     const subscription = provider.onDidChangeTreeData(() => { refreshes += 1; });
@@ -62,11 +63,18 @@ suite('ADR Guard Explorer', () => {
       assert.ok(changed instanceof AdrNode);
       assert.equal(changed.description, 'Accepted');
       const afterChange = refreshes;
-      await rm(uri.fsPath);
+      await rename(uri.fsPath, renamedUri.fsPath);
       await waitFor(() => refreshes > afterChange);
+      const afterRenameItems = (await provider.getChildren()).filter((item) => item instanceof AdrNode);
+      assert.equal(afterRenameItems.some((item) => item.entry.fileName === '0002-watched.md'), false);
+      assert.equal(afterRenameItems.some((item) => item.entry.fileName === '0003-renamed.md'), true);
+      const afterRename = refreshes;
+      await rm(renamedUri.fsPath);
+      await waitFor(() => refreshes > afterRename);
       assert.equal((await provider.getChildren()).filter((item) => item instanceof AdrNode).length, 1);
     } finally {
       await rm(uri.fsPath, { force: true });
+      await rm(renamedUri.fsPath, { force: true });
       subscription.dispose();
       provider.dispose();
     }
