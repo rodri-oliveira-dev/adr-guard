@@ -2,7 +2,7 @@
 
 Requirements originally checked on **2026-09-27**.
 
-> **Update 2026-10-07:** The repository owner supplied the [ADR Guard Marketplace listing URL](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). A logged-out, independent public-access check and the published `@v1` external consumer rerun are still pending under #49. Publication instructions and the 2026-09-27 observations below are retained as historical context.
+> **Update 2026-10-07:** The repository owner supplied the [ADR Guard Marketplace listing URL](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). A logged-out independent public-access check remains under #49. The separate `poc-arquitetura` consumer rerun with published `@v1` passed (see [external verification evidence](github-action-external-verification.md)). Publication instructions and the 2026-09-27 observations below are retained as historical context.
 
 Official references:
 

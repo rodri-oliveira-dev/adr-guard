@@ -4,7 +4,7 @@
 
 This document records the release/distribution reconciliation performed for issue #80 on **2026-09-27**.
 
-> **Subsequent update (2026-10-07):** The repository owner provided the [Marketplace listing URL](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). Independent logged-out verification and the external `poc-arquitetura` rerun on published `@v1` remain issue #49 completion gates. All release and publication-status statements below describe the original 2026-09-27 audit snapshot, not the updated listing state. It separates public artifacts that are mechanically verifiable from the GitHub Marketplace publication step that still requires repository-owner action.
+> **Subsequent update (2026-10-07):** The repository owner provided the [Marketplace listing URL](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). The external `poc-arquitetura` rerun on published `@v1` passed (see [external verification evidence](github-action-external-verification.md)); only independent logged-out Marketplace verification remains as issue #49's outstanding public-access check. All release and publication-status statements below describe the original 2026-09-27 audit snapshot, not the updated listing state. It separates public artifacts that are mechanically verifiable from the GitHub Marketplace publication step that still requires repository-owner action.
 
 ## Verified release snapshot
 

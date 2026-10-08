@@ -4,7 +4,7 @@
 
 Este documento registra a reconciliação de release/distribuição realizada para a issue #80 em **27/09/2026**.
 
-> **Atualização posterior (07/10/2026):** O proprietário forneceu a [URL da listagem no Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). A confirmação independente de acesso deslogado e o novo teste do `@v1` publicado no `poc-arquitetura` continuam sendo critérios da issue #49. As demais declarações de estado abaixo retratam o snapshot histórico da auditoria de 27/09/2026. Ele separa artefatos públicos verificáveis mecanicamente da publicação no GitHub Marketplace, que ainda exige ação do proprietário do repositório.
+> **Atualização posterior (07/10/2026):** O proprietário forneceu a [URL da listagem no Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). O novo teste do `@v1` publicado no `poc-arquitetura` passou (consulte as [evidências externas](github-action-external-verification.pt-BR.md)); somente a confirmação independente do acesso à página do Marketplace em sessão deslogada continua pendente na issue #49. As demais declarações de estado abaixo retratam o snapshot histórico da auditoria de 27/09/2026. Ele separa artefatos públicos verificáveis mecanicamente da publicação no GitHub Marketplace, que ainda exige ação do proprietário do repositório.
 
 ## Snapshot verificado da release
 

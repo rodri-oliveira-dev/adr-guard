@@ -8,11 +8,24 @@ This document records the independent-consumer evidence for ADR Guard issue #49.
 
 **Published `@v1` compatibility verification in isolated consumer fixtures: continuously tested in ADR Guard CI.**
 
-**Production Marketplace verification: pending owner publication.**
+**Marketplace URL:** [https://github.com/marketplace/actions/adr-guard-architecture-decision-validator](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) was supplied by the repository owner on 2026-10-07; anonymous public accessibility still needs independent confirmation.
 
-The `v1` compatibility tag is published and tracks the moving `v1` line; `review` joined that line in `v1.1.6`. The independent-consumer evidence below predates the first `v1` release, while current ADR Guard CI exercises the real remote `rodri-oliveira-dev/adr-guard@v1` for `check` and `index` in clean fixture directories. Issue #49 deliberately retains a stricter independent-repository rerun plus the real Marketplace listing as its final closure criteria.
+**Published `@v1` verification in an independent repository: passed on 2026-10-07.**
 
-## Independent consumer
+The `v1` compatibility tag is published and tracks the moving `v1` line; `review` joined that line in `v1.1.6`. The historical evidence below predates the initial `v1` release, while the new independent-repository rerun exercises the public `@v1` ref without a `version` override.
+
+## Published `@v1` external consumer verification (2026-10-07)
+
+Consumer: [`rodri-oliveira-dev/poc-arquitetura`](https://github.com/rodri-oliveira-dev/poc-arquitetura), isolated branch `test/adr-guard-action-49`, commit [`84ac7f4`](https://github.com/rodri-oliveira-dev/poc-arquitetura/commit/84ac7f436091314755294c8df66fcf7097d34382).
+
+- [Valid workflow](https://github.com/rodri-oliveira-dev/poc-arquitetura/actions/runs/37707510792): **success**. Default `docs/adr` and custom `.adr-guard-consumer/custom` jobs succeeded; both `git diff --exit-code` read-only assertions passed.
+- [Intentionally invalid workflow](https://github.com/rodri-oliveira-dev/poc-arquitetura/actions/runs/37707510728): **expected failure** (exit code `1`) with `ADR005` and a GitHub error annotation for `.adr-guard-consumer/invalid/0003-missing-decision.md`.
+- Both workflows use `rodri-oliveira-dev/adr-guard@v1`, no explicit image `version`, and `permissions: contents: read`.
+- Published runtime image `ghcr.io/rodri-oliveira-dev/adr-guard:1` was pulled successfully in the workflow logs.
+
+This is external post-release evidence, not a claim that the Marketplace landing page has been independently checked while logged out.
+
+## Historical pre-release independent consumer
 
 Repository:
 
@@ -102,17 +115,6 @@ The corrected external invalid run then emitted the expected `ADR005` annotation
 
 This also improves moving-major behavior on self-hosted runners because the published `@v1` actively refreshes image tag `:1` rather than silently using a stale local image.
 
-## Final production verification gate
+## Remaining Marketplace closure gate
 
-The moving `v1` Action tag and public release/container channels are now covered by the repository's [public release audit](public-release-audit.md) and CI public-distribution smoke tests. To complete the stricter Marketplace-specific acceptance criteria in #49/#50:
-
-1. publish the Marketplace listing through the authorized owner flow described in [github-marketplace.md](github-marketplace.md);
-2. record the real canonical Marketplace URL and released Action ref in issue #49;
-3. update the independent `poc-arquitetura` workflows from the historical SHA + `version: 0.1.12` to `uses: rodri-oliveira-dev/adr-guard@v1`;
-4. remove the explicit `version` input;
-5. rerun both independent workflows;
-6. require the valid workflow to pass and the invalid workflow to fail with a file annotation;
-7. replace the explicit "Marketplace not yet verified" notices with the verified listing URL;
-8. only then close #49 and roadmap #50.
-
-The final Marketplace URL and published Action reference must be copied from GitHub after publication; they must never be inferred or invented.
+The owner supplied [the Marketplace URL](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) and the strict independent repository verification against `@v1` passed (runs above). The documentation now links to the supplied listing. Before closing issue #49 and then roadmap #50, confirm the listing can be accessed while logged out and contains the expected repository and version; record that confirmation in #49. A successful workflow alone does not validate the Marketplace landing page.
