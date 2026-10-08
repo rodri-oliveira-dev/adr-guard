@@ -54,10 +54,12 @@ grep -Fq 'select(.conclusion == "success")' "${WORKFLOW}" || {
   exit 1
 }
 
-grep -Fq '<VersionPrefix>1.2.0</VersionPrefix>' "${PROJECT}" || {
-  echo "The next feature release must set the project baseline to 1.2.0." >&2
+baseline="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' "${PROJECT}" | head -n 1)"
+if [[ ! "${baseline}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] ||
+   [[ "$(printf '%s\n%s\n' '1.2.0' "${baseline}" | sort -V | tail -n 1)" != "${baseline}" ]]; then
+  echo "Project VersionPrefix must be stable SemVer >= 1.2.0." >&2
   exit 1
-}
+fi
 
 grep -Fq 'AI-assisted drafting, and evidence-oriented advisory technical review' "${PROJECT}" || {
   echo "NuGet metadata must describe the published ADR review capability." >&2
