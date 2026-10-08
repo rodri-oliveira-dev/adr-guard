@@ -8,7 +8,7 @@
 
 [Português (Brasil)](README.pt-BR.md)
 
-**GitHub Action consumers:** see the [consumer guide](docs/github-action.md), [AI review guide](docs/github-action-review.md), [release policy](docs/github-action-release.md), [security model](docs/github-action-security.md), [public release audit](docs/public-release-audit.md), [external verification evidence](docs/github-action-external-verification.md), and [Marketplace publication checklist](docs/github-marketplace.md). The moving `@v1` tag is published and exercised by CI against its public `check`/`index` contract; opt-in `review` is published on the `v1` line since `v1.1.6`. No public Marketplace listing has been verified yet; publication remains an owner-only manual gate. Support is available through [SUPPORT.md](SUPPORT.md); security reports follow [SECURITY.md](SECURITY.md).
+**GitHub Action consumers:** see the [consumer guide](docs/github-action.md), [AI review guide](docs/github-action-review.md), [release policy](docs/github-action-release.md), [security model](docs/github-action-security.md), [public release audit](docs/public-release-audit.md), [external verification evidence](docs/github-action-external-verification.md), and [Marketplace publication checklist](docs/github-marketplace.md). The moving `@v1` tag is published and exercised by CI against its public `check`/`index` contract; opt-in `review` is published on the `v1` line since `v1.1.6`. Marketplace listing: [ADR Guard - Architecture Decision Validator](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). The listing URL was supplied by the repository owner on 2026-10-07; independent logged-out verification is still pending. Support is available through [SUPPORT.md](SUPPORT.md); security reports follow [SECURITY.md](SECURITY.md).
 
 > **Version availability:** Offline `new` and template-aware `draft` are published since **v1.1.0**. CLI `review` is published since **v1.1.2**, deterministic review policy since **v1.1.3**, review security/regression hardening since **v1.1.4**, and opt-in GitHub Action `command: review` since **v1.1.6**. Use the NuGet badge or [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) as the source of truth for the latest exact patch; documentation intentionally avoids hard-coding a moving "current" patch.
 
@@ -81,7 +81,7 @@ See the [container image and supply-chain guide](docs/container.md) for writable
 
 ADR Guard provides a composite GitHub Action that invokes the published GHCR image directly, so consuming repositories do not need to install the .NET SDK. The repository must be checked out first, and the action supports Linux runners with a working Docker daemon, such as `ubuntu-latest`.
 
-> The moving `@v1` compatibility tag is published. Consumers can use `uses: rodri-oliveira-dev/adr-guard@v1`; the Marketplace listing is tracked separately.
+> The moving `@v1` compatibility tag is published. Consumers can use `uses: rodri-oliveira-dev/adr-guard@v1`; the [GitHub Marketplace listing](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) is available as the owner-provided listing URL; independent logged-out verification remains pending.
 
 For complete pull-request/main workflows, inputs, annotations, required-check configuration, troubleshooting, and release/Marketplace status, use the [GitHub Action consumer guide](docs/github-action.md).
 

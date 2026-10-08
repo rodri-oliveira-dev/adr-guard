@@ -32,4 +32,4 @@ Do not disclose an unpatched vulnerability in a public support issue. Follow [SE
 
 ## Marketplace
 
-The GitHub Marketplace listing is not live yet. Publication readiness and the owner-only steps are tracked in [docs/github-marketplace.md](docs/github-marketplace.md).
+Marketplace listing URL (provided by the repository owner on 2026-10-07): [ADR Guard - Architecture Decision Validator](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). Independent public-access verification remains pending under issue #49. See [docs/github-marketplace.md](docs/github-marketplace.md).

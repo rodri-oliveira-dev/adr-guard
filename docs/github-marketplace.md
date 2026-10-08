@@ -1,6 +1,8 @@
 # GitHub Marketplace publication checklist
 
-Requirements and public listing state rechecked on **2026-09-27**.
+Requirements originally checked on **2026-09-27**.
+
+> **Update 2026-10-07:** The repository owner supplied the [ADR Guard Marketplace listing URL](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). A logged-out, independent public-access check and the published `@v1` external consumer rerun are still pending under #49. Publication instructions and the 2026-09-27 observations below are retained as historical context.
 
 Official references:
 
@@ -27,7 +29,7 @@ Branding:
 
 The category selections are made in the GitHub release/Marketplace UI rather than in `action.yml`.
 
-A fresh public search performed on 2026-09-27 did not produce a verifiable ADR Guard Marketplace listing or canonical `github.com/marketplace/actions/...` URL. GitHub performs the authoritative uniqueness check when the listing is prepared; publication must stop if the UI reports a name collision. Until an authorized owner publishes the Action and records the resulting canonical URL, the repository must state that Marketplace publication is incomplete.
+The public search on 2026-09-27 did not produce a verifiable ADR Guard Marketplace listing or canonical `github.com/marketplace/actions/...` URL. GitHub performs the authoritative uniqueness check when the listing is prepared; publication must stop if the UI reports a name collision. Until an authorized owner publishes the Action and records the resulting canonical URL, the repository must state that Marketplace publication is incomplete.
 
 ## Repository requirements
 
