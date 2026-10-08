@@ -1,6 +1,7 @@
 using System.Reflection;
 using AdrGuard.Generation;
 using AdrGuard.Generation.Providers;
+using AdrGuard.Configuration;
 using AdrGuard.Review;
 using AdrGuard.Review.Policy;
 using AdrGuard.Review.Providers;
@@ -252,14 +253,28 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        return args[0] switch
+        IReadOnlyList<string> effectiveArgs;
+        try
         {
-            "init" => InitCommand.Run(args, output, error),
-            "check" => RunCheck(args, output, error),
-            "index" => RunIndex(args, output, error),
-            "new" => NewCommand.Run(args, output, error, cancellationToken),
+            var configuration = args[0] == "init"
+                ? null
+                : AdrGuardConfigurationLoader.Load(Directory.GetCurrentDirectory());
+            effectiveArgs = ConfigurationArguments.Apply(args, configuration);
+        }
+        catch (AdrGuardConfigurationException exception)
+        {
+            error.WriteLine(exception.Message);
+            return ExitCodes.UsageError;
+        }
+
+        return effectiveArgs[0] switch
+        {
+            "init" => InitCommand.Run(effectiveArgs, output, error),
+            "check" => RunCheck(effectiveArgs, output, error),
+            "index" => RunIndex(effectiveArgs, output, error),
+            "new" => NewCommand.Run(effectiveArgs, output, error, cancellationToken),
             "draft" => RunDraft(
-                args,
+                effectiveArgs,
                 output,
                 error,
                 generationProvider,
@@ -267,14 +282,14 @@ internal static class CliApplication
                 environmentVariableReader,
                 cancellationToken),
             "review" => RunReview(
-                args,
+                effectiveArgs,
                 output,
                 error,
                 reviewProvider,
                 httpClientFactory,
                 environmentVariableReader,
                 cancellationToken),
-            _ => WriteUsageError(args, error),
+            _ => WriteUsageError(effectiveArgs, error),
         };
     }
 
