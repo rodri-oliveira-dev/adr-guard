@@ -8,7 +8,9 @@ internal static class ConfigurationArguments
     {
         ArgumentNullException.ThrowIfNull(args);
 
-        if (configuration is null || args.Count == 0)
+        // --help must not be rewritten as a configured positional directory.
+        if (configuration is null || args.Count == 0
+            || (args.Count == 2 && args[1] is "-h" or "--help"))
         {
             return args;
         }

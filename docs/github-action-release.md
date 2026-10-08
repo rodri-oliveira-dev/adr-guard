@@ -42,7 +42,9 @@ To publish a release:
 1. merge the intended changes into `main`;
 2. wait for the normal CI on `main` to finish successfully;
 3. open **Actions → Release → Run workflow**;
-4. select the `main` branch and start the workflow manually.
+4. select the `main` branch, enter the required **`version`** (for example, `1.2.0`, without `v`), and start the workflow manually.
+
+The required `version` input accepts stable `MAJOR.MINOR.PATCH` only: no leading zeroes, `v` prefix, prerelease, or build metadata. The requested version must be at least the project's `VersionPrefix` and newer than any published or reserved version. To recover from an incomplete release, rerun the **same version on the same commit**, provided no newer version has been reserved or published. A version already owned by another commit, a version regression, or a second release version for the same commit is rejected before packaging. Release versions are not inferred from PR titles or commit messages.
 
 The workflow verifies through the GitHub Actions API that the exact dispatched `main` commit already has a completed successful `CI` push run. If that CI is missing, still running, cancelled, or failed, the release stops before checkout/publication. It then re-runs restore, build, tests, packaging and smoke checks before any publication. Dispatches from branches other than `main` are rejected by the release job gate, so artifacts are bound to the explicitly dispatched `main` commit (`github.sha`). There is no automatic `workflow_run` trigger and no publication caused merely by a successful CI run.
 
@@ -70,7 +72,7 @@ The exact SemVer tag is immutable. On a rerun:
 - if it points anywhere else, the release fails instead of repointing it;
 - if `vMAJOR` already points to the same release, no update occurs;
 - if `vMAJOR` points to an older release in the same major line, it advances;
-- if an older release workflow is rerun after a newer release, `vMAJOR` remains on the newer release;
+- if a newer version has already been reserved or published, the manual workflow rejects retrying an older version; the Action-tag publication script independently prevents `vMAJOR` from moving backwards;
 - if the existing major tag cannot be traced to an immutable release tag, the workflow refuses to overwrite it.
 
 An existing GitHub Release is also treated as immutable. A missing package asset may be completed, but an existing asset is not overwritten with `--clobber`.

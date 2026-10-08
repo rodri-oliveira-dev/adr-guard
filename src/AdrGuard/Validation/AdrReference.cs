@@ -29,7 +29,8 @@ internal sealed record AdrReference(
         ArgumentNullException.ThrowIfNull(headings);
 
         var selected = document.Sections.Where(section =>
-            headings.Contains(section.Heading, StringComparer.OrdinalIgnoreCase));
+            section.Level == 2
+            && headings.Contains(section.Heading, StringComparer.OrdinalIgnoreCase));
         var references = new List<AdrReference>();
         foreach (var section in selected)
         {

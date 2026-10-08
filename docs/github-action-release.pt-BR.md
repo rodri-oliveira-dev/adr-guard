@@ -42,7 +42,9 @@ Para publicar uma release:
 1. faça merge das alterações desejadas na `main`;
 2. aguarde o CI normal da `main` concluir com sucesso;
 3. abra **Actions → Release → Run workflow**;
-4. selecione a branch `main` e inicie o workflow manualmente.
+4. selecione a branch `main`, informe o campo obrigatório **`version`** (por exemplo, `1.2.0`, sem `v`) e inicie o workflow manualmente.
+
+O input obrigatório `version` aceita somente o formato estável `MAJOR.MINOR.PATCH`: sem zeros à esquerda, prefixo `v`, pré-release ou metadados de build. A versão solicitada deve ser igual ou superior ao `VersionPrefix` do projeto e maior do que qualquer versão publicada ou reservada. Para recuperar uma publicação incompleta, reexecute a **mesma versão no mesmo commit**, desde que nenhuma versão mais nova tenha sido reservada ou publicada. O workflow rejeita versões pertencentes a outro commit, regressões e uma segunda versão para o mesmo commit, antes do empacotamento. A versão não é inferida do título do PR ou das mensagens de commit.
 
 O workflow verifica pela API do GitHub Actions que o commit exato da `main` selecionado no dispatch já possui uma execução `CI` de push concluída com sucesso. Se esse CI estiver ausente, em andamento, cancelado ou com falha, a release para antes de checkout/publicação. Depois disso, o próprio workflow executa novamente restore, build, testes, empacotamento e smoke tests antes de qualquer publicação. Dispatches feitos a partir de branches diferentes de `main` são rejeitados pelo gate do job de release, então os artefatos ficam vinculados ao commit da `main` escolhido explicitamente no dispatch (`github.sha`). Não existe mais trigger automático por `workflow_run`, e CI verde por si só não publica nada.
 
@@ -70,7 +72,7 @@ A tag SemVer exata é imutável. Em uma reexecução:
 - se aponta para qualquer outro commit, a release falha em vez de repontá-la;
 - se `vMAJOR` já aponta para a mesma release, nada é alterado;
 - se `vMAJOR` aponta para uma release mais antiga da mesma major, ela avança;
-- se uma release antiga for reexecutada depois de uma release mais nova, `vMAJOR` permanece na mais nova;
+- se uma versão mais nova já foi reservada ou publicada, o workflow manual rejeita reexecutar uma versão anterior; o script de publicação das tags da Action também impede que `vMAJOR` volte para trás;
 - se a tag major existente não puder ser associada a uma tag imutável de release, o workflow se recusa a sobrescrevê-la.
 
 Uma GitHub Release já existente também é tratada como imutável. Um asset ausente pode ser completado, mas um asset existente não é substituído com `--clobber`.
