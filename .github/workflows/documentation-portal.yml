@@ -1,0 +1,93 @@
+name: Documentation portal
+
+on:
+  pull_request:
+    branches:
+      - main
+      - docs/issue-149-documentation-experience
+    paths:
+      - "website/**"
+      - "docs/**"
+      - "extensions/vscode/README*.md"
+      - "README.md"
+      - "README.pt-BR.md"
+      - ".github/workflows/documentation-portal.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "website/**"
+      - "docs/**"
+      - "extensions/vscode/README*.md"
+      - "README.md"
+      - "README.pt-BR.md"
+      - ".github/workflows/documentation-portal.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-portal-${{ github.event_name == 'push' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
+
+jobs:
+  validate:
+    name: Validate portal
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install from lockfile
+        working-directory: website
+        run: npm ci
+
+      - name: Check, test, build, and verify routes and links
+        working-directory: website
+        run: npm run validate
+
+  build-pages:
+    name: Build Pages artifact
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build and upload Astro site
+        uses: withastro/action@v6
+        with:
+          path: website
+          node-version: 24
+          package-manager: npm@latest
+
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: build-pages
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy artifact
+        id: deployment
+        uses: actions/deploy-pages@v5
