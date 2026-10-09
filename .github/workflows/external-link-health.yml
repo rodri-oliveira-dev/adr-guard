@@ -46,8 +46,12 @@ jobs:
             --timeout 20
             --max-retries 2
             --host-concurrency 2
+            --scheme https
+            --scheme http
+            --root-dir '${{ github.workspace }}'
             --exclude 'https://(www\.)?linkedin\.com/'
             --exclude 'https://medium\.com/'
+            --exclude '${{ github.event_name == 'pull_request' && '^https://github\.com/rodri-oliveira-dev/adr-guard/(blob|edit)/main/' || '$^' }}'
             'website/src/content/docs/**/*.md'
             'website/src/content/docs/**/*.mdx'
             'website/docs/**/*.md'

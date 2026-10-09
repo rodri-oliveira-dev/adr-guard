@@ -60,4 +60,5 @@ Because the portal shares `rodri-oliveira-dev.github.io` with the portfolio, dom
 - The host-root portfolio should advertise the ADR Guard sitemap from its root `robots.txt`; this repository cannot make `/adr-guard/robots.txt` authoritative for the host.
 - IndexNow is not enabled here. Its ownership key must be publicly verifiable at the host-required location, so reusing the portfolio key or claiming operation without host-owner verification would be unsafe.
 - Automated accessibility checks cover detectable WCAG issues, including axe rules, but do not replace keyboard, screen-reader, zoom, language-switcher, or cognitive-accessibility review.
+- External-link checks exclude LinkedIn and Medium because those hosts block automated clients. On pull requests only, they also exclude this repository's `main` file URLs because newly added files do not exist there until merge; scheduled and manual runs include those URLs.
 - Google rich results are not guaranteed. Validate deployed structured data with the Rich Results Test and monitor Search Console enhancement reports.
