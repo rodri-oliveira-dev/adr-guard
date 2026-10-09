@@ -54,7 +54,8 @@ internal static class AdrValidator
     internal static ValidationResult Validate(
         IReadOnlyList<AdrDocument> documents,
         IEnumerable<string>? additionalKnownPaths,
-        AdrFormat format)
+        AdrFormat format,
+        string? repositoryRoot = null)
     {
         ArgumentNullException.ThrowIfNull(documents);
 
@@ -78,7 +79,7 @@ internal static class AdrValidator
 
         foreach (var document in documents)
         {
-            ValidateDocument(document, knownPaths, issues, format);
+            ValidateDocument(document, knownPaths, issues, format, repositoryRoot);
         }
 
         ValidateDuplicateIds(documents, issues);
@@ -96,7 +97,8 @@ internal static class AdrValidator
         AdrDocument document,
         HashSet<string> knownPaths,
         List<ValidationIssue> issues,
-        AdrFormat format)
+        AdrFormat format,
+        string? repositoryRoot)
     {
         ValidateFileName(document, issues);
         ValidateTitle(document, issues);
@@ -110,7 +112,7 @@ internal static class AdrValidator
         {
             ValidateMadr4(document, issues);
         }
-        ValidateReferences(document, knownPaths, issues);
+        ValidateReferences(document, knownPaths, issues, repositoryRoot);
         ValidateSupersededBy(document, knownPaths, issues);
     }
 
@@ -338,11 +340,15 @@ internal static class AdrValidator
     private static void ValidateReferences(
         AdrDocument document,
         HashSet<string> knownPaths,
-        List<ValidationIssue> issues)
+        List<ValidationIssue> issues,
+        string? repositoryRoot)
     {
-        foreach (var reference in AdrReference.FindAll(document))
+        foreach (var reference in AdrReference.FindAll(document, repositoryRoot))
         {
-            if (knownPaths.Contains(reference.ResolvedPath))
+            if (reference.ResolvedPath.Length > 0
+                && (reference.Kind == AdrReferenceKind.Relationship
+                    ? knownPaths.Contains(reference.ResolvedPath)
+                    : knownPaths.Contains(reference.ResolvedPath) || File.Exists(reference.ResolvedPath)))
             {
                 continue;
             }
@@ -350,7 +356,11 @@ internal static class AdrValidator
             issues.Add(new ValidationIssue(
                 ValidationCodes.BrokenReference,
                 document.FilePath,
-                $"Reference '{reference.Target}' does not resolve to an ADR in the validated set."));
+                reference.InvalidReason is not null
+                    ? $"Reference '{reference.Target}' is unsafe: {reference.InvalidReason}"
+                    : reference.Kind == AdrReferenceKind.Relationship
+                        ? $"ADR relationship '{reference.Target}' does not resolve to an ADR in the validated set."
+                        : $"Document link '{reference.Target}' does not resolve to an existing repository file."));
         }
     }
 

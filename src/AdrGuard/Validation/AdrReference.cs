@@ -1,21 +1,48 @@
+using AdrGuard.Configuration;
 using AdrGuard.Model;
+using System.Text.RegularExpressions;
 
 namespace AdrGuard.Validation;
+
+internal enum AdrReferenceKind
+{
+    Document,
+    Relationship,
+}
 
 internal sealed record AdrReference(
     AdrDocument Source,
     string Target,
-    string ResolvedPath)
+    string ResolvedPath,
+    AdrReferenceKind Kind,
+    string? InvalidReason = null)
 {
-    internal static IReadOnlyList<AdrReference> FindAll(AdrDocument document)
+    private static readonly Regex MarkdownLink = new(
+        "\\[[^\\]]*\\]\\(\\s*(?:<(?<angle>[^>]+)>|(?<plain>[^\\s\\)]+))(?:\\s+(?:\"[^\"]*\"|'[^']*'|\\([^\\)]*\\)))?\\s*\\)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(250));
+
+    private static readonly string[] RelationshipHeadings =
+    [
+        "Superseded by",
+        "Supersedes",
+        "Depends on",
+        "Dependencies",
+    ];
+
+    internal static IReadOnlyList<AdrReference> FindAll(
+        AdrDocument document,
+        string? repositoryRoot = null)
     {
         ArgumentNullException.ThrowIfNull(document);
-
         var references = new List<AdrReference>();
-
         foreach (var section in document.Sections)
         {
-            ExtractReferences(document, section.Content, references);
+            var kind = section.Level == 2
+                && RelationshipHeadings.Contains(section.Heading, StringComparer.OrdinalIgnoreCase)
+                    ? AdrReferenceKind.Relationship
+                    : AdrReferenceKind.Document;
+            ExtractReferences(document, section.Content, references, kind, repositoryRoot);
         }
 
         return references;
@@ -27,14 +54,12 @@ internal sealed record AdrReference(
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(headings);
-
-        var selected = document.Sections.Where(section =>
-            section.Level == 2
-            && headings.Contains(section.Heading, StringComparer.OrdinalIgnoreCase));
         var references = new List<AdrReference>();
-        foreach (var section in selected)
+        foreach (var section in document.Sections.Where(section =>
+                     section.Level == 2
+                     && headings.Contains(section.Heading, StringComparer.OrdinalIgnoreCase)))
         {
-            ExtractReferences(document, section.Content, references);
+            ExtractReferences(document, section.Content, references, AdrReferenceKind.Relationship, null);
         }
 
         return references;
@@ -43,81 +68,87 @@ internal sealed record AdrReference(
     private static void ExtractReferences(
         AdrDocument document,
         string content,
-        List<AdrReference> references)
+        List<AdrReference> references,
+        AdrReferenceKind kind,
+        string? repositoryRoot)
     {
-        var searchIndex = 0;
-
-        while (searchIndex < content.Length)
+        foreach (Match match in MarkdownLink.Matches(RemoveFencedCode(content)))
         {
-            var targetStart = content.IndexOf("](", searchIndex, StringComparison.Ordinal);
-            if (targetStart < 0)
-            {
-                return;
-            }
-
-            targetStart += 2;
-            var targetEnd = content.IndexOf(')', targetStart);
-            if (targetEnd < 0)
-            {
-                return;
-            }
-
-            var target = content[targetStart..targetEnd].Trim();
-            searchIndex = targetEnd + 1;
-
+            var target = (match.Groups["angle"].Success
+                    ? match.Groups["angle"].Value
+                    : match.Groups["plain"].Value).Trim();
             if (!TryNormalizeLocalMarkdownTarget(target, out var normalizedTarget))
             {
                 continue;
             }
 
-            var sourceDirectory = Path.GetDirectoryName(document.FilePath) ?? string.Empty;
-            var resolvedPath = Path.GetFullPath(Path.Combine(sourceDirectory, normalizedTarget));
-
-            references.Add(new AdrReference(document, target, resolvedPath));
+            var sourcePath = Path.GetFullPath(document.FilePath);
+            var sourceDirectory = Path.GetDirectoryName(sourcePath) ?? string.Empty;
+            var root = Path.GetFullPath(repositoryRoot ?? Directory.GetCurrentDirectory());
+            try
+            {
+                var candidate = Path.GetFullPath(normalizedTarget, sourceDirectory);
+                var relative = Path.GetRelativePath(root, candidate);
+                var resolvedPath = RepositoryPath.ResolveContained(root, relative);
+                references.Add(new AdrReference(document, target, resolvedPath, kind));
+            }
+            catch (Exception exception) when (exception is ArgumentException or IOException)
+            {
+                references.Add(new AdrReference(document, target, string.Empty, kind, exception.Message));
+            }
         }
     }
 
-    private static bool TryNormalizeLocalMarkdownTarget(
-        string target,
-        out string normalizedTarget)
+    private static string RemoveFencedCode(string content)
+    {
+        var writer = new StringWriter();
+        using var reader = new StringReader(content);
+        char? marker = null;
+        var openingLength = 0;
+        while (reader.ReadLine() is { } line)
+        {
+            var trimmed = line.TrimStart();
+            var length = 0;
+            if (trimmed.Length >= 3 && trimmed[0] is '`' or '~')
+            {
+                while (length < trimmed.Length && trimmed[length] == trimmed[0]) length++;
+            }
+
+            if (length >= 3)
+            {
+                if (marker is null)
+                {
+                    marker = trimmed[0];
+                    openingLength = length;
+                }
+                else if (trimmed[0] == marker && length >= openingLength)
+                {
+                    marker = null;
+                    openingLength = 0;
+                }
+                continue;
+            }
+
+            if (marker is null) writer.WriteLine(line);
+        }
+
+        return writer.ToString();
+    }
+
+    private static bool TryNormalizeLocalMarkdownTarget(string target, out string normalizedTarget)
     {
         normalizedTarget = string.Empty;
-
-        if (string.IsNullOrWhiteSpace(target)
-            || target.StartsWith('#')
-            || Uri.TryCreate(target, UriKind.Absolute, out _))
-        {
-            return false;
-        }
+        if (string.IsNullOrWhiteSpace(target) || target.StartsWith('#')) return false;
+        if (Uri.TryCreate(target, UriKind.Absolute, out var uri)
+            && !string.Equals(uri.Scheme, "file", StringComparison.OrdinalIgnoreCase)) return false;
 
         var fragmentIndex = target.IndexOf('#');
         var queryIndex = target.IndexOf('?');
-        var suffixIndex = MinPositive(fragmentIndex, queryIndex);
+        var suffixIndex = fragmentIndex < 0 ? queryIndex : queryIndex < 0 ? fragmentIndex : Math.Min(fragmentIndex, queryIndex);
         var path = suffixIndex >= 0 ? target[..suffixIndex] : target;
-
-        path = path.Trim().Trim('<', '>');
-
-        if (!string.Equals(Path.GetExtension(path), ".md", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
+        path = Uri.UnescapeDataString(path.Trim().Trim('<', '>'));
+        if (!string.Equals(Path.GetExtension(path), ".md", StringComparison.OrdinalIgnoreCase)) return false;
         normalizedTarget = path;
         return true;
-    }
-
-    private static int MinPositive(int first, int second)
-    {
-        if (first < 0)
-        {
-            return second;
-        }
-
-        if (second < 0)
-        {
-            return first;
-        }
-
-        return Math.Min(first, second);
     }
 }

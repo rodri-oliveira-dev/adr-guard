@@ -2,6 +2,8 @@
 
 ADR Guard validates only relationships that authors declare explicitly. This keeps governance inspectable and avoids treating architectural judgment as a blocking rule.
 
+Ordinary local Markdown links only need to resolve to an existing file inside the repository boundary; they do not need to be loaded ADRs. URLs and anchors are never fetched, fenced examples are ignored, and traversal or symbolic-link/reparse-point escapes are reported as `ADR007`.
+
 Recognized declarations are Markdown links under level-two `Superseded by`, `Supersedes`, `Depends on`, or `Dependencies` headings, plus MADR `status: "superseded by ADR-NNNN"`. Narrative links elsewhere still receive broken-reference validation but do not become dependency/supersession semantics.
 
 | Code | Objective invariant |
