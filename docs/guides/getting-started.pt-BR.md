@@ -52,9 +52,11 @@ Mantenha `Proposed` durante a discussão. Apenas um processo humano autorizado m
 ```bash
 adr-guard check docs/adr
 adr-guard index docs/adr
-git diff -- docs/adr
+git status --short -- .adrguard.yml docs/adr
+git add -- .adrguard.yml docs/adr
+git diff --cached -- .adrguard.yml docs/adr
 ```
 
-`check` retorna `0` quando o conjunto passa na validação estrutural e `1` quando há achados. `index` valida primeiro e depois cria ou atualiza `docs/adr/README.md` de forma determinística. Faça commit da ADR e do índice quando o projeto versionar esse arquivo.
+`check` retorna `0` quando o conjunto passa na validação estrutural e `1` quando há achados. `index` valida primeiro e depois cria ou atualiza `docs/adr/README.md` de forma determinística. Confira o `git status` antes de adicionar arquivos ao staging, para evitar incluir arquivos não relacionados. `git add` também inclui arquivos novos, e `git diff --cached` mostra a nova ADR, o índice gerado e a configuração, além das mudanças nos arquivos já rastreados. Revise o diff preparado antes de fazer o commit da ADR e do índice, quando o projeto versionar esse arquivo.
 
 Você criou a primeira decisão de um histórico durável. Continue com [adoção em equipe](team-adoption.pt-BR.md) ou consulte [opções de criação e exit codes](../creation.pt-BR.md).
