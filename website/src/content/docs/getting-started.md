@@ -18,9 +18,9 @@ Use [the template selector](/adr-guard/templates/) as a heuristic. Minimal is ap
 ## 3. Initialize and create
 
 ```bash
-dotnet tool install --global AdrGuard.Tool
-adrguard init
-adrguard new "Adopt Redis for distributed caching" --template minimal
+dotnet tool install --global RodriOliveira.AdrGuard
+adr-guard init . --adr-directory docs/adr --template minimal
+adr-guard new docs/adr --title "Adopt Redis for distributed caching" --template minimal
 ```
 
 `init` prepares the configured ADR directory. `new` allocates an identifier and writes a canonical record. Review the generated path before editing.
@@ -51,7 +51,7 @@ Ask people affected by the decision to check assumptions, alternatives, security
 ## 6. Validate
 
 ```bash
-adrguard check docs/adr
+adr-guard check docs/adr
 ```
 
 A valid structure is necessary, but it does not prove the decision is good. Fix validation findings, then obtain the human approval required by your team’s process.
@@ -59,10 +59,18 @@ A valid structure is necessary, but it does not prove the decision is good. Fix 
 ## 7. Generate the index
 
 ```bash
-adrguard index docs/adr
+adr-guard index docs/adr
 ```
 
 Review the generated index in the same change. ADR Guard validates before replacing it, protecting the previous index from invalid input.
+
+Inspect new files before committing: plain `git diff` omits untracked files. Review the staged configuration, ADR, and index.
+
+```bash
+git status --short -- .adrguard.yml docs/adr
+git add -- .adrguard.yml docs/adr
+git diff --cached -- .adrguard.yml docs/adr
+```
 
 ## 8. Integrate with development
 
