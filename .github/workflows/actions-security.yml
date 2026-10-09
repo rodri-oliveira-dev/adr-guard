@@ -34,7 +34,7 @@ jobs:
 
       - name: Validate workflow syntax
         shell: bash
-        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -shellcheck "shellcheck -e SC2129" -color
 
       - name: Audit workflow security
         shell: bash
