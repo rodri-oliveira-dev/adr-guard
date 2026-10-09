@@ -19,6 +19,6 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Install an exact released ADR Guard version
-        run: dotnet tool install --tool-path .tools RodriOliveira.AdrGuard --version <released-v1.4-version>
+        run: dotnet tool install --tool-path .tools RodriOliveira.AdrGuard --version 1.3.0
       - name: Validate changed ADRs against the checked-out base history
         run: .tools/adr-guard check docs/adr --changed --base-ref origin/main --baseline .adrguard-baseline.json

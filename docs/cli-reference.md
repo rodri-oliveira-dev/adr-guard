@@ -1,6 +1,6 @@
-# ADR Guard v1.2 CLI and configuration reference
+# ADR Guard CLI and configuration reference
 
-> Preparation status: these contracts are implemented on the v1.2 development branch but are not published until the manual v1.2.0 release is completed.
+> Availability: `init`, `.adrguard.yml`, and structured `check` output were published in ADR Guard v1.2.0. MADR 4.0 format selection was published in v1.3.0. See [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) for exact artifacts.
 
 ## Initialize a repository
 
@@ -23,7 +23,7 @@ schema-version: 1
 adr-directory: "docs/adr"
 template: minimal
 # template-file: "docs/templates/team.md" # exclusive with template
-# adr-format: canonical                   # canonical or madr-4 in the v1.3 source preparation
+# adr-format: canonical                   # canonical or madr-4
 ```
 
 Unknown/duplicate properties, unsupported schema versions, nested YAML, collections, tags, anchors, aliases, block scalars, invalid UTF-8, oversized files, unsafe paths, and simultaneous `template`/`template-file` are rejected. Relative paths resolve from the configuration directory. Configuration is never interpreted as a command and does not expand environment variables.
@@ -54,4 +54,4 @@ adr-guard check [directory] [--format text|json|sarif]
 
 ## Migration
 
-No migration is required. Repositories without `.adrguard.yml` retain v1.1 behavior. Add configuration only to replace repeated directory/template arguments. Do not change package versions or release tags to test this source-only preparation.
+No migration is required. Repositories without `.adrguard.yml` retain the legacy defaults. Add configuration only when it helps centralize repeated directory, template, or format arguments.

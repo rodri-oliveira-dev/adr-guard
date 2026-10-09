@@ -4,7 +4,7 @@
 
 Este documento registra a reconciliação de release/distribuição realizada para a issue #80 em **27/09/2026**.
 
-> **Atualização posterior (07/10/2026):** O proprietário forneceu a [URL da listagem no Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator). O novo teste do `@v1` publicado no `poc-arquitetura` passou (consulte as [evidências externas](github-action-external-verification.pt-BR.md)); somente a confirmação independente do acesso à página do Marketplace em sessão deslogada continua pendente na issue #49. As demais declarações de estado abaixo retratam o snapshot histórico da auditoria de 27/09/2026. Ele separa artefatos públicos verificáveis mecanicamente da publicação no GitHub Marketplace, que ainda exige ação do proprietário do repositório.
+> **Atualização posterior (09/10/2026):** A [listagem no Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) está acessível publicamente sem autenticação, e o novo teste do `@v1` publicado no `poc-arquitetura` passou (consulte as [evidências externas](github-action-external-verification.pt-BR.md)). As demais declarações de estado abaixo retratam o snapshot original da auditoria de 27/09/2026 e são mantidas como evidência histórica.
 
 ## Snapshot verificado da release
 
@@ -89,6 +89,8 @@ Até lá, a ausência de uma URL do Marketplace é deliberada e verdadeira.
 - #74 tratou corretamente a verificação dos artefatos públicos como gate pós-merge; a automação atual publicou desde então a linha `v1.1.x` com sucesso.
 
 ## Regra para promoção
+
+**Atualização atual:** CLI, GitHub Release, containers, Action reutilizável `@v1` e listagem no Marketplace estão públicos. A lista abaixo registra o estado na data da auditoria original:
 
 Promova somente o que pode ser consumido agora:
 
