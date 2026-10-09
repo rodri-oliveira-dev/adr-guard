@@ -16,7 +16,7 @@ export default defineConfig({
       logo: { src: './src/assets/logo.svg', replacesTitle: true },
       favicon: '/favicon.svg',
       social: [{ icon: 'github', label: 'GitHub', href: repository }],
-      editLink: { baseUrl: `${repository}/edit/feat/documentation-portal/website/` },
+      editLink: { baseUrl: `${repository}/edit/main/website/` },
       lastUpdated: true,
       defaultLocale: 'root',
       locales: {
