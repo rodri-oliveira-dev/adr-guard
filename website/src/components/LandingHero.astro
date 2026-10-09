@@ -25,7 +25,7 @@ const prefix = pt ? '/adr-guard/pt-br' : '/adr-guard';
         <div><dt>{pt ? 'Decisão' : 'Decision'}</dt><dd>{pt ? 'Cache-aside com TTL explícito.' : 'Cache-aside with explicit TTLs.'}</dd></div>
         <div><dt>{pt ? 'Consequência' : 'Consequence'}</dt><dd>{pt ? 'Menos carga; nova complexidade operacional.' : 'Lower load; new operational complexity.'}</dd></div>
       </dl>
-      <div class="decision-flow" aria-hidden="true"><span>{pt ? 'Escrever' : 'Write'}</span><b>→</b><span>{pt ? 'Revisar' : 'Review'}</span><b>→</b><span>{pt ? 'Validar' : 'Validate'}</span></div>
+      <div class="decision-flow" aria-hidden="true"><span>{pt ? 'Escrever' : 'Write'}</span><svg viewBox="0 0 16 16"><path d="M2 8h11m-4-4 4 4-4 4" /></svg><span>{pt ? 'Revisar' : 'Review'}</span><svg viewBox="0 0 16 16"><path d="M2 8h11m-4-4 4 4-4 4" /></svg><span>{pt ? 'Validar' : 'Validate'}</span></div>
     </div>
   </div>
 </section>

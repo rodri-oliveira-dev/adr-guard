@@ -57,7 +57,7 @@ body { letter-spacing: -.005em; overflow-x: clip; }
 .decision-body dt { color: #91a4ca; font-family: var(--sl-font-mono); font-size: .75rem; text-transform: uppercase; }
 .decision-body dd { margin: 0; color: #e1e7f4; }
 .decision-flow { display: flex; gap: .65rem; align-items: center; justify-content: space-between; margin-top: 1.3rem; padding: .85rem; border-radius: .6rem; background: #111f41; color: #b8c7e4; font-size: .73rem; text-transform: uppercase; letter-spacing: .06em; }
-.decision-flow b { color: #f5f7fb; background-color: #111f41; }
+.decision-flow svg { width: 1rem; color: #f5f7fb; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.75; }
 
 .landing-section { padding-block: clamp(4rem, 7vw, 7rem); }
 .landing-section.tinted { background: color-mix(in srgb, var(--sl-color-gray-6), transparent 15%); }
@@ -67,6 +67,7 @@ body { letter-spacing: -.005em; overflow-x: clip; }
 .problem-grid,.feature-grid,.example-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 .problem-card,.feature-card,.example-card { padding: 1.5rem; border: 1px solid var(--adg-line); border-radius: var(--adg-radius-md); background: var(--adg-paper); }
 .problem-card span,.feature-card span { display: grid; place-items: center; width: 2.35rem; height: 2.35rem; border-radius: .65rem; background: #dce9ff; color: #071127; font-weight: 850; }
+.problem-card span svg { width: 1.35rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .problem-card h3,.feature-card h3,.example-card h3 { margin-block: 1rem .55rem; font-size: 1.15rem; }
 .problem-card p,.feature-card p,.example-card p { margin: 0; color: var(--sl-color-gray-2); }
 .feature-card { border-top: 3px solid var(--adg-cyan-400); }
@@ -76,7 +77,7 @@ body { letter-spacing: -.005em; overflow-x: clip; }
 .path-card > span { grid-row: 1 / span 2; color: var(--adg-blue-600); font-family: var(--sl-font-mono); font-weight: 800; }
 .path-card h3,.path-card p { margin: 0; }
 .path-card p { color: var(--sl-color-gray-2); }
-.path-card b { grid-column: 3; grid-row: 1 / span 2; align-self: center; color: #12346f; background-color: #fbfaf7; font-size: 1.4rem; }
+.path-card > svg { grid-column: 3; grid-row: 1 / span 2; align-self: center; width: 1.4rem; color: #12346f; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.75; }
 .path-card:hover { border-color: var(--sl-color-accent); box-shadow: 0 12px 35px rgb(8 28 67 / 8%); transform: translateY(-2px); }
 
 .lifecycle { margin: 0; }

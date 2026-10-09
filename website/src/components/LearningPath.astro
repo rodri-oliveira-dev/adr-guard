@@ -16,5 +16,5 @@ const paths = pt ? [
 ];
 ---
 <div class="path-grid">
-  {paths.map(([title, description, href, number]) => <a class="path-card" href={href}><span>{number}</span><h3>{title}</h3><p>{description}</p><b aria-hidden="true">→</b></a>)}
+  {paths.map(([title, description, href, number]) => <a class="path-card" href={href}><span>{number}</span><h3>{title}</h3><p>{description}</p><svg aria-hidden="true" viewBox="0 0 16 16"><path d="M2 8h11m-4-4 4 4-4 4" /></svg></a>)}
 </div>
