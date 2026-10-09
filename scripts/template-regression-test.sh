@@ -98,28 +98,38 @@ run_documented_example extended "Adotar Redis" 0001-adotar-redis.md --template e
 run_documented_example custom "Adopt Cache" 0001-adopt-cache.md --template-file "${ROOT}/docs/examples/templates/team.en-US.md" --culture en-US
 run_documented_example custom-pt-BR "Adotar Cache" 0001-adotar-cache.md --template-file "${ROOT}/docs/examples/templates/team.pt-BR.md" --culture pt-BR
 
-# Documentation parity and live-reference guard: both entrypoints must link the
-# runnable guides/examples without claiming new/draft are Action commands.
-for guide in "${ROOT}/README.md" "${ROOT}/README.pt-BR.md"; do
-  grep -Fq 'docs/examples/generated/minimal/0001-adopt-redis.md' "${guide}"
-  grep -Fq 'docs/examples/generated/extended/0001-adotar-redis.md' "${guide}"
-  grep -Fq 'docs/examples/generated/custom/0001-adopt-cache.md' "${guide}"
-  grep -Fq 'docs/examples/generated/custom-pt-BR/0001-adotar-cache.md' "${guide}"
+# Documentation parity and live-reference guard: root entrypoints route readers
+# to the focused guides instead of duplicating their operational contracts.
+grep -Fq 'docs/index.md' "${ROOT}/README.md"
+grep -Fq 'docs/guides/getting-started.md' "${ROOT}/README.md"
+grep -Fq 'docs/examples/README.md' "${ROOT}/README.md"
+grep -Fq 'docs/index.pt-BR.md' "${ROOT}/README.pt-BR.md"
+grep -Fq 'docs/guides/getting-started.pt-BR.md' "${ROOT}/README.pt-BR.md"
+grep -Fq 'docs/examples/README.pt-BR.md' "${ROOT}/README.pt-BR.md"
+
+for guide in "${ROOT}/docs/creation.md" "${ROOT}/docs/creation.pt-BR.md"; do
   grep -Fq -- '--template-file' "${guide}"
   grep -Fq -- '--culture' "${guide}"
-  grep -Fq -- '--preview' "${guide}"
   grep -Fq -- '--dry-run' "${guide}"
+  grep -Fq -- '--preview' "${guide}"
   grep -Fq -- '--include-existing-adrs' "${guide}"
   grep -Fq 'adr-guard check docs/adr' "${guide}"
   grep -Fq 'adr-guard index docs/adr' "${guide}"
-done
-for guide in "${ROOT}/docs/creation.md" "${ROOT}/docs/creation.pt-BR.md"; do
-  grep -Fq -- '--template-file' "${guide}"
-  grep -Fq -- '--dry-run' "${guide}"
-  grep -Fq -- '--preview' "${guide}"
   grep -Fq '65,536' "${guide}" || grep -Fq '65.536' "${guide}"
   grep -Fq 'docs/examples/generated/minimal' "${guide}" || grep -Fq 'examples/generated/minimal' "${guide}"
   grep -Fq 'docs/examples/generated/custom' "${guide}" || grep -Fq 'examples/generated/custom' "${guide}"
+done
+
+# Complete explanatory examples are independently valid in their declared mode.
+for directory in \
+  canonical-minimal/en \
+  canonical-minimal/pt-BR \
+  canonical-extended/en \
+  canonical-extended/pt-BR; do
+  assert_code 0 "${BIN}" check "${ROOT}/docs/examples/${directory}"
+done
+for directory in madr-4/en madr-4/pt-BR; do
+  assert_code 0 "${BIN}" check "${ROOT}/docs/examples/${directory}" --adr-format madr-4
 done
 
 echo 'Documented EN/pt-BR Minimal, Extended and Custom outputs match installed CLI exactly and pass check.'
