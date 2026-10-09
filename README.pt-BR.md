@@ -7,7 +7,7 @@
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 [![License](https://img.shields.io/github/license/rodri-oliveira-dev/adr-guard)](LICENSE)
 
-[English](README.md) · [Documentação](docs/index.pt-BR.md) · [Changelog](CHANGELOG.md)
+[English](README.md) · [Portal de documentação](https://rodri-oliveira-dev.github.io/adr-guard/pt-br/) · [Documentação em Markdown](docs/index.pt-BR.md) · [Changelog](CHANGELOG.md)
 
 **Entenda decisões arquiteturais. Registre a justificativa. Preserve um histórico confiável.**
 
