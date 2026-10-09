@@ -9,7 +9,10 @@ export default defineConfig({
   base: '/adr-guard',
   trailingSlash: 'always',
   integrations: [
-    sitemap({ i18n: { defaultLocale: 'en', locales: { en: 'en', 'pt-BR': 'pt-br' } } }),
+    sitemap({
+      filter: (page) => !/\/404(?:\.html|\/)$/.test(new URL(page).pathname),
+      i18n: { defaultLocale: 'en', locales: { en: 'en', 'pt-br': 'pt-BR' } }
+    }),
     starlight({
       title: 'ADR Guard',
       description: 'Document, validate, review, and evolve architecture decisions with confidence.',
@@ -24,13 +27,7 @@ export default defineConfig({
         'pt-br': { label: 'Português (Brasil)', lang: 'pt-BR' }
       },
       customCss: ['./src/styles/tokens.css', './src/styles/custom.css'],
-      head: [
-        { tag: 'meta', attrs: { property: 'og:type', content: 'website' } },
-        { tag: 'meta', attrs: { property: 'og:image', content: 'https://rodri-oliveira-dev.github.io/adr-guard/social-preview.png' } },
-        { tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
-        { tag: 'meta', attrs: { name: 'twitter:image', content: 'https://rodri-oliveira-dev.github.io/adr-guard/social-preview.png' } },
-        { tag: 'link', attrs: { rel: 'alternate', hreflang: 'x-default', href: 'https://rodri-oliveira-dev.github.io/adr-guard/' } }
-      ],
+      routeMiddleware: './src/routeData.ts',
       sidebar: [
         { label: 'Start here', translations: { 'pt-BR': 'Comece aqui' }, items: [
           { label: 'Overview', translations: { 'pt-BR': 'Visão geral' }, slug: 'index' },
