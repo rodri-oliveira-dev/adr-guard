@@ -15,6 +15,7 @@ internal static class CheckCommand
             directoryPath,
             CheckOutputFormat.Text,
             AdrFormat.Canonical,
+            lifecycleStatuses: null,
             changed: false,
             baseReference: null,
             baselinePath: null,
@@ -26,6 +27,19 @@ internal static class CheckCommand
         string directoryPath,
         CheckOutputFormat format,
         AdrFormat adrFormat,
+        bool changed,
+        string? baseReference,
+        string? baselinePath,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken) =>
+        Run(directoryPath, format, adrFormat, null, changed, baseReference, baselinePath, output, error, cancellationToken);
+
+    internal static int Run(
+        string directoryPath,
+        CheckOutputFormat format,
+        AdrFormat adrFormat,
+        string? lifecycleStatuses,
         bool changed,
         string? baseReference,
         string? baselinePath,
@@ -47,7 +61,11 @@ internal static class CheckCommand
         {
             cancellationToken.ThrowIfCancellationRequested();
             var documents = AdrDocumentLoader.LoadDirectory(directoryPath, cancellationToken);
-            var fullResult = AdrValidator.Validate(documents, adrFormat);
+            var options = new AdrValidationOptions(
+                adrFormat,
+                Directory.GetCurrentDirectory(),
+                AdrLifecyclePolicy.Parse(lifecycleStatuses));
+            var fullResult = AdrValidator.Validate(documents, null, options);
             var result = fullResult;
             IReadOnlySet<string>? changedPaths = null;
             if (changed)

@@ -14,6 +14,7 @@ internal static class AdrGuardConfigurationLoader
         "template",
         "template-file",
         "adr-format",
+        "lifecycle-statuses",
     ];
 
     internal static AdrGuardConfiguration? Load(string invocationDirectory)
@@ -199,6 +200,7 @@ internal static class AdrGuardConfigurationLoader
         values.TryGetValue("template", out var template);
         values.TryGetValue("template-file", out var templateFile);
         values.TryGetValue("adr-format", out var adrFormat);
+        values.TryGetValue("lifecycle-statuses", out var lifecycleStatuses);
 
         if (template is not null && templateFile is not null)
         {
@@ -218,6 +220,20 @@ internal static class AdrGuardConfigurationLoader
                 $"Configuration '{path}' property 'adr-format' must be 'canonical' or 'madr-4'.");
         }
 
+        if (lifecycleStatuses is not null)
+        {
+            try
+            {
+                Validation.AdrLifecyclePolicy.Parse(lifecycleStatuses);
+            }
+            catch (ArgumentException exception)
+            {
+                throw new AdrGuardConfigurationException(
+                    $"Configuration '{path}' property 'lifecycle-statuses' is invalid: {exception.Message}",
+                    exception);
+            }
+        }
+
         try
         {
             var normalizedDirectory = RepositoryPath.NormalizeRelative(
@@ -234,7 +250,8 @@ internal static class AdrGuardConfigurationLoader
                 normalizedDirectory,
                 template,
                 normalizedTemplateFile,
-                adrFormat);
+                adrFormat,
+                lifecycleStatuses);
         }
         catch (Exception exception) when (exception is ArgumentException or IOException)
         {

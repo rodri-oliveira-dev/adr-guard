@@ -4,14 +4,6 @@ namespace AdrGuard.Validation;
 
 internal static class AdrValidator
 {
-    private static readonly string[] AllowedStatuses =
-    [
-        "Proposed",
-        "Accepted",
-        "Deprecated",
-        "Superseded",
-    ];
-
     private static readonly string[] RequiredSections =
     [
         "Context",
@@ -55,12 +47,22 @@ internal static class AdrValidator
         IReadOnlyList<AdrDocument> documents,
         IEnumerable<string>? additionalKnownPaths,
         AdrFormat format,
-        string? repositoryRoot = null)
+        string? repositoryRoot = null) =>
+        Validate(
+            documents,
+            additionalKnownPaths,
+            new AdrValidationOptions(format, repositoryRoot));
+
+    internal static ValidationResult Validate(
+        IReadOnlyList<AdrDocument> documents,
+        IEnumerable<string>? additionalKnownPaths,
+        AdrValidationOptions options)
     {
         ArgumentNullException.ThrowIfNull(documents);
+        ArgumentNullException.ThrowIfNull(options);
 
         // Keep metadata status specific to the explicitly selected MADR format.
-        documents = AdrStatusResolver.ForFormat(documents, format);
+        documents = AdrStatusResolver.ForFormat(documents, options.Format);
         var issues = new List<ValidationIssue>();
         var knownPaths = documents
             .Select(document => Path.GetFullPath(document.FilePath))
@@ -79,11 +81,11 @@ internal static class AdrValidator
 
         foreach (var document in documents)
         {
-            ValidateDocument(document, knownPaths, issues, format, repositoryRoot);
+            ValidateDocument(document, knownPaths, issues, options);
         }
 
         ValidateDuplicateIds(documents, issues);
-        AdrRelationshipValidator.Validate(documents, issues);
+        AdrRelationshipValidator.Validate(documents, issues, options.EffectiveLifecycle);
 
         return new ValidationResult(
             issues
@@ -97,23 +99,22 @@ internal static class AdrValidator
         AdrDocument document,
         HashSet<string> knownPaths,
         List<ValidationIssue> issues,
-        AdrFormat format,
-        string? repositoryRoot)
+        AdrValidationOptions options)
     {
         ValidateFileName(document, issues);
         ValidateTitle(document, issues);
-        if (format == AdrFormat.Canonical)
+        if (options.Format == AdrFormat.Canonical)
         {
             ValidateUniqueCanonicalSections(document, issues);
-            ValidateStatus(document, issues);
+            ValidateStatus(document, issues, options.EffectiveLifecycle);
             ValidateRequiredSections(document, RequiredSections, issues);
         }
         else
         {
             ValidateMadr4(document, issues);
         }
-        ValidateReferences(document, knownPaths, issues, repositoryRoot);
-        ValidateSupersededBy(document, knownPaths, issues);
+        ValidateReferences(document, knownPaths, issues, options.RepositoryRoot);
+        ValidateSupersededBy(document, knownPaths, issues, options.EffectiveLifecycle);
     }
 
     private static void ValidateMadr4(
@@ -246,7 +247,8 @@ internal static class AdrValidator
 
     private static void ValidateStatus(
         AdrDocument document,
-        List<ValidationIssue> issues)
+        List<ValidationIssue> issues,
+        AdrLifecyclePolicy lifecycle)
     {
         var statusSection = document.Sections
             .FirstOrDefault(section =>
@@ -272,9 +274,7 @@ internal static class AdrValidator
             return;
         }
 
-        if (AllowedStatuses.Contains(
-                status,
-                StringComparer.OrdinalIgnoreCase))
+        if (lifecycle.TryResolve(status, out _))
         {
             return;
         }
@@ -282,7 +282,7 @@ internal static class AdrValidator
         issues.Add(new ValidationIssue(
             ValidationCodes.InvalidStatus,
             document.FilePath,
-            $"Status '{status}' is invalid. Allowed values: {string.Join(", ", AllowedStatuses)}."));
+            $"Status '{status}' is invalid. Allowed values: {string.Join(", ", lifecycle.StatusNames)}."));
     }
 
     private static void ValidateRequiredSections(
@@ -367,9 +367,11 @@ internal static class AdrValidator
     private static void ValidateSupersededBy(
         AdrDocument document,
         HashSet<string> knownPaths,
-        List<ValidationIssue> issues)
+        List<ValidationIssue> issues,
+        AdrLifecyclePolicy lifecycle)
     {
-        if (!string.Equals(document.Status, "Superseded", StringComparison.OrdinalIgnoreCase))
+        if (!lifecycle.TryResolve(document.Status, out var kind)
+            || kind != AdrLifecycleKind.Superseded)
         {
             return;
         }

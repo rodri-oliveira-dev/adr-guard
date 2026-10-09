@@ -23,6 +23,7 @@ internal static class ConfigurationArguments
             case "baseline":
                 AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
                 AddAdrFormatIfMissing(configured, configuration);
+                AddLifecyclePolicyIfMissing(configured, configuration);
                 break;
             case "new":
             case "draft":
@@ -76,6 +77,7 @@ internal static class ConfigurationArguments
         or "--policy-file"
         or "--format"
         or "--adr-format"
+        or "--lifecycle-statuses"
         or "--base-ref"
         or "--baseline"
         or "--compare-ref";
@@ -114,5 +116,19 @@ internal static class ConfigurationArguments
             args.Add("--template");
             args.Add(configuration.Template);
         }
+    }
+
+    private static void AddLifecyclePolicyIfMissing(
+        List<string> args,
+        AdrGuardConfiguration configuration)
+    {
+        if (configuration.LifecycleStatuses is null
+            || args.Contains("--lifecycle-statuses", StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        args.Add("--lifecycle-statuses");
+        args.Add(configuration.LifecycleStatuses);
     }
 }

@@ -24,6 +24,7 @@ adr-directory: "docs/adr"
 template: minimal
 # template-file: "docs/templates/team.md" # exclusive with template
 # adr-format: canonical                   # canonical or madr-4
+# lifecycle-statuses: Rejected=rejected,Under Review=proposed
 ```
 
 Unknown/duplicate properties, unsupported schema versions, nested YAML, collections, tags, anchors, aliases, block scalars, invalid UTF-8, oversized files, unsafe paths, and simultaneous `template`/`template-file` are rejected. Relative paths resolve from the configuration directory. Configuration is never interpreted as a command and does not expand environment variables.

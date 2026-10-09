@@ -11,12 +11,21 @@ internal static class IndexCommand
         string? outputPath,
         TextWriter output,
         TextWriter error) =>
-        Run(directoryPath, outputPath, AdrFormat.Canonical, output, error);
+        Run(directoryPath, outputPath, AdrFormat.Canonical, null, output, error);
 
     internal static int Run(
         string directoryPath,
         string? outputPath,
         AdrFormat adrFormat,
+        TextWriter output,
+        TextWriter error) =>
+        Run(directoryPath, outputPath, adrFormat, null, output, error);
+
+    internal static int Run(
+        string directoryPath,
+        string? outputPath,
+        AdrFormat adrFormat,
+        string? lifecycleStatuses,
         TextWriter output,
         TextWriter error)
     {
@@ -43,7 +52,13 @@ internal static class IndexCommand
             }
 
             var documents = AdrDocumentLoader.LoadDirectory(directoryPath);
-            var validationResult = AdrValidator.Validate(documents, adrFormat);
+            var validationResult = AdrValidator.Validate(
+                documents,
+                null,
+                new AdrValidationOptions(
+                    adrFormat,
+                    Directory.GetCurrentDirectory(),
+                    AdrLifecyclePolicy.Parse(lifecycleStatuses)));
 
             if (!validationResult.IsValid)
             {

@@ -1,5 +1,7 @@
 # Ciclo de vida de uma ADR
 
+O ADR Guard mantém `Proposed`, `Accepted`, `Deprecated` e `Superseded` como padrão compatível. Valores adicionais são opt-in e devem mapear para um tipo semântico fechado: `proposed`, `accepted`, `rejected`, `deprecated` ou `superseded`. Por exemplo, `Rejected=rejected,Under Review=proposed` preserva propostas rejeitadas no histórico e trata uma etapa organizacional de revisão como ativa, mas não aceita. A validação nunca altera um status nem interpreta metadados como aprovação das partes interessadas.
+
 [English](lifecycle.md) · [Início da documentação](../index.pt-BR.md) · [Anterior](when-to-write-an-adr.pt-BR.md) · [Próximo](glossary.pt-BR.md)
 
 Uma ADR é um registro vivo com histórico preservado. A equipe discute e refina uma proposta, aceita-a conforme seu processo de governança e mantém o registro quando a decisão muda.

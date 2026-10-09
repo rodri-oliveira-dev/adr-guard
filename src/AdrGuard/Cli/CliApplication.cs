@@ -23,9 +23,9 @@ internal static class CliApplication
 
         Usage:
           adr-guard init [repository] [options]
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--changed --base-ref <ref>] [--baseline <file>]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--changed --base-ref <ref>] [--baseline <file>]
           adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4]
-          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4]
+          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
           adr-guard review <adr-file> --provider <provider> --model <model> [--compare-ref <ref>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
@@ -54,18 +54,19 @@ internal static class CliApplication
 
     private const string CheckHelpText = """
         Usage:
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--changed --base-ref <ref>] [--baseline <file>]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--changed --base-ref <ref>] [--baseline <file>]
 
         Validate ADR files recursively. The directory defaults to the configured ADR directory or current directory.
         Text is the default. JSON and SARIF 2.1.0 are deterministic data documents written to stdout.
         ADR format defaults to canonical; MADR 4.0 is selected explicitly with --adr-format madr-4.
+        Extra lifecycle values are opt-in mappings such as 'Rejected=rejected,Under Review=proposed'.
         --changed is opt-in and requires --base-ref. Git failures or insufficient history are operational errors.
         --baseline classifies new/existing/resolved diagnostics; global integrity diagnostics cannot be suppressed.
         """;
 
     private const string IndexHelpText = """
         Usage:
-          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4]
+          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>]
 
         Validate ADR files and generate a Markdown index.
         The directory defaults to the current directory.
@@ -329,6 +330,7 @@ internal static class CliApplication
                 out var directoryPath,
                 out var format,
                 out var adrFormat,
+                out var lifecycleStatuses,
                 out var changed,
                 out var baseReference,
                 out var baselinePath))
@@ -340,6 +342,7 @@ internal static class CliApplication
             directoryPath,
             format,
             adrFormat,
+            lifecycleStatuses,
             changed,
             baseReference,
             baselinePath,
@@ -353,6 +356,7 @@ internal static class CliApplication
         out string directoryPath,
         out CheckOutputFormat format,
         out AdrFormat adrFormat,
+        out string? lifecycleStatuses,
         out bool changed,
         out string? baseReference,
         out string? baselinePath)
@@ -360,6 +364,7 @@ internal static class CliApplication
         directoryPath = ".";
         format = CheckOutputFormat.Text;
         adrFormat = AdrFormat.Canonical;
+        lifecycleStatuses = null;
         changed = false;
         baseReference = null;
         baselinePath = null;
@@ -463,6 +468,19 @@ internal static class CliApplication
                 continue;
             }
 
+            if (argument == "--lifecycle-statuses")
+            {
+                if (lifecycleStatuses is not null || index + 1 >= args.Count)
+                {
+                    return false;
+                }
+
+                lifecycleStatuses = args[++index];
+                try { AdrLifecyclePolicy.Parse(lifecycleStatuses); }
+                catch (ArgumentException) { return false; }
+                continue;
+            }
+
             if (argument.StartsWith('-') || directoryAssigned)
             {
                 return false;
@@ -491,6 +509,7 @@ internal static class CliApplication
         string? outputPath = null;
         var update = false;
         var format = AdrFormat.Canonical;
+        string? lifecycleStatuses = null;
         var directoryAssigned = false;
         var formatAssigned = false;
 
@@ -508,7 +527,7 @@ internal static class CliApplication
                 continue;
             }
 
-            if (argument is "--output" or "--adr-format")
+            if (argument is "--output" or "--adr-format" or "--lifecycle-statuses")
             {
                 if (index + 1 >= args.Count || args[index + 1].StartsWith('-'))
                 {
@@ -527,6 +546,14 @@ internal static class CliApplication
                 }
                 else
                 {
+                    if (argument == "--lifecycle-statuses")
+                    {
+                        lifecycleStatuses = value;
+                        try { AdrLifecyclePolicy.Parse(lifecycleStatuses); }
+                        catch (ArgumentException) { return WriteCommandUsageError("baseline", error); }
+                        continue;
+                    }
+
                     if (formatAssigned)
                     {
                         return WriteCommandUsageError("baseline", error);
@@ -568,6 +595,7 @@ internal static class CliApplication
             outputPath,
             update,
             format,
+            lifecycleStatuses,
             output,
             error,
             cancellationToken);
@@ -588,7 +616,8 @@ internal static class CliApplication
                 args,
                 out var directoryPath,
                 out var outputPath,
-                out var adrFormat))
+                out var adrFormat,
+                out var lifecycleStatuses))
         {
             return WriteCommandUsageError("index", error);
         }
@@ -597,6 +626,7 @@ internal static class CliApplication
             directoryPath,
             outputPath,
             adrFormat,
+            lifecycleStatuses,
             output,
             error);
     }
@@ -914,11 +944,13 @@ internal static class CliApplication
         IReadOnlyList<string> args,
         out string directoryPath,
         out string? outputPath,
-        out AdrFormat adrFormat)
+        out AdrFormat adrFormat,
+        out string? lifecycleStatuses)
     {
         directoryPath = ".";
         outputPath = null;
         adrFormat = AdrFormat.Canonical;
+        lifecycleStatuses = null;
         var directoryAssigned = false;
         var adrFormatAssigned = false;
 
@@ -963,6 +995,18 @@ internal static class CliApplication
                 }
 
                 adrFormatAssigned = true;
+                continue;
+            }
+
+            if (argument == "--lifecycle-statuses")
+            {
+                if (lifecycleStatuses is not null || index + 1 >= args.Count)
+                {
+                    return false;
+                }
+                lifecycleStatuses = args[++index];
+                try { AdrLifecyclePolicy.Parse(lifecycleStatuses); }
+                catch (ArgumentException) { return false; }
                 continue;
             }
 

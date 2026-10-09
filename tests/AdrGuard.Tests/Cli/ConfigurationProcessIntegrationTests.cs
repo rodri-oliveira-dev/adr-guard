@@ -8,6 +8,32 @@ namespace AdrGuard.Tests.Cli;
 public sealed class ConfigurationProcessIntegrationTests
 {
     [Fact]
+    public async Task ConfiguredLifecycleStatusIsOptInAcrossProcessBoundary()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            var adrDirectory = Path.Combine(root, "records");
+            Directory.CreateDirectory(adrDirectory);
+            File.WriteAllText(
+                Path.Combine(root, ".adrguard.yml"),
+                "schema-version: 1\nadr-directory: records\nlifecycle-statuses: Rejected=rejected,Under Review=proposed\n");
+            File.WriteAllText(
+                Path.Combine(adrDirectory, "0001-rejected.md"),
+                ValidMarkdown.Replace("Accepted", "Rejected", StringComparison.Ordinal));
+
+            var result = await RunProcessAsync(root, "check");
+
+            Assert.Equal(ExitCodes.Success, result.ExitCode);
+            Assert.Contains("no issues", result.Output, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
     public async Task ProcessUsesConfiguredDirectoryAndMachineFormat()
     {
         var root = CreateTempDirectory();

@@ -5,7 +5,8 @@ internal sealed record AdrGuardConfiguration(
     string AdrDirectory,
     string? Template,
     string? TemplateFile,
-    string? AdrFormat)
+    string? AdrFormat,
+    string? LifecycleStatuses = null)
 {
     internal string AdrDirectoryPath =>
         RepositoryPath.ResolveContained(RootDirectory, AdrDirectory);

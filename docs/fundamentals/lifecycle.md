@@ -1,5 +1,7 @@
 # ADR lifecycle
 
+ADR Guard keeps `Proposed`, `Accepted`, `Deprecated`, and `Superseded` as its compatible default. Additional values are opt-in and must map to one closed semantic kind: `proposed`, `accepted`, `rejected`, `deprecated`, or `superseded`. For example, `Rejected=rejected,Under Review=proposed` retains rejected proposals as history and treats an organizational review stage as active but not accepted. Validation never changes a status or interprets metadata as stakeholder approval.
+
 [Português (Brasil)](lifecycle.pt-BR.md) · [Documentation home](../index.md) · [Previous](when-to-write-an-adr.md) · [Next](glossary.md)
 
 An ADR is a living decision record with an append-only history. Teams discuss and refine a proposal, accept it through their own governance process, and preserve it when the decision later changes.

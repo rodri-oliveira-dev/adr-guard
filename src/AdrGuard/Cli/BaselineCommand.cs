@@ -13,6 +13,17 @@ internal static class BaselineCommand
         AdrFormat format,
         TextWriter output,
         TextWriter error,
+        CancellationToken cancellationToken) =>
+        Run(directoryPath, outputPath, update, format, null, output, error, cancellationToken);
+
+    internal static int Run(
+        string directoryPath,
+        string outputPath,
+        bool update,
+        AdrFormat format,
+        string? lifecycleStatuses,
+        TextWriter output,
+        TextWriter error,
         CancellationToken cancellationToken)
     {
         if (!Directory.Exists(directoryPath))
@@ -25,7 +36,13 @@ internal static class BaselineCommand
         {
             cancellationToken.ThrowIfCancellationRequested();
             var documents = AdrDocumentLoader.LoadDirectory(directoryPath, cancellationToken);
-            var result = AdrValidator.Validate(documents, format);
+            var result = AdrValidator.Validate(
+                documents,
+                null,
+                new AdrValidationOptions(
+                    format,
+                    Directory.GetCurrentDirectory(),
+                    AdrLifecyclePolicy.Parse(lifecycleStatuses)));
             var baseline = DiagnosticBaselineService.Create(result, directoryPath);
             var written = DiagnosticBaselineService.Write(outputPath, baseline, update);
             output.WriteLine(
