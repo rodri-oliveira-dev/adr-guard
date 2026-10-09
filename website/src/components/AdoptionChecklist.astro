@@ -1,0 +1,20 @@
+---
+interface Props { locale?: 'en' | 'pt-br' }
+const { locale = 'en' } = Astro.props;
+const pt = locale === 'pt-br';
+const items = pt ? ['Definir quais decisões merecem um ADR','Escolher um template inicial','Nomear proponentes e revisores','Acordar como ocorre a aceitação humana','Adicionar validação ao pull request','Planejar revisão do piloto'] : ['Define which decisions deserve an ADR','Choose an initial template','Name proposers and reviewers','Agree how human acceptance happens','Add validation to pull requests','Plan a pilot retrospective'];
+---
+<section class="checklist interactive-panel" data-checklist>
+  <div class="panel-heading"><span class="panel-number">03</span><div><h2>{pt ? 'Checklist de adoção' : 'Adoption checklist'}</h2><p>{pt ? 'Um guia local para a conversa da equipe, não uma auditoria formal. Nada é enviado ou persistido.' : 'A local guide for the team conversation, not a formal audit. Nothing is sent or persisted.'}</p></div></div>
+  <div class="progress"><div><span></span></div><output>0 / {items.length}</output></div>
+  <ul>{items.map((item, index) => <li><label><input type="checkbox" /><span class="checkmark" aria-hidden="true"></span><span><b>{String(index + 1).padStart(2,'0')}</b>{item}</span></label></li>)}</ul>
+  <button type="button" class="text-button" data-reset>{pt ? 'Limpar checklist' : 'Reset checklist'}</button>
+</section>
+<script>
+  document.querySelectorAll<HTMLElement>('[data-checklist]').forEach((root) => {
+    const checks = [...root.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')];
+    const update = () => { const done = checks.filter((item) => item.checked).length; const output = root.querySelector('output'); const bar = root.querySelector<HTMLElement>('.progress span'); if (output) output.textContent = `${done} / ${checks.length}`; if (bar) bar.style.width = `${done / checks.length * 100}%`; };
+    checks.forEach((check) => check.addEventListener('change', update));
+    root.querySelector('[data-reset]')?.addEventListener('click', () => { checks.forEach((check) => { check.checked = false; }); update(); checks[0]?.focus(); });
+  });
+</script>

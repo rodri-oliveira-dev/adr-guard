@@ -1,0 +1,31 @@
+---
+interface Props { locale?: 'en' | 'pt-br' }
+const { locale = 'en' } = Astro.props;
+const pt = locale === 'pt-br';
+const prefix = pt ? '/adr-guard/pt-br' : '/adr-guard';
+---
+<section class="landing-hero">
+  <div class="hero-copy">
+    <p class="eyebrow">{pt ? 'Decisões que permanecem compreensíveis' : 'Decisions that stay understandable'}</p>
+    <h1>{pt ? 'Decisões arquiteturais merecem mais do que documentos esquecidos.' : 'Architecture decisions deserve more than forgotten documents.'}</h1>
+    <p class="hero-lede">{pt ? 'Documente, valide, revise e evolua decisões de arquitetura com confiança. O ADR Guard une aprendizado, fluxo de equipe e automação verificável.' : 'Document, validate, review, and evolve architecture decisions with confidence. ADR Guard connects learning, team workflow, and verifiable automation.'}</p>
+    <div class="hero-actions">
+      <a class="button primary" href={`${prefix}/getting-started/`}>{pt ? 'Começar' : 'Get started'}</a>
+      <a class="button secondary" href={`${prefix}/learn/what-is-an-adr/`}>{pt ? 'Aprender sobre ADRs' : 'Learn about ADRs'}</a>
+      <a class="text-link" href="https://github.com/rodri-oliveira-dev/adr-guard">GitHub <span aria-hidden="true">↗</span></a>
+    </div>
+  </div>
+  <div class="decision-window" aria-label={pt ? 'Exemplo resumido do ciclo de uma decisão' : 'Condensed example of a decision lifecycle'}>
+    <div class="window-bar"><span></span><span></span><span></span><code>0042-cache-strategy.md</code></div>
+    <div class="decision-body">
+      <p class="decision-kicker">ADR-0042 · <strong>{pt ? 'Proposta' : 'Proposed'}</strong></p>
+      <h2>{pt ? 'Adotar Redis para cache distribuído' : 'Adopt Redis for distributed caching'}</h2>
+      <dl>
+        <div><dt>{pt ? 'Contexto' : 'Context'}</dt><dd>{pt ? 'Consultas repetidas elevam a latência.' : 'Repeated reads increase latency.'}</dd></div>
+        <div><dt>{pt ? 'Decisão' : 'Decision'}</dt><dd>{pt ? 'Cache-aside com TTL explícito.' : 'Cache-aside with explicit TTLs.'}</dd></div>
+        <div><dt>{pt ? 'Consequência' : 'Consequence'}</dt><dd>{pt ? 'Menos carga; nova complexidade operacional.' : 'Lower load; new operational complexity.'}</dd></div>
+      </dl>
+      <div class="decision-flow" aria-hidden="true"><span>{pt ? 'Escrever' : 'Write'}</span><b>→</b><span>{pt ? 'Revisar' : 'Review'}</span><b>→</b><span>{pt ? 'Validar' : 'Validate'}</span></div>
+    </div>
+  </div>
+</section>

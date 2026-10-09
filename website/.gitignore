@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.astro/
+src/content/docs/reference/generated/
+src/content/docs/pt-br/reference/generated/
+src/content/docs/learn/
+src/content/docs/pt-br/learn/
+src/content/docs/product/*.md
+!src/content/docs/product/index.md
+src/content/docs/pt-br/product/*.md
+!src/content/docs/pt-br/product/index.md
+src/content/docs/adoption/team-playbook.md
+src/content/docs/pt-br/adoption/team-playbook.md

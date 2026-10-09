@@ -1,0 +1,64 @@
+---
+title: ADR Guard — Architecture decisions that stay useful
+description: Learn architecture decision records, adopt a sustainable team workflow, and validate ADRs with open-source tooling.
+template: splash
+editUrl: false
+head:
+  - tag: meta
+    attrs: { property: og:title, content: 'ADR Guard — Architecture decisions that stay useful' }
+  - tag: meta
+    attrs: { property: og:description, content: 'Learn, document, validate, review, and evolve architecture decisions with confidence.' }
+---
+import LandingHero from '../../components/LandingHero.astro';
+import LearningPath from '../../components/LearningPath.astro';
+import Lifecycle from '../../components/Lifecycle.astro';
+
+<div class="landing-shell">
+  <LandingHero />
+
+  <section class="landing-section" aria-labelledby="why-adrs">
+    <div class="section-heading"><div><p class="eyebrow">Why ADRs matter</p><h2 id="why-adrs">Give decisions a durable memory.</h2></div><p>Code shows what a system does. An ADR preserves why a consequential choice was made, which alternatives were considered, and what the team accepted in return.</p></div>
+    <div class="problem-grid">
+      <article class="problem-card"><span aria-hidden="true">↻</span><h3>Stop reopening settled debates</h3><p>Find the original context and trade-offs before repeating an expensive discussion.</p></article>
+      <article class="problem-card"><span aria-hidden="true">◎</span><h3>Onboard with context</h3><p>Help new teammates understand constraints instead of reverse-engineering intent from code.</p></article>
+      <article class="problem-card"><span aria-hidden="true">◇</span><h3>Trace change over time</h3><p>Supersede decisions explicitly while retaining the path that led to the current architecture.</p></article>
+    </div>
+  </section>
+
+  <section class="landing-section tinted" aria-labelledby="guard-does">
+    <div class="section-heading"><div><p class="eyebrow">What ADR Guard does</p><h2 id="guard-does">A practical guardrail, not an approval robot.</h2></div><p>ADR Guard works locally and in delivery workflows. It validates document contracts and relationships; people remain accountable for architectural judgment and acceptance.</p></div>
+    <div class="feature-grid">
+      <article class="feature-card"><span>01</span><h3>Create</h3><p>Generate canonical Minimal or Extended ADRs, or start from a constrained custom template.</p></article>
+      <article class="feature-card"><span>02</span><h3>Validate</h3><p>Check structure, statuses, relationships, changed files, and diagnostic baselines.</p></article>
+      <article class="feature-card"><span>03</span><h3>Review</h3><p>Request bounded AI-assisted review with explicit providers, security controls, and human judgment.</p></article>
+      <article class="feature-card"><span>04</span><h3>Track</h3><p>Generate an index and keep supersession and relationship history navigable.</p></article>
+      <article class="feature-card"><span>05</span><h3>Integrate</h3><p>Use the CLI, official GitHub Action, container, and workspace-hosted VS Code extension.</p></article>
+      <article class="feature-card"><span>06</span><h3>Draft</h3><p>Use opt-in AI assistance without treating generated text as an accepted decision.</p></article>
+    </div>
+  </section>
+
+  <section class="landing-section" aria-labelledby="choose-path">
+    <div class="section-heading"><div><p class="eyebrow">Choose your path</p><h2 id="choose-path">Start where you are.</h2></div><p>Learn the concept, write your first record, design a team practice, or go straight to the toolchain.</p></div>
+    <LearningPath />
+  </section>
+
+  <section class="landing-section tinted" aria-labelledby="decision-lifecycle">
+    <div class="section-heading"><div><p class="eyebrow">Decision lifecycle</p><h2 id="decision-lifecycle">Keep history. Change direction deliberately.</h2></div><p>The canonical states describe the record. Your organization decides who proposes, reviews, and accepts it.</p></div>
+    <Lifecycle />
+  </section>
+
+  <section class="landing-section" aria-labelledby="examples-preview">
+    <div class="section-heading"><div><p class="eyebrow">Examples library</p><h2 id="examples-preview">See real trade-offs, not empty templates.</h2></div><p>Each scenario explains context, alternatives, criteria, consequences, and when its level of detail is useful.</p></div>
+    <div class="example-grid">
+      <article class="example-card"><p class="eyebrow">Performance</p><h3>Distributed caching with Redis</h3><p>Compare the same decision in Minimal, Extended, and MADR 4.0.</p><a href="/adr-guard/examples/redis-cache/">Read example →</a></article>
+      <article class="example-card"><p class="eyebrow">Integration</p><h3>Sync or async communication?</h3><p>Balance coupling, resilience, latency, consistency, and operating cost.</p><a href="/adr-guard/examples/service-communication/">Read example →</a></article>
+      <article class="example-card"><p class="eyebrow">Evolution</p><h3>Superseding a decision</h3><p>Change direction without rewriting the architectural record.</p><a href="/adr-guard/examples/supersession/">Read example →</a></article>
+    </div>
+  </section>
+
+  <section class="landing-section final-cta" aria-labelledby="final-cta">
+    <h2 id="final-cta">Make the next architecture decision explainable.</h2>
+    <p>Start with one real decision. Keep the record proportionate, review it with the people affected, and automate only the checks a tool can honestly perform.</p>
+    <div class="hero-actions"><a class="button primary" href="/adr-guard/getting-started/">Create your first ADR</a><a class="button secondary" href="/adr-guard/examples/">Browse examples</a><a class="text-link" href="https://github.com/rodri-oliveira-dev/adr-guard/issues">Contribute ↗</a></div>
+  </section>
+</div>

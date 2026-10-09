@@ -1,0 +1,46 @@
+---
+interface Props { locale?: 'en' | 'pt-br' }
+const { locale = 'en' } = Astro.props;
+const pt = locale === 'pt-br';
+---
+<form class="template-selector interactive-panel" data-template-selector data-locale={locale}>
+  <div class="panel-heading"><span class="panel-number">01</span><div><h2>{pt ? 'Seletor de template' : 'ADR Template Selector'}</h2><p>{pt ? 'Uma heurística educativa — não uma análise arquitetural automatizada.' : 'An educational heuristic — not automated architectural analysis.'}</p></div></div>
+  <div class="selector-grid">
+    <label>{pt ? 'Impacto da decisão' : 'Decision impact'}<select name="impact"><option value="low">{pt ? 'Baixo e reversível' : 'Low and reversible'}</option><option value="medium">{pt ? 'Médio' : 'Medium'}</option><option value="high">{pt ? 'Alto ou difícil de reverter' : 'High or hard to reverse'}</option></select></label>
+    <label>{pt ? 'Padrão da equipe' : 'Team standard'}<select name="standard"><option value="none">{pt ? 'Nenhum padrão obrigatório' : 'No required standard'}</option><option value="canonical">ADR Guard canonical</option><option value="madr">MADR 4.0</option></select></label>
+  </div>
+  <fieldset><legend>{pt ? 'Quanto detalhe é necessário?' : 'How much detail is needed?'}</legend>
+    <label><input type="checkbox" name="alternatives" /> {pt ? 'Há alternativas relevantes para comparar.' : 'There are relevant alternatives to compare.'}</label>
+    <label><input type="checkbox" name="risks" /> {pt ? 'Riscos e critérios precisam ser explícitos.' : 'Risks and criteria need to be explicit.'}</label>
+    <label><input type="checkbox" name="formality" /> {pt ? 'A decisão exige maior formalidade documental.' : 'The decision needs greater documentary formality.'}</label>
+  </fieldset>
+  <button class="button primary" type="submit">{pt ? 'Obter recomendação' : 'Get recommendation'}</button>
+  <output class="selector-result" aria-live="polite"></output>
+</form>
+<script>
+  import { recommendTemplate } from './template-recommender';
+  document.querySelectorAll<HTMLFormElement>('[data-template-selector]').forEach((form) => {
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const result = recommendTemplate({
+        impact: String(data.get('impact')) as 'low' | 'medium' | 'high',
+        standard: String(data.get('standard')) as 'none' | 'canonical' | 'madr',
+        alternatives: data.has('alternatives'), detailedRisks: data.has('risks'), formality: data.has('formality')
+      });
+      const pt = form.dataset.locale === 'pt-br';
+      const names = { minimal: 'Minimal', extended: 'Extended', 'madr-4': 'MADR 4.0' };
+      const reasons = pt ? {
+        minimal: 'Uma estrutura curta mantém a decisão focada e proporcional.',
+        extended: 'O impacto ou a quantidade de trade-offs pede alternativas, critérios e consequências mais explícitos.',
+        'madr-4': 'O padrão declarado pela equipe deve prevalecer; valide esse conjunto separadamente com o modo MADR 4.0.'
+      } : {
+        minimal: 'A short structure keeps this focused decision proportionate.',
+        extended: 'The impact or number of trade-offs calls for explicit alternatives, criteria, and consequences.',
+        'madr-4': 'The team’s declared standard should prevail; validate this set separately in MADR 4.0 mode.'
+      };
+      const output = form.querySelector<HTMLOutputElement>('output');
+      if (output) output.innerHTML = `<strong>${pt ? 'Recomendação' : 'Recommendation'}: ${names[result]}</strong><span>${reasons[result]}</span>`;
+    });
+  });
+</script>

@@ -1,0 +1,20 @@
+---
+interface Props { locale?: 'en' | 'pt-br'; compact?: boolean }
+const { locale = 'en', compact = false } = Astro.props;
+const pt = locale === 'pt-br';
+const states = pt ? [
+  ['Proposed', 'A decisão está aberta para análise e revisão.'],
+  ['Accepted', 'Pessoas autorizadas concordaram em seguir a decisão.'],
+  ['Deprecated', 'A decisão não é mais recomendada, mas o histórico permanece.'],
+  ['Superseded', 'Um novo ADR substitui explicitamente esta decisão.']
+] : [
+  ['Proposed', 'The decision is open for analysis and review.'],
+  ['Accepted', 'Authorized people agreed to follow the decision.'],
+  ['Deprecated', 'The decision is no longer recommended, but history remains.'],
+  ['Superseded', 'A new ADR explicitly replaces this decision.']
+];
+---
+<figure class:list={["lifecycle", { compact }]}>
+  <ol>{states.map(([name, description], index) => <li><span>{index + 1}</span><div><strong>{name}</strong><p>{description}</p></div></li>)}</ol>
+  <figcaption>{pt ? 'A validação confere estrutura e relações; a aceitação continua sendo uma decisão humana de governança.' : 'Validation checks structure and relationships; acceptance remains a human governance decision.'}</figcaption>
+</figure>

@@ -1,0 +1,37 @@
+{
+  "name": "adr-guard-documentation",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "sync:docs": "node scripts/sync-docs.mjs",
+    "predev": "npm run sync:docs",
+    "dev": "astro dev",
+    "prebuild": "npm run sync:docs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "precheck": "npm run sync:docs",
+    "check": "astro check",
+    "test": "vitest run",
+    "test:routes": "node scripts/check-routes.mjs",
+    "test:links": "node scripts/check-links.mjs",
+    "validate": "npm run check && npm run test && npm run build && npm run test:routes && npm run test:links"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "3.7.4",
+    "@astrojs/starlight": "0.42.6",
+    "astro": "7.3.8",
+    "sharp": "0.35.5"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.6",
+    "typescript": "5.9.3",
+    "vitest": "5.0.3"
+  },
+  "overrides": {
+    "postcss-selector-parser": "7.1.6"
+  }
+}

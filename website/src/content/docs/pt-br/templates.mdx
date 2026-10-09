@@ -1,0 +1,31 @@
+---
+title: Escolha um formato de ADR
+description: Compare Minimal, Extended, Custom e MADR 4.0 sem confundir domínios de decisão com formatos de documento.
+sidebar:
+  order: 3
+---
+import TemplateSelector from '../../../components/TemplateSelector.astro';
+import FormatComparison from '../../../components/FormatComparison.astro';
+
+O formato controla como você expressa uma decisão; a **categoria de decisão** descreve o assunto. Uma decisão de segurança pode usar Minimal, Extended, Custom ou MADR 4.0 conforme seu risco e o padrão da equipe.
+
+<div class="interactive-stack"><TemplateSelector locale="pt-br" /><FormatComparison locale="pt-br" /></div>
+
+## Matriz de capacidades
+
+| Formato | Melhor uso | Detalhe | Suporte no ADR Guard | Limite importante |
+| --- | --- | --- | --- | --- |
+| Minimal | Escolhas focadas e de menor risco | Contexto, decisão, consequências | Gerado e validado como canônico | Mantenha a escolha precisa apesar do registro curto |
+| Extended | Escolhas de alto impacto ou várias opções | Motivadores, alternativas, resultado, consequências | Gerado e validado como canônico | Extended **não** é MADR |
+| Custom | Estrutura canônica específica da organização | Depende do template | `new --template-file` com invariantes estruturais | Markdown arbitrário não é automaticamente válido |
+| MADR 4.0 | Equipes já padronizadas em MADR | Motivadores, opções, resultado, prós/contras | Validação opcional com `--adr-format madr-4` | Valide separadamente dos ADRs canônicos; não afirmamos geração automática de MADR |
+
+:::caution[Não misture contratos de validação]
+Escolha um formato para cada conjunto de validação. Cabeçalhos canônicos e MADR seguem contratos diferentes e não devem ser misturados na mesma execução.
+:::
+
+## Regra prática de seleção
+
+Use o formato mais leve que preserve o raciocínio necessário para futuros leitores. Aumente o detalhe conforme impacto, irreversibilidade, quantidade de alternativas, risco ou coordenação organizacional aumentarem. Se a equipe já tem um padrão explícito, consistência pode importar mais do que preferência pessoal.
+
+Leia o guia detalhado de [formatos e templates](/adr-guard/pt-br/learn/formats-and-templates/) e a [referência MADR 4.0](/adr-guard/pt-br/product/madr-4/).

@@ -1,0 +1,31 @@
+---
+title: Choose an ADR format
+description: Compare Minimal, Extended, Custom, and MADR 4.0 without confusing decision domains with document formats.
+sidebar:
+  order: 3
+---
+import TemplateSelector from '../../components/TemplateSelector.astro';
+import FormatComparison from '../../components/FormatComparison.astro';
+
+The format controls how you express a decision; the **decision category** describes what the decision is about. A security decision can use Minimal, Extended, Custom, or MADR 4.0 depending on its risk and the team’s standard.
+
+<div class="interactive-stack"><TemplateSelector /><FormatComparison /></div>
+
+## Capability matrix
+
+| Format | Best for | Detail | ADR Guard support | Important boundary |
+| --- | --- | --- | --- | --- |
+| Minimal | Focused, lower-risk choices | Context, decision, consequences | Generated and validated as canonical | Keep the choice precise despite the shorter record |
+| Extended | High-impact or multi-option choices | Drivers, alternatives, outcome, consequences | Generated and validated as canonical | Extended is **not** MADR |
+| Custom | Organization-specific canonical structure | Depends on the template | `new --template-file` with invariant structural requirements | Arbitrary Markdown is not automatically valid |
+| MADR 4.0 | Teams already standardized on MADR | Drivers, options, outcome, pros/cons | Opt-in validation with `--adr-format madr-4` | Validate separately from canonical ADR sets; automatic MADR generation is not claimed |
+
+:::caution[Do not mix validation contracts]
+Choose one format for each validation set. Canonical and MADR headings have different contracts and should not be mixed in the same invocation.
+:::
+
+## A practical selection rule
+
+Use the lightest format that preserves the reasoning your future readers will need. Increase detail when impact, irreversibility, number of alternatives, risk, or organizational coordination increases. If your team already has an explicit standard, consistency may matter more than personal preference.
+
+Read the detailed [format and template guide](/adr-guard/learn/formats-and-templates/) and [MADR 4.0 reference](/adr-guard/product/madr-4/).

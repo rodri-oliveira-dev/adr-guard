@@ -1,0 +1,70 @@
+---
+title: Adopt ADRs without creating bureaucracy
+description: A practical playbook for readiness, governance, gradual adoption, review, and onboarding.
+sidebar:
+  order: 1
+---
+import AdoptionChecklist from '../../../components/AdoptionChecklist.astro';
+import Lifecycle from '../../../components/Lifecycle.astro';
+
+Healthy ADR practice makes important reasoning easier to find without forcing every implementation detail through a committee. Start with the decisions whose impact outlives a pull request.
+
+## Adoption readiness
+
+You are likely to benefit when architectural discussions repeat, new teammates cannot find rationale, cross-team choices surprise affected people, or reversals happen without a visible trail. Do not use ADRs for transient task notes, routine implementation choices, or facts already governed by another authoritative system.
+
+Estimate the effort honestly: writing is only part of it. The team needs review time, a clear place for records, ownership of the workflow, and occasional process retrospectives.
+
+## Governance as a team agreement
+
+| Question | Lightweight recommendation |
+| --- | --- |
+| Who may propose? | Anyone close enough to frame the context and invite affected people. |
+| Who reviews? | Engineers and specialists affected by the consequences; include security or operations when relevant. |
+| Who accepts? | The accountable role named by your organization—never the validation tool. |
+| What if decisions conflict? | Link the records, resolve the conflict explicitly, and state which decision governs. |
+| How do decisions change? | Create a new ADR and mark the old one Deprecated or Superseded rather than silently rewriting history. |
+
+These are process recommendations. ADR Guard does not implement organizational permissions or automatically grant acceptance authority.
+
+## Team workflow
+
+<Lifecycle />
+
+1. **Propose** a record with enough context to discuss the real tension.
+2. **Discuss** alternatives asynchronously or in a time-boxed meeting.
+3. **Review** technical, security, operational, and organizational consequences.
+4. **Accept humanly** according to the team agreement.
+5. **Version** the record with the code or platform it guides.
+6. **Track** follow-up evidence without turning the ADR into a task tracker.
+7. **Supersede** explicitly when context changes.
+
+## A gradual rollout
+
+Run a four-to-six-week pilot with one team. Select a small set of consequential decisions, use one initial template, name a facilitator, and validate records in pull requests. At the end, ask which records helped, where review slowed down, and what structure was unnecessary. Expand only after adapting the practice.
+
+<AdoptionChecklist />
+
+## Copyable team agreement
+
+```md
+# Our ADR agreement
+
+- We write ADRs for decisions with lasting, cross-cutting, security, data, or operational impact.
+- Any team member may propose a record.
+- Affected specialists review before acceptance.
+- [ROLE] is accountable for recording acceptance after concerns are addressed.
+- Validation confirms document structure; people approve the decision.
+- We supersede old decisions instead of rewriting their history.
+- We review this agreement after the pilot on [DATE].
+```
+
+## Pull request review prompts
+
+- Is the problem and its boundary clear?
+- Are meaningful alternatives and the status quo represented fairly?
+- Do consequences include costs, failure modes, and ongoing ownership?
+- Are security, privacy, data, operability, and reversibility addressed where relevant?
+- Does the implementation change match the accepted decision—or explain why it differs?
+
+For onboarding, ask a new teammate to read two active ADRs and one supersession chain, then explain the current constraint in their own words. This tests discoverability without turning onboarding into a policy exam.

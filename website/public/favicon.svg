@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">ADR Guard</title>
+  <rect width="64" height="64" rx="15" fill="#0b1736"/>
+  <path d="M18 19h19l9 9v18H18z" fill="#f7f5ef"/>
+  <path d="M37 19v10h9" fill="none" stroke="#74e4cf" stroke-width="4"/>
+  <path d="m24 36 5 5 11-12" fill="none" stroke="#2d6cdf" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+</svg>

@@ -1,0 +1,30 @@
+---
+interface Props { locale?: 'en' | 'pt-br' }
+const { locale = 'en' } = Astro.props;
+const pt = locale === 'pt-br';
+const examples = {
+  minimal: pt ? `# 0042. Adotar Redis para cache distribuído\n\nDate: 2026-10-09\n\n## Status\n\nProposed\n\n## Context\n\nLeituras repetidas pressionam o banco de dados.\n\n## Decision\n\nUsaremos Redis com o padrão cache-aside.\n\n## Consequences\n\nReduzimos a latência, mas operamos um novo serviço.` : `# 0042. Adopt Redis for distributed caching\n\nDate: 2026-10-09\n\n## Status\n\nProposed\n\n## Context\n\nRepeated reads put pressure on the database.\n\n## Decision\n\nWe will use Redis with the cache-aside pattern.\n\n## Consequences\n\nWe reduce latency but operate a new service.`,
+  extended: pt ? `# 0042. Adotar Redis para cache distribuído\n\n## Status\nProposed\n\n## Context\nLeituras repetidas pressionam o banco.\n\n## Decision Drivers\n- Latência p95\n- Tolerância a dados obsoletos\n- Custo operacional\n\n## Considered Options\n- Redis gerenciado\n- Cache em processo\n- Sem cache\n\n## Decision Outcome\nRedis gerenciado com cache-aside e TTL por domínio.\n\n## Consequences\nMenos carga; invalidação e observabilidade adicionais.` : `# 0042. Adopt Redis for distributed caching\n\n## Status\nProposed\n\n## Context\nRepeated reads put pressure on the database.\n\n## Decision Drivers\n- p95 latency\n- Stale-data tolerance\n- Operational cost\n\n## Considered Options\n- Managed Redis\n- In-process cache\n- No cache\n\n## Decision Outcome\nManaged Redis with cache-aside and domain-specific TTLs.\n\n## Consequences\nLower load; added invalidation and observability.`,
+  madr: pt ? `# Adotar Redis para cache distribuído\n\n## Context and Problem Statement\nComo reduzir leituras repetidas sem perder controle de consistência?\n\n## Decision Drivers\n* Latência p95\n* Tolerância a falhas\n\n## Considered Options\n* Redis gerenciado\n* Cache em processo\n\n## Decision Outcome\nChosen option: Redis gerenciado, porque centraliza o cache entre réplicas.\n\n### Consequences\n* Good, because reduz carga no banco.\n* Bad, because adiciona uma dependência operacional.` : `# Adopt Redis for distributed caching\n\n## Context and Problem Statement\nHow can we reduce repeated reads while controlling consistency?\n\n## Decision Drivers\n* p95 latency\n* Failure tolerance\n\n## Considered Options\n* Managed Redis\n* In-process cache\n\n## Decision Outcome\nChosen option: managed Redis, because it shares cache across replicas.\n\n### Consequences\n* Good, because it lowers database load.\n* Bad, because it adds an operational dependency.`
+};
+---
+<section class="format-comparison interactive-panel" data-format-comparison>
+  <div class="panel-heading"><span class="panel-number">02</span><div><h2>{pt ? 'Compare a mesma decisão' : 'Compare the same decision'}</h2><p>{pt ? 'O raciocínio permanece; a profundidade e o contrato estrutural mudam.' : 'The reasoning stays coherent; depth and structural contract change.'}</p></div></div>
+  <div role="tablist" aria-label={pt ? 'Formatos de ADR' : 'ADR formats'}>
+    <button type="button" role="tab" aria-selected="true" aria-controls="panel-minimal" id="tab-minimal" data-key="minimal">Minimal</button>
+    <button type="button" role="tab" aria-selected="false" aria-controls="panel-extended" id="tab-extended" data-key="extended" tabindex="-1">Extended</button>
+    <button type="button" role="tab" aria-selected="false" aria-controls="panel-madr" id="tab-madr" data-key="madr" tabindex="-1">MADR 4.0</button>
+  </div>
+  {Object.entries(examples).map(([key, content], index) => <div role="tabpanel" id={`panel-${key}`} aria-labelledby={`tab-${key}`} hidden={index !== 0}><div class="code-toolbar"><span>Markdown</span><button type="button" data-copy>{pt ? 'Copiar' : 'Copy'}</button></div><pre><code>{content}</code></pre></div>)}
+</section>
+<script>
+  document.querySelectorAll<HTMLElement>('[data-format-comparison]').forEach((root) => {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const select = (tab: HTMLButtonElement) => {
+      tabs.forEach((item) => { const active = item === tab; item.setAttribute('aria-selected', String(active)); item.tabIndex = active ? 0 : -1; const panel = root.querySelector<HTMLElement>(`#${item.getAttribute('aria-controls')}`); if (panel) panel.hidden = !active; });
+      tab.focus();
+    };
+    tabs.forEach((tab, index) => { tab.addEventListener('click', () => select(tab)); tab.addEventListener('keydown', (event) => { if (!['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) return; event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length; select(tabs[next]!); }); });
+    root.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((button) => button.addEventListener('click', async () => { const code = button.closest('[role="tabpanel"]')?.querySelector('code')?.textContent ?? ''; await navigator.clipboard.writeText(code); const original = button.textContent; button.textContent = root.closest('[lang="pt-BR"]') ? 'Copiado' : 'Copied'; setTimeout(() => { button.textContent = original; }, 1400); }));
+  });
+</script>

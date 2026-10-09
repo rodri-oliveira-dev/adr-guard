@@ -1,0 +1,20 @@
+---
+interface Props { locale?: 'en' | 'pt-br' }
+const { locale = 'en' } = Astro.props;
+const pt = locale === 'pt-br';
+const p = pt ? '/adr-guard/pt-br' : '/adr-guard';
+const paths = pt ? [
+  ['Sou iniciante em ADRs.', 'Entenda o problema, os benefícios e os limites.', `${p}/learn/what-is-an-adr/`, '01'],
+  ['Quero criar meu primeiro ADR.', 'Siga um tutorial do problema ao índice.', `${p}/getting-started/`, '02'],
+  ['Quero adotar ADRs com meu time.', 'Desenhe um fluxo leve de governança.', `${p}/adoption/`, '03'],
+  ['Já uso ADRs e preciso de ferramentas.', 'Vá direto à CLI, Action e extensão.', `${p}/product/`, '04']
+] : [
+  ["I'm new to ADRs.", 'Understand the problem, benefits, and limits.', `${p}/learn/what-is-an-adr/`, '01'],
+  ['I want to create my first ADR.', 'Follow a tutorial from problem to index.', `${p}/getting-started/`, '02'],
+  ['I want to adopt ADRs with my team.', 'Design a lightweight governance flow.', `${p}/adoption/`, '03'],
+  ['I already use ADRs and need tooling.', 'Go straight to the CLI, Action, and extension.', `${p}/product/`, '04']
+];
+---
+<div class="path-grid">
+  {paths.map(([title, description, href, number]) => <a class="path-card" href={href}><span>{number}</span><h3>{title}</h3><p>{description}</p><b aria-hidden="true">→</b></a>)}
+</div>

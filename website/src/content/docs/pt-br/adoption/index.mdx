@@ -1,0 +1,70 @@
+---
+title: Adote ADRs sem criar burocracia
+description: Guia prático de prontidão, governança, adoção gradual, revisão e onboarding.
+sidebar:
+  order: 1
+---
+import AdoptionChecklist from '../../../../components/AdoptionChecklist.astro';
+import Lifecycle from '../../../../components/Lifecycle.astro';
+
+Uma prática saudável de ADR torna raciocínios importantes fáceis de encontrar sem obrigar todo detalhe de implementação a passar por um comitê. Comece pelas decisões cujo impacto dura mais que um pull request.
+
+## Prontidão para adoção
+
+ADRs tendem a ajudar quando discussões arquiteturais se repetem, novas pessoas não encontram justificativas, escolhas entre equipes surpreendem quem é afetado ou reversões acontecem sem trilha visível. Não use ADRs para notas transitórias, escolhas rotineiras ou fatos já governados por outro sistema autoritativo.
+
+Estime o esforço com honestidade: escrever é só uma parte. A equipe precisa de tempo de revisão, um local claro, responsabilidade pelo fluxo e retrospectivas ocasionais do processo.
+
+## Governança como acordo de equipe
+
+| Pergunta | Recomendação leve |
+| --- | --- |
+| Quem pode propor? | Qualquer pessoa próxima o bastante do problema para explicar o contexto e envolver quem será afetado. |
+| Quem revisa? | Engenharia e especialistas afetados; inclua segurança ou operações quando relevante. |
+| Quem aceita? | O papel responsável definido pela organização — nunca a ferramenta de validação. |
+| E quando decisões conflitam? | Relacione os registros, resolva o conflito explicitamente e declare qual decisão governa. |
+| Como uma decisão muda? | Crie novo ADR e marque o anterior como Deprecated ou Superseded, sem reescrever o histórico. |
+
+Essas são recomendações de processo. O ADR Guard não implementa permissões organizacionais nem concede autoridade de aceitação.
+
+## Fluxo da equipe
+
+<Lifecycle locale="pt-br" />
+
+1. **Proponha** um registro com contexto suficiente para discutir a tensão real.
+2. **Discuta** alternativas de forma assíncrona ou em reunião com tempo limitado.
+3. **Revise** consequências técnicas, de segurança, operação e organização.
+4. **Aceite humanamente** conforme o acordo da equipe.
+5. **Versione** o registro junto do código ou plataforma que ele orienta.
+6. **Acompanhe** evidências sem transformar o ADR em rastreador de tarefas.
+7. **Substitua** explicitamente quando o contexto mudar.
+
+## Adoção gradual
+
+Faça um piloto de quatro a seis semanas com uma equipe. Selecione poucas decisões relevantes, use um template inicial, nomeie alguém para facilitar e valide os registros em pull requests. Ao final, descubra quais registros ajudaram, onde a revisão atrasou e qual estrutura foi desnecessária. Expanda somente depois de adaptar a prática.
+
+<AdoptionChecklist locale="pt-br" />
+
+## Acordo de equipe copiável
+
+```md
+# Nosso acordo de ADRs
+
+- Escrevemos ADRs para decisões de impacto duradouro, transversal, de segurança, dados ou operação.
+- Qualquer pessoa da equipe pode propor um registro.
+- Especialistas afetados revisam antes da aceitação.
+- [PAPEL] registra a aceitação depois que as preocupações forem tratadas.
+- A validação confirma a estrutura; pessoas aprovam a decisão.
+- Substituímos decisões antigas em vez de reescrever seu histórico.
+- Revisaremos este acordo após o piloto em [DATA].
+```
+
+## Perguntas para revisão no pull request
+
+- O problema e seu limite estão claros?
+- Alternativas relevantes e o estado atual foram representados de forma justa?
+- As consequências incluem custos, modos de falha e responsabilidade contínua?
+- Segurança, privacidade, dados, operação e reversibilidade foram abordados quando relevantes?
+- A implementação corresponde à decisão aceita — ou explica por que difere?
+
+No onboarding, peça que uma nova pessoa leia dois ADRs ativos e uma cadeia de substituição e explique a restrição atual com suas próprias palavras. Isso testa a encontrabilidade sem transformar onboarding em prova de políticas.
