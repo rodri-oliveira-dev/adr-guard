@@ -33,8 +33,8 @@ Efeito manada, chaves quentes, incompatibilidade de serialização e cache acide
 
 ## Três representações completas
 
-- [Fonte Minimal canônica](https://github.com/rodri-oliveira-dev/adr-guard/blob/docs/issue-149-documentation-experience/docs/examples/redis-cache/minimal/0001-use-redis-cache.pt-BR.md) — suficiente para piloto delimitado.
-- [Fonte Extended canônica](https://github.com/rodri-oliveira-dev/adr-guard/blob/docs/issue-149-documentation-experience/docs/examples/redis-cache/extended/0001-use-redis-cache.pt-BR.md) — melhor quando revisores precisam de motivadores e opções explícitos.
-- [Fonte MADR 4.0](https://github.com/rodri-oliveira-dev/adr-guard/blob/docs/issue-149-documentation-experience/docs/examples/redis-cache/madr-4/0001-use-redis-cache.pt-BR.md) — adequada quando o repositório padroniza MADR e valida separadamente com `--adr-format madr-4`.
+- [Fonte Minimal canônica](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/examples/redis-cache/minimal/pt-BR/0001-usar-redis-cache.md) — suficiente para piloto delimitado.
+- [Fonte Extended canônica](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/examples/redis-cache/extended/pt-BR/0001-usar-redis-cache.md) — melhor quando revisores precisam de motivadores e opções explícitos.
+- [Fonte MADR 4.0](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/examples/redis-cache/madr-4/pt-BR/0001-usar-redis-cache.md) — adequada quando o repositório padroniza MADR e valida separadamente com `--adr-format madr-4`.
 
-Use a [comparação interativa](/adr-guard/pt-br/templates/#compare-a-mesma-deciso) para alternar entre as estruturas.
+Use a [comparação interativa](/adr-guard/pt-br/templates/#compare-a-mesma-decisao) para alternar entre as estruturas.
