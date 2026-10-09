@@ -52,9 +52,11 @@ Keep `Proposed` while the choice is under discussion. Only an authorized human d
 ```bash
 adr-guard check docs/adr
 adr-guard index docs/adr
-git diff -- docs/adr
+git status --short -- .adrguard.yml docs/adr
+git add -- .adrguard.yml docs/adr
+git diff --cached -- .adrguard.yml docs/adr
 ```
 
-`check` returns `0` when the set passes structural validation and `1` for validation findings. `index` validates first, then creates or refreshes `docs/adr/README.md` deterministically. Commit the ADR and generated index together when your project tracks that index.
+`check` returns `0` when the set passes structural validation and `1` for validation findings. `index` validates first, then creates or refreshes `docs/adr/README.md` deterministically. Review `git status` before staging to avoid including unrelated files. `git add` stages new files too, so `git diff --cached` shows the new ADR, generated index, and configuration alongside changes to tracked files. Confirm the staged diff before committing the ADR and generated index together when your project tracks that index.
 
 You now have the first decision in a durable history. Continue with [team adoption](team-adoption.md), or inspect [creation options and exit codes](../creation.md).
