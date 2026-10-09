@@ -73,6 +73,7 @@ jobs:
           name: documentation-lighthouse
           path: website/.lighthouseci
           if-no-files-found: warn
+          include-hidden-files: true
           retention-days: 14
 
       - name: Stop preview
