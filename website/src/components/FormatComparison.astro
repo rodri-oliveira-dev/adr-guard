@@ -9,7 +9,7 @@ const examples = {
 };
 ---
 <section class="format-comparison interactive-panel" data-format-comparison>
-  <div class="panel-heading"><span class="panel-number">02</span><div><h2>{pt ? 'Compare a mesma decisão' : 'Compare the same decision'}</h2><p>{pt ? 'O raciocínio permanece; a profundidade e o contrato estrutural mudam.' : 'The reasoning stays coherent; depth and structural contract change.'}</p></div></div>
+  <div class="panel-heading"><span class="panel-number">02</span><div><h2 id={pt ? 'compare-a-mesma-decisao' : 'compare-the-same-decision'}>{pt ? 'Compare a mesma decisão' : 'Compare the same decision'}</h2><p>{pt ? 'O raciocínio permanece; a profundidade e o contrato estrutural mudam.' : 'The reasoning stays coherent; depth and structural contract change.'}</p></div></div>
   <div role="tablist" aria-label={pt ? 'Formatos de ADR' : 'ADR formats'}>
     <button type="button" role="tab" aria-selected="true" aria-controls="panel-minimal" id="tab-minimal" data-key="minimal">Minimal</button>
     <button type="button" role="tab" aria-selected="false" aria-controls="panel-extended" id="tab-extended" data-key="extended" tabindex="-1">Extended</button>
