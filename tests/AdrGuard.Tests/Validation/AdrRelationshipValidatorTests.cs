@@ -8,6 +8,40 @@ namespace AdrGuard.Tests.Validation;
 public sealed class AdrRelationshipValidatorTests
 {
     [Fact]
+    public void ConventionalSupersessionStatusIsExplicitlyOptIn()
+    {
+        var old = Parse(
+            "0001-old.md",
+            Canonical("Old", "Superseded by [ADR 0002](0002-current.md)"));
+        var current = Parse("0002-current.md", Canonical("Current", "Accepted"));
+
+        Assert.Contains(
+            AdrValidator.Validate([old, current]).Issues,
+            issue => issue.Code == ValidationCodes.InvalidStatus);
+
+        var options = new AdrValidationOptions(
+            AdrFormat.Canonical,
+            ConventionalSupersession: true);
+        var result = AdrValidator.Validate([old, current], null, options);
+
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void ProposedSuccessorDoesNotRequirePrematureStatusMutation()
+    {
+        var old = Parse("0001-old.md", Canonical("Old", "Accepted"));
+        var proposed = Parse(
+            "0002-proposed.md",
+            Canonical("Proposed", "Proposed", "## Supersedes\n[Old](0001-old.md)"));
+
+        var result = AdrValidator.Validate([old, proposed]);
+
+        Assert.DoesNotContain(result.Issues, issue => issue.Code == ValidationCodes.InconsistentSupersession);
+        Assert.True(result.IsValid);
+    }
+
+    [Fact]
     public void ValidSupersessionPairIsAccepted()
     {
         var first = Parse(

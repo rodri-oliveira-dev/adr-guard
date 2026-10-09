@@ -23,9 +23,9 @@ internal static class CliApplication
 
         Usage:
           adr-guard init [repository] [options]
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--changed --base-ref <ref>] [--baseline <file>]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--changed --base-ref <ref>] [--baseline <file>]
           adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4]
-          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>]
+          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession]
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
           adr-guard review <adr-file> --provider <provider> --model <model> [--compare-ref <ref>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
@@ -331,6 +331,7 @@ internal static class CliApplication
                 out var format,
                 out var adrFormat,
                 out var lifecycleStatuses,
+                out var conventionalSupersession,
                 out var changed,
                 out var baseReference,
                 out var baselinePath))
@@ -343,6 +344,7 @@ internal static class CliApplication
             format,
             adrFormat,
             lifecycleStatuses,
+            conventionalSupersession,
             changed,
             baseReference,
             baselinePath,
@@ -357,6 +359,7 @@ internal static class CliApplication
         out CheckOutputFormat format,
         out AdrFormat adrFormat,
         out string? lifecycleStatuses,
+        out bool conventionalSupersession,
         out bool changed,
         out string? baseReference,
         out string? baselinePath)
@@ -365,6 +368,7 @@ internal static class CliApplication
         format = CheckOutputFormat.Text;
         adrFormat = AdrFormat.Canonical;
         lifecycleStatuses = null;
+        conventionalSupersession = false;
         changed = false;
         baseReference = null;
         baselinePath = null;
@@ -375,6 +379,12 @@ internal static class CliApplication
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
+            if (argument == "--conventional-supersession")
+            {
+                if (conventionalSupersession) return false;
+                conventionalSupersession = true;
+                continue;
+            }
             if (argument == "--changed")
             {
                 if (changed)
@@ -510,12 +520,22 @@ internal static class CliApplication
         var update = false;
         var format = AdrFormat.Canonical;
         string? lifecycleStatuses = null;
+        var conventionalSupersession = false;
         var directoryAssigned = false;
         var formatAssigned = false;
 
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
+            if (argument == "--conventional-supersession")
+            {
+                if (conventionalSupersession)
+                {
+                    return WriteCommandUsageError("baseline", error);
+                }
+                conventionalSupersession = true;
+                continue;
+            }
             if (argument == "--update")
             {
                 if (update)
@@ -596,6 +616,7 @@ internal static class CliApplication
             update,
             format,
             lifecycleStatuses,
+            conventionalSupersession,
             output,
             error,
             cancellationToken);
@@ -617,7 +638,8 @@ internal static class CliApplication
                 out var directoryPath,
                 out var outputPath,
                 out var adrFormat,
-                out var lifecycleStatuses))
+                out var lifecycleStatuses,
+                out var conventionalSupersession))
         {
             return WriteCommandUsageError("index", error);
         }
@@ -627,6 +649,7 @@ internal static class CliApplication
             outputPath,
             adrFormat,
             lifecycleStatuses,
+            conventionalSupersession,
             output,
             error);
     }
@@ -945,18 +968,26 @@ internal static class CliApplication
         out string directoryPath,
         out string? outputPath,
         out AdrFormat adrFormat,
-        out string? lifecycleStatuses)
+        out string? lifecycleStatuses,
+        out bool conventionalSupersession)
     {
         directoryPath = ".";
         outputPath = null;
         adrFormat = AdrFormat.Canonical;
         lifecycleStatuses = null;
+        conventionalSupersession = false;
         var directoryAssigned = false;
         var adrFormatAssigned = false;
 
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
+            if (argument == "--conventional-supersession")
+            {
+                if (conventionalSupersession) return false;
+                conventionalSupersession = true;
+                continue;
+            }
 
             if (argument == "--output")
             {

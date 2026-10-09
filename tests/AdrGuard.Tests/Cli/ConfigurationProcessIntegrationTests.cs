@@ -8,6 +8,32 @@ namespace AdrGuard.Tests.Cli;
 public sealed class ConfigurationProcessIntegrationTests
 {
     [Fact]
+    public async Task ConventionalSupersessionCanBeEnabledByRepositoryConfiguration()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            var adrDirectory = Path.Combine(root, "records");
+            Directory.CreateDirectory(adrDirectory);
+            File.WriteAllText(
+                Path.Combine(root, ".adrguard.yml"),
+                "schema-version: 1\nadr-directory: records\nconventional-supersession: true\n");
+            File.WriteAllText(
+                Path.Combine(adrDirectory, "0001-old.md"),
+                ValidMarkdown.Replace("Accepted", "Superseded by [ADR 0002](0002-current.md)", StringComparison.Ordinal));
+            File.WriteAllText(Path.Combine(adrDirectory, "0002-current.md"), ValidMarkdown);
+
+            var result = await RunProcessAsync(root, "check");
+
+            Assert.Equal(ExitCodes.Success, result.ExitCode);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
     public async Task ConfiguredLifecycleStatusIsOptInAcrossProcessBoundary()
     {
         var root = CreateTempDirectory();

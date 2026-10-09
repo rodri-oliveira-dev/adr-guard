@@ -85,7 +85,7 @@ internal static class AdrValidator
         }
 
         ValidateDuplicateIds(documents, issues);
-        AdrRelationshipValidator.Validate(documents, issues, options.EffectiveLifecycle);
+        AdrRelationshipValidator.Validate(documents, issues, options);
 
         return new ValidationResult(
             issues
@@ -106,7 +106,7 @@ internal static class AdrValidator
         if (options.Format == AdrFormat.Canonical)
         {
             ValidateUniqueCanonicalSections(document, issues);
-            ValidateStatus(document, issues, options.EffectiveLifecycle);
+            ValidateStatus(document, issues, options);
             ValidateRequiredSections(document, RequiredSections, issues);
         }
         else
@@ -114,7 +114,7 @@ internal static class AdrValidator
             ValidateMadr4(document, issues);
         }
         ValidateReferences(document, knownPaths, issues, options.RepositoryRoot);
-        ValidateSupersededBy(document, knownPaths, issues, options.EffectiveLifecycle);
+        ValidateSupersededBy(document, knownPaths, issues, options);
     }
 
     private static void ValidateMadr4(
@@ -248,7 +248,7 @@ internal static class AdrValidator
     private static void ValidateStatus(
         AdrDocument document,
         List<ValidationIssue> issues,
-        AdrLifecyclePolicy lifecycle)
+        AdrValidationOptions options)
     {
         var statusSection = document.Sections
             .FirstOrDefault(section =>
@@ -274,7 +274,9 @@ internal static class AdrValidator
             return;
         }
 
-        if (lifecycle.TryResolve(status, out _))
+        if (options.EffectiveLifecycle.TryResolve(status, out _)
+            || options.ConventionalSupersession
+                && AdrReference.FindInStatusText(document, options.RepositoryRoot).Count == 1)
         {
             return;
         }
@@ -282,7 +284,7 @@ internal static class AdrValidator
         issues.Add(new ValidationIssue(
             ValidationCodes.InvalidStatus,
             document.FilePath,
-            $"Status '{status}' is invalid. Allowed values: {string.Join(", ", lifecycle.StatusNames)}."));
+            $"Status '{status}' is invalid. Allowed values: {string.Join(", ", options.EffectiveLifecycle.StatusNames)}."));
     }
 
     private static void ValidateRequiredSections(
@@ -368,10 +370,20 @@ internal static class AdrValidator
         AdrDocument document,
         HashSet<string> knownPaths,
         List<ValidationIssue> issues,
-        AdrLifecyclePolicy lifecycle)
+        AdrValidationOptions options)
     {
-        if (!lifecycle.TryResolve(document.Status, out var kind)
-            || kind != AdrLifecycleKind.Superseded)
+        var conventional = options.ConventionalSupersession
+            ? AdrReference.FindInStatusText(document, options.RepositoryRoot)
+            : [];
+        if ((!options.EffectiveLifecycle.TryResolve(document.Status, out var kind)
+                || kind != AdrLifecycleKind.Superseded)
+            && conventional.Count == 0)
+        {
+            return;
+        }
+
+        if (conventional.Count == 1
+            && knownPaths.Contains(conventional[0].ResolvedPath))
         {
             return;
         }

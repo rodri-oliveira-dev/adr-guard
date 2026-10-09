@@ -11,7 +11,7 @@ internal static class IndexCommand
         string? outputPath,
         TextWriter output,
         TextWriter error) =>
-        Run(directoryPath, outputPath, AdrFormat.Canonical, null, output, error);
+        Run(directoryPath, outputPath, AdrFormat.Canonical, null, false, output, error);
 
     internal static int Run(
         string directoryPath,
@@ -19,13 +19,14 @@ internal static class IndexCommand
         AdrFormat adrFormat,
         TextWriter output,
         TextWriter error) =>
-        Run(directoryPath, outputPath, adrFormat, null, output, error);
+        Run(directoryPath, outputPath, adrFormat, null, false, output, error);
 
     internal static int Run(
         string directoryPath,
         string? outputPath,
         AdrFormat adrFormat,
         string? lifecycleStatuses,
+        bool conventionalSupersession,
         TextWriter output,
         TextWriter error)
     {
@@ -58,7 +59,8 @@ internal static class IndexCommand
                 new AdrValidationOptions(
                     adrFormat,
                     Directory.GetCurrentDirectory(),
-                    AdrLifecyclePolicy.Parse(lifecycleStatuses)));
+                    AdrLifecyclePolicy.Parse(lifecycleStatuses),
+                    conventionalSupersession));
 
             if (!validationResult.IsValid)
             {

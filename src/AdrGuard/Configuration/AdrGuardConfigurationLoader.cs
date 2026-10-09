@@ -15,6 +15,7 @@ internal static class AdrGuardConfigurationLoader
         "template-file",
         "adr-format",
         "lifecycle-statuses",
+        "conventional-supersession",
     ];
 
     internal static AdrGuardConfiguration? Load(string invocationDirectory)
@@ -201,6 +202,14 @@ internal static class AdrGuardConfigurationLoader
         values.TryGetValue("template-file", out var templateFile);
         values.TryGetValue("adr-format", out var adrFormat);
         values.TryGetValue("lifecycle-statuses", out var lifecycleStatuses);
+        values.TryGetValue("conventional-supersession", out var conventionalSupersessionText);
+        var conventionalSupersession = conventionalSupersessionText switch
+        {
+            null or "false" => false,
+            "true" => true,
+            _ => throw new AdrGuardConfigurationException(
+                $"Configuration '{path}' property 'conventional-supersession' must be 'true' or 'false'."),
+        };
 
         if (template is not null && templateFile is not null)
         {
@@ -251,7 +260,8 @@ internal static class AdrGuardConfigurationLoader
                 template,
                 normalizedTemplateFile,
                 adrFormat,
-                lifecycleStatuses);
+                lifecycleStatuses,
+                conventionalSupersession);
         }
         catch (Exception exception) when (exception is ArgumentException or IOException)
         {

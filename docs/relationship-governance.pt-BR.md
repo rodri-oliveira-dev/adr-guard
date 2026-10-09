@@ -2,6 +2,8 @@
 
 Links Markdown locais comuns precisam apenas resolver para um arquivo existente dentro dos limites do repositório; eles não precisam ser ADRs carregados. URLs e âncoras nunca são acessadas, exemplos em blocos de código são ignorados, e travessias ou escapes por links simbólicos/reparse points são reportados como `ADR007`.
 
+O modo de compatibilidade pode reconhecer a forma canônica exata `Superseded by [ADR 0002](0002-successor.md)`. Um sucessor `Proposed` pode declarar `Supersedes` enquanto o predecessor permanece `Accepted`; isso é uma proposta pendente e não desativa o histórico nem implica aprovação. A substituição efetiva ainda exige um sucessor ativo e mantém as verificações de ciclo, autorreferência, múltiplos alvos e contradições.
+
 O ADR Guard valida somente relacionamentos declarados explicitamente pelos autores. Isso mantém a governança auditável e evita transformar julgamento arquitetural em regra bloqueante.
 
 As declarações reconhecidas são links Markdown sob headings de nível dois `Superseded by`, `Supersedes`, `Depends on` ou `Dependencies`, além do status MADR `status: "superseded by ADR-NNNN"`. Links narrativos em outras seções continuam sujeitos à validação de referência quebrada, mas não ganham semântica de dependência/substituição.

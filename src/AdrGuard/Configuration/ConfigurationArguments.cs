@@ -24,6 +24,7 @@ internal static class ConfigurationArguments
                 AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
                 AddAdrFormatIfMissing(configured, configuration);
                 AddLifecyclePolicyIfMissing(configured, configuration);
+                AddConventionalSupersessionIfMissing(configured, configuration);
                 break;
             case "new":
             case "draft":
@@ -130,5 +131,16 @@ internal static class ConfigurationArguments
 
         args.Add("--lifecycle-statuses");
         args.Add(configuration.LifecycleStatuses);
+    }
+
+    private static void AddConventionalSupersessionIfMissing(
+        List<string> args,
+        AdrGuardConfiguration configuration)
+    {
+        if (configuration.ConventionalSupersession
+            && !args.Contains("--conventional-supersession", StringComparer.Ordinal))
+        {
+            args.Add("--conventional-supersession");
+        }
     }
 }

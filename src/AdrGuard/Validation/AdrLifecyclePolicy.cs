@@ -67,7 +67,8 @@ internal sealed class AdrLifecyclePolicy
 internal sealed record AdrValidationOptions(
     AdrFormat Format,
     string? RepositoryRoot = null,
-    AdrLifecyclePolicy? Lifecycle = null)
+    AdrLifecyclePolicy? Lifecycle = null,
+    bool ConventionalSupersession = false)
 {
     internal AdrLifecyclePolicy EffectiveLifecycle => Lifecycle ?? AdrLifecyclePolicy.Legacy;
 }

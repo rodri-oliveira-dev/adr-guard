@@ -65,6 +65,20 @@ internal sealed record AdrReference(
         return references;
     }
 
+    internal static IReadOnlyList<AdrReference> FindInStatusText(
+        AdrDocument document,
+        string? repositoryRoot = null)
+    {
+        var references = new List<AdrReference>();
+        var status = document.Status?.Trim() ?? string.Empty;
+        if (status.StartsWith("Superseded by ", StringComparison.OrdinalIgnoreCase))
+        {
+            ExtractReferences(document, status, references, AdrReferenceKind.Relationship, repositoryRoot);
+        }
+
+        return references;
+    }
+
     private static void ExtractReferences(
         AdrDocument document,
         string content,
