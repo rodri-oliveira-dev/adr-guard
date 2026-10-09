@@ -1,0 +1,25 @@
+{
+  "defaults": {
+    "standard": "WCAG2AA",
+    "runners": ["axe", "htmlcs"],
+    "timeout": 30000,
+    "wait": 300,
+    "chromeLaunchConfig": {
+      "args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+    }
+  },
+  "urls": [
+    "http://127.0.0.1:4321/adr-guard/",
+    "http://127.0.0.1:4321/adr-guard/learn/what-is-an-adr/",
+    "http://127.0.0.1:4321/adr-guard/getting-started/",
+    "http://127.0.0.1:4321/adr-guard/examples/",
+    "http://127.0.0.1:4321/adr-guard/adoption/",
+    "http://127.0.0.1:4321/adr-guard/reference/",
+    "http://127.0.0.1:4321/adr-guard/pt-br/",
+    "http://127.0.0.1:4321/adr-guard/pt-br/learn/what-is-an-adr/",
+    "http://127.0.0.1:4321/adr-guard/pt-br/getting-started/",
+    "http://127.0.0.1:4321/adr-guard/pt-br/examples/",
+    "http://127.0.0.1:4321/adr-guard/pt-br/adoption/",
+    "http://127.0.0.1:4321/adr-guard/pt-br/reference/"
+  ]
+}

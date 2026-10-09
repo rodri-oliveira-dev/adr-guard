@@ -1,0 +1,81 @@
+name: Documentation Lighthouse
+
+on:
+  pull_request:
+    paths:
+      - "website/**"
+      - ".github/workflows/lighthouse.yml"
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/lighthouse.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-lighthouse-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    name: Lighthouse quality gates
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install and build
+        working-directory: website
+        run: npm ci && npm run build
+
+      - name: Start production preview
+        working-directory: website
+        shell: bash
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/adr-guard-preview.log 2>&1 &
+          echo $! > /tmp/adr-guard-preview.pid
+          for _ in {1..30}; do
+            curl --fail --silent http://127.0.0.1:4321/adr-guard/ > /dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/adr-guard-preview.log
+          exit 1
+
+      - name: Collect three runs per page
+        working-directory: website
+        run: npx --yes @lhci/cli@0.15.1 collect --config=lighthouserc.cjs
+
+      - name: Publish score summary
+        working-directory: website
+        run: node scripts/summarize-lighthouse.mjs
+
+      - name: Enforce budgets
+        working-directory: website
+        run: npx --yes @lhci/cli@0.15.1 assert --config=lighthouserc.cjs
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: documentation-lighthouse
+          path: website/.lighthouseci
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Stop preview
+        if: always()
+        shell: bash
+        run: test ! -f /tmp/adr-guard-preview.pid || kill "$(cat /tmp/adr-guard-preview.pid)" 2>/dev/null || true

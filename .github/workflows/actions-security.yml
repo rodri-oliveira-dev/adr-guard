@@ -1,0 +1,51 @@
+name: GitHub Actions security
+
+on:
+  pull_request:
+    paths:
+      - ".github/**"
+      - "action.yml"
+      - "zizmor.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".github/**"
+      - "action.yml"
+      - "zizmor.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: actions-security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Actionlint and zizmor
+    runs-on: ubuntu-26.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Validate workflow syntax
+        shell: bash
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 -color
+
+      - name: Audit workflow security
+        shell: bash
+        run: pipx run zizmor==1.30.1 --min-severity medium --min-confidence medium .
+
+      - name: Write summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# GitHub Actions security"
+            echo
+            echo "Actionlint validates workflow syntax. zizmor blocks findings at medium-or-higher severity and confidence."
+          } >> "$GITHUB_STEP_SUMMARY"

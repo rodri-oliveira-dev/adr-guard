@@ -1,0 +1,60 @@
+name: Documentation external link health
+
+on:
+  schedule:
+    - cron: "23 10 * * 1"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/external-link-health.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-links-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  links:
+    name: External link health
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Generate synchronized documentation
+        working-directory: website
+        run: npm ci && npm run sync:docs
+
+      - name: Check external links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2
+        with:
+          args: >-
+            --verbose
+            --no-progress
+            --timeout 20
+            --max-retries 2
+            --host-concurrency 2
+            --exclude 'https://(www\.)?linkedin\.com/'
+            --exclude 'https://medium\.com/'
+            'website/src/content/docs/**/*.md'
+            'website/src/content/docs/**/*.mdx'
+            'website/docs/**/*.md'
+            'website/README.md'
+          format: markdown
+          output: .lychee/documentation-link-health.md
+          jobSummary: true
+          failIfEmpty: true
+          fail: true
+          token: ${{ secrets.GITHUB_TOKEN }}

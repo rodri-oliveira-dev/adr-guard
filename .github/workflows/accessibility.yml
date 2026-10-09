@@ -1,0 +1,75 @@
+name: Documentation accessibility
+
+on:
+  pull_request:
+    paths:
+      - "website/**"
+      - ".github/workflows/accessibility.yml"
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - ".github/workflows/accessibility.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-accessibility-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  accessibility:
+    name: Automated WCAG checks
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install and build
+        working-directory: website
+        run: npm ci && npm run build
+
+      - name: Start production preview
+        working-directory: website
+        shell: bash
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/adr-guard-preview.log 2>&1 &
+          echo $! > /tmp/adr-guard-preview.pid
+          for _ in {1..30}; do
+            curl --fail --silent http://127.0.0.1:4321/adr-guard/ > /dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/adr-guard-preview.log
+          exit 1
+
+      - name: Run Pa11y CI with axe and HTML_CodeSniffer
+        working-directory: website
+        run: npx --yes pa11y-ci@5.0.0 --config .pa11yci --threshold 0
+
+      - name: Write coverage note
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# Accessibility"
+            echo
+            echo "Pa11y CI runs axe and HTML_CodeSniffer against representative English and Brazilian Portuguese pages."
+            echo "Automated checks do not replace manual keyboard, screen-reader, zoom, or cognitive-accessibility testing."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Stop preview
+        if: always()
+        shell: bash
+        run: test ! -f /tmp/adr-guard-preview.pid || kill "$(cat /tmp/adr-guard-preview.pid)" 2>/dev/null || true

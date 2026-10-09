@@ -1,0 +1,73 @@
+name: Documentation SEO validation
+
+on:
+  pull_request:
+    paths:
+      - "website/**"
+      - "docs/**"
+      - "extensions/vscode/README*.md"
+      - ".github/workflows/seo-validation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - "docs/**"
+      - "extensions/vscode/README*.md"
+      - ".github/workflows/seo-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-seo-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Built-site SEO and HTML
+    runs-on: ubuntu-26.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Install from lockfile
+        working-directory: website
+        run: npm ci
+
+      - name: Build production site
+        working-directory: website
+        run: npm run build
+
+      - name: Validate metadata, localization, JSON-LD, and sitemap
+        working-directory: website
+        run: npm run test:seo
+
+      - name: Validate generated HTML
+        working-directory: website
+        run: npm run test:html
+
+      - name: Check portal spelling
+        working-directory: website
+        run: npm run test:spelling
+
+      - name: Write summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# Documentation SEO validation"
+            echo
+            echo "Validation runs against the Astro production output in \`website/dist\`."
+            echo "It covers canonical URLs, localized alternates, HTML language, social metadata, JSON-LD, sitemap membership, base paths, HTML, and spelling."
+          } >> "$GITHUB_STEP_SUMMARY"

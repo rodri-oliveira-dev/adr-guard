@@ -1,0 +1,6 @@
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        "rodri-oliveira-dev/adr-guard": ref-pin
+        "*": hash-pin

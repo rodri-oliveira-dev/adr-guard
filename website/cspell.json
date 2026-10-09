@@ -1,0 +1,23 @@
+{
+  "version": "0.2",
+  "language": "en,pt_BR",
+  "import": ["@cspell/dict-pt-br/cspell-ext.json"],
+  "useGitignore": true,
+  "ignorePaths": [
+    "dist/**",
+    "node_modules/**",
+    "src/content/docs/learn/**",
+    "src/content/docs/pt-br/learn/**",
+    "src/content/docs/product/*.md",
+    "src/content/docs/pt-br/product/*.md",
+    "src/content/docs/reference/generated/**",
+    "src/content/docs/pt-br/reference/generated/**"
+  ],
+  "words": [
+    "ADR", "ADRs", "adrs", "adrguard", "Astro", "axe", "crawlable", "decisao", "dotnet",
+    "frontmatter", "hreflang", "idempotentemente", "IndexNow", "JSON-LD", "lastmod", "Lighthouse",
+    "lighthouseci", "lighthouserc", "MADR", "madr", "Mensageria", "noindex", "OpenID", "Pagefind",
+    "Pa11y", "retentativa", "retentativas", "Rodri", "rodri", "serialização", "Starlight",
+    "supersession", "TypeScript", "Webmaster", "WCAG", "zizmor"
+  ]
+}

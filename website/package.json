@@ -18,7 +18,10 @@
     "test": "vitest run",
     "test:routes": "node scripts/check-routes.mjs",
     "test:links": "node scripts/check-links.mjs",
-    "validate": "npm run check && npm run test && npm run build && npm run test:routes && npm run test:links"
+    "test:seo": "node scripts/validate-seo.mjs",
+    "test:html": "html-validate \"dist/**/*.html\"",
+    "test:spelling": "cspell --no-progress \"src/**/*.{astro,md,mdx,ts,json}\" \"scripts/**/*.mjs\" \"docs/**/*.md\"",
+    "validate": "npm run check && npm run test && npm run build && npm run test:routes && npm run test:links && npm run test:seo && npm run test:html"
   },
   "dependencies": {
     "@astrojs/sitemap": "3.7.4",
@@ -28,6 +31,9 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.6",
+    "@cspell/dict-pt-br": "2.4.3",
+    "cspell": "10.3.6",
+    "html-validate": "11.16.2",
     "typescript": "5.9.3",
     "vitest": "5.0.3"
   },

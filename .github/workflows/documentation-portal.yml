@@ -12,6 +12,9 @@ on:
       - "README.md"
       - "README.pt-BR.md"
       - ".github/workflows/documentation-portal.yml"
+      - ".github/workflows/seo-validation.yml"
+      - ".github/workflows/accessibility.yml"
+      - ".github/workflows/lighthouse.yml"
   push:
     branches:
       - main
@@ -38,10 +41,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: npm
@@ -66,10 +71,12 @@ jobs:
       pages: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build and upload Astro site
-        uses: withastro/action@v6
+        uses: withastro/action@3eafd002e65cc31b4f0eae0bb05450d521562247 # v6
         with:
           path: website
           node-version: 24
@@ -90,4 +97,4 @@ jobs:
     steps:
       - name: Deploy artifact
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
