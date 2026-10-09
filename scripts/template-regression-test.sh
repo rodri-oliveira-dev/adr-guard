@@ -132,6 +132,14 @@ for directory in madr-4/en madr-4/pt-BR; do
   assert_code 0 "${BIN}" check "${ROOT}/docs/examples/${directory}" --adr-format madr-4
 done
 
+# Portal-linked Redis examples are complete and valid in their declared format.
+for language in en pt-BR; do
+  for format in minimal extended; do
+    assert_code 0 "${BIN}" check "${ROOT}/docs/examples/redis-cache/${format}/${language}"
+  done
+  assert_code 0 "${BIN}" check "${ROOT}/docs/examples/redis-cache/madr-4/${language}" --adr-format madr-4
+done
+
 echo 'Documented EN/pt-BR Minimal, Extended and Custom outputs match installed CLI exactly and pass check.'
 
 echo 'Installed .NET Tool template/CLI/check/index regression passed (no AI credentials).'
