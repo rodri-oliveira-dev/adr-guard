@@ -33,8 +33,8 @@ Stampedes, hot keys, serialization incompatibility, and accidental caching of se
 
 ## Three complete representations
 
-- [Canonical Minimal source](https://github.com/rodri-oliveira-dev/adr-guard/blob/docs/issue-149-documentation-experience/docs/examples/redis-cache/minimal/0001-use-redis-cache.md) — enough for a bounded pilot whose constraints are already understood.
-- [Canonical Extended source](https://github.com/rodri-oliveira-dev/adr-guard/blob/docs/issue-149-documentation-experience/docs/examples/redis-cache/extended/0001-use-redis-cache.md) — best when reviewers need explicit drivers and options.
-- [MADR 4.0 source](https://github.com/rodri-oliveira-dev/adr-guard/blob/docs/issue-149-documentation-experience/docs/examples/redis-cache/madr-4/0001-use-redis-cache.md) — appropriate when the repository standardizes on MADR and validates separately with `--adr-format madr-4`.
+- [Canonical Minimal source](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/examples/redis-cache/minimal/en/0001-use-redis-cache.md) — enough for a bounded pilot whose constraints are already understood.
+- [Canonical Extended source](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/examples/redis-cache/extended/en/0001-use-redis-cache.md) — best when reviewers need explicit drivers and options.
+- [MADR 4.0 source](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/examples/redis-cache/madr-4/en/0001-use-redis-cache.md) — appropriate when the repository standardizes on MADR and validates separately with `--adr-format madr-4`.
 
 Use the [interactive format comparison](/adr-guard/templates/#compare-the-same-decision) to switch between the three structures.
