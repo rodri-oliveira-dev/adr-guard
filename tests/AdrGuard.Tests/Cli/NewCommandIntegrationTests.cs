@@ -15,6 +15,7 @@ public sealed class NewCommandIntegrationTests
         Assert.Equal(ExitCodes.Success, code);
         Assert.Contains("--template-file", output, StringComparison.Ordinal);
         Assert.Contains("--culture", output, StringComparison.Ordinal);
+        Assert.Contains("--filename-policy", output, StringComparison.Ordinal);
         Assert.Contains("--preview", output, StringComparison.Ordinal);
         Assert.Equal(string.Empty, error);
 

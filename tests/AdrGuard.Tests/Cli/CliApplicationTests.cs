@@ -30,6 +30,10 @@ public sealed class CliApplicationTests
 
         Assert.Equal(ExitCodes.Success, exitCode);
         Assert.Contains("ADR Guard", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--filename-policy", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--placeholder-policy", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--validation-profile", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("--catalog enriched", output.ToString(), StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
     }
 

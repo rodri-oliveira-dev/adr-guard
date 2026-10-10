@@ -23,10 +23,10 @@ internal static class CliApplication
 
         Usage:
           adr-guard init [repository] [options]
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--changed --base-ref <ref>] [--baseline <file>]
-          adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4]
-          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession]
-          adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>] [--changed --base-ref <ref>] [--baseline <file>]
+          adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
+          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>] [--catalog enriched]
+          adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
           adr-guard review <adr-file> --provider <provider> --model <model> [--compare-ref <ref>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
           adr-guard [options]
@@ -54,32 +54,40 @@ internal static class CliApplication
 
     private const string CheckHelpText = """
         Usage:
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--changed --base-ref <ref>] [--baseline <file>]
+          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>] [--changed --base-ref <ref>] [--baseline <file>]
 
         Validate ADR files recursively. The directory defaults to the configured ADR directory or current directory.
         Text is the default. JSON and SARIF 2.1.0 are deterministic data documents written to stdout.
         ADR format defaults to canonical; MADR 4.0 is selected explicitly with --adr-format madr-4.
         Extra lifecycle values are opt-in mappings such as 'Rejected=rejected,Under Review=proposed'.
+        Filename policies are canonical, unnumbered, adr-prefix, or numeric:1..9.
+        Validation profiles are legacy, advisory, standard, or strict; legacy is the compatible default.
+        Placeholder and metadata validation are explicit opt-ins and do not change legacy defaults.
         --changed is opt-in and requires --base-ref. Git failures or insufficient history are operational errors.
         --baseline classifies new/existing/resolved diagnostics; global integrity diagnostics cannot be suppressed.
         """;
 
     private const string IndexHelpText = """
         Usage:
-          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>]
+          adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>] [--catalog enriched]
 
         Validate ADR files and generate a Markdown index.
         The directory defaults to the current directory.
         The output defaults to README.md inside the ADR directory.
         Relative --output paths are resolved from the current working directory.
+        --catalog enriched opts in to the deterministic governance catalog; default output is unchanged.
+        Filename policies are canonical, unnumbered, adr-prefix, or numeric:1..9.
+        Validation profiles are legacy, advisory, standard, or strict; legacy is the compatible default.
         """;
 
     private const string BaselineHelpText = """
         Usage:
-          adr-guard baseline [directory] --output <file.json> [--update] [--adr-format canonical|madr-4]
+          adr-guard baseline [directory] --output <file.json> [--update] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
 
         Explicitly generate a versioned diagnostic baseline. Existing output is replaced only with --update.
         Baselines classify structural debt but never suppress global integrity or operational failures.
+        Filename policies are canonical, unnumbered, adr-prefix, or numeric:1..9.
+        Validation profiles are legacy, advisory, standard, or strict; legacy is the compatible default.
         """;
 
     private const string DraftHelpText = """
