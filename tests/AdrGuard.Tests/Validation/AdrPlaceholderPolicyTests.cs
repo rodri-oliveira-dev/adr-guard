@@ -58,7 +58,7 @@ public sealed class AdrPlaceholderPolicyTests
         Assert.Contains(result.Issues, issue => issue.Code == ValidationCodes.UnresolvedPlaceholder);
     }
 
-    private static string Canonical(string content) => $"""
+    private static string Canonical(string content) => $$"""
         # Draft
         ## Status
         Proposed
