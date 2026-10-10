@@ -10,7 +10,8 @@ internal sealed record AdrGuardConfiguration(
     bool ConventionalSupersession = false,
     string? FilenamePolicy = null,
     string? PlaceholderPolicy = null,
-    bool ValidateMetadata = false)
+    bool ValidateMetadata = false,
+    string? ValidationProfile = null)
 {
     internal string AdrDirectoryPath =>
         RepositoryPath.ResolveContained(RootDirectory, AdrDirectory);

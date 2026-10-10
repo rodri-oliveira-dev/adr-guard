@@ -19,6 +19,7 @@ internal static class AdrGuardConfigurationLoader
         "filename-policy",
         "placeholder-policy",
         "metadata-policy",
+        "validation-profile",
     ];
 
     internal static AdrGuardConfiguration? Load(string invocationDirectory)
@@ -209,6 +210,7 @@ internal static class AdrGuardConfigurationLoader
         values.TryGetValue("filename-policy", out var filenamePolicy);
         values.TryGetValue("placeholder-policy", out var placeholderPolicy);
         values.TryGetValue("metadata-policy", out var metadataPolicy);
+        values.TryGetValue("validation-profile", out var validationProfile);
         var conventionalSupersession = conventionalSupersessionText switch
         {
             null or "false" => false,
@@ -262,6 +264,11 @@ internal static class AdrGuardConfigurationLoader
             throw new AdrGuardConfigurationException($"Configuration '{path}' property 'placeholder-policy' must be off, warn, or error.");
         if (metadataPolicy is not null && metadataPolicy is not ("off" or "validate"))
             throw new AdrGuardConfigurationException($"Configuration '{path}' property 'metadata-policy' must be off or validate.");
+        try { Validation.AdrValidationOptionsFactory.ParseProfile(validationProfile); }
+        catch (ArgumentException exception)
+        {
+            throw new AdrGuardConfigurationException($"Configuration '{path}' property 'validation-profile' is invalid: {exception.Message}", exception);
+        }
 
         try
         {
@@ -284,7 +291,8 @@ internal static class AdrGuardConfigurationLoader
                 conventionalSupersession,
                 filenamePolicy,
                 placeholderPolicy,
-                metadataPolicy == "validate");
+                metadataPolicy == "validate",
+                validationProfile);
         }
         catch (Exception exception) when (exception is ArgumentException or IOException)
         {

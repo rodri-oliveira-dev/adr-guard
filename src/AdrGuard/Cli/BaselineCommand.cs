@@ -14,7 +14,7 @@ internal static class BaselineCommand
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken) =>
-        Run(directoryPath, outputPath, update, format, null, false, null, output, error, cancellationToken);
+        Run(directoryPath, outputPath, update, format, null, false, null, null, output, error, cancellationToken);
 
     internal static int Run(
         string directoryPath,
@@ -24,6 +24,7 @@ internal static class BaselineCommand
         string? lifecycleStatuses,
         bool conventionalSupersession,
         string? filenamePolicy,
+        string? validationProfile,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
@@ -41,12 +42,15 @@ internal static class BaselineCommand
             var result = AdrValidator.Validate(
                 documents,
                 null,
-                new AdrValidationOptions(
+                AdrValidationOptionsFactory.Create(
                     format,
                     Directory.GetCurrentDirectory(),
-                    AdrLifecyclePolicy.Parse(lifecycleStatuses),
+                    lifecycleStatuses,
                     conventionalSupersession,
-                    AdrFilenamePolicy.Parse(filenamePolicy)));
+                    filenamePolicy,
+                    null,
+                    false,
+                    validationProfile));
             var baseline = DiagnosticBaselineService.Create(result, directoryPath);
             var written = DiagnosticBaselineService.Write(outputPath, baseline, update);
             output.WriteLine(

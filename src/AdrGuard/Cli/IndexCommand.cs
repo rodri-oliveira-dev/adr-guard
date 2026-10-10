@@ -11,7 +11,7 @@ internal static class IndexCommand
         string? outputPath,
         TextWriter output,
         TextWriter error) =>
-        Run(directoryPath, outputPath, AdrFormat.Canonical, null, false, null, output, error);
+        Run(directoryPath, outputPath, AdrFormat.Canonical, null, false, null, null, output, error);
 
     internal static int Run(
         string directoryPath,
@@ -19,7 +19,7 @@ internal static class IndexCommand
         AdrFormat adrFormat,
         TextWriter output,
         TextWriter error) =>
-        Run(directoryPath, outputPath, adrFormat, null, false, null, output, error);
+        Run(directoryPath, outputPath, adrFormat, null, false, null, null, output, error);
 
     internal static int Run(
         string directoryPath,
@@ -28,6 +28,7 @@ internal static class IndexCommand
         string? lifecycleStatuses,
         bool conventionalSupersession,
         string? filenamePolicy,
+        string? validationProfile,
         TextWriter output,
         TextWriter error)
     {
@@ -57,12 +58,15 @@ internal static class IndexCommand
             var validationResult = AdrValidator.Validate(
                 documents,
                 null,
-                new AdrValidationOptions(
+                AdrValidationOptionsFactory.Create(
                     adrFormat,
                     Directory.GetCurrentDirectory(),
-                    AdrLifecyclePolicy.Parse(lifecycleStatuses),
+                    lifecycleStatuses,
                     conventionalSupersession,
-                    AdrFilenamePolicy.Parse(filenamePolicy)));
+                    filenamePolicy,
+                    null,
+                    false,
+                    validationProfile));
 
             if (!validationResult.IsValid)
             {

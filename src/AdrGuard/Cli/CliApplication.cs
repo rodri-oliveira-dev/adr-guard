@@ -335,6 +335,7 @@ internal static class CliApplication
                 out var filenamePolicy,
                 out var placeholderPolicy,
                 out var validateMetadata,
+                out var validationProfile,
                 out var changed,
                 out var baseReference,
                 out var baselinePath))
@@ -351,6 +352,7 @@ internal static class CliApplication
             filenamePolicy,
             placeholderPolicy,
             validateMetadata,
+            validationProfile,
             changed,
             baseReference,
             baselinePath,
@@ -369,6 +371,7 @@ internal static class CliApplication
         out string? filenamePolicy,
         out string? placeholderPolicy,
         out bool validateMetadata,
+        out string? validationProfile,
         out bool changed,
         out string? baseReference,
         out string? baselinePath)
@@ -381,6 +384,7 @@ internal static class CliApplication
         filenamePolicy = null;
         placeholderPolicy = null;
         validateMetadata = false;
+        validationProfile = null;
         changed = false;
         baseReference = null;
         baselinePath = null;
@@ -525,6 +529,14 @@ internal static class CliApplication
                 continue;
             }
 
+            if (argument == "--validation-profile")
+            {
+                if (validationProfile is not null || index + 1 >= args.Count) return false;
+                validationProfile = args[++index];
+                try { AdrValidationOptionsFactory.ParseProfile(validationProfile); } catch (ArgumentException) { return false; }
+                continue;
+            }
+
             if (argument.StartsWith('-') || directoryAssigned)
             {
                 return false;
@@ -556,6 +568,7 @@ internal static class CliApplication
         string? lifecycleStatuses = null;
         var conventionalSupersession = false;
         string? filenamePolicy = null;
+        string? validationProfile = null;
         var directoryAssigned = false;
         var formatAssigned = false;
 
@@ -582,7 +595,7 @@ internal static class CliApplication
                 continue;
             }
 
-            if (argument is "--output" or "--adr-format" or "--lifecycle-statuses" or "--filename-policy")
+            if (argument is "--output" or "--adr-format" or "--lifecycle-statuses" or "--filename-policy" or "--validation-profile")
             {
                 if (index + 1 >= args.Count || args[index + 1].StartsWith('-'))
                 {
@@ -605,6 +618,13 @@ internal static class CliApplication
                     {
                         filenamePolicy = value;
                         try { AdrFilenamePolicy.Parse(filenamePolicy); }
+                        catch (ArgumentException) { return WriteCommandUsageError("baseline", error); }
+                        continue;
+                    }
+                    if (argument == "--validation-profile")
+                    {
+                        validationProfile = value;
+                        try { AdrValidationOptionsFactory.ParseProfile(validationProfile); }
                         catch (ArgumentException) { return WriteCommandUsageError("baseline", error); }
                         continue;
                     }
@@ -660,6 +680,7 @@ internal static class CliApplication
             lifecycleStatuses,
             conventionalSupersession,
             filenamePolicy,
+            validationProfile,
             output,
             error,
             cancellationToken);
@@ -683,7 +704,8 @@ internal static class CliApplication
                 out var adrFormat,
                 out var lifecycleStatuses,
                 out var conventionalSupersession,
-                out var filenamePolicy))
+                out var filenamePolicy,
+                out var validationProfile))
         {
             return WriteCommandUsageError("index", error);
         }
@@ -695,6 +717,7 @@ internal static class CliApplication
             lifecycleStatuses,
             conventionalSupersession,
             filenamePolicy,
+            validationProfile,
             output,
             error);
     }
@@ -1015,7 +1038,8 @@ internal static class CliApplication
         out AdrFormat adrFormat,
         out string? lifecycleStatuses,
         out bool conventionalSupersession,
-        out string? filenamePolicy)
+        out string? filenamePolicy,
+        out string? validationProfile)
     {
         directoryPath = ".";
         outputPath = null;
@@ -1023,6 +1047,7 @@ internal static class CliApplication
         lifecycleStatuses = null;
         conventionalSupersession = false;
         filenamePolicy = null;
+        validationProfile = null;
         var directoryAssigned = false;
         var adrFormatAssigned = false;
 
@@ -1093,6 +1118,14 @@ internal static class CliApplication
                 if (filenamePolicy is not null || index + 1 >= args.Count) return false;
                 filenamePolicy = args[++index];
                 try { AdrFilenamePolicy.Parse(filenamePolicy); } catch (ArgumentException) { return false; }
+                continue;
+            }
+
+            if (argument == "--validation-profile")
+            {
+                if (validationProfile is not null || index + 1 >= args.Count) return false;
+                validationProfile = args[++index];
+                try { AdrValidationOptionsFactory.ParseProfile(validationProfile); } catch (ArgumentException) { return false; }
                 continue;
             }
 

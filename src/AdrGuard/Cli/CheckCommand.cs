@@ -20,6 +20,7 @@ internal static class CheckCommand
             filenamePolicy: null,
             placeholderPolicy: null,
             validateMetadata: false,
+            validationProfile: null,
             changed: false,
             baseReference: null,
             baselinePath: null,
@@ -37,7 +38,7 @@ internal static class CheckCommand
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken) =>
-        Run(directoryPath, format, adrFormat, null, false, null, null, false, changed, baseReference, baselinePath, output, error, cancellationToken);
+        Run(directoryPath, format, adrFormat, null, false, null, null, false, null, changed, baseReference, baselinePath, output, error, cancellationToken);
 
     internal static int Run(
         string directoryPath,
@@ -48,6 +49,7 @@ internal static class CheckCommand
         string? filenamePolicy,
         string? placeholderPolicy,
         bool validateMetadata,
+        string? validationProfile,
         bool changed,
         string? baseReference,
         string? baselinePath,
@@ -69,14 +71,15 @@ internal static class CheckCommand
         {
             cancellationToken.ThrowIfCancellationRequested();
             var documents = AdrDocumentLoader.LoadDirectory(directoryPath, cancellationToken);
-            var options = new AdrValidationOptions(
+            var options = AdrValidationOptionsFactory.Create(
                 adrFormat,
                 Directory.GetCurrentDirectory(),
-                AdrLifecyclePolicy.Parse(lifecycleStatuses),
+                lifecycleStatuses,
                 conventionalSupersession,
-                AdrFilenamePolicy.Parse(filenamePolicy),
-                ParsePlaceholderPolicy(placeholderPolicy),
-                validateMetadata);
+                filenamePolicy,
+                placeholderPolicy,
+                validateMetadata,
+                validationProfile);
             var fullResult = AdrValidator.Validate(documents, null, options);
             var result = fullResult;
             IReadOnlySet<string>? changedPaths = null;
@@ -202,11 +205,4 @@ internal static class CheckCommand
         return ExitCodes.OperationalError;
     }
 
-    private static PlaceholderPolicy ParsePlaceholderPolicy(string? value) => value switch
-    {
-        null or "off" => PlaceholderPolicy.Off,
-        "warn" => PlaceholderPolicy.Warn,
-        "error" => PlaceholderPolicy.Error,
-        _ => throw new ArgumentException("Placeholder policy must be off, warn, or error."),
-    };
 }

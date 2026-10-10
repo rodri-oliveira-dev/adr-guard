@@ -26,6 +26,7 @@ internal static class ConfigurationArguments
                 AddLifecyclePolicyIfMissing(configured, configuration);
                 AddConventionalSupersessionIfMissing(configured, configuration);
                 AddFilenamePolicyIfMissing(configured, configuration);
+                AddValidationProfileIfMissing(configured, configuration);
                 break;
             case "new":
                 AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
@@ -96,6 +97,7 @@ internal static class ConfigurationArguments
         or "--lifecycle-statuses"
         or "--filename-policy"
         or "--placeholder-policy"
+        or "--validation-profile"
         or "--base-ref"
         or "--baseline"
         or "--compare-ref";
@@ -166,5 +168,12 @@ internal static class ConfigurationArguments
         if (configuration.FilenamePolicy is null || args.Contains("--filename-policy", StringComparer.Ordinal)) return;
         args.Add("--filename-policy");
         args.Add(configuration.FilenamePolicy);
+    }
+
+    private static void AddValidationProfileIfMissing(List<string> args, AdrGuardConfiguration configuration)
+    {
+        if (configuration.ValidationProfile is null || args.Contains("--validation-profile", StringComparer.Ordinal)) return;
+        args.Add("--validation-profile");
+        args.Add(configuration.ValidationProfile);
     }
 }
