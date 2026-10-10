@@ -44,9 +44,11 @@ internal sealed class AdrNewService
                 nameof(title));
         }
 
+        var policy = filenamePolicy ?? AdrFilenamePolicy.Canonical;
         var documents = AdrDocumentLoader.LoadDirectory(
             directoryPath,
-            cancellationToken);
+            cancellationToken)
+            .Select(policy.NormalizeIdentity).ToArray();
         var existingValidation = AdrValidator.Validate(
             documents, null, new AdrValidationOptions(AdrFormat.Canonical, FilenamePolicy: filenamePolicy));
 
