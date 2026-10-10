@@ -5,8 +5,6 @@ sidebar:
   order: 1
 ---
 
-# Agent Skills: decisões arquiteturais com apoio de agentes de IA
-
 **Agent Skills** são instruções reutilizáveis e específicas para tarefas. Elas orientam um agente de programação compatível sobre *quando* e *como* trabalhar com Architecture Decision Records (ADRs). O ADR Guard oferece **11 skills** que cobrem desde a identificação de uma decisão importante até a manutenção de seu histórico.
 
 As skills facilitam a descoberta e o uso consistente do produto. Elas **não** substituem a equipe de arquitetura, não instalam a CLI do ADR Guard e não dão ao agente autoridade para aceitar decisões.

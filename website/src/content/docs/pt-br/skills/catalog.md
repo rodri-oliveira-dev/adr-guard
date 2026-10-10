@@ -17,7 +17,7 @@ As instruções ficam no [repositório ADR Guard](https://github.com/rodri-olive
 
 **Faz:** examina configuração e registros, visualiza `adr-guard init ... --dry-run` e inicializa com autorização. **Não faz:** sobrescrever políticas ou migrar ADRs sem consentimento.
 
-[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-init/SKILL.md) · [Referência da CLI](../product/cli/)
+[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-init/SKILL.md) · [Referência da CLI](../../product/cli/)
 
 ### adr-guard-create
 
@@ -25,7 +25,7 @@ As instruções ficam no [repositório ADR Guard](https://github.com/rodri-olive
 
 **Faz:** reúne restrições e alternativas, seleciona Minimal/Extended/Custom canônico, visualiza `adr-guard new` e cria registro **Proposed** quando autorizado. O `draft` com IA exige provedor, modelo e autorização para transmitir contexto. **Não faz:** aceitar decisões nem gerar MADR com `new`.
 
-[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-create/SKILL.md) · [Guia de criação](../product/creation/)
+[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-create/SKILL.md) · [Guia de criação](../../product/creation/)
 
 ### adr-guard-validate
 
@@ -33,7 +33,7 @@ As instruções ficam no [repositório ADR Guard](https://github.com/rodri-olive
 
 **Faz:** executa `adr-guard check`, interpreta diagnósticos e opcionalmente atualiza o índice após validação bem-sucedida. **Não faz:** confundir validade estrutural com aprovação técnica.
 
-[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-validate/SKILL.md) · [Relatórios](../product/reports/)
+[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-validate/SKILL.md) · [Relatórios](../../product/reports/)
 
 ### adr-guard-technical-review
 
@@ -41,7 +41,7 @@ As instruções ficam no [repositório ADR Guard](https://github.com/rodri-olive
 
 **Faz:** apresenta sugestões fundamentadas ou executa `adr-guard review` com provedor, modelo e contexto explicitamente autorizados. **Não faz:** aprovar arquitetura, certificar conformidade ou enviar arquivos silenciosamente a terceiros.
 
-[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-technical-review/SKILL.md) · [Revisão com IA](../product/ai-review/)
+[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-technical-review/SKILL.md) · [Revisão com IA](../../product/ai-review/)
 
 ### adr-guard-lifecycle
 
@@ -49,7 +49,7 @@ As instruções ficam no [repositório ADR Guard](https://github.com/rodri-olive
 
 **Faz:** verifica `Proposed`, `Accepted`, `Deprecated`, `Superseded` e status adicionais configurados; valida links declarados. **Não faz:** presumir aprovação por merge ou sucesso nos testes.
 
-[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-lifecycle/SKILL.md) · [Ciclo de vida](../learn/lifecycle/)
+[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-lifecycle/SKILL.md) · [Ciclo de vida](../../learn/lifecycle/)
 
 ### adr-guard-ci-setup
 
@@ -57,7 +57,7 @@ As instruções ficam no [repositório ADR Guard](https://github.com/rodri-olive
 
 **Faz:** orienta workflows de `command: check` com privilégio mínimo, verificações obrigatórias e SARIF opcional. **Não faz:** executar revisões privilegiadas com IA em PRs não confiáveis.
 
-[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-ci-setup/SKILL.md) · [Guia da Action](../product/github-action/)
+[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-ci-setup/SKILL.md) · [Guia da Action](../../product/github-action/)
 
 ## P1 — Análise e governança
 
@@ -67,7 +67,7 @@ As instruções ficam no [repositório ADR Guard](https://github.com/rodri-olive
 
 **Faz:** recomenda ADR, documentação mais simples ou experimento. **Não faz:** exigir um ADR para cada tarefa.
 
-[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-when-to-record/SKILL.md) · [Quando registrar](../learn/when-to-write-an-adr/)
+[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-when-to-record/SKILL.md) · [Quando registrar](../../learn/when-to-write-an-adr/)
 
 ### adr-guard-tradeoff-analysis
 
@@ -75,7 +75,7 @@ As instruções ficam no [repositório ADR Guard](https://github.com/rodri-olive
 
 **Faz:** organiza critérios, premissas, evidências, alternativas e riscos para apoiar um ADR Extended. **Não faz:** inventar notas, benchmarks ou uma opção vencedora definitiva.
 
-[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-tradeoff-analysis/SKILL.md) · [Como escrever boas ADRs](../learn/writing-effective-adrs/)
+[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-tradeoff-analysis/SKILL.md) · [Como escrever boas ADRs](../../learn/writing-effective-adrs/)
 
 ### adr-guard-supersede
 
@@ -99,7 +99,7 @@ As instruções ficam no [repositório ADR Guard](https://github.com/rodri-olive
 
 **Faz:** sugere critérios de relevância, responsáveis, templates, piloto e integração à CI. **Não faz:** impor política organizacional sem aprovação das pessoas responsáveis.
 
-[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-team-adoption/SKILL.md) · [Guia para equipes](../adoption/)
+[Ler a skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-team-adoption/SKILL.md) · [Guia para equipes](../../adoption/)
 
 ## Escolha pelo objetivo
 

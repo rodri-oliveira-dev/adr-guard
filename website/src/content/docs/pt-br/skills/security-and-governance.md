@@ -48,4 +48,4 @@ A `adr-guard-audit` avalia **documentação e governança**. Ela não implementa
 4. Valide o resultado autorizado com a CLI real e investigue códigos de erro.
 5. Exija revisão humana para mérito arquitetural, transições de status e governança.
 
-[Instalação](../installation/) · [Exemplos](../examples/) · [Detalhes de segurança](../product/security/)
+[Instalação](../installation/) · [Exemplos](../examples/) · [Detalhes de segurança](../../product/security/)

@@ -17,7 +17,7 @@ Estes são **exemplos de tarefas** e não comandos executados ao visitar a pági
 
 **Resultado esperado:** avaliação da relevância, matriz de alternativas, restrições conhecidas, medições ausentes e responsáveis pela revisão. O agente não deve presumir que mensageria é sempre superior.
 
-Caso o ADR faça sentido, utilize o [guia de criação canônica](../product/creation/).
+Caso o ADR faça sentido, utilize o [guia de criação canônica](../../product/creation/).
 
 ## Cenário 2 — Criar e validar uma proposta
 
@@ -64,7 +64,7 @@ adr-guard review docs/adr/0007-cache-strategy.md \
   --policy advisory --format json
 ```
 
-O arquivo do exemplo precisa existir, e o modelo deve ser definido pelo usuário. O relatório é consultivo; exit code `0` **não** significa aprovação. Consulte [revisão e privacidade](../product/ai-review/).
+O arquivo do exemplo precisa existir, e o modelo deve ser definido pelo usuário. O relatório é consultivo; exit code `0` **não** significa aprovação. Consulte [revisão e privacidade](../../product/ai-review/).
 
 ## Cenário 4 — Substituir uma decisão aceita
 
