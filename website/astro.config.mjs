@@ -38,6 +38,7 @@ export default defineConfig({
         { label: 'Adopt with your team', translations: { 'pt-BR': 'Adote com sua equipe' }, items: [{ autogenerate: { directory: 'adoption' } }] },
         { label: 'ADR examples', translations: { 'pt-BR': 'Exemplos de ADR' }, items: [{ autogenerate: { directory: 'examples' } }] },
         { label: 'Product', translations: { 'pt-BR': 'Produto' }, items: [{ autogenerate: { directory: 'product' } }] },
+        { label: 'Agent Skills', translations: { 'pt-BR': 'Agent Skills' }, items: [{ autogenerate: { directory: 'skills' } }] },
         { label: 'Reference', translations: { 'pt-BR': 'Referência' }, items: [{ autogenerate: { directory: 'reference' } }] }
       ]
     })

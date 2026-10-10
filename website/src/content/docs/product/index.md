@@ -15,6 +15,7 @@ ADR Guard keeps architecture judgment with people while automating repeatable do
 | [GitHub Action](./github-action/) | Pull requests should validate or review ADR changes | Runs in GitHub Actions with workflow permissions and pinned inputs |
 | [VS Code extension](./vscode-extension/) | Contributors want explorer, commands, and diagnostics in the editor | Workspace-hosted; trusted local file workspaces only; invokes an existing CLI |
 | [Container](./containers/) | You want an isolated, reproducible CLI runtime | Mount only required files and pass configuration deliberately |
+| [Agent Skills](../skills/) | You want a coding agent to guide ADR decisions and CLI workflows | Portable agent instructions; no bundled CLI or automatic architectural approval |
 
 ## Core workflows
 

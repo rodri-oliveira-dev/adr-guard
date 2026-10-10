@@ -9,6 +9,7 @@ const sectionNames: Record<string, Record<string, string>> = {
   adoption: { en: 'Team adoption', 'pt-BR': 'Adoção em equipe' },
   examples: { en: 'ADR examples', 'pt-BR': 'Exemplos de ADR' },
   product: { en: 'Product', 'pt-BR': 'Produto' },
+  skills: { en: 'Agent Skills', 'pt-BR': 'Agent Skills' },
   reference: { en: 'Reference', 'pt-BR': 'Referência' }
 };
 
