@@ -128,14 +128,20 @@ internal static class AdrMarkdownParser
 
             var key = line[..separator].Trim();
             var value = line[(separator + 1)..].Trim();
-            if (key.Length > 64 || value.Length > 4096 || value.IndexOfAny(['&', '*', '!']) >= 0)
+            var quoted = value.Length >= 2
+                && ((value[0] == '"' && value[^1] == '"')
+                    || (value[0] == '\'' && value[^1] == '\''));
+            // Only leading, unquoted YAML indicators introduce anchors, aliases
+            // or tags. Ordinary scalar content and quoted values may use these
+            // characters without enabling YAML evaluation.
+            var yamlIndicator = !quoted && value.Length > 0
+                && value[0] is '&' or '*' or '!';
+            if (key.Length > 64 || value.Length > 4096 || yamlIndicator)
             {
                 errors.Add($"Metadata '{key}' exceeds limits or uses unsupported YAML features.");
                 continue;
             }
-            if (value.Length >= 2
-                && ((value[0] == '"' && value[^1] == '"')
-                    || (value[0] == '\'' && value[^1] == '\'')))
+            if (quoted)
             {
                 value = value[1..^1];
             }
