@@ -28,5 +28,17 @@ for (const file of htmlFiles) {
     } catch { failures.push(`${file}: ${value}`); }
   }
 }
+// Verify that the Redis walkthrough in the Agent Skills examples links to the
+// actual ADR example, not the current page (a valid but misleading self-link).
+for (const [route, expectedHref] of [
+  ['skills/examples/index.html', '/adr-guard/examples/redis-cache/'],
+  ['pt-br/skills/examples/index.html', '/adr-guard/pt-br/examples/redis-cache/']
+]) {
+  const html = await readFile(resolve(dist, route), 'utf8');
+  if (!html.includes(`href="${expectedHref}"`)) {
+    failures.push(`${route}: missing expected Redis example link ${expectedHref}`);
+  }
+}
+
 if (failures.length) throw new Error(`Broken local links:\n${failures.slice(0, 30).join('\n')}`);
 console.log(`Checked local links in ${htmlFiles.length} HTML files.`);

@@ -40,7 +40,7 @@ adr-guard index docs/adr
 
 **Expected result:** a uniquely named `Proposed` ADR and an index created only after successful validation. The preview does **not** reserve an ID; inspect the actual generated path after the write.
 
-Read the [Redis format examples](../examples/) if you need a model for trade-off depth.
+Read the [Redis format examples](/adr-guard/examples/redis-cache/) if you need a model for trade-off depth.
 
 ## Scenario 3 — Review an ADR without granting approval
 

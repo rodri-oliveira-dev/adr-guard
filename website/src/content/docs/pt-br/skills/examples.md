@@ -40,7 +40,7 @@ adr-guard index docs/adr
 
 **Resultado esperado:** um ADR `Proposed` e índice gerado apenas depois da validação. O preview **não reserva** o identificador; confira o arquivo efetivamente criado.
 
-Veja os [exemplos de formatos com Redis](/adr-guard/pt-br/examples/).
+Veja os [exemplos de formatos com Redis](/adr-guard/pt-br/examples/redis-cache/).
 
 ## Cenário 3 — Revisar sem aprovar automaticamente
 
