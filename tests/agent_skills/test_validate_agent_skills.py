@@ -37,13 +37,13 @@ class AgentSkillsValidationTests(unittest.TestCase):
             skill = Path(directory) / "skill-name" / "SKILL.md"
             skill.parent.mkdir()
             skill.write_text(
-                "---\\nname: skill-name\\ndescription: A sample. Use when testing.\\n---\\n# Test\\n"
-                "```markdown\\n"
-                "[Old ADR](0007-old.md)\\n"
-                "```\\n"
-                "~~~markdown\\n"
-                "[New ADR](0012-new.md)\\n"
-                "~~~\\n",
+                "---\nname: skill-name\ndescription: A sample. Use when testing.\n---\n# Test\n"
+                "```markdown\n"
+                "[Old ADR](0007-old.md)\n"
+                "```\n"
+                "~~~markdown\n"
+                "[New ADR](0012-new.md)\n"
+                "~~~\n",
                 encoding="utf-8",
             )
             self.assertEqual(validator.validate_skill(skill), [])
