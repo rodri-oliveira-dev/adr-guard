@@ -63,7 +63,7 @@ internal static class IndexCommand
                 null,
                 AdrValidationOptionsFactory.Create(
                     adrFormat,
-                    Directory.GetCurrentDirectory(),
+                    AdrRepositoryRoot.Resolve(directoryPath),
                     lifecycleStatuses,
                     conventionalSupersession,
                     filenamePolicy,
