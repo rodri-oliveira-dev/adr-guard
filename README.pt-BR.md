@@ -90,7 +90,7 @@ A [Action no GitHub Marketplace](https://github.com/marketplace/actions/adr-guar
 
 - **Aprenda:** [fundamentos](docs/index.pt-BR.md#aprenda-a-prática), [categorias](docs/decision-design/decision-categories.pt-BR.md), [ciclo de vida](docs/fundamentals/lifecycle.pt-BR.md) e [anti-patterns](docs/decision-design/anti-patterns.pt-BR.md).
 - **Use:** [primeira ADR](docs/guides/getting-started.pt-BR.md), [adoção em equipe](docs/guides/team-adoption.pt-BR.md) e [criação offline](docs/creation.pt-BR.md).
-- **Consulte:** [CLI e configuração](docs/cli-reference.pt-BR.md), [validação e governança](docs/relationship-governance.pt-BR.md) e [índice técnico completo](docs/index.pt-BR.md#referência-técnica).
+- **Consulte:** [CLI e configuração](docs/cli-reference.pt-BR.md), [matriz de compatibilidade](docs/compatibility.pt-BR.md), [validação e governança](docs/relationship-governance.pt-BR.md) e [índice técnico completo](docs/index.pt-BR.md#referência-técnica).
 - **Limites de IA:** o review da CLI está publicado desde a v1.1.2 e é executado explicitamente como `adr-guard review`; o enforcement determinístico pode retornar exit code `4`. Consulte o [guia de review por IA](docs/adr-review.pt-BR.md), a [privacidade do draft](docs/draft-templates.pt-BR.md) e a [segurança do review](docs/adr-review-security.pt-BR.md).
 - **Arquitetura do projeto:** [índice gerado das ADRs do ADR Guard](docs/adr/README.md).
 

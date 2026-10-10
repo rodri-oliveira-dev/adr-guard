@@ -90,7 +90,7 @@ The [GitHub Marketplace Action](https://github.com/marketplace/actions/adr-guard
 
 - **Learn:** [fundamentals](docs/index.md#learn-the-practice), [decision categories](docs/decision-design/decision-categories.md), [lifecycle](docs/fundamentals/lifecycle.md), and [anti-patterns](docs/decision-design/anti-patterns.md).
 - **Use:** [first ADR tutorial](docs/guides/getting-started.md), [team adoption](docs/guides/team-adoption.md), and [offline creation](docs/creation.md).
-- **Reference:** [CLI and configuration](docs/cli-reference.md), [validation and governance](docs/relationship-governance.md), and [full technical index](docs/index.md#technical-reference).
+- **Reference:** [CLI and configuration](docs/cli-reference.md), [compatibility matrix](docs/compatibility.md), [validation and governance](docs/relationship-governance.md), and [full technical index](docs/index.md#technical-reference).
 - **AI boundaries:** CLI review has been published since v1.1.2 and runs explicitly as `adr-guard review`; deterministic policy enforcement may return exit code `4`. See the [AI review guide](docs/adr-review.md), [draft privacy](docs/draft-templates.md), and [review security](docs/adr-review-security.md).
 - **Project architecture:** [ADR Guard's own generated ADR index](docs/adr/README.md).
 

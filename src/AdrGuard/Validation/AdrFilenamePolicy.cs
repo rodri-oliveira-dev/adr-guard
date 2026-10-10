@@ -26,7 +26,7 @@ internal sealed record AdrFilenamePolicy(AdrFilenameConvention Convention, int N
         if (!string.Equals(Path.GetExtension(document.FileName), ".md", StringComparison.Ordinal)) return false;
         var stem = Path.GetFileNameWithoutExtension(document.FileName);
         var slug = document.Slug ?? stem;
-        if (string.IsNullOrWhiteSpace(slug)) return false;
+        if (string.IsNullOrWhiteSpace(slug) || !IsSlug(slug)) return false;
         return Convention switch
         {
             AdrFilenameConvention.Canonical => document.Id is > 0 and <= 9999 && document.FileName.StartsWith($"{document.Id:D4}-", StringComparison.Ordinal),

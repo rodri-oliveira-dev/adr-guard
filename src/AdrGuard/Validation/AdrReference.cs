@@ -98,7 +98,11 @@ internal sealed record AdrReference(
 
             var sourcePath = Path.GetFullPath(document.FilePath);
             var sourceDirectory = Path.GetDirectoryName(sourcePath) ?? string.Empty;
-            var root = Path.GetFullPath(repositoryRoot ?? Directory.GetCurrentDirectory());
+            // Library consumers historically validate in-memory or temporary ADRs
+            // without a repository root. In that compatibility path, constrain
+            // resolution to the source directory. CLI callers pass the explicit
+            // invocation repository root for cross-directory document links.
+            var root = Path.GetFullPath(repositoryRoot ?? sourceDirectory);
             try
             {
                 var candidate = Path.GetFullPath(normalizedTarget, sourceDirectory);
