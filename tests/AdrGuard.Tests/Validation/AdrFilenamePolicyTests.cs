@@ -43,6 +43,36 @@ public sealed class AdrFilenamePolicyTests
         Assert.Equal(2, result.Issues.Count(issue => issue.Code == ValidationCodes.DuplicateId));
     }
 
+    [Theory]
+    [InlineData("2026-plan.md", 2026)]
+    [InlineData("9999-roadmap.md", 9999)]
+    public void UnnumberedPolicyTreatsNumericLeadingStemsAsSlugs(string fileName, int parsedId)
+    {
+        var document = AdrMarkdownParser.Parse(fileName, Canonical);
+        Assert.Equal(parsedId, document.Id); // Legacy parsing remains unchanged.
+
+        var policy = AdrFilenamePolicy.Parse("unnumbered");
+        var normalized = policy.NormalizeIdentity(document);
+        Assert.Null(normalized.Id);
+        Assert.Equal(Path.GetFileNameWithoutExtension(fileName), normalized.Slug);
+        Assert.Equal($"slug:{normalized.Slug}", normalized.StableId);
+        Assert.True(AdrValidator.Validate(
+            [document], null, new AdrValidationOptions(AdrFormat.Canonical, FilenamePolicy: policy)).IsValid);
+    }
+
+    [Fact]
+    public void NumericLeadingUnnumberedStemsUseStableSlugCollisionDetection()
+    {
+        var first = AdrMarkdownParser.Parse("2026-plan.md", Canonical);
+        var duplicate = AdrMarkdownParser.Parse(Path.Combine("nested", "2026-plan.md"), Canonical);
+        var policy = AdrFilenamePolicy.Parse("unnumbered");
+
+        var result = AdrValidator.Validate(
+            [first, duplicate], null, new AdrValidationOptions(AdrFormat.Canonical, FilenamePolicy: policy));
+
+        Assert.Equal(2, result.Issues.Count(issue => issue.Code == ValidationCodes.DuplicateId));
+    }
+
     private const string Canonical = """
         # Choose database
         ## Status
