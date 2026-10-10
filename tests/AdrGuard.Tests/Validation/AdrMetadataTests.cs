@@ -38,6 +38,64 @@ public sealed class AdrMetadataTests
     }
 
     [Fact]
+    public void QuotedAndOrdinaryMetadataScalarsAllowYamlMarkerCharacters()
+    {
+        var document = AdrMarkdownParser.Parse("0001-decision.md", """
+            ---
+            owner: "R&D"
+            category: 'Platform!'
+            follow-ups: https://example.invalid/issues?draft=1&owner=2
+            decision-makers: Alice * Bob
+            ---
+            # Decision
+            ## Status
+            Accepted
+            ## Context
+            Context.
+            ## Decision
+            Decision.
+            ## Consequences
+            Consequences.
+            """);
+
+        var result = AdrValidator.Validate(
+            [document], null, new AdrValidationOptions(AdrFormat.Canonical, ValidateMetadata: true));
+
+        Assert.True(result.IsValid);
+        Assert.Equal("R&D", document.DecisionMetadata?.Owner);
+        Assert.Equal("Platform!", document.DecisionMetadata?.Category);
+        Assert.Empty(document.MetadataErrors ?? []);
+    }
+
+    [Theory]
+    [InlineData("owner: &anchor")]
+    [InlineData("owner: *alias")]
+    [InlineData("owner: !custom-tag value")]
+    public void LeadingUnquotedYamlIndicatorsRemainUnsupported(string field)
+    {
+        var markdown = """
+            ---
+            owner: Architecture
+            ---
+            # Decision
+            ## Status
+            Accepted
+            ## Context
+            Context.
+            ## Decision
+            Decision.
+            ## Consequences
+            Consequences.
+            """.Replace("owner: Architecture", field, StringComparison.Ordinal);
+        var document = AdrMarkdownParser.Parse("0001-decision.md", markdown);
+
+        var result = AdrValidator.Validate(
+            [document], null, new AdrValidationOptions(AdrFormat.Canonical, ValidateMetadata: true));
+
+        Assert.Contains(result.Issues, issue => issue.Code == ValidationCodes.InvalidMetadata);
+    }
+
+    [Fact]
     public void DuplicateAndMalformedMetadataOnlyFailWhenPolicyIsEnabled()
     {
         var document = AdrMarkdownParser.Parse("0001-decision.md", """
