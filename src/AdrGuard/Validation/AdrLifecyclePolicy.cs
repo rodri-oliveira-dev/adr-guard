@@ -68,7 +68,9 @@ internal sealed record AdrValidationOptions(
     AdrFormat Format,
     string? RepositoryRoot = null,
     AdrLifecyclePolicy? Lifecycle = null,
-    bool ConventionalSupersession = false)
+    bool ConventionalSupersession = false,
+    AdrFilenamePolicy? FilenamePolicy = null)
 {
     internal AdrLifecyclePolicy EffectiveLifecycle => Lifecycle ?? AdrLifecyclePolicy.Legacy;
+    internal AdrFilenamePolicy EffectiveFilenamePolicy => FilenamePolicy ?? AdrFilenamePolicy.Canonical;
 }

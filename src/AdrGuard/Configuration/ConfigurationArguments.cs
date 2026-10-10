@@ -25,8 +25,13 @@ internal static class ConfigurationArguments
                 AddAdrFormatIfMissing(configured, configuration);
                 AddLifecyclePolicyIfMissing(configured, configuration);
                 AddConventionalSupersessionIfMissing(configured, configuration);
+                AddFilenamePolicyIfMissing(configured, configuration);
                 break;
             case "new":
+                AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
+                AddTemplateIfMissing(configured, configuration);
+                AddFilenamePolicyIfMissing(configured, configuration);
+                break;
             case "draft":
                 AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
                 AddTemplateIfMissing(configured, configuration);
@@ -79,6 +84,7 @@ internal static class ConfigurationArguments
         or "--format"
         or "--adr-format"
         or "--lifecycle-statuses"
+        or "--filename-policy"
         or "--base-ref"
         or "--baseline"
         or "--compare-ref";
@@ -142,5 +148,12 @@ internal static class ConfigurationArguments
         {
             args.Add("--conventional-supersession");
         }
+    }
+
+    private static void AddFilenamePolicyIfMissing(List<string> args, AdrGuardConfiguration configuration)
+    {
+        if (configuration.FilenamePolicy is null || args.Contains("--filename-policy", StringComparer.Ordinal)) return;
+        args.Add("--filename-policy");
+        args.Add(configuration.FilenamePolicy);
     }
 }

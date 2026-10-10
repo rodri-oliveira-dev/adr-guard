@@ -41,7 +41,8 @@ internal static class NewCommand
                 out var templateName,
                 out var templateFilePath,
                 out var cultureName,
-                out var dryRun))
+                out var dryRun,
+                out var filenamePolicyName))
         {
             return UsageError(
                 "Invalid arguments for 'new'. A non-empty --title is required.",
@@ -110,7 +111,8 @@ internal static class NewCommand
                     title,
                     template,
                     dryRun,
-                    cancellationToken)
+                    cancellationToken,
+                    AdrGuard.Validation.AdrFilenamePolicy.Parse(filenamePolicyName))
                 .GetAwaiter()
                 .GetResult();
 
@@ -164,7 +166,8 @@ internal static class NewCommand
         out string? templateName,
         out string? templateFilePath,
         out string cultureName,
-        out bool dryRun)
+        out bool dryRun,
+        out string? filenamePolicy)
     {
         directoryPath = ".";
         title = string.Empty;
@@ -172,6 +175,7 @@ internal static class NewCommand
         templateFilePath = null;
         cultureName = "en-US";
         dryRun = false;
+        filenamePolicy = null;
 
         var directoryAssigned = false;
         var titleAssigned = false;
@@ -196,7 +200,7 @@ internal static class NewCommand
                 continue;
             }
 
-            if (argument is "--title" or "--template" or "--template-file" or "--culture")
+            if (argument is "--title" or "--template" or "--template-file" or "--culture" or "--filename-policy")
             {
                 if (index + 1 >= args.Count)
                 {
@@ -247,6 +251,12 @@ internal static class NewCommand
 
                         cultureName = value;
                         cultureAssigned = true;
+                        break;
+                    case "--filename-policy":
+                        if (filenamePolicy is not null) return false;
+                        try { AdrGuard.Validation.AdrFilenamePolicy.Parse(value); }
+                        catch (ArgumentException) { return false; }
+                        filenamePolicy = value;
                         break;
                 }
 

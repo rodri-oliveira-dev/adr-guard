@@ -94,7 +94,10 @@ internal static class AdrMarkdownParser
             title,
             status,
             sections,
-            metadata);
+            metadata,
+            id.HasValue
+                ? $"ADR-{id.Value.ToString(CultureInfo.InvariantCulture)}"
+                : slug is null ? null : $"slug:{slug.ToLowerInvariant()}");
     }
 
     private static Dictionary<string, string> ParseFrontMatter(string markdown)
@@ -138,6 +141,10 @@ internal static class AdrMarkdownParser
     private static (int? Id, string? Slug) ParseFileName(string fileName)
     {
         var stem = Path.GetFileNameWithoutExtension(fileName);
+        if (stem.StartsWith("ADR-", StringComparison.OrdinalIgnoreCase))
+        {
+            stem = stem[4..];
+        }
         var separatorIndex = stem.IndexOf('-');
 
         if (separatorIndex <= 0 || separatorIndex == stem.Length - 1)
@@ -150,8 +157,14 @@ internal static class AdrMarkdownParser
 
         return int.TryParse(idText, NumberStyles.None, CultureInfo.InvariantCulture, out var id)
             ? (id, slug)
-            : (null, slug);
+            : IsSlug(stem) ? (null, stem) : (null, null);
     }
+
+    private static bool IsSlug(string value) => value.Length > 0
+        && value[0] != '-'
+        && value[^1] != '-'
+        && !value.Contains("--", StringComparison.Ordinal)
+        && value.All(character => character == '-' || char.IsAsciiDigit(character) || character is >= 'a' and <= 'z');
 
     private static IEnumerable<string> ReadLines(string markdown)
     {

@@ -1,5 +1,7 @@
 # Criação offline de ADRs e templates
 
+O nome de arquivo padrão continua sendo `NNNN-kebab-case.md`. A configuração do repositório pode habilitar `unnumbered`, `adr-prefix` ou `numeric:1..9` por meio de `filename-policy`. `adr-guard new` usa essa política para novos arquivos e nunca renomeia ADRs existentes. Execute `check` primeiro para identificar colisões ou identidades estáveis ambíguas antes de uma migração manual.
+
 [English](creation.md) · [README](../README.pt-BR.md) · [Contrato de templates personalizados](custom-templates.pt-BR.md) · [Integração de templates com IA](draft-templates.pt-BR.md)
 
 > **Disponibilidade por versão:** `new` e o `draft` opcional com templates estão disponíveis nas releases publicadas da CLI/container desde a **v1.1.0**; ferramentas 1.0.x não os oferecem. Instale ou atualize a .NET Tool estável, ou use uma imagem de release publicada. A GitHub Action `@v1` publicada suporta `check`, `index` e `review` opt-in; `new` e `draft` assistido por IA continuam sendo fluxos de CLI/container direto.

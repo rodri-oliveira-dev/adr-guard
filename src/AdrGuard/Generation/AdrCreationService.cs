@@ -35,7 +35,8 @@ internal sealed class AdrCreationService
     internal static string AllocateFilePath(
         string directoryPath,
         string title,
-        IReadOnlyList<AdrDocument> documents)
+        IReadOnlyList<AdrDocument> documents,
+        AdrFilenamePolicy? filenamePolicy = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -50,10 +51,9 @@ internal sealed class AdrCreationService
         }
 
         var id = AdrIdAllocator.NextId(documents);
+        var fileName = (filenamePolicy ?? AdrFilenamePolicy.Canonical).Format(id, slug);
         return Path.GetFullPath(
-            Path.Combine(
-                directoryPath,
-                $"{id.ToString("D4", CultureInfo.InvariantCulture)}-{slug}.md"));
+            Path.Combine(directoryPath, fileName));
     }
 
     internal static AdrCreationResult Prepare(
@@ -61,18 +61,21 @@ internal sealed class AdrCreationService
         string title,
         string content,
         IReadOnlyList<AdrDocument> documents,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AdrFilenamePolicy? filenamePolicy = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var filePath = AllocateFilePath(directoryPath, title, documents);
+        var filePath = AllocateFilePath(directoryPath, title, documents, filenamePolicy);
         var candidate = AdrMarkdownParser.Parse(filePath, content);
 
         cancellationToken.ThrowIfCancellationRequested();
 
         var validation = AdrValidator.Validate(
-            documents.Append(candidate).ToArray());
+            documents.Append(candidate).ToArray(),
+            null,
+            new AdrValidationOptions(AdrFormat.Canonical, FilenamePolicy: filenamePolicy));
 
         cancellationToken.ThrowIfCancellationRequested();
         return new AdrCreationResult(filePath, validation);
@@ -112,6 +115,15 @@ internal sealed class AdrCreationService
         Func<int, string> renderForId,
         string previewPath,
         CancellationToken cancellationToken)
+        => PersistRenderedAsync(directoryPath, title, renderForId, previewPath, null, cancellationToken);
+
+    internal Task<AdrRenderedCreationResult> PersistRenderedAsync(
+        string directoryPath,
+        string title,
+        Func<int, string> renderForId,
+        string previewPath,
+        AdrFilenamePolicy? filenamePolicy,
+        CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(previewPath);
@@ -125,6 +137,7 @@ internal sealed class AdrCreationService
                 title,
                 renderForId,
                 previewPath,
+                filenamePolicy,
                 cancellationToken),
             CancellationToken.None);
     }
@@ -134,6 +147,7 @@ internal sealed class AdrCreationService
         string title,
         Func<int, string> renderForId,
         string previewPath,
+        AdrFilenamePolicy? filenamePolicy,
         CancellationToken cancellationToken)
     {
         using var mutex = new Mutex(
@@ -183,7 +197,8 @@ internal sealed class AdrCreationService
             var documents = AdrDocumentLoader.LoadDirectory(
                 directoryPath,
                 cancellationToken);
-            var existingValidation = AdrValidator.Validate(documents);
+            var existingValidation = AdrValidator.Validate(
+                documents, null, new AdrValidationOptions(AdrFormat.Canonical, FilenamePolicy: filenamePolicy));
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -203,7 +218,8 @@ internal sealed class AdrCreationService
                 title,
                 content,
                 documents,
-                cancellationToken);
+                cancellationToken,
+                filenamePolicy);
 
             if (!candidate.ValidationResult.IsValid)
             {

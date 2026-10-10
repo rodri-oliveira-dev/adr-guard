@@ -1,5 +1,7 @@
 # Offline ADR creation and templates
 
+The default filename remains `NNNN-kebab-case.md`. Repository configuration may opt into `unnumbered`, `adr-prefix`, or `numeric:1..9` through `filename-policy`. `adr-guard new` uses that policy for new files and never renames existing ADRs. Run `check` first to identify collisions or ambiguous stable identities before a manual migration.
+
 [Português (Brasil)](creation.pt-BR.md) · [README](../README.md) · [Custom template contract](custom-templates.md) · [AI template integration](draft-templates.md)
 
 > **Version availability:** `new` and optional template-aware `draft` are available in published CLI/container releases starting with **v1.1.0**; older 1.0.x tools do not offer them. Install or update the stable .NET Tool, or use a published release image. The published GitHub Action `@v1` supports `check`, `index`, and opt-in `review`; `new` and AI-assisted `draft` remain CLI/direct-container workflows.

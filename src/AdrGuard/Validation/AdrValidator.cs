@@ -85,6 +85,7 @@ internal static class AdrValidator
         }
 
         ValidateDuplicateIds(documents, issues);
+        ValidateDuplicateStableIds(documents, issues);
         AdrRelationshipValidator.Validate(documents, issues, options);
 
         return new ValidationResult(
@@ -101,7 +102,7 @@ internal static class AdrValidator
         List<ValidationIssue> issues,
         AdrValidationOptions options)
     {
-        ValidateFileName(document, issues);
+        ValidateFileName(document, issues, options.EffectiveFilenamePolicy);
         ValidateTitle(document, issues);
         if (options.Format == AdrFormat.Canonical)
         {
@@ -156,9 +157,10 @@ internal static class AdrValidator
 
     private static void ValidateFileName(
         AdrDocument document,
-        List<ValidationIssue> issues)
+        List<ValidationIssue> issues,
+        AdrFilenamePolicy filenamePolicy)
     {
-        if (IsValidFileName(document.FileName))
+        if (filenamePolicy.IsValid(document))
         {
             return;
         }
@@ -166,7 +168,7 @@ internal static class AdrValidator
         issues.Add(new ValidationIssue(
             ValidationCodes.InvalidFileName,
             document.FilePath,
-            $"File name '{document.FileName}' must match 'NNNN-lowercase-kebab-case.md' with an ID greater than zero."));
+            $"File name '{document.FileName}' does not match the configured '{filenamePolicy.Convention}' filename policy."));
     }
 
     private static bool IsValidFileName(string fileName)
@@ -335,6 +337,27 @@ internal static class AdrValidator
                     ValidationCodes.DuplicateId,
                     document.FilePath,
                     $"ADR ID {group.Key:D4} is duplicated by: {string.Join(", ", paths)}."));
+            }
+        }
+    }
+
+    private static void ValidateDuplicateStableIds(
+        IReadOnlyList<AdrDocument> documents,
+        List<ValidationIssue> issues)
+    {
+        foreach (var group in documents
+                     .Where(document => document.Id is null)
+                     .GroupBy(
+                         document => document.StableId ?? $"slug:{Path.GetFileNameWithoutExtension(document.FileName).ToLowerInvariant()}",
+                         StringComparer.OrdinalIgnoreCase)
+                     .Where(group => group.Count() > 1))
+        {
+            foreach (var document in group)
+            {
+                issues.Add(new ValidationIssue(
+                    ValidationCodes.DuplicateId,
+                    document.FilePath,
+                    $"Stable ADR identity '{group.Key}' is ambiguous."));
             }
         }
     }

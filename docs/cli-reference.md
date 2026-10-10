@@ -26,6 +26,7 @@ template: minimal
 # adr-format: canonical                   # canonical or madr-4
 # lifecycle-statuses: Rejected=rejected,Under Review=proposed
 # conventional-supersession: true          # opt in to status-text relationships
+# filename-policy: canonical               # canonical, unnumbered, adr-prefix, numeric:1..9
 ```
 
 Unknown/duplicate properties, unsupported schema versions, nested YAML, collections, tags, anchors, aliases, block scalars, invalid UTF-8, oversized files, unsafe paths, and simultaneous `template`/`template-file` are rejected. Relative paths resolve from the configuration directory. Configuration is never interpreted as a command and does not expand environment variables.

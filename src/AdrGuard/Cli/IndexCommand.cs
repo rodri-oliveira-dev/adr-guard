@@ -11,7 +11,7 @@ internal static class IndexCommand
         string? outputPath,
         TextWriter output,
         TextWriter error) =>
-        Run(directoryPath, outputPath, AdrFormat.Canonical, null, false, output, error);
+        Run(directoryPath, outputPath, AdrFormat.Canonical, null, false, null, output, error);
 
     internal static int Run(
         string directoryPath,
@@ -19,7 +19,7 @@ internal static class IndexCommand
         AdrFormat adrFormat,
         TextWriter output,
         TextWriter error) =>
-        Run(directoryPath, outputPath, adrFormat, null, false, output, error);
+        Run(directoryPath, outputPath, adrFormat, null, false, null, output, error);
 
     internal static int Run(
         string directoryPath,
@@ -27,6 +27,7 @@ internal static class IndexCommand
         AdrFormat adrFormat,
         string? lifecycleStatuses,
         bool conventionalSupersession,
+        string? filenamePolicy,
         TextWriter output,
         TextWriter error)
     {
@@ -60,7 +61,8 @@ internal static class IndexCommand
                     adrFormat,
                     Directory.GetCurrentDirectory(),
                     AdrLifecyclePolicy.Parse(lifecycleStatuses),
-                    conventionalSupersession));
+                    conventionalSupersession,
+                    AdrFilenamePolicy.Parse(filenamePolicy)));
 
             if (!validationResult.IsValid)
             {

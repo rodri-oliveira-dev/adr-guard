@@ -332,6 +332,7 @@ internal static class CliApplication
                 out var adrFormat,
                 out var lifecycleStatuses,
                 out var conventionalSupersession,
+                out var filenamePolicy,
                 out var changed,
                 out var baseReference,
                 out var baselinePath))
@@ -345,6 +346,7 @@ internal static class CliApplication
             adrFormat,
             lifecycleStatuses,
             conventionalSupersession,
+            filenamePolicy,
             changed,
             baseReference,
             baselinePath,
@@ -360,6 +362,7 @@ internal static class CliApplication
         out AdrFormat adrFormat,
         out string? lifecycleStatuses,
         out bool conventionalSupersession,
+        out string? filenamePolicy,
         out bool changed,
         out string? baseReference,
         out string? baselinePath)
@@ -369,6 +372,7 @@ internal static class CliApplication
         adrFormat = AdrFormat.Canonical;
         lifecycleStatuses = null;
         conventionalSupersession = false;
+        filenamePolicy = null;
         changed = false;
         baseReference = null;
         baselinePath = null;
@@ -491,6 +495,14 @@ internal static class CliApplication
                 continue;
             }
 
+            if (argument == "--filename-policy")
+            {
+                if (filenamePolicy is not null || index + 1 >= args.Count) return false;
+                filenamePolicy = args[++index];
+                try { AdrFilenamePolicy.Parse(filenamePolicy); } catch (ArgumentException) { return false; }
+                continue;
+            }
+
             if (argument.StartsWith('-') || directoryAssigned)
             {
                 return false;
@@ -521,6 +533,7 @@ internal static class CliApplication
         var format = AdrFormat.Canonical;
         string? lifecycleStatuses = null;
         var conventionalSupersession = false;
+        string? filenamePolicy = null;
         var directoryAssigned = false;
         var formatAssigned = false;
 
@@ -547,7 +560,7 @@ internal static class CliApplication
                 continue;
             }
 
-            if (argument is "--output" or "--adr-format" or "--lifecycle-statuses")
+            if (argument is "--output" or "--adr-format" or "--lifecycle-statuses" or "--filename-policy")
             {
                 if (index + 1 >= args.Count || args[index + 1].StartsWith('-'))
                 {
@@ -566,6 +579,13 @@ internal static class CliApplication
                 }
                 else
                 {
+                    if (argument == "--filename-policy")
+                    {
+                        filenamePolicy = value;
+                        try { AdrFilenamePolicy.Parse(filenamePolicy); }
+                        catch (ArgumentException) { return WriteCommandUsageError("baseline", error); }
+                        continue;
+                    }
                     if (argument == "--lifecycle-statuses")
                     {
                         lifecycleStatuses = value;
@@ -617,6 +637,7 @@ internal static class CliApplication
             format,
             lifecycleStatuses,
             conventionalSupersession,
+            filenamePolicy,
             output,
             error,
             cancellationToken);
@@ -639,7 +660,8 @@ internal static class CliApplication
                 out var outputPath,
                 out var adrFormat,
                 out var lifecycleStatuses,
-                out var conventionalSupersession))
+                out var conventionalSupersession,
+                out var filenamePolicy))
         {
             return WriteCommandUsageError("index", error);
         }
@@ -650,6 +672,7 @@ internal static class CliApplication
             adrFormat,
             lifecycleStatuses,
             conventionalSupersession,
+            filenamePolicy,
             output,
             error);
     }
@@ -969,13 +992,15 @@ internal static class CliApplication
         out string? outputPath,
         out AdrFormat adrFormat,
         out string? lifecycleStatuses,
-        out bool conventionalSupersession)
+        out bool conventionalSupersession,
+        out string? filenamePolicy)
     {
         directoryPath = ".";
         outputPath = null;
         adrFormat = AdrFormat.Canonical;
         lifecycleStatuses = null;
         conventionalSupersession = false;
+        filenamePolicy = null;
         var directoryAssigned = false;
         var adrFormatAssigned = false;
 
@@ -1038,6 +1063,14 @@ internal static class CliApplication
                 lifecycleStatuses = args[++index];
                 try { AdrLifecyclePolicy.Parse(lifecycleStatuses); }
                 catch (ArgumentException) { return false; }
+                continue;
+            }
+
+            if (argument == "--filename-policy")
+            {
+                if (filenamePolicy is not null || index + 1 >= args.Count) return false;
+                filenamePolicy = args[++index];
+                try { AdrFilenamePolicy.Parse(filenamePolicy); } catch (ArgumentException) { return false; }
                 continue;
             }
 

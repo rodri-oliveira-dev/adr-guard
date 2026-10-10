@@ -16,6 +16,7 @@ internal static class AdrGuardConfigurationLoader
         "adr-format",
         "lifecycle-statuses",
         "conventional-supersession",
+        "filename-policy",
     ];
 
     internal static AdrGuardConfiguration? Load(string invocationDirectory)
@@ -203,6 +204,7 @@ internal static class AdrGuardConfigurationLoader
         values.TryGetValue("adr-format", out var adrFormat);
         values.TryGetValue("lifecycle-statuses", out var lifecycleStatuses);
         values.TryGetValue("conventional-supersession", out var conventionalSupersessionText);
+        values.TryGetValue("filename-policy", out var filenamePolicy);
         var conventionalSupersession = conventionalSupersessionText switch
         {
             null or "false" => false,
@@ -243,6 +245,16 @@ internal static class AdrGuardConfigurationLoader
             }
         }
 
+        if (filenamePolicy is not null)
+        {
+            try { Validation.AdrFilenamePolicy.Parse(filenamePolicy); }
+            catch (ArgumentException exception)
+            {
+                throw new AdrGuardConfigurationException(
+                    $"Configuration '{path}' property 'filename-policy' is invalid: {exception.Message}", exception);
+            }
+        }
+
         try
         {
             var normalizedDirectory = RepositoryPath.NormalizeRelative(
@@ -261,7 +273,8 @@ internal static class AdrGuardConfigurationLoader
                 normalizedTemplateFile,
                 adrFormat,
                 lifecycleStatuses,
-                conventionalSupersession);
+                conventionalSupersession,
+                filenamePolicy);
         }
         catch (Exception exception) when (exception is ArgumentException or IOException)
         {

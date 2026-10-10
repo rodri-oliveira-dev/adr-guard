@@ -8,6 +8,25 @@ namespace AdrGuard.Tests.Cli;
 public sealed class ConfigurationProcessIntegrationTests
 {
     [Fact]
+    public async Task FilenamePolicyConfiguresValidationAndNewGeneration()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            var adrDirectory = Path.Combine(root, "records");
+            Directory.CreateDirectory(adrDirectory);
+            File.WriteAllText(Path.Combine(root, ".adrguard.yml"), "schema-version: 1\nadr-directory: records\nfilename-policy: adr-prefix\n");
+            File.WriteAllText(Path.Combine(adrDirectory, "ADR-0001-valid.md"), ValidMarkdown);
+            var check = await RunProcessAsync(root, "check");
+            var created = await RunProcessAsync(root, "new", "--title", "Next decision", "--dry-run");
+            Assert.Equal(ExitCodes.Success, check.ExitCode);
+            Assert.Equal(ExitCodes.Success, created.ExitCode);
+            Assert.Contains("ADR-0002-next-decision.md", created.Output, StringComparison.Ordinal);
+        }
+        finally { DeleteDirectory(root); }
+    }
+
+    [Fact]
     public async Task ConventionalSupersessionCanBeEnabledByRepositoryConfiguration()
     {
         var root = CreateTempDirectory();
