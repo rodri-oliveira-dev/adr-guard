@@ -50,8 +50,9 @@ internal sealed class AdrCreationService
                 + "The title must contain at least one ASCII letter or digit.");
         }
 
-        var id = AdrIdAllocator.NextId(documents);
-        var fileName = (filenamePolicy ?? AdrFilenamePolicy.Canonical).Format(id, slug);
+        var policy = filenamePolicy ?? AdrFilenamePolicy.Canonical;
+        var id = AdrIdAllocator.NextId(documents.Select(policy.NormalizeIdentity).ToArray());
+        var fileName = policy.Format(id, slug);
         return Path.GetFullPath(
             Path.Combine(directoryPath, fileName));
     }
@@ -194,9 +195,11 @@ internal sealed class AdrCreationService
             // The initial preview may be stale after a different-title writer
             // committed. Reallocate and validate the complete current set
             // while excluding every other cooperating creator.
+            var policy = filenamePolicy ?? AdrFilenamePolicy.Canonical;
             var documents = AdrDocumentLoader.LoadDirectory(
                 directoryPath,
-                cancellationToken);
+                cancellationToken)
+                .Select(policy.NormalizeIdentity).ToArray();
             var existingValidation = AdrValidator.Validate(
                 documents, null, new AdrValidationOptions(AdrFormat.Canonical, FilenamePolicy: filenamePolicy));
 
