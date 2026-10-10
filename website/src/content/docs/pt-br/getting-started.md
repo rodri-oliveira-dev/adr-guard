@@ -81,3 +81,4 @@ Adicione [validação incremental](/adr-guard/pt-br/product/incremental-validati
 - Compare [Minimal, Extended e MADR 4.0](/adr-guard/pt-br/templates/).
 - Leia o [exemplo de Redis](/adr-guard/pt-br/examples/redis-cache/).
 - Planeje um piloto leve de [adoção em equipe](/adr-guard/pt-br/adoption/).
+- Utilize [Agent Skills](/adr-guard/pt-br/skills/) como orientação para o agente; instale a skill e a CLI separadamente.

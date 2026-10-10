@@ -81,3 +81,4 @@ Add [incremental validation](/adr-guard/product/incremental-validation/) locally
 - Compare [Minimal, Extended, and MADR 4.0](/adr-guard/templates/).
 - Read the complete [Redis example](/adr-guard/examples/redis-cache/).
 - Plan a lightweight [team adoption](/adr-guard/adoption/) pilot.
+- Use [Agent Skills](/adr-guard/skills/) for a guided workflow; install the skill and ADR Guard CLI separately.

@@ -5,6 +5,7 @@ on:
     paths:
       - 'skills/**'
       - 'docs/skills/**'
+      - 'website/**'
       - 'scripts/validate-agent-skills.py'
       - 'tests/agent_skills/**'
       - '.github/workflows/agent-skills.yml'
@@ -12,6 +13,7 @@ on:
     paths:
       - 'skills/**'
       - 'docs/skills/**'
+      - 'website/**'
       - 'scripts/validate-agent-skills.py'
       - 'tests/agent_skills/**'
       - '.github/workflows/agent-skills.yml'
@@ -32,3 +34,27 @@ jobs:
         run: python3 scripts/validate-agent-skills.py
       - name: Validator regression tests
         run: python3 -m unittest discover -s tests/agent_skills -p 'test_*.py'
+
+  portal:
+    name: Validate Agent Skills portal
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - name: Install from lockfile
+        working-directory: website
+        run: npm ci
+      - name: Check, test, build, verify SEO, routes, links and HTML
+        working-directory: website
+        run: npm run validate
+      - name: Check spelling
+        working-directory: website
+        run: npm run test:spelling
