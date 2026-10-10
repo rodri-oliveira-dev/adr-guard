@@ -1,0 +1,17 @@
+Architecture impact analysis (advisory; not a compliance decision)
+Base: HEAD (<merge-base>)
+Changes: 5; affected: 2; unknown: 1; not matched: 2
+
+[affected] ADR-1 - Use the orders API boundary
+  unstaged/modified: src/orders-api/endpoint.cs.fixture (current) matches src/orders-api/**: The accepted decision defines the public orders API boundary.
+
+[affected] ADR-2 - Migrate orders storage
+  staged/renamed: src/orders-storage/renamed-repository.cs.fixture (current) matches src/orders-storage/**: The proposed migration may be relevant but is not yet an effective decision.
+  staged/renamed: src/orders-storage/repository.cs.fixture (previous) matches src/orders-storage/**: The proposed migration may be relevant but is not yet an effective decision.
+  Uncertainty: The decision is proposed and is not an effective architectural approval.
+
+[unknown] ADR-3 - Retire orders v1 immediately
+  staged/deleted: src/orders-v1/legacy-client.cs.fixture (previous) matches src/orders-v1/**: The rejected legacy-prefix decision is retained as history and must not imply active governance.
+  Uncertainty: The decision status 'Rejected' is not active governance.
+
+Coverage note: 2 changed file(s) have no explicit ADR mapping.

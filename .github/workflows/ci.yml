@@ -74,8 +74,8 @@ jobs:
           cmp CHANGELOG.md <(unzip -p "${package_file}" CHANGELOG.md)
           nuspec="$(unzip -p "${package_file}" RodriOliveira.AdrGuard.nuspec)"
           grep -Fq '<releaseNotes>' <<< "${nuspec}"
-          grep -Fq 'MADR 4.0 validation' <<< "${nuspec}"
-          grep -Fq 'Git-aware incremental checks' <<< "${nuspec}"
+          grep -Fq 'Opt-in architecture impact analysis' <<< "${nuspec}"
+          grep -Fq 'Secure opt-in GitHub Action impact summaries' <<< "${nuspec}"
           grep -Fq "releases/tag/v${ADR_GUARD_VERSION}" <<< "${nuspec}"
           test "$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:PackageVersion | tr -d '\r' | tail -n 1)" = "${ADR_GUARD_VERSION}"
 
@@ -522,6 +522,9 @@ jobs:
 
       - name: Verify opt-in AI review paths with mock provider
         run: bash scripts/github-action-review-test.sh
+
+      - name: Verify opt-in architecture impact paths and summaries
+        run: bash scripts/github-action-impact-test.sh
 
       - name: Verify annotations, summaries, and hostile diagnostic handling
         run: bash scripts/github-action-report-test.sh

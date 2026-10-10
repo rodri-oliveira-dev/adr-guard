@@ -2,6 +2,8 @@
 
 > **Status da publicação:** a Action reutilizável está publicada, e a tag de compatibilidade `v1` está publicada e é móvel. A linha pública `v1` suporta `check`, `index` e `review` opt-in desde a `v1.1.6`; `new` e `draft` continuam fluxos exclusivos de CLI/container. A [listagem no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) foi acessada de forma independente e sem autenticação em 09/10/2026.
 
+> **Status da release de impact:** os inputs de `impact` estão preparados para publicação coordenada na v1.5.0, mas ainda não estão disponíveis no runtime público atual de `@v1`. Não use o exemplo abaixo antes da verificação dessa release coordenada.
+
 A composite Action do ADR Guard executa o container publicado do ADR Guard. O consumidor não precisa do .NET SDK. É necessário um runner Linux com Docker e checkout prévio do repositório; o `review` opt-in também exige Python 3 no runner para renderização segura de summary/annotations.
 
 ## Inputs
@@ -9,7 +11,7 @@ A composite Action do ADR Guard executa o container publicado do ADR Guard. O co
 | Input | Padrão | Valores aceitos |
 | --- | --- | --- |
 | `path` | `docs/adr` | Diretório de ADRs relativo ao repositório, dentro de `GITHUB_WORKSPACE`. Paths absolutos, diretórios inexistentes, traversal com `..` e escapes por symlink são rejeitados. |
-| `command` | `check` | `check`, `index` ou `review` explícito. |
+| `command` | `check` | `check`, `index`, `review` explícito ou `impact` explícito. |
 | `version` | vazio | Versão exata opcional da imagem de runtime no formato `X.Y.Z` ou `vX.Y.Z`. Obrigatória quando o source da Action é fixado por SHA de commit ou branch. |
 | `review-target` | vazio | Arquivo Markdown do ADR relativo ao repositório; obrigatório para `review`. |
 | `provider` | vazio | Provider de revisão; obrigatório para `review`. |
@@ -19,10 +21,37 @@ A composite Action do ADR Guard executa o container publicado do ADR Guard. O co
 | `include-existing-adrs` | `false` | Opt-in explícito para contexto limitado de ADRs existentes. |
 | `policy` | `advisory` | `advisory` ou `enforce` determinístico. |
 | `policy-file` | vazio | JSON de policy determinística; obrigatório com `policy: enforce`. |
+| `base-ref` | vazio | Referência Git base explícita; obrigatória para `impact`. O checkout precisa conter histórico suficiente para calcular o merge base. |
+| `impact-map` | vazio | JSON de mapeamento ADR-código relativo ao repositório; obrigatório para `impact`. Traversal e escapes por symlink são rejeitados. |
 
 O contrato de exit codes do CLI é preservado: `0` sucesso, `1` falha de validação de ADR, `2` erro de uso/input, `3` falha operacional/provider e `4` falha de policy determinística de review.
 
 A revisão com provider é opcional e não altera o comportamento padrão do `check`. Consulte [Revisão por IA na GitHub Action](github-action-review.pt-BR.md) para credenciais, eventos confiáveis, summaries, annotations e restrições de fork/`pull_request_target`.
+
+A análise de impacto arquitetural também é opt-in e não altera o comportamento padrão de `check`. Ela é somente leitura, executa sem rede, não encaminha credenciais do provider ou do GitHub e grava um `GITHUB_STEP_SUMMARY` consultivo e limitado. O consumidor é responsável pelo histórico do checkout; use `fetch-depth: 0` ou outra profundidade explícita que contenha a base selecionada e o merge base. Pull requests de forks podem usar esse modo determinístico com `permissions: contents: read` e sem secrets.
+
+```yaml
+permissions:
+  contents: read
+
+steps:
+  - name: Checkout com histórico de comparação
+    uses: actions/checkout@v7
+    with:
+      fetch-depth: 0
+      persist-credentials: false
+
+  - name: Inspecionar impacto arquitetural
+    uses: rodri-oliveira-dev/adr-guard@v1
+    with:
+      command: impact
+      base-ref: origin/main
+      impact-map: .adrguard-impact.json
+```
+
+A Action valida se a imagem de runtime selecionada expõe o contrato CLI de `impact`. Uma imagem exata antiga falha como erro operacional, sem fallback para `latest`. Histórico ausente ou base desconectada também retorna exit code `3`; alterações afetadas ou não mapeadas retornam `0`, pois o relatório é consultivo.
+
+O JSON estável permanece no log bruto protegido contra workflow commands. Se for necessário reter um artifact JSON, execute explicitamente o container da mesma versão exata com checkout somente leitura, redirecione `impact --format json` para `${RUNNER_TEMP}/adr-impact.json` e faça opt-in de `actions/upload-artifact` no workflow consumidor. A Action não cria nem envia artifacts implicitamente. Consulte o [exemplo completo somente leitura](examples/github-action-impact.yml).
 
 ## Validação de pull request
 

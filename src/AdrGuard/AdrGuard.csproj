@@ -9,20 +9,20 @@
     <ToolCommandName>adr-guard</ToolCommandName>
 
     <PackageId>RodriOliveira.AdrGuard</PackageId>
-    <VersionPrefix>1.3.0</VersionPrefix>
+    <VersionPrefix>1.5.0</VersionPrefix>
     <Title>ADR Guard - Architecture Decision Records Validator</Title>
     <Authors>Rodrigo de Oliveira</Authors>
-    <Description>Validate, index, create, draft, and review Architecture Decision Records from the command line. ADR Guard provides deterministic Markdown checks, offline ADR generation, optional human-reviewed AI-assisted drafting, and evidence-oriented advisory technical review.</Description>
-    <PackageTags>adr;architecture;architecture-decision-record;architecture-decision-records;dotnet;dotnet-tool;cli;validation;markdown;documentation;templates;adr-generation;adr-review;ai</PackageTags>
+    <Description>Validate, index, create, draft, review, and analyze the code impact of Architecture Decision Records from the command line. ADR Guard provides deterministic Markdown checks, explicit ADR-to-code mappings, offline ADR generation, optional human-reviewed AI-assisted drafting, and evidence-oriented advisory analysis.</Description>
+    <PackageTags>adr;architecture;architecture-decision-record;architecture-decision-records;dotnet;dotnet-tool;cli;validation;markdown;documentation;templates;adr-generation;adr-review;architecture-impact;ai</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon-nuget.png</PackageIcon>
-    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '1.3.0'">MADR 4.0 validation and deterministic ADR relationship governance (ADR010-ADR014).
-Git-aware incremental checks and strict, versioned diagnostic baselines.
-Explicit two-revision AI-assisted architectural review, preserving opt-in safety controls.
-Includes both former v1.3 and v1.4 development feature sets as NuGet 1.3.0.
-Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0</PackageReleaseNotes>
+    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '1.5.0'">Opt-in architecture impact analysis from strict, explicit ADR-to-code mappings.
+Bounded Git change inventory with rename/delete evidence and advisory JSON/text reports.
+Secure opt-in GitHub Action impact summaries with read-only, secretless execution.
+Preserves canonical defaults and existing check/review JSON, SARIF, CLI, and exit contracts.
+Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.5.0</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/rodri-oliveira-dev/adr-guard</PackageProjectUrl>
     <RepositoryUrl>https://github.com/rodri-oliveira-dev/adr-guard</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

@@ -2,6 +2,8 @@
 
 > Availability: `init`, `.adrguard.yml`, and structured `check` output were published in ADR Guard v1.2.0. MADR 4.0 format selection was published in v1.3.0. See [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) for exact artifacts.
 
+> Architecture impact analysis is prepared for v1.5.0 but is not yet published. The public package remains v1.3.0 while the incomplete v1.4.0 distribution is resolved.
+
 ## Initialize a repository
 
 ```text
@@ -49,6 +51,14 @@ adr-guard check [directory] [--format text|json|sarif]
 ```
 
 `text` remains the default. JSON uses schema version `1.0`; SARIF uses version `2.1.0`. Both are written to stdout on success and ADR validation failure, while operational diagnostics use stderr. Exit codes remain `0` for valid, `1` for ADR diagnostics, `2` for invalid usage/configuration, and `3` for operational failure.
+
+## Architecture impact
+
+```text
+adr-guard impact [repository] --base-ref <ref> --map <file> [--format text|json]
+```
+
+`impact` is explicit, advisory, and read-only. `repository` defaults to the current directory; `--map` is repository-relative. Text is the default and JSON uses the independent report schema `1.0`. Affected/unmapped findings return `0`, invalid usage returns `2`, and Git/history/manifest/bounds failures return `3`. See the [complete guide](guides/architecture-impact-analysis.md).
 
 ## Troubleshooting
 

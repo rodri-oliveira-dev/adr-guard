@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "mappings": [
+    {
+      "decision": {
+        "stableId": "ADR-1",
+        "path": "docs/adr/0001-use-orders-api.md"
+      },
+      "patterns": [
+        "src/orders-api/**"
+      ],
+      "relationship": "governs",
+      "reason": "The accepted decision defines the public orders API boundary."
+    },
+    {
+      "decision": {
+        "stableId": "ADR-2",
+        "path": "docs/adr/0002-migrate-orders-storage.md"
+      },
+      "patterns": [
+        "src/orders-storage/**"
+      ],
+      "relationship": "implements",
+      "reason": "The proposed migration may be relevant but is not yet an effective decision."
+    },
+    {
+      "decision": {
+        "stableId": "ADR-3",
+        "path": "docs/legacy-adr/ADR-0003-retire-orders-v1.md"
+      },
+      "patterns": [
+        "src/orders-v1/**"
+      ],
+      "relationship": "constrains",
+      "reason": "The rejected legacy-prefix decision is retained as history and must not imply active governance."
+    }
+  ]
+}

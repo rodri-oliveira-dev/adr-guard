@@ -30,6 +30,7 @@ New to the practice? Follow the progressive guide:
 - supports separate, opt-in MADR 4.0 validation;
 - generates a deterministic Markdown index only after validation succeeds;
 - supports Git-aware incremental checks, diagnostic baselines, and JSON/SARIF reports;
+- offers opt-in, advisory [architecture impact analysis](docs/guides/architecture-impact-analysis.md) from explicit ADR-to-code mappings;
 - offers opt-in, human-reviewed AI drafting and technical review with explicit providers and context;
 - integrates with GitHub Actions, VS Code, and versioned container images.
 
@@ -79,7 +80,7 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 
 | Integration | Use | Guide |
 | --- | --- | --- |
-| GitHub Action | Validate, index, or explicitly run AI review on supported Linux runners | [Consumer guide](docs/github-action.md) |
+| GitHub Action | Validate, index, or explicitly run AI review/architecture impact analysis on supported Linux runners | [Consumer guide](docs/github-action.md) |
 | VS Code | Commands, Problems diagnostics, and ADR Explorer through a compatible installed CLI | [Extension guide](extensions/vscode/README.md) |
 | Containers | Run the same versioned CLI from GHCR or Docker Hub | [Container and supply-chain guide](docs/container.md) |
 | CI reports | Produce text, JSON, or SARIF validation output | [Check reports](docs/check-reports.md) |

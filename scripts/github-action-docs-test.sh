@@ -11,22 +11,26 @@ EXAMPLE_PR="${ROOT_DIR}/docs/examples/github-action-pr.yml"
 EXAMPLE_MAIN="${ROOT_DIR}/docs/examples/github-action-main.yml"
 EXAMPLE_INCREMENTAL="${ROOT_DIR}/docs/examples/github-action-incremental.yml"
 EXAMPLE_FORK="${ROOT_DIR}/docs/examples/github-action-fork.yml"
+EXAMPLE_IMPACT="${ROOT_DIR}/docs/examples/github-action-impact.yml"
 EXTERNAL_EN="${ROOT_DIR}/docs/github-action-external-verification.md"
 EXTERNAL_PT="${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
 REVIEW_EN="${ROOT_DIR}/docs/github-action-review.md"
 REVIEW_PT="${ROOT_DIR}/docs/github-action-review.pt-BR.md"
 AUDIT_EN="${ROOT_DIR}/docs/public-release-audit.md"
 AUDIT_PT="${ROOT_DIR}/docs/public-release-audit.pt-BR.md"
+CI="${ROOT_DIR}/.github/workflows/ci.yml"
 
-for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXAMPLE_INCREMENTAL}" "${EXAMPLE_FORK}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${REVIEW_EN}" "${REVIEW_PT}" "${AUDIT_EN}" "${AUDIT_PT}"; do
+for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXAMPLE_INCREMENTAL}" "${EXAMPLE_FORK}" "${EXAMPLE_IMPACT}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${REVIEW_EN}" "${REVIEW_PT}" "${AUDIT_EN}" "${AUDIT_PT}"; do
   test -s "${file}" || {
     echo "Required GitHub Action consumer documentation is missing: ${file}" >&2
     exit 1
   }
 done
 
+grep -Fq 'github-action-impact-test.sh' "${CI}"
+
 # Public input contract must stay synchronized with the guides.
-for input in path command version review-target provider model endpoint context-files include-existing-adrs policy policy-file; do
+for input in path command version review-target provider model endpoint context-files include-existing-adrs policy policy-file base-ref impact-map; do
   grep -Eq "^  ${input}:" "${ACTION}" || {
     echo "action.yml no longer exposes expected input '${input}'." >&2
     exit 1
@@ -41,6 +45,18 @@ for input in path command version review-target provider model endpoint context-
     exit 1
   }
 done
+
+for impact_document in "${GUIDE_EN}" "${GUIDE_PT}" "${EXAMPLE_IMPACT}"; do
+  grep -Fq 'command: impact' "${impact_document}"
+  grep -Fq 'base-ref: origin/main' "${impact_document}"
+  grep -Fq 'impact-map: .adrguard-impact.json' "${impact_document}"
+  grep -Fq 'contents: read' "${impact_document}"
+  grep -Fq 'fetch-depth: 0' "${impact_document}"
+done
+if grep -Eiq 'pull_request_target|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|secrets\.' "${EXAMPLE_IMPACT}"; then
+  echo "Impact example must remain unprivileged and secretless." >&2
+  exit 1
+fi
 
 grep -Fq 'default: docs/adr' "${ACTION}"
 grep -Fq 'default: check' "${ACTION}"

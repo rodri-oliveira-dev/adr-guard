@@ -65,13 +65,13 @@ grep -Fq 'below VersionPrefix ${base_version}' "${WORKFLOW}" || {
   exit 1
 }
 
-grep -Fq 'AI-assisted drafting, and evidence-oriented advisory technical review' "${PROJECT}" || {
-  echo "NuGet metadata must describe the published ADR review capability." >&2
+grep -Fq 'explicit ADR-to-code mappings' "${PROJECT}" || {
+  echo "NuGet metadata must describe the prepared architecture impact capability." >&2
   exit 1
 }
 
-grep -Fq 'org.opencontainers.image.description=A lightweight .NET CLI for validating, creating, indexing, drafting, and reviewing Architecture Decision Records (ADRs).' "${WORKFLOW}" || {
-  echo "OCI metadata must describe the published ADR review capability." >&2
+grep -Fq 'org.opencontainers.image.description=A .NET CLI for validating, maintaining, reviewing, and analyzing the impact of Architecture Decision Records (ADRs).' "${WORKFLOW}" || {
+  echo "OCI metadata must describe the prepared architecture impact capability." >&2
   exit 1
 }
 
@@ -147,7 +147,7 @@ grep -Fq 'ADR_GUARD_BIN="${PWD}/.release-tools/adr-guard" bash scripts/template-
   exit 1
 }
 
-# Feature releases 1.1.0 and 1.3.0 use curated notes; other releases
+# Feature releases 1.1.0, 1.3.0, and 1.5.0 use curated notes; other releases
 # retain generated notes, and all tags remain immutable.
 grep -Fq 'ref: ${{ needs.build-and-pack.outputs.validated-sha }}' <<<"${release_block}"
 grep -Fq 'release_notes=(--generate-notes)' <<<"${release_block}"
@@ -155,9 +155,13 @@ grep -Fq 'if [[ "${RELEASE_TAG}" == v1.1.0 ]]; then' <<<"${release_block}"
 grep -Fq 'release_notes=(--notes-file docs/releases/v1.1.0.md)' <<<"${release_block}"
 grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.3.0 ]]; then' <<<"${release_block}"
 grep -Fq 'release_notes=(--notes-file docs/releases/v1.3.0.md)' <<<"${release_block}"
+grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.5.0 ]]; then' <<<"${release_block}"
+grep -Fq 'release_notes=(--notes-file docs/releases/v1.5.0.md)' <<<"${release_block}"
 test -s "${ROOT_DIR}/docs/releases/v1.1.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.1.0.pt-BR.md"
 test -s "${ROOT_DIR}/docs/releases/v1.3.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.3.0.pt-BR.md"
+test -s "${ROOT_DIR}/docs/releases/v1.5.0.md"
+test -s "${ROOT_DIR}/docs/releases/v1.5.0.pt-BR.md"
 
 echo "Release workflow Action publication policy checks passed."

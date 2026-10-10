@@ -17,11 +17,18 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     --no-self-contained \
     /p:UseAppHost=true
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0.12-azurelinux3.0-distroless-extra AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0.12-azurelinux3.0@sha256:23e7e80a46c418b3d1609b57734f19fe28070bad0f4104483bb6b0a05a5d31f3 AS final
 WORKDIR /workspace
 
+# Impact analysis invokes the bounded local Git CLI. The runtime remains
+# non-root and the Action mounts consumer repositories read-only.
+# hadolint ignore=DL3041
+RUN tdnf install -y git \
+    && tdnf clean all \
+    && rm -rf /var/cache/tdnf
+
 LABEL org.opencontainers.image.title="ADR Guard" \
-      org.opencontainers.image.description="A lightweight .NET CLI for validating, maintaining, indexing, and drafting Architecture Decision Records (ADRs)." \
+      org.opencontainers.image.description="A .NET CLI for validating, maintaining, reviewing, and analyzing the impact of Architecture Decision Records (ADRs)." \
       org.opencontainers.image.url="https://github.com/rodri-oliveira-dev/adr-guard" \
       org.opencontainers.image.source="https://github.com/rodri-oliveira-dev/adr-guard" \
       org.opencontainers.image.documentation="https://github.com/rodri-oliveira-dev/adr-guard#readme" \
@@ -29,6 +36,9 @@ LABEL org.opencontainers.image.title="ADR Guard" \
       org.opencontainers.image.authors="Rodrigo de Oliveira"
 
 COPY --from=build /app/publish /app
+COPY packaging/container.gitconfig /app/gitconfig
+
+ENV GIT_CONFIG_SYSTEM=/app/gitconfig
 
 USER $APP_UID
 

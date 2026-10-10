@@ -1,14 +1,15 @@
 using System.Reflection;
+using AdrGuard.Configuration;
 using AdrGuard.Generation;
 using AdrGuard.Generation.Providers;
-using AdrGuard.Configuration;
+using AdrGuard.Git;
+using AdrGuard.Impact;
 using AdrGuard.Review;
 using AdrGuard.Review.Policy;
 using AdrGuard.Review.Providers;
 using AdrGuard.Review.Reporting;
 using AdrGuard.Review.Security;
 using AdrGuard.Validation;
-using AdrGuard.Git;
 
 namespace AdrGuard.Cli;
 
@@ -29,6 +30,7 @@ internal static class CliApplication
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
           adr-guard review <adr-file> --provider <provider> --model <model> [--compare-ref <ref>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
+          adr-guard impact [repository] --base-ref <ref> --map <file> [--format text|json]
           adr-guard [options]
 
         Commands:
@@ -39,6 +41,7 @@ internal static class CliApplication
           new      Create a Proposed ADR from an offline Markdown template.
           draft    Generate a Proposed ADR draft through a configured AI provider.
           review   Request an advisory, read-only technical review of one existing ADR.
+          impact   Correlate Git changes with explicit ADR-to-code mappings.
 
         Options:
           -h, --help    Show command-line help.
@@ -50,6 +53,23 @@ internal static class CliApplication
           2  Invalid command-line usage
           3  Operational error
           4  Deterministic review policy failed
+        """;
+
+    private const string ImpactHelpText = """
+        Usage:
+          adr-guard impact [repository] --base-ref <ref> --map <file> [--format text|json]
+
+        Correlate committed, staged, unstaged and untracked changes with explicit ADR mappings.
+        The repository defaults to the current directory. The map is a repository-relative JSON file.
+        The base reference is explicit; ADR Guard does not fetch, checkout, write files or alter Git state.
+        Text is advisory. JSON is a deterministic schemaVersion 1.0 document written only to stdout.
+        Paths, evidence and reasons originate from local Git data and the bounded mapping manifest;
+        treat report content as untrusted when forwarding it to logs or other systems.
+
+        Exit codes:
+          0  Analysis completed, including when decisions are affected or coverage is incomplete
+          2  Invalid command-line usage
+          3  Git, manifest, repository or cancellation failure
         """;
 
     private const string CheckHelpText = """
@@ -309,8 +329,138 @@ internal static class CliApplication
                 httpClientFactory,
                 environmentVariableReader,
                 cancellationToken),
+            "impact" => RunImpact(effectiveArgs, output, error, cancellationToken),
             _ => WriteUsageError(effectiveArgs, error),
         };
+    }
+
+    private static int RunImpact(
+        IReadOnlyList<string> args,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken)
+    {
+        if (args.Count == 2 && IsHelpOption(args[1]))
+        {
+            output.WriteLine(ImpactHelpText);
+            return ExitCodes.Success;
+        }
+
+        if (!TryParseImpactArguments(
+                args,
+                out var repositoryPath,
+                out var baseReference,
+                out var manifestPath,
+                out var format))
+        {
+            return WriteCommandUsageError("impact", error);
+        }
+
+        return ImpactCommand.Run(
+            repositoryPath,
+            baseReference,
+            manifestPath,
+            format,
+            output,
+            error,
+            cancellationToken);
+    }
+
+    private static bool TryParseImpactArguments(
+        IReadOnlyList<string> args,
+        out string repositoryPath,
+        out string baseReference,
+        out string manifestPath,
+        out ImpactOutputFormat format)
+    {
+        repositoryPath = Directory.GetCurrentDirectory();
+        baseReference = string.Empty;
+        manifestPath = string.Empty;
+        format = ImpactOutputFormat.Text;
+        var repositoryAssigned = false;
+        var baseAssigned = false;
+        var mapAssigned = false;
+        var formatAssigned = false;
+
+        for (var index = 1; index < args.Count; index++)
+        {
+            var argument = args[index];
+            if (argument is "--base-ref" or "--map" or "--format")
+            {
+                if (index + 1 >= args.Count)
+                {
+                    return false;
+                }
+
+                var value = args[++index];
+                if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-'))
+                {
+                    return false;
+                }
+
+                if (argument == "--base-ref")
+                {
+                    if (baseAssigned)
+                    {
+                        return false;
+                    }
+
+                    try
+                    {
+                        GitChangeDetector.ValidateReference(value);
+                    }
+                    catch (ArgumentException)
+                    {
+                        return false;
+                    }
+
+                    baseReference = value;
+                    baseAssigned = true;
+                }
+                else if (argument == "--map")
+                {
+                    if (mapAssigned)
+                    {
+                        return false;
+                    }
+
+                    manifestPath = value;
+                    mapAssigned = true;
+                }
+                else
+                {
+                    if (formatAssigned)
+                    {
+                        return false;
+                    }
+
+                    format = value switch
+                    {
+                        "text" => ImpactOutputFormat.Text,
+                        "json" => ImpactOutputFormat.Json,
+                        _ => (ImpactOutputFormat)(-1),
+                    };
+                    if (!Enum.IsDefined(format))
+                    {
+                        return false;
+                    }
+
+                    formatAssigned = true;
+                }
+
+                continue;
+            }
+
+            if (argument.StartsWith('-') || repositoryAssigned)
+            {
+                return false;
+            }
+
+            repositoryPath = argument;
+            repositoryAssigned = true;
+        }
+
+        return baseAssigned && mapAssigned;
     }
 
     private static int RunCheck(
