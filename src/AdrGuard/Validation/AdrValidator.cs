@@ -61,6 +61,12 @@ internal static class AdrValidator
         ArgumentNullException.ThrowIfNull(documents);
         ArgumentNullException.ThrowIfNull(options);
 
+        // Interpret identities using the selected filename convention before
+        // duplicate checks, reference relationships and filename validation.
+        documents = documents
+            .Select(options.EffectiveFilenamePolicy.NormalizeIdentity)
+            .ToArray();
+
         // Keep metadata status specific to the explicitly selected MADR format.
         documents = AdrStatusResolver.ForFormat(documents, options.Format);
         var issues = new List<ValidationIssue>();
@@ -370,12 +376,26 @@ internal static class AdrValidator
         PlaceholderPolicy policy)
     {
         if (policy == PlaceholderPolicy.Off) return;
-        var tokens = new[] { "[EDIT]", "[EDITAR]", "TODO", "TBD" };
+        var bracketedTokens = new[] { "[EDIT]", "[EDITAR]" };
+        const string wordMarkers = @"(?<![\p{L}\p{N}_])(?:TODO|TBD)(?![\p{L}\p{N}_])";
+        var markerOptions = System.Text.RegularExpressions.RegexOptions.IgnoreCase
+            | System.Text.RegularExpressions.RegexOptions.CultureInvariant;
         foreach (var section in document.Sections)
         {
             var content = RemoveFencedContent(section.Content);
-            var token = tokens.FirstOrDefault(candidate => content.Contains(candidate, StringComparison.OrdinalIgnoreCase));
-            if (token is null && !System.Text.RegularExpressions.Regex.IsMatch(content, @"\{\{[^{}\r\n]+\}\}", System.Text.RegularExpressions.RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)))
+            var token = bracketedTokens.FirstOrDefault(candidate =>
+                content.Contains(candidate, StringComparison.OrdinalIgnoreCase));
+            if (token is null)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(
+                    content, wordMarkers, markerOptions, TimeSpan.FromMilliseconds(100));
+                if (match.Success) token = match.Value.ToUpperInvariant();
+            }
+
+            if (token is null && !System.Text.RegularExpressions.Regex.IsMatch(
+                content, @"\{\{[^{}\r\n]+\}\}",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+                TimeSpan.FromMilliseconds(100)))
                 continue;
             issues.Add(new ValidationIssue(
                 ValidationCodes.UnresolvedPlaceholder,
