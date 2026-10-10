@@ -239,6 +239,96 @@ public sealed class ConfigurationProcessIntegrationTests
         }
     }
 
+    [Fact]
+    public async Task ExplicitDirectoryOutsideWorkingDirectoryUsesCheckedRepositoryForAllCommands()
+    {
+        var root = CreateTempDirectory();
+        var external = CreateTempDirectory();
+        try
+        {
+            var adrDirectory = Path.Combine(root, "docs", "adr");
+            Directory.CreateDirectory(adrDirectory);
+            File.WriteAllText(Path.Combine(root, ".adrguard.yml"),
+                "schema-version: 1\nadr-directory: docs/adr\n");
+            File.WriteAllText(Path.Combine(root, "docs", "architecture.md"), "# Architecture");
+            File.WriteAllText(Path.Combine(adrDirectory, "0001-decision.md"),
+                ValidMarkdown + "\n## References\n[Architecture](../architecture.md)\n");
+
+            var check = await RunProcessAsync(external, "check", adrDirectory, "--format", "json");
+            Assert.Equal(ExitCodes.Success, check.ExitCode);
+            using (var report = JsonDocument.Parse(check.Output))
+                Assert.True(report.RootElement.GetProperty("valid").GetBoolean());
+
+            var baselineFile = Path.Combine(root, "baseline.json");
+            var baseline = await RunProcessAsync(external, "baseline", adrDirectory,
+                "--output", baselineFile);
+            Assert.Equal(ExitCodes.Success, baseline.ExitCode);
+            Assert.True(File.Exists(baselineFile));
+
+            var index = await RunProcessAsync(external, "index", adrDirectory);
+            Assert.Equal(ExitCodes.Success, index.ExitCode);
+            Assert.True(File.Exists(Path.Combine(adrDirectory, "README.md")));
+        }
+        finally
+        {
+            DeleteDirectory(external);
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public async Task NewBaselineWarningDoesNotMakeJsonInvalid()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            var adrDirectory = Path.Combine(root, "docs", "adr");
+            Directory.CreateDirectory(adrDirectory);
+            File.WriteAllText(Path.Combine(root, ".adrguard.yml"),
+                "schema-version: 1\nadr-directory: docs/adr\n");
+            File.WriteAllText(Path.Combine(adrDirectory, "0001-decision.md"),
+                ValidMarkdown + "\n## References\nTODO: add follow-ups.\n");
+
+            var baselinePath = Path.Combine(root, "baseline.json");
+            var baseline = await RunProcessAsync(root, "baseline", "--output", baselinePath);
+            Assert.Equal(ExitCodes.Success, baseline.ExitCode);
+
+            var check = await RunProcessAsync(root, "check", "--format", "json",
+                "--placeholder-policy", "warn", "--baseline", baselinePath);
+            Assert.Equal(ExitCodes.Success, check.ExitCode);
+            using var report = JsonDocument.Parse(check.Output);
+            Assert.True(report.RootElement.GetProperty("valid").GetBoolean());
+            Assert.Equal(1, report.RootElement.GetProperty("baseline").GetProperty("new").GetInt32());
+        }
+        finally { DeleteDirectory(root); }
+    }
+
+    [Fact]
+    public async Task UnnumberedNumericLeadingTitleCanBeGeneratedAndIndexed()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            var adrDirectory = Path.Combine(root, "records");
+            Directory.CreateDirectory(adrDirectory);
+            File.WriteAllText(Path.Combine(root, ".adrguard.yml"),
+                "schema-version: 1\nadr-directory: records\nfilename-policy: unnumbered\n");
+
+            var create = await RunProcessAsync(root, "new", "--title", "2026 Plan");
+            Assert.Equal(ExitCodes.Success, create.ExitCode);
+            Assert.True(File.Exists(Path.Combine(adrDirectory, "2026-plan.md")));
+
+            var check = await RunProcessAsync(root, "check");
+            Assert.Equal(ExitCodes.Success, check.ExitCode);
+
+            var index = await RunProcessAsync(root, "index", "--catalog", "enriched");
+            Assert.Equal(ExitCodes.Success, index.ExitCode);
+            var content = File.ReadAllText(Path.Combine(adrDirectory, "README.md"));
+            Assert.Contains("slug:2026-plan", content, StringComparison.Ordinal);
+        }
+        finally { DeleteDirectory(root); }
+    }
+
     private static async Task<ProcessResult> RunProcessAsync(
         string workingDirectory,
         params string[] arguments)
