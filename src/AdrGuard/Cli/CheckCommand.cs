@@ -18,6 +18,7 @@ internal static class CheckCommand
             lifecycleStatuses: null,
             conventionalSupersession: false,
             filenamePolicy: null,
+            placeholderPolicy: null,
             changed: false,
             baseReference: null,
             baselinePath: null,
@@ -35,7 +36,7 @@ internal static class CheckCommand
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken) =>
-        Run(directoryPath, format, adrFormat, null, false, null, changed, baseReference, baselinePath, output, error, cancellationToken);
+        Run(directoryPath, format, adrFormat, null, false, null, null, changed, baseReference, baselinePath, output, error, cancellationToken);
 
     internal static int Run(
         string directoryPath,
@@ -44,6 +45,7 @@ internal static class CheckCommand
         string? lifecycleStatuses,
         bool conventionalSupersession,
         string? filenamePolicy,
+        string? placeholderPolicy,
         bool changed,
         string? baseReference,
         string? baselinePath,
@@ -70,7 +72,8 @@ internal static class CheckCommand
                 Directory.GetCurrentDirectory(),
                 AdrLifecyclePolicy.Parse(lifecycleStatuses),
                 conventionalSupersession,
-                AdrFilenamePolicy.Parse(filenamePolicy));
+                AdrFilenamePolicy.Parse(filenamePolicy),
+                ParsePlaceholderPolicy(placeholderPolicy));
             var fullResult = AdrValidator.Validate(documents, null, options);
             var result = fullResult;
             IReadOnlySet<string>? changedPaths = null;
@@ -129,6 +132,11 @@ internal static class CheckCommand
             var failingResult = baseline is null
                 ? result
                 : new ValidationResult(baseline.NewIssues);
+            if (format == CheckOutputFormat.Text)
+            {
+                foreach (var warning in failingResult.Issues.Where(issue => issue.Severity == ValidationSeverity.Warning))
+                    error.WriteLine($"{warning.FilePath}: {warning.Code} warning {warning.Message}");
+            }
             if (!failingResult.IsValid)
             {
                 if (format == CheckOutputFormat.Text)
@@ -148,7 +156,9 @@ internal static class CheckCommand
             {
                 output.WriteLine(
                     baseline is null
-                        ? $"Validated {documents.Count} ADR(s): no issues found."
+                        ? failingResult.Issues.Any(issue => issue.Severity == ValidationSeverity.Warning)
+                            ? $"Validated {documents.Count} ADR(s): no errors; {failingResult.Issues.Count(issue => issue.Severity == ValidationSeverity.Warning)} warning(s)."
+                            : $"Validated {documents.Count} ADR(s): no issues found."
                         : $"Validated {documents.Count} ADR(s): no new issues. Baseline: {baseline.ExistingIssues.Count} existing, {baseline.ResolvedEntries.Count} resolved issue(s).");
             }
 
@@ -188,4 +198,12 @@ internal static class CheckCommand
         error.WriteLine($"Unable to validate ADRs: {exception.Message}");
         return ExitCodes.OperationalError;
     }
+
+    private static PlaceholderPolicy ParsePlaceholderPolicy(string? value) => value switch
+    {
+        null or "off" => PlaceholderPolicy.Off,
+        "warn" => PlaceholderPolicy.Warn,
+        "error" => PlaceholderPolicy.Error,
+        _ => throw new ArgumentException("Placeholder policy must be off, warn, or error."),
+    };
 }

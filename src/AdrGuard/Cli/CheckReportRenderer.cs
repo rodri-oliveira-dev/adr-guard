@@ -42,6 +42,7 @@ internal static class CheckReportRenderer
                 writer.WriteString("code", issue.Code);
                 writer.WriteString("message", issue.Message);
                 writer.WriteString("file", ToReportPath(issue.FilePath, reportRoot));
+                if (issue.Severity == ValidationSeverity.Warning) writer.WriteString("severity", "warning");
                 WriteJsonBaselineState(writer, issue, checkedDirectory, baseline);
                 writer.WriteEndObject();
             }
@@ -101,7 +102,7 @@ internal static class CheckReportRenderer
             {
                 writer.WriteStartObject();
                 writer.WriteString("ruleId", issue.Code);
-                writer.WriteString("level", "error");
+                writer.WriteString("level", issue.Severity == ValidationSeverity.Warning ? "warning" : "error");
                 writer.WriteStartObject("message");
                 writer.WriteString("text", issue.Message);
                 writer.WriteEndObject();

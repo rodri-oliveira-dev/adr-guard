@@ -69,8 +69,11 @@ internal sealed record AdrValidationOptions(
     string? RepositoryRoot = null,
     AdrLifecyclePolicy? Lifecycle = null,
     bool ConventionalSupersession = false,
-    AdrFilenamePolicy? FilenamePolicy = null)
+    AdrFilenamePolicy? FilenamePolicy = null,
+    PlaceholderPolicy PlaceholderPolicy = PlaceholderPolicy.Off)
 {
     internal AdrLifecyclePolicy EffectiveLifecycle => Lifecycle ?? AdrLifecyclePolicy.Legacy;
     internal AdrFilenamePolicy EffectiveFilenamePolicy => FilenamePolicy ?? AdrFilenamePolicy.Canonical;
 }
+
+internal enum PlaceholderPolicy { Off, Warn, Error }

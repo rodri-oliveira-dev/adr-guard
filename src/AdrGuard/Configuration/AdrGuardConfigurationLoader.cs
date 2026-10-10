@@ -17,6 +17,7 @@ internal static class AdrGuardConfigurationLoader
         "lifecycle-statuses",
         "conventional-supersession",
         "filename-policy",
+        "placeholder-policy",
     ];
 
     internal static AdrGuardConfiguration? Load(string invocationDirectory)
@@ -205,6 +206,7 @@ internal static class AdrGuardConfigurationLoader
         values.TryGetValue("lifecycle-statuses", out var lifecycleStatuses);
         values.TryGetValue("conventional-supersession", out var conventionalSupersessionText);
         values.TryGetValue("filename-policy", out var filenamePolicy);
+        values.TryGetValue("placeholder-policy", out var placeholderPolicy);
         var conventionalSupersession = conventionalSupersessionText switch
         {
             null or "false" => false,
@@ -254,6 +256,8 @@ internal static class AdrGuardConfigurationLoader
                     $"Configuration '{path}' property 'filename-policy' is invalid: {exception.Message}", exception);
             }
         }
+        if (placeholderPolicy is not null && placeholderPolicy is not ("off" or "warn" or "error"))
+            throw new AdrGuardConfigurationException($"Configuration '{path}' property 'placeholder-policy' must be off, warn, or error.");
 
         try
         {
@@ -274,7 +278,8 @@ internal static class AdrGuardConfigurationLoader
                 adrFormat,
                 lifecycleStatuses,
                 conventionalSupersession,
-                filenamePolicy);
+                filenamePolicy,
+                placeholderPolicy);
         }
         catch (Exception exception) when (exception is ArgumentException or IOException)
         {

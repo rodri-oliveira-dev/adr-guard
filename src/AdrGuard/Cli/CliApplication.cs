@@ -333,6 +333,7 @@ internal static class CliApplication
                 out var lifecycleStatuses,
                 out var conventionalSupersession,
                 out var filenamePolicy,
+                out var placeholderPolicy,
                 out var changed,
                 out var baseReference,
                 out var baselinePath))
@@ -347,6 +348,7 @@ internal static class CliApplication
             lifecycleStatuses,
             conventionalSupersession,
             filenamePolicy,
+            placeholderPolicy,
             changed,
             baseReference,
             baselinePath,
@@ -363,6 +365,7 @@ internal static class CliApplication
         out string? lifecycleStatuses,
         out bool conventionalSupersession,
         out string? filenamePolicy,
+        out string? placeholderPolicy,
         out bool changed,
         out string? baseReference,
         out string? baselinePath)
@@ -373,6 +376,7 @@ internal static class CliApplication
         lifecycleStatuses = null;
         conventionalSupersession = false;
         filenamePolicy = null;
+        placeholderPolicy = null;
         changed = false;
         baseReference = null;
         baselinePath = null;
@@ -500,6 +504,14 @@ internal static class CliApplication
                 if (filenamePolicy is not null || index + 1 >= args.Count) return false;
                 filenamePolicy = args[++index];
                 try { AdrFilenamePolicy.Parse(filenamePolicy); } catch (ArgumentException) { return false; }
+                continue;
+            }
+
+            if (argument == "--placeholder-policy")
+            {
+                if (placeholderPolicy is not null || index + 1 >= args.Count) return false;
+                placeholderPolicy = args[++index];
+                if (placeholderPolicy is not ("off" or "warn" or "error")) return false;
                 continue;
             }
 

@@ -38,6 +38,13 @@ internal static class ConfigurationArguments
                 break;
         }
 
+        if (args[0] == "check" && configuration.PlaceholderPolicy is not null
+            && !configured.Contains("--placeholder-policy", StringComparer.Ordinal))
+        {
+            configured.Add("--placeholder-policy");
+            configured.Add(configuration.PlaceholderPolicy);
+        }
+
         return configured;
     }
 
@@ -85,6 +92,7 @@ internal static class ConfigurationArguments
         or "--adr-format"
         or "--lifecycle-statuses"
         or "--filename-policy"
+        or "--placeholder-policy"
         or "--base-ref"
         or "--baseline"
         or "--compare-ref";

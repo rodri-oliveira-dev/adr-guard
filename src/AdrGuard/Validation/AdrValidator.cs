@@ -116,6 +116,7 @@ internal static class AdrValidator
         }
         ValidateReferences(document, knownPaths, issues, options.RepositoryRoot);
         ValidateSupersededBy(document, knownPaths, issues, options);
+        ValidatePlaceholders(document, issues, options.PlaceholderPolicy);
     }
 
     private static void ValidateMadr4(
@@ -360,6 +361,47 @@ internal static class AdrValidator
                     $"Stable ADR identity '{group.Key}' is ambiguous."));
             }
         }
+    }
+
+    private static void ValidatePlaceholders(
+        AdrDocument document,
+        List<ValidationIssue> issues,
+        PlaceholderPolicy policy)
+    {
+        if (policy == PlaceholderPolicy.Off) return;
+        var tokens = new[] { "[EDIT]", "[EDITAR]", "TODO", "TBD" };
+        foreach (var section in document.Sections)
+        {
+            var content = RemoveFencedContent(section.Content);
+            var token = tokens.FirstOrDefault(candidate => content.Contains(candidate, StringComparison.OrdinalIgnoreCase));
+            if (token is null && !System.Text.RegularExpressions.Regex.IsMatch(content, @"\{\{[^{}\r\n]+\}\}", System.Text.RegularExpressions.RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)))
+                continue;
+            issues.Add(new ValidationIssue(
+                ValidationCodes.UnresolvedPlaceholder,
+                document.FilePath,
+                $"Section '{section.Heading}' contains unresolved authoring placeholder '{token ?? "{{...}}"}'.",
+                policy == PlaceholderPolicy.Warn ? ValidationSeverity.Warning : ValidationSeverity.Error));
+        }
+    }
+
+    private static string RemoveFencedContent(string content)
+    {
+        var result = new System.Text.StringBuilder();
+        var fenced = false;
+        char marker = default;
+        foreach (var line in content.Split(['\r', '\n']))
+        {
+            var trimmed = line.TrimStart();
+            if (trimmed.StartsWith("```", StringComparison.Ordinal)
+                || trimmed.StartsWith("~~~", StringComparison.Ordinal))
+            {
+                if (!fenced) { fenced = true; marker = trimmed[0]; }
+                else if (trimmed[0] == marker) fenced = false;
+                continue;
+            }
+            if (!fenced) result.AppendLine(line);
+        }
+        return result.ToString();
     }
 
     private static void ValidateReferences(
