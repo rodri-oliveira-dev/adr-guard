@@ -23,7 +23,7 @@ npx skills add rodri-oliveira-dev/adr-guard --list
 
 Read the selected skill before installing it; skills are executable instructions for an agent, and third-party content should be reviewed as code-like input.
 
-**Pre-merge limitation:** the command above inspects the repository's default branch. While the skills remain on `feat/agent-skills-p0`, it may not list them. These instructions are ready for use **after the branch is merged**; until then, inspect the [feature-branch sources](https://github.com/rodri-oliveira-dev/adr-guard/tree/feat/agent-skills-p0/skills) directly.
+**Branch awareness:** the command above discovers skills from the repository's default branch. When reviewing unmerged changes, inspect the proposed branch directly instead of assuming unpublished skills are already available through the default-branch listing.
 
 ## 2. Install only what you need
 

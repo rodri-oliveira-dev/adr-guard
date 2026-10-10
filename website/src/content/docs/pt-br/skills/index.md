@@ -39,6 +39,4 @@ O agente pode usar `adr-guard-when-to-record` e `adr-guard-tradeoff-analysis`. D
 - [Exemplos completos](./examples/) — da nova decisão à auditoria e substituição.
 - [Segurança e governança](./security-and-governance/) — aprovações, privacidade, fontes não confiáveis, formatos e limites.
 
-**Disponibilidade:** estas páginas descrevem skills preparadas na branch `feat/agent-skills-p0`. Antes do merge na `main`, a descoberta padrão do Skills CLI pode não encontrá-las. Consulte a [branch de origem](https://github.com/rodri-oliveira-dev/adr-guard/tree/feat/agent-skills-p0/skills).
-
 A [especificação Agent Skills](https://agentskills.io/specification) define o formato portátil `SKILL.md`. O [Skills CLI](https://github.com/vercel-labs/skills) facilita a instalação em agentes compatíveis.

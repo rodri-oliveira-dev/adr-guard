@@ -39,6 +39,4 @@ The agent may use `adr-guard-when-to-record` and `adr-guard-tradeoff-analysis`. 
 - [Try end-to-end scenarios](./examples/) — from new decision to audit and supersession.
 - [Read the safety and governance rules](./security-and-governance/) — approvals, privacy, untrusted input, formats and limitations.
 
-**Availability:** these pages describe skills being prepared in the repository's `feat/agent-skills-p0` branch. Until merged to `main`, the default-branch Skills CLI discovery command may not show them. See the [source branch](https://github.com/rodri-oliveira-dev/adr-guard/tree/feat/agent-skills-p0/skills).
-
 The [Agent Skills specification](https://agentskills.io/specification) defines the portable `SKILL.md` format. The [Skills CLI](https://github.com/vercel-labs/skills) provides discovery and installation into supported coding agents.
