@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AdrGuard.Impact;
 using Xunit;
 
 namespace AdrGuard.Tests.Impact;
@@ -64,6 +65,17 @@ public sealed class ImpactContractFixtureTests
                 Assert.False(string.IsNullOrWhiteSpace(mapping.GetProperty("relationship").GetString()));
                 Assert.False(string.IsNullOrWhiteSpace(mapping.GetProperty("reason").GetString()));
             });
+
+        var loaded = ImpactManifestLoader.Load(
+            fixtureRoot,
+            ".adrguard-impact.json");
+        Assert.Equal(
+            [
+                ImpactDecisionResolutionKind.Active,
+                ImpactDecisionResolutionKind.Proposed,
+                ImpactDecisionResolutionKind.Inactive,
+            ],
+            loaded.Mappings.Select(mapping => mapping.Resolution.Kind).ToArray());
     }
 
     private static string ReadStatus(string fixtureRoot, JsonElement mapping)
