@@ -211,6 +211,50 @@ public sealed class CommandIntegrationTests
     }
 
     [Fact]
+    public void CompatibilityCommandHelpListsEveryAcceptedPhaseZeroOption()
+    {
+        var expectedOptions = new Dictionary<string, string[]>
+        {
+            ["check"] =
+            [
+                "--conventional-supersession",
+                "--filename-policy",
+                "--placeholder-policy",
+                "--validate-metadata",
+                "--validation-profile",
+            ],
+            ["baseline"] =
+            [
+                "--lifecycle-statuses",
+                "--conventional-supersession",
+                "--filename-policy",
+                "--validation-profile",
+            ],
+            ["index"] =
+            [
+                "--conventional-supersession",
+                "--filename-policy",
+                "--validation-profile",
+                "--catalog enriched",
+            ],
+        };
+
+        foreach (var (command, options) in expectedOptions)
+        {
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = CliApplication.Run([command, "--help"], output, error);
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.All(
+                options,
+                option => Assert.Contains(option, output.ToString(), StringComparison.Ordinal));
+            Assert.Equal(string.Empty, error.ToString());
+        }
+    }
+
+    [Fact]
     public void InvalidIndexArgumentsReturnUsageError()
     {
         using var output = new StringWriter();

@@ -6,10 +6,11 @@ internal static class NewCommand
 {
     internal const string HelpText = """
         Usage:
-          adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--dry-run|--preview]
+          adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>] [--dry-run|--preview]
 
         Create a Proposed ADR offline. The directory defaults to the current directory.
         The default template is minimal and the default culture is en-US.
+        Filename policies are canonical, unnumbered, adr-prefix, or numeric:1..9.
         A custom --template-file is resolved relative to the invocation working directory.
         --template and --template-file are mutually exclusive.
         Custom templates must be valid UTF-8 Markdown, at most 65536 bytes.
