@@ -80,7 +80,8 @@ internal static class ConfigurationArguments
     }
 
     private static bool OptionTakesValue(string option) => option is
-        "--output"
+        "--catalog"
+        or "--output"
         or "--title"
         or "--template"
         or "--template-file"
