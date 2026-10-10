@@ -1,0 +1,34 @@
+name: Agent Skills validation
+
+on:
+  push:
+    paths:
+      - 'skills/**'
+      - 'docs/skills/**'
+      - 'scripts/validate-agent-skills.py'
+      - 'tests/agent_skills/**'
+      - '.github/workflows/agent-skills.yml'
+  pull_request:
+    paths:
+      - 'skills/**'
+      - 'docs/skills/**'
+      - 'scripts/validate-agent-skills.py'
+      - 'tests/agent_skills/**'
+      - '.github/workflows/agent-skills.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Agent Skills
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validate catalog
+        run: python3 scripts/validate-agent-skills.py
+      - name: Validator regression tests
+        run: python3 -m unittest discover -s tests/agent_skills -p 'test_*.py'

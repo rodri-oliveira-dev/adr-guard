@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Dependency-free checks for ADR Guard's portable Agent Skills (P0).
+
+This deliberately validates the small YAML scalar subset authored by this repository,
+not every possible YAML document. Agent Skills' full spec is at agentskills.io.
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+EXPECTED_P0 = frozenset(
+    {
+        "adr-guard-init",
+        "adr-guard-create",
+        "adr-guard-validate",
+        "adr-guard-technical-review",
+        "adr-guard-lifecycle",
+        "adr-guard-ci-setup",
+    }
+)
+NAME_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
+KEY_RE = re.compile(r"([a-z][a-z-]*):\s+(.+)\Z")
+LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
+
+
+def validate_skill(skill_file: Path) -> list[str]:
+    errors: list[str] = []
+    try:
+        text = skill_file.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as exc:
+        return [f"{skill_file}: unreadable UTF-8: {exc}"]
+
+    lines = text.splitlines()
+    if not lines or lines[0] != "---":
+        return [f"{skill_file}: missing opening YAML frontmatter delimiter"]
+    try:
+        end = lines.index("---", 1)
+    except ValueError:
+        return [f"{skill_file}: missing closing YAML frontmatter delimiter"]
+
+    fields: dict[str, str] = {}
+    for line in lines[1:end]:
+        match = KEY_RE.fullmatch(line)
+        if not match:
+            errors.append(f"{skill_file}: unsupported frontmatter scalar: {line!r}")
+            continue
+        key, value = match.groups()
+        if key in fields:
+            errors.append(f"{skill_file}: repeated frontmatter key {key}")
+        fields[key] = value
+    name = fields.get("name", "")
+    description = fields.get("description", "")
+    if not NAME_RE.fullmatch(name) or len(name) > 64 or name != skill_file.parent.name:
+        errors.append(f"{skill_file}: invalid name / mismatched directory: {name!r}")
+    if not 1 <= len(description) <= 1024 or description.startswith(('"', "'")):
+        errors.append(f"{skill_file}: description must be an unquoted scalar (1..1024 chars)")
+    if not description.endswith(".") or "Use when" not in description:
+        errors.append(f"{skill_file}: description should state trigger with 'Use when'")
+    for key in fields:
+        if key not in {"name", "description", "license", "compatibility"}:
+            errors.append(f"{skill_file}: unsupported frontmatter key: {key}")
+    if len(fields.get("compatibility", "")) > 500:
+        errors.append(f"{skill_file}: compatibility exceeds 500 characters")
+    body = "\n".join(lines[end + 1 :])
+    if not body.strip() or not body.lstrip().startswith("# "):
+        errors.append(f"{skill_file}: missing Markdown H1 instruction body")
+    if len(lines) > 500:
+        errors.append(f"{skill_file}: SKILL.md exceeds 500 lines")
+    for target in LINK_RE.findall(body):
+        # Only verify local links. Remote product docs remain usable after install.
+        if target.startswith(("https://", "http://", "mailto:", "#")):
+            continue
+        local = target.split("#", 1)[0]
+        if not local:
+            continue
+        skill_root = skill_file.parent.resolve()
+        destination = (skill_root / local).resolve()
+        if not destination.is_relative_to(skill_root):
+            errors.append(f"{skill_file}: non-portable link escaping skill root: {target}")
+        elif not destination.is_file():
+            errors.append(f"{skill_file}: missing local reference: {target}")
+    return errors
+
+
+def validate_catalog(root: Path) -> list[str]:
+    skills_root = root / "skills"
+    discovered = {p.name for p in skills_root.iterdir() if p.is_dir()} if skills_root.is_dir() else set()
+    errors = [f"missing required P0 skill: {name}" for name in sorted(EXPECTED_P0 - discovered)]
+    for skill in sorted(discovered):
+        skill_file = skills_root / skill / "SKILL.md"
+        if not skill_file.is_file():
+            errors.append(f"{skill_file}: missing SKILL.md")
+            continue
+        errors.extend(validate_skill(skill_file))
+    if not (root / "docs/skills/README.md").is_file() or not (root / "docs/skills/README.pt-BR.md").is_file():
+        errors.append("missing bilingual Agent Skills catalog documentation")
+    return errors
+
+
+def main() -> int:
+    root = Path(__file__).resolve().parent.parent
+    errors = validate_catalog(root)
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        return 1
+    print("PASS: all P0 Agent Skills and portable references are valid")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
