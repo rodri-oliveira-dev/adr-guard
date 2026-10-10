@@ -1,7 +1,9 @@
 {
   "version": "0.2",
   "language": "en,pt_BR",
-  "import": ["@cspell/dict-pt-br/cspell-ext.json"],
+  "import": [
+    "@cspell/dict-pt-br/cspell-ext.json"
+  ],
   "useGitignore": true,
   "ignorePaths": [
     "dist/**",
@@ -14,10 +16,44 @@
     "src/content/docs/pt-br/reference/generated/**"
   ],
   "words": [
-    "ADR", "ADRs", "adrs", "adrguard", "Astro", "axe", "crawlable", "decisao", "dotnet",
-    "frontmatter", "mensageria", "openai", "SARIF", "hreflang", "idempotentemente", "IndexNow", "JSON-LD", "lastmod", "Lighthouse",
-    "lighthouseci", "lighthouserc", "MADR", "madr", "Mensageria", "noindex", "OpenID", "Pagefind",
-    "Pa11y", "retentativa", "retentativas", "Rodri", "rodri", "serialização", "Starlight",
-    "supersession", "TypeScript", "Webmaster", "WCAG", "zizmor"
+    "ADR",
+    "adrguard",
+    "ADRs",
+    "adrs",
+    "Astro",
+    "axe",
+    "crawlable",
+    "decisao",
+    "dotnet",
+    "frontmatter",
+    "hreflang",
+    "idempotentemente",
+    "IndexNow",
+    "JSON-LD",
+    "lastmod",
+    "Lighthouse",
+    "lighthouseci",
+    "lighthouserc",
+    "MADR",
+    "madr",
+    "mensageria",
+    "Mensageria",
+    "noindex",
+    "openai",
+    "OpenID",
+    "Pa11y",
+    "Pagefind",
+    "retentativa",
+    "retentativas",
+    "Rodri",
+    "rodri",
+    "SARIF",
+    "serialização",
+    "Starlight",
+    "supersession",
+    "TypeScript",
+    "WCAG",
+    "Webmaster",
+    "zizmor"
   ]
 }
