@@ -314,11 +314,14 @@ elif [[ "${command}" == "check" ]]; then
     "${container_path}"
   )
 elif [[ "${command}" == "impact" ]]; then
+  host_uid="$(id -u)"
+  host_gid="$(id -g)"
+  if [[ "${host_uid}" == "0" ]]; then
+    operational_error "The 'impact' command refuses to run the container as root. Use a non-root Linux runner."
+  fi
   docker_args+=(
     --network=none
-    --env GIT_CONFIG_COUNT=1
-    --env GIT_CONFIG_KEY_0=safe.directory
-    --env GIT_CONFIG_VALUE_0=/workspace
+    --user "${host_uid}:${host_gid}"
   )
   cli_args=(
     impact

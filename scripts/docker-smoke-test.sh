@@ -33,7 +33,7 @@ docker run --rm --read-only "${IMAGE}" --help >"${TEMP_DIR}/help.txt"
 grep -q "ADR Guard" "${TEMP_DIR}/help.txt"
 grep -q "Exit codes:" "${TEMP_DIR}/help.txt"
 
-docker run --rm --entrypoint /usr/bin/git "${IMAGE}" --version >"${TEMP_DIR}/git-version.txt"
+docker run --rm --entrypoint git "${IMAGE}" --version >"${TEMP_DIR}/git-version.txt"
 grep -q '^git version ' "${TEMP_DIR}/git-version.txt"
 
 assert_exit_code 0 \
@@ -87,6 +87,11 @@ grep -q "# Architecture Decision Records" "${TEMP_DIR}/writable/README.md"
 # The release image contains the local Git executable required by read-only
 # architecture impact analysis.
 IMPACT_REPOSITORY="${TEMP_DIR}/impact-repository"
+IMPACT_CONTAINER_REPOSITORY="/workspace"
+if [[ "${MSYSTEM:-}" == MINGW* ]]; then
+  # Prevent Git for Windows from rewriting the container-only positional path.
+  IMPACT_CONTAINER_REPOSITORY="//workspace"
+fi
 mkdir -p "${IMPACT_REPOSITORY}/docs/adr" "${IMPACT_REPOSITORY}/src"
 git -C "${IMPACT_REPOSITORY}" init -b main >/dev/null
 git -C "${IMPACT_REPOSITORY}" config user.email tests@example.com
@@ -115,11 +120,9 @@ git -C "${IMPACT_REPOSITORY}" commit -m initial >/dev/null
 printf 'changed\n' >>"${IMPACT_REPOSITORY}/src/service.cs"
 assert_exit_code 0 \
   docker run --rm --read-only --network=none \
-    --env GIT_CONFIG_COUNT=1 \
-    --env GIT_CONFIG_KEY_0=safe.directory \
-    --env GIT_CONFIG_VALUE_0=/workspace \
+    --user "$(id -u):$(id -g)" \
     --mount "type=bind,src=${IMPACT_REPOSITORY},dst=/workspace,readonly" \
-    "${IMAGE}" impact /workspace --base-ref HEAD \
+    "${IMAGE}" impact "${IMPACT_CONTAINER_REPOSITORY}" --base-ref HEAD \
     --map .adrguard-impact.json --format json >"${TEMP_DIR}/impact.json"
 grep -Fq '"schemaVersion": "1.0"' "${TEMP_DIR}/impact.json"
 grep -Fq '"status": "affected"' "${TEMP_DIR}/impact.json"

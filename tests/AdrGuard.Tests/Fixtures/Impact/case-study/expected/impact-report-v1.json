@@ -1,0 +1,151 @@
+{
+  "schemaVersion": "1.0",
+  "advisory": true,
+  "repository": {
+    "baseReference": "HEAD",
+    "mergeBase": "\u003Cmerge-base\u003E",
+    "manifestPath": ".adrguard-impact.json"
+  },
+  "summary": {
+    "totalChanges": 5,
+    "affectedDecisions": 2,
+    "unknownDecisions": 1,
+    "notMatchedDecisions": 0
+  },
+  "coverage": {
+    "affectedChanges": 2,
+    "unknownChanges": 1,
+    "notMatchedChanges": 2
+  },
+  "uncertainty": {
+    "hasUnknowns": true,
+    "decisionStableIds": [
+      "ADR-3"
+    ],
+    "explanation": "Unknown means a mapped ADR could not be resolved to an active or proposed decision; it is not a compliance result."
+  },
+  "changedFiles": [
+    {
+      "scope": "unstaged",
+      "changeType": "modified",
+      "oldPath": null,
+      "newPath": "docs/architecture-notes.md",
+      "similarity": null,
+      "status": "not-matched",
+      "decisionStableIds": []
+    },
+    {
+      "scope": "unstaged",
+      "changeType": "modified",
+      "oldPath": null,
+      "newPath": "src/orders-api/endpoint.cs.fixture",
+      "similarity": null,
+      "status": "affected",
+      "decisionStableIds": [
+        "ADR-1"
+      ]
+    },
+    {
+      "scope": "staged",
+      "changeType": "renamed",
+      "oldPath": "src/orders-storage/repository.cs.fixture",
+      "newPath": "src/orders-storage/renamed-repository.cs.fixture",
+      "similarity": 100,
+      "status": "affected",
+      "decisionStableIds": [
+        "ADR-2"
+      ]
+    },
+    {
+      "scope": "staged",
+      "changeType": "deleted",
+      "oldPath": "src/orders-v1/legacy-client.cs.fixture",
+      "newPath": null,
+      "similarity": null,
+      "status": "unknown",
+      "decisionStableIds": [
+        "ADR-3"
+      ]
+    },
+    {
+      "scope": "untracked",
+      "changeType": "added",
+      "oldPath": null,
+      "newPath": "src/unmapped/worker.cs.fixture",
+      "similarity": null,
+      "status": "not-matched",
+      "decisionStableIds": []
+    }
+  ],
+  "decisions": [
+    {
+      "stableId": "ADR-1",
+      "path": "docs/adr/0001-use-orders-api.md",
+      "title": "Use the orders API boundary",
+      "lifecycleStatus": "Accepted",
+      "resolution": "active",
+      "status": "affected",
+      "uncertainty": null,
+      "evidence": [
+        {
+          "scope": "unstaged",
+          "changeType": "modified",
+          "pathRole": "current",
+          "path": "src/orders-api/endpoint.cs.fixture",
+          "pattern": "src/orders-api/**",
+          "relationship": "governs",
+          "reason": "The accepted decision defines the public orders API boundary."
+        }
+      ]
+    },
+    {
+      "stableId": "ADR-2",
+      "path": "docs/adr/0002-migrate-orders-storage.md",
+      "title": "Migrate orders storage",
+      "lifecycleStatus": "Proposed",
+      "resolution": "proposed",
+      "status": "affected",
+      "uncertainty": "The decision is proposed and is not an effective architectural approval.",
+      "evidence": [
+        {
+          "scope": "staged",
+          "changeType": "renamed",
+          "pathRole": "current",
+          "path": "src/orders-storage/renamed-repository.cs.fixture",
+          "pattern": "src/orders-storage/**",
+          "relationship": "implements",
+          "reason": "The proposed migration may be relevant but is not yet an effective decision."
+        },
+        {
+          "scope": "staged",
+          "changeType": "renamed",
+          "pathRole": "previous",
+          "path": "src/orders-storage/repository.cs.fixture",
+          "pattern": "src/orders-storage/**",
+          "relationship": "implements",
+          "reason": "The proposed migration may be relevant but is not yet an effective decision."
+        }
+      ]
+    },
+    {
+      "stableId": "ADR-3",
+      "path": "docs/legacy-adr/ADR-0003-retire-orders-v1.md",
+      "title": "Retire orders v1 immediately",
+      "lifecycleStatus": "Rejected",
+      "resolution": "inactive",
+      "status": "unknown",
+      "uncertainty": "The decision status \u0027Rejected\u0027 is not active governance.",
+      "evidence": [
+        {
+          "scope": "staged",
+          "changeType": "deleted",
+          "pathRole": "previous",
+          "path": "src/orders-v1/legacy-client.cs.fixture",
+          "pattern": "src/orders-v1/**",
+          "relationship": "constrains",
+          "reason": "The rejected legacy-prefix decision is retained as history and must not imply active governance."
+        }
+      ]
+    }
+  ]
+}

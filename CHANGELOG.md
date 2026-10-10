@@ -2,7 +2,23 @@
 
 Notable changes to **ADR Guard** (`RodriOliveira.AdrGuard`, the .NET CLI/Tool and its coordinated distribution) are tracked here by published version. The separately versioned VS Code extension has its own [changelog](extensions/vscode/CHANGELOG.md).
 
-Version links below point to GitHub Releases. Dates and previously shipped highlights follow the published release history. Detailed current release notes are available in [English](docs/releases/v1.3.0.md) and [Portuguese](docs/releases/v1.3.0.pt-BR.md).
+Version links below point to GitHub Releases. Dates and previously shipped highlights follow the published release history. Version 1.5.0 is prepared but not published; see the [English](docs/releases/v1.5.0.md) and [Portuguese](docs/releases/v1.5.0.pt-BR.md) release candidates.
+
+## [1.5.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.5.0) — Unreleased
+
+### Added
+- Opt-in `adr-guard impact` with explicit base refs and strict, versioned ADR-to-code mapping contracts.
+- Bounded Git inventory and deterministic correlation for committed, staged, unstaged, untracked, renamed, copied, and deleted paths.
+- Advisory text and JSON report schema 1.0 with evidence, uncertainty, and mapping coverage.
+- Secretless, read-only GitHub Action impact mode with bounded escaped summaries and fork-safe usage.
+
+### Changed
+- Added Git to the non-root runtime container because impact analysis invokes the bounded local Git CLI; container smoke tests and vulnerability scanning remain release gates.
+- Preserved canonical ADR defaults, Phase 0 opt-in compatibility, existing commands, `check` JSON/SARIF, review reports, and exit-code meanings.
+
+### Release readiness
+- `1.5.0` is the next available backward-compatible feature version because public tag/Release `v1.4.0` already exists, although its coordinated NuGet/container/Action distribution did not complete.
+- No 1.5.0 artifact, tag, package, image, Action reference, or GitHub Release has been published. Publication remains manual after merge and exact-main CI approval.
 
 ## [1.3.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0) — 2026-10-08
 

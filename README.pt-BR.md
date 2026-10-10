@@ -30,7 +30,7 @@ Está começando? Siga o guia progressivo:
 - suporta validação MADR 4.0 separada e opcional;
 - gera um índice Markdown determinístico somente depois da validação;
 - oferece checks incrementais com Git, baselines de diagnóstico e relatórios JSON/SARIF;
-- oferece [análise consultiva de impacto arquitetural](docs/guides/architecture-impact-analysis.md), opcional e baseada em mapeamentos ADR-código explícitos;
+- oferece [análise consultiva de impacto arquitetural](docs/guides/architecture-impact-analysis.pt-BR.md), opcional e baseada em mapeamentos ADR-código explícitos;
 - oferece escrita e revisão técnica opcionais com IA, revisão humana, providers e contexto explícitos;
 - integra-se a GitHub Actions, VS Code e imagens versionadas de container.
 

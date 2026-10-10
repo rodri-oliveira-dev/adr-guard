@@ -123,16 +123,14 @@ grep -Fxq -- '--base-ref' "${DOCKER_CAPTURE}"
 grep -Fxq -- 'HEAD' "${DOCKER_CAPTURE}"
 grep -Fxq -- '--map' "${DOCKER_CAPTURE}"
 grep -Fxq -- '.adrguard-impact.json' "${DOCKER_CAPTURE}"
-grep -Fxq -- 'GIT_CONFIG_COUNT=1' "${DOCKER_CAPTURE}"
-grep -Fxq -- 'GIT_CONFIG_KEY_0=safe.directory' "${DOCKER_CAPTURE}"
-grep -Fxq -- 'GIT_CONFIG_VALUE_0=/workspace' "${DOCKER_CAPTURE}"
+grep -Fxq -- '--user' "${DOCKER_CAPTURE}"
 grep -Fq 'Architecture impact (advisory)' "${SUMMARY}"
 grep -Fq 'ADR\|&lt;img src=x&gt;' "${SUMMARY}"
 if grep -Fq '<img src=x>' "${SUMMARY}"; then
   echo "Impact summary rendered unescaped HTML." >&2
   exit 1
 fi
-if grep -Eq 'OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|GITHUB_TOKEN|GH_TOKEN' "${DOCKER_CAPTURE}"; then
+if grep -Eq 'OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|GITHUB_TOKEN|GH_TOKEN|GIT_CONFIG_' "${DOCKER_CAPTURE}"; then
   echo "Impact mode must not forward credentials." >&2
   exit 1
 fi

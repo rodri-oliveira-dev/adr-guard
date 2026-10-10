@@ -1,0 +1,5 @@
+namespace CaseStudy.OrdersV1;
+
+internal sealed class LegacyClient
+{
+}

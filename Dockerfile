@@ -36,6 +36,9 @@ LABEL org.opencontainers.image.title="ADR Guard" \
       org.opencontainers.image.authors="Rodrigo de Oliveira"
 
 COPY --from=build /app/publish /app
+COPY packaging/container.gitconfig /app/gitconfig
+
+ENV GIT_CONFIG_SYSTEM=/app/gitconfig
 
 USER $APP_UID
 

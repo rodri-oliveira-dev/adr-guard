@@ -2,6 +2,8 @@
 
 > **Publication status:** the reusable Action is published, and the compatibility tag `v1` is published and moving. The public `v1` line supports `check`, `index`, and opt-in `review` since `v1.1.6`; `new` and `draft` remain CLI/container-only workflows. The [GitHub Marketplace listing](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) was independently reachable without authentication on 2026-10-09.
 
+> **Impact release status:** the `impact` inputs are prepared for coordinated v1.5.0 publication but are not yet available from the current public `@v1` runtime. Do not use the example below until that coordinated release is verified.
+
 ADR Guard's composite Action runs the published ADR Guard container. Consumers do not need the .NET SDK. They need a Linux runner with Docker and must check out the repository first; opt-in `review` additionally requires Python 3 on the runner for safe summary/annotation rendering.
 
 ## Inputs

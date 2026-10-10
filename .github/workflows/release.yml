@@ -173,6 +173,14 @@ jobs:
           test -s docs/releases/v1.3.0.md
           test -s docs/releases/v1.3.0.pt-BR.md
 
+      - name: Verify v1.5.0 release notes before packaging
+        if: inputs.version == '1.5.0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s docs/releases/v1.5.0.md
+          test -s docs/releases/v1.5.0.pt-BR.md
+
       - name: Validate resolved MSBuild version
         shell: bash
         env:
@@ -441,7 +449,7 @@ jobs:
             type=raw,value=latest
           labels: |
             org.opencontainers.image.title=ADR Guard
-            org.opencontainers.image.description=A lightweight .NET CLI for validating, creating, indexing, drafting, and reviewing Architecture Decision Records (ADRs).
+            org.opencontainers.image.description=A .NET CLI for validating, maintaining, reviewing, and analyzing the impact of Architecture Decision Records (ADRs).
             org.opencontainers.image.url=https://github.com/${{ github.repository }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.documentation=https://github.com/${{ github.repository }}#readme
@@ -451,7 +459,7 @@ jobs:
             org.opencontainers.image.revision=${{ needs.build-and-pack.outputs.validated-sha }}
           annotations: |
             org.opencontainers.image.title=ADR Guard
-            org.opencontainers.image.description=A lightweight .NET CLI for validating, creating, indexing, drafting, and reviewing Architecture Decision Records (ADRs).
+            org.opencontainers.image.description=A .NET CLI for validating, maintaining, reviewing, and analyzing the impact of Architecture Decision Records (ADRs).
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.licenses=MIT
             org.opencontainers.image.version=${{ needs.build-and-pack.outputs.package-version }}
@@ -648,6 +656,13 @@ jobs:
             fi
 
             release_notes=(--notes-file docs/releases/v1.3.0.md)
+          elif [[ "${RELEASE_TAG}" == v1.5.0 ]]; then
+            if [[ ! -s docs/releases/v1.5.0.md ]]; then
+              echo "::error::Curated v1.5.0 release notes are missing from the validated commit."
+              exit 1
+            fi
+
+            release_notes=(--notes-file docs/releases/v1.5.0.md)
           fi
 
           gh release create "${RELEASE_TAG}" \

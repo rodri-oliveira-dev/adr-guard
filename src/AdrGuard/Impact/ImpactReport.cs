@@ -74,7 +74,8 @@ internal static class ImpactReportFactory
             decision.Resolution.Status,
             Format(decision.Resolution.Kind),
             Format(decision.Status),
-            decision.Resolution.Kind is ImpactDecisionResolutionKind.Inactive
+            decision.Resolution.Kind is ImpactDecisionResolutionKind.Proposed
+                or ImpactDecisionResolutionKind.Inactive
                 or ImpactDecisionResolutionKind.Unknown
                     ? decision.Resolution.Detail
                     : null,
