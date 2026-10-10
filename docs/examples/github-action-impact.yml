@@ -1,0 +1,44 @@
+name: ADR architecture impact
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  impact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with comparison history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Advisory architecture impact summary
+        uses: rodri-oliveira-dev/adr-guard@v1
+        with:
+          command: impact
+          base-ref: origin/main
+          impact-map: .adrguard-impact.json
+
+      # Artifact retention is deliberately consumer-controlled. Pin the same
+      # exact image version as the Action release before enabling this recipe.
+      # - name: Produce stable impact JSON
+      #   run: |
+      #     docker run --rm --read-only --network=none \
+      #       --cap-drop=ALL --security-opt=no-new-privileges \
+      #       --mount "type=bind,src=${GITHUB_WORKSPACE},dst=/workspace,readonly" \
+      #       --workdir /workspace \
+      #       ghcr.io/rodri-oliveira-dev/adr-guard:X.Y.Z \
+      #       impact /workspace --base-ref origin/main \
+      #       --map .adrguard-impact.json --format json \
+      #       > "${RUNNER_TEMP}/adr-impact.json"
+      # - name: Retain impact JSON
+      #   uses: actions/upload-artifact@v7
+      #   with:
+      #     name: adr-impact
+      #     path: ${{ runner.temp }}/adr-impact.json
+      #     if-no-files-found: error

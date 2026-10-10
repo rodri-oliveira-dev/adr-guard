@@ -80,7 +80,7 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 
 | Integration | Use | Guide |
 | --- | --- | --- |
-| GitHub Action | Validate, index, or explicitly run AI review on supported Linux runners | [Consumer guide](docs/github-action.md) |
+| GitHub Action | Validate, index, or explicitly run AI review/architecture impact analysis on supported Linux runners | [Consumer guide](docs/github-action.md) |
 | VS Code | Commands, Problems diagnostics, and ADR Explorer through a compatible installed CLI | [Extension guide](extensions/vscode/README.md) |
 | Containers | Run the same versioned CLI from GHCR or Docker Hub | [Container and supply-chain guide](docs/container.md) |
 | CI reports | Produce text, JSON, or SARIF validation output | [Check reports](docs/check-reports.md) |

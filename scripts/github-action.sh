@@ -13,6 +13,8 @@ review_context_files="${ADR_GUARD_REVIEW_CONTEXT_FILES:-}"
 review_include_existing="${ADR_GUARD_REVIEW_INCLUDE_EXISTING_ADRS:-false}"
 review_policy="${ADR_GUARD_REVIEW_POLICY:-advisory}"
 review_policy_file="${ADR_GUARD_REVIEW_POLICY_FILE:-}"
+impact_base_ref="${ADR_GUARD_IMPACT_BASE_REF:-}"
+impact_map="${ADR_GUARD_IMPACT_MAP:-}"
 event_name="${ADR_GUARD_EVENT_NAME:-${GITHUB_EVENT_NAME:-}}"
 repository="${ADR_GUARD_REPOSITORY:-${GITHUB_REPOSITORY:-}}"
 pr_head_repository="${ADR_GUARD_PR_HEAD_REPOSITORY:-}"
@@ -87,14 +89,14 @@ if [[ -z "${GITHUB_WORKSPACE:-}" || ! -d "${GITHUB_WORKSPACE}" ]]; then
 fi
 
 if [[ -z "${command}" ]]; then
-  usage_error "The 'command' input must not be empty. Allowed values: check, index, review."
+  usage_error "The 'command' input must not be empty. Allowed values: check, index, review, impact."
 fi
 
 case "${command}" in
-  check|index|review)
+  check|index|review|impact)
     ;;
   *)
-    usage_error "Unsupported command '${command}'. Allowed values: check, index, review."
+    usage_error "Unsupported command '${command}'. Allowed values: check, index, review, impact."
     ;;
 esac
 
@@ -104,6 +106,7 @@ workspace="$(realpath -e "${GITHUB_WORKSPACE}")" ||
 resolved_path=""
 resolved_review_target=""
 resolved_review_policy_file=""
+resolved_impact_map=""
 declare -a resolved_review_context_files=()
 
 if [[ "${command}" == "review" ]]; then
@@ -201,6 +204,26 @@ if [[ "${command}" == "review" ]]; then
   if ! command -v python3 >/dev/null 2>&1; then
     operational_error "Python 3 is required for safe AI review summary and annotation rendering."
   fi
+elif [[ "${command}" == "impact" ]]; then
+  if [[ -z "${impact_base_ref}" ]]; then
+    usage_error "The 'base-ref' input is required when command is 'impact'."
+  fi
+  if [[ ${#impact_base_ref} -gt 256 || "${impact_base_ref}" == -* || "${impact_base_ref}" =~ [[:space:][:cntrl:]] ]]; then
+    usage_error "The 'base-ref' input is invalid or unsafe."
+  fi
+  if [[ -z "${impact_map}" ]]; then
+    usage_error "The 'impact-map' input is required when command is 'impact'."
+  fi
+
+  resolve_inside_workspace "${impact_map}" "The 'impact-map' input"
+  resolved_impact_map="${RESOLVED_INPUT_PATH}"
+  if [[ ! -f "${resolved_impact_map}" || "${resolved_impact_map,,}" != *.json ]]; then
+    usage_error "The 'impact-map' input must resolve to a JSON file."
+  fi
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    operational_error "Python 3 is required for bounded architecture impact summary rendering."
+  fi
 else
   if [[ -z "${adr_path}" ]]; then
     usage_error "The 'path' input must not be empty."
@@ -244,6 +267,12 @@ if ! docker pull "${image}"; then
   operational_error "Unable to pull ADR Guard image '${image}'. The requested version is not replaced with 'latest'."
 fi
 
+if [[ "${command}" == "impact" ]] && ! docker run --rm --pull=never --read-only \
+    --cap-drop=ALL --security-opt=no-new-privileges --network=none \
+    "${image}" impact --help >/dev/null 2>&1; then
+  operational_error "ADR Guard image '${image}' does not expose the required impact CLI contract. Select an Action/runtime release that supports impact."
+fi
+
 echo "Running ADR Guard ${version}: ${command} using ${image}."
 
 docker_args=(
@@ -283,6 +312,20 @@ elif [[ "${command}" == "check" ]]; then
   cli_args=(
     check
     "${container_path}"
+  )
+elif [[ "${command}" == "impact" ]]; then
+  docker_args+=(
+    --network=none
+    --env GIT_CONFIG_COUNT=1
+    --env GIT_CONFIG_KEY_0=safe.directory
+    --env GIT_CONFIG_VALUE_0=/workspace
+  )
+  cli_args=(
+    impact
+    /workspace
+    --base-ref "${impact_base_ref}"
+    --map "${resolved_impact_map#"${workspace}/"}"
+    --format json
   )
 else
   container_target="/workspace${resolved_review_target#"${workspace}"}"
@@ -377,6 +420,11 @@ fi
 if [[ "${command}" == "review" ]]; then
   if ! python3 "$(dirname "${BASH_SOURCE[0]}")/github-action-review-report.py"     "${status}" "${workspace}" "${resolved_review_target}" "${stdout_log}"     "${stderr_log}" "${review_source_manifest}" "${review_provider}" "${review_model}"; then
     echo "::warning::ADR Guard AI review reporting failed; inspect the raw CLI log." >&2
+  fi
+elif [[ "${command}" == "impact" ]]; then
+  if ! python3 "$(dirname "${BASH_SOURCE[0]}")/github-action-impact-report.py" \
+      "${status}" "${stdout_log}"; then
+    echo "::warning::ADR Guard architecture impact reporting failed; inspect the raw CLI log." >&2
   fi
 else
   if ! bash "$(dirname "${BASH_SOURCE[0]}")/github-action-report.sh"     "${status}" "${workspace}" "${resolved_path}" "${stderr_log}" "${command}"; then

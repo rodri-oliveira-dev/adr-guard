@@ -523,6 +523,9 @@ jobs:
       - name: Verify opt-in AI review paths with mock provider
         run: bash scripts/github-action-review-test.sh
 
+      - name: Verify opt-in architecture impact paths and summaries
+        run: bash scripts/github-action-impact-test.sh
+
       - name: Verify annotations, summaries, and hostile diagnostic handling
         run: bash scripts/github-action-report-test.sh
 

@@ -9,7 +9,7 @@ ADR Guard's composite Action runs the published ADR Guard container. Consumers d
 | Input | Default | Accepted values |
 | --- | --- | --- |
 | `path` | `docs/adr` | Repository-relative ADR directory inside `GITHUB_WORKSPACE`. Absolute paths, missing directories, `..` traversal, and symlink escapes are rejected. |
-| `command` | `check` | `check`, `index`, or explicit `review`. |
+| `command` | `check` | `check`, `index`, explicit `review`, or explicit `impact`. |
 | `version` | empty | Optional exact runtime image version in `X.Y.Z` or `vX.Y.Z` form. Required when the Action source is pinned by commit SHA or branch. |
 | `review-target` | empty | Repository-relative ADR Markdown file; required for `review`. |
 | `provider` | empty | Review provider; required for `review`. |
@@ -19,10 +19,37 @@ ADR Guard's composite Action runs the published ADR Guard container. Consumers d
 | `include-existing-adrs` | `false` | Explicit opt-in to bounded existing-ADR review context. |
 | `policy` | `advisory` | `advisory` or deterministic `enforce`. |
 | `policy-file` | empty | Deterministic policy JSON; required with `policy: enforce`. |
+| `base-ref` | empty | Explicit Git base reference; required for `impact`. The checkout must contain enough history to calculate a merge base. |
+| `impact-map` | empty | Repository-relative ADR-to-code mapping JSON; required for `impact`. Traversal and symlink escapes are rejected. |
 
 The CLI exit contract is preserved: `0` success, `1` ADR validation failure, `2` usage/input error, `3` operational/provider failure, and `4` deterministic review-policy failure.
 
 Provider-backed review is optional and does not alter the default `check` behavior. See [GitHub Action AI review](github-action-review.md) for credentials, trusted events, summaries, annotations, and fork/`pull_request_target` restrictions.
+
+Architecture impact analysis is also opt-in and does not change the default `check` behavior. It is read-only, runs with networking disabled, forwards no provider or GitHub credentials, and writes a bounded advisory `GITHUB_STEP_SUMMARY`. The caller owns checkout history; use `fetch-depth: 0` or another explicit depth that contains the selected base and merge base. Fork pull requests can use this deterministic mode with `permissions: contents: read` and no secrets.
+
+```yaml
+permissions:
+  contents: read
+
+steps:
+  - name: Checkout with comparison history
+    uses: actions/checkout@v7
+    with:
+      fetch-depth: 0
+      persist-credentials: false
+
+  - name: Inspect architecture impact
+    uses: rodri-oliveira-dev/adr-guard@v1
+    with:
+      command: impact
+      base-ref: origin/main
+      impact-map: .adrguard-impact.json
+```
+
+The Action validates that the selected runtime image exposes the `impact` CLI contract. An older exact image pin fails as an operational error instead of falling back to `latest`. Missing history or a disconnected base also returns exit code `3`; affected or unmapped changes still return `0` because the report is advisory.
+
+The stable JSON remains in the raw, workflow-command-suspended log. If a retained JSON artifact is required, run the same exact-version container explicitly with the checkout mounted read-only, redirect `impact --format json` to `${RUNNER_TEMP}/adr-impact.json`, and then opt in to `actions/upload-artifact` in the consumer workflow. The Action does not create or upload an artifact implicitly. See [the complete read-only example](examples/github-action-impact.yml).
 
 ## Pull-request validation
 

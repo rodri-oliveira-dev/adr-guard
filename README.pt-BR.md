@@ -80,7 +80,7 @@ Consulte a [matriz de seleção](docs/decision-design/choosing-a-template.pt-BR.
 
 | Integração | Uso | Guia |
 | --- | --- | --- |
-| GitHub Action | Validar, indexar ou executar review explícito com IA em runners Linux compatíveis | [Guia de consumo](docs/github-action.pt-BR.md) |
+| GitHub Action | Validar, indexar ou executar review/análise de impacto arquitetural explícitos em runners Linux compatíveis | [Guia de consumo](docs/github-action.pt-BR.md) |
 | VS Code | Comandos, diagnósticos em Problems e ADR Explorer por uma CLI compatível instalada | [Guia da extensão](extensions/vscode/README.pt-BR.md) |
 | Containers | Executar a mesma CLI versionada por GHCR ou Docker Hub | [Guia de container e cadeia de suprimentos](docs/container.pt-BR.md) |
 | Relatórios de CI | Produzir validação em texto, JSON ou SARIF | [Relatórios de check](docs/check-reports.pt-BR.md) |

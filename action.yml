@@ -1,5 +1,5 @@
 name: ADR Guard - Architecture Decision Validator
-description: Validate, index, or explicitly review Architecture Decision Records (ADRs) with safe GitHub reporting.
+description: Validate, index, review, or inspect the impact of Architecture Decision Records (ADRs) with safe GitHub reporting.
 author: Rodrigo de Oliveira
 
 inputs:
@@ -8,7 +8,7 @@ inputs:
     required: false
     default: docs/adr
   command:
-    description: ADR Guard command to run. Allowed values are 'check', 'index', and opt-in 'review'.
+    description: ADR Guard command to run. Allowed values are 'check', 'index', opt-in 'review', and opt-in 'impact'.
     required: false
     default: check
   version:
@@ -47,6 +47,14 @@ inputs:
     description: Optional repository-relative review policy JSON. Required when policy is 'enforce'.
     required: false
     default: ""
+  base-ref:
+    description: Explicit Git base reference for impact. The caller must check out enough history for a merge base.
+    required: false
+    default: ""
+  impact-map:
+    description: Repository-relative ADR-to-code mapping JSON. Required only when command is 'impact'.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -65,6 +73,8 @@ runs:
         ADR_GUARD_REVIEW_INCLUDE_EXISTING_ADRS: ${{ inputs.include-existing-adrs }}
         ADR_GUARD_REVIEW_POLICY: ${{ inputs.policy }}
         ADR_GUARD_REVIEW_POLICY_FILE: ${{ inputs.policy-file }}
+        ADR_GUARD_IMPACT_BASE_REF: ${{ inputs.base-ref }}
+        ADR_GUARD_IMPACT_MAP: ${{ inputs.impact-map }}
         ADR_GUARD_ACTION_REF: ${{ github.action_ref }}
         ADR_GUARD_EVENT_NAME: ${{ github.event_name }}
         ADR_GUARD_REPOSITORY: ${{ github.repository }}
