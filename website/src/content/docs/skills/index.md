@@ -5,8 +5,6 @@ sidebar:
   order: 1
 ---
 
-# Agent Skills: architectural decisions with an AI-assisted workflow
-
 **Agent Skills** are reusable, task-focused instructions that tell a compatible coding agent *when* and *how* to help with Architecture Decision Records (ADRs). ADR Guard publishes **11 skills** covering the lifecycle from identifying a significant decision to reviewing and maintaining its history.
 
 Skills make the tooling easier to discover and apply consistently. They do **not** replace your architecture team, install the ADR Guard CLI, or grant an agent authority to accept decisions.

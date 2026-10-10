@@ -17,7 +17,7 @@ The executable skill definitions live in the [ADR Guard repository](https://gith
 
 **Does:** inspect existing decisions and configuration, preview `adr-guard init ... --dry-run`, then initialize only with authorization. **Does not:** overwrite an existing governance policy or migrate ADRs silently.
 
-[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-init/SKILL.md) · [Initialization guide](../product/cli/)
+[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-init/SKILL.md) · [Initialization guide](../../product/cli/)
 
 ### adr-guard-create
 
@@ -25,7 +25,7 @@ The executable skill definitions live in the [ADR Guard repository](https://gith
 
 **Does:** gather constraints and alternatives, select canonical Minimal/Extended/Custom, preview `adr-guard new`, and generate a **Proposed** record with authorization. Optional `draft` with AI requires explicit provider/model and permission to transmit context. **Does not:** accept decisions or generate MADR with `new`.
 
-[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-create/SKILL.md) · [Creation guide](../product/creation/)
+[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-create/SKILL.md) · [Creation guide](../../product/creation/)
 
 ### adr-guard-validate
 
@@ -33,7 +33,7 @@ The executable skill definitions live in the [ADR Guard repository](https://gith
 
 **Does:** run `adr-guard check` and explain the exact diagnostics; optionally update the index after a successful check. **Does not:** treat passing validation as technical approval.
 
-[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-validate/SKILL.md) · [Reports](../product/reports/)
+[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-validate/SKILL.md) · [Reports](../../product/reports/)
 
 ### adr-guard-technical-review
 
@@ -41,7 +41,7 @@ The executable skill definitions live in the [ADR Guard repository](https://gith
 
 **Does:** provide evidence-backed advisory findings, or explicitly call `adr-guard review` with user-chosen provider/model and allowed context. **Does not:** approve architecture, certify compliance or silently send repository files to an AI provider.
 
-[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-technical-review/SKILL.md) · [AI review](../product/ai-review/)
+[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-technical-review/SKILL.md) · [AI review](../../product/ai-review/)
 
 ### adr-guard-lifecycle
 
@@ -49,7 +49,7 @@ The executable skill definitions live in the [ADR Guard repository](https://gith
 
 **Does:** verify `Proposed`, `Accepted`, `Deprecated`, `Superseded` and configured custom statuses, preserve historical context and validate declared links. **Does not:** infer stakeholder approval from a merge or passing tests.
 
-[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-lifecycle/SKILL.md) · [Lifecycle concepts](../learn/lifecycle/)
+[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-lifecycle/SKILL.md) · [Lifecycle concepts](../../learn/lifecycle/)
 
 ### adr-guard-ci-setup
 
@@ -57,7 +57,7 @@ The executable skill definitions live in the [ADR Guard repository](https://gith
 
 **Does:** guide a least-privilege `command: check` workflow, stable required check names, explicit index verification and optional SARIF. **Does not:** turn untrusted fork PRs into privileged AI-provider workflows.
 
-[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-ci-setup/SKILL.md) · [Action guide](../product/github-action/)
+[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-ci-setup/SKILL.md) · [Action guide](../../product/github-action/)
 
 ## P1 — Analysis and stewardship
 
@@ -67,7 +67,7 @@ The executable skill definitions live in the [ADR Guard repository](https://gith
 
 **Does:** evaluate significance and recommend an ADR, a lighter artifact or an experiment. **Does not:** create a document for every implementation ticket.
 
-[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-when-to-record/SKILL.md) · [Decision significance](../learn/when-to-write-an-adr/)
+[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-when-to-record/SKILL.md) · [Decision significance](../../learn/when-to-write-an-adr/)
 
 ### adr-guard-tradeoff-analysis
 
@@ -75,7 +75,7 @@ The executable skill definitions live in the [ADR Guard repository](https://gith
 
 **Does:** distinguish constraints, assumptions, evidence, alternatives and risk; it may prepare material for an Extended ADR. **Does not:** fabricate scores, benchmarks or an authoritative winner.
 
-[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-tradeoff-analysis/SKILL.md) · [Writing effective decisions](../learn/writing-effective-adrs/)
+[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-tradeoff-analysis/SKILL.md) · [Writing effective decisions](../../learn/writing-effective-adrs/)
 
 ### adr-guard-supersede
 
@@ -99,7 +99,7 @@ The executable skill definitions live in the [ADR Guard repository](https://gith
 
 **Does:** recommend decision thresholds, ownership, templates, pilot cadence and CI adoption. **Does not:** impose organizational policy without authorized human agreement.
 
-[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-team-adoption/SKILL.md) · [Team playbook](../adoption/)
+[Read the skill](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/skills/adr-guard-team-adoption/SKILL.md) · [Team playbook](../../adoption/)
 
 ## Pick by outcome, not by keyword
 

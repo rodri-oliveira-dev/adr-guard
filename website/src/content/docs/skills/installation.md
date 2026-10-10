@@ -11,7 +11,7 @@ Agent Skills and ADR Guard's .NET CLI are **two different installations**. The s
 
 - A compatible coding agent, such as Codex, that supports Agent Skills.
 - Node.js and `npx` to run the [Skills CLI](https://github.com/vercel-labs/skills). Review your organization's package execution policy before running packages through `npx`.
-- The [ADR Guard .NET Tool](../product/cli/) for CLI-backed workflows. Provider-backed AI review/drafting is optional and requires a separately chosen provider, model and credentials.
+- The [ADR Guard .NET Tool](../../product/cli/) for CLI-backed workflows. Provider-backed AI review/drafting is optional and requires a separately chosen provider, model and credentials.
 
 ## 1. Discover available skills
 

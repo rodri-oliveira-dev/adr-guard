@@ -48,4 +48,4 @@ The `adr-guard-audit` skill checks **documentation and governance health**. It d
 4. Validate the authorized outcome using the real ADR Guard CLI; investigate nonzero exit codes.
 5. Obtain human review for architectural merit, status changes and governance decisions.
 
-[Install a skill](../installation/) · [Explore examples](../examples/) · [ADR Guard security details](../product/security/)
+[Install a skill](../installation/) · [Explore examples](../examples/) · [ADR Guard security details](../../product/security/)

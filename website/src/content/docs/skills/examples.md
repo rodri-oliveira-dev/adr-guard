@@ -17,7 +17,7 @@ These are **task examples**, not commands automatically executed by visiting thi
 
 **Expected result:** a significance assessment, an options matrix, known constraints, missing benchmarks and stakeholders to consult. The agent must not assume messaging is inherently better.
 
-If a record is warranted, proceed to [the canonical ADR authoring guide](../product/creation/).
+If a record is warranted, proceed to [the canonical ADR authoring guide](../../product/creation/).
 
 ## Scenario 2 — Create and validate a proposed decision
 
@@ -64,7 +64,7 @@ adr-guard review docs/adr/0007-cache-strategy.md \
   --policy advisory --format json
 ```
 
-The example filename must exist, and the model is chosen by the user. Review findings are advisory; a `0` exit code does **not** mean the decision was approved. See [AI review and privacy](../product/ai-review/).
+The example filename must exist, and the model is chosen by the user. Review findings are advisory; a `0` exit code does **not** mean the decision was approved. See [AI review and privacy](../../product/ai-review/).
 
 ## Scenario 4 — Replace a previously accepted decision
 
