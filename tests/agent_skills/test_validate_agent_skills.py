@@ -14,8 +14,34 @@ spec.loader.exec_module(validator)
 
 
 class AgentSkillsValidationTests(unittest.TestCase):
-    def test_p0_catalog_is_valid(self):
+    def test_p0_p1_catalog_is_valid(self):
         self.assertEqual(validator.validate_catalog(ROOT), [])
+
+    def test_expected_skill_set_has_six_p0_and_five_p1(self):
+        self.assertEqual(len(validator.EXPECTED_P0), 6)
+        self.assertEqual(len(validator.EXPECTED_P1), 5)
+        self.assertEqual(len(validator.EXPECTED_SKILLS), 11)
+        self.assertFalse(validator.EXPECTED_P0 & validator.EXPECTED_P1)
+
+    def test_missing_p1_skill_is_detected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "skills").mkdir()
+            self.assertIn(
+                "missing required Agent Skill: adr-guard-audit",
+                validator.validate_catalog(root),
+            )
+
+    def test_missing_local_reference_is_detected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            skill = Path(directory) / "skill-name" / "SKILL.md"
+            skill.parent.mkdir()
+            skill.write_text(
+                "---\nname: skill-name\ndescription: A sample. Use when testing.\n---\n# Test\n"
+                "[missing](references/nope.md)\n",
+                encoding="utf-8",
+            )
+            self.assertTrue(any("missing local reference" in e for e in validator.validate_skill(skill)))
 
     def test_rejects_mismatched_skill_name(self):
         with tempfile.TemporaryDirectory() as directory:

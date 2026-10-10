@@ -86,9 +86,9 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 
 The [GitHub Marketplace Action](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) and [Visual Studio Marketplace extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) are published. The moving `@v1` tag is published and supports `check`, `index`, and opt-in `review` since v1.1.6; `new` and `draft` remain CLI/direct-container workflows. The extension does not bundle the CLI.
 
-## Agent Skills (P0)
+## Agent Skills (P0 + P1)
 
-Six portable [Agent Skills](docs/skills/README.md) cover ADR setup, creation, validation, technical review, lifecycle management, and CI setup. The skills guide agents in using ADR Guard; they do not install the CLI or make architectural approvals.
+Eleven portable [Agent Skills](docs/skills/README.md) cover ADR setup, creation, validation, technical review, lifecycle management, CI setup, when to write ADRs, trade-off analysis, supersession, audits, and team adoption. The skills guide agents in using ADR Guard; they do not install the CLI or make architectural approvals.
 
 ```bash
 npx skills add rodri-oliveira-dev/adr-guard --list

@@ -1,4 +1,4 @@
-# ADR Guard Agent Skills — Phase P0
+# ADR Guard Agent Skills — Phases P0 + P1
 
 [Português (Brasil)](README.pt-BR.md) · [Agent Skills specification](https://agentskills.io/specification)
 
@@ -15,9 +15,28 @@ Agent Skills are **optional agent-facing workflows** that help people use ADR Gu
 | [adr-guard-lifecycle](../../skills/adr-guard-lifecycle/SKILL.md) | Recording human-authorized status changes and replacements |
 | [adr-guard-ci-setup](../../skills/adr-guard-ci-setup/SKILL.md) | Adding ADR validation to GitHub Actions |
 
+### P1 — Decision practice and stewardship
+
+| Skill | Use when |
+| --- | --- |
+| [adr-guard-when-to-record](../../skills/adr-guard-when-to-record/SKILL.md) | Deciding if a consequential choice warrants an ADR |
+| [adr-guard-tradeoff-analysis](../../skills/adr-guard-tradeoff-analysis/SKILL.md) | Comparing alternatives, drivers, risks and uncertainty |
+| [adr-guard-supersede](../../skills/adr-guard-supersede/SKILL.md) | Replacing an old accepted decision with a new one |
+| [adr-guard-audit](../../skills/adr-guard-audit/SKILL.md) | Auditing structure and editorial/governance quality without writes |
+| [adr-guard-team-adoption](../../skills/adr-guard-team-adoption/SKILL.md) | Rolling out ADRs with human ownership and review |
+
+## Choosing the right skill
+
+- **Should this be recorded at all?** `adr-guard-when-to-record` → **Which option has the best substantiated trade-offs?** `adr-guard-tradeoff-analysis` → **Write the new proposal:** `adr-guard-create`.
+- **Replacing an earlier decision?** `adr-guard-supersede` handles the two records and explicit relationship; `adr-guard-lifecycle` handles other human-authorized status maintenance.
+- **Already have ADRs?** `adr-guard-validate` handles deterministic CLI diagnostics; `adr-guard-audit` covers read-only documentary health, assumptions and stewardship.
+- **Rolling out to a team?** `adr-guard-team-adoption` helps agree on policy; `adr-guard-init` configures the repository and `adr-guard-ci-setup` handles GitHub Actions.
+
+P1 skills must not claim implementation of future impact-analysis or architectural-drift CLI commands; these capabilities belong to separate product roadmaps.
+
 ## Install and use
 
-Discover the six skills in this repository:
+Discover the eleven skills in this repository:
 
 ```bash
 npx skills add rodri-oliveira-dev/adr-guard --list
@@ -56,4 +75,4 @@ python3 scripts/validate-agent-skills.py
 python3 -m unittest discover -s tests/agent_skills -p 'test_*.py'
 ```
 
-The dedicated GitHub Actions workflow runs both checks on relevant changes. Local validation verifies the lightweight YAML frontmatter subset used here, the six P0 skill names and portable local references; it is **not** a replacement for integration testing each agent.
+The dedicated GitHub Actions workflow runs both checks on relevant changes. Local validation verifies the lightweight YAML frontmatter subset used here, all eleven P0/P1 skill names and portable local references; it is **not** a replacement for integration testing each agent.

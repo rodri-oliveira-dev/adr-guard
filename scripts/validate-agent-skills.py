@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dependency-free checks for ADR Guard's portable Agent Skills (P0).
+"""Dependency-free checks for ADR Guard's portable Agent Skills (P0 + P1).
 
 This deliberately validates the small YAML scalar subset authored by this repository,
 not every possible YAML document. Agent Skills' full spec is at agentskills.io.
@@ -21,6 +21,16 @@ EXPECTED_P0 = frozenset(
         "adr-guard-ci-setup",
     }
 )
+EXPECTED_P1 = frozenset(
+    {
+        "adr-guard-when-to-record",
+        "adr-guard-tradeoff-analysis",
+        "adr-guard-supersede",
+        "adr-guard-audit",
+        "adr-guard-team-adoption",
+    }
+)
+EXPECTED_SKILLS = EXPECTED_P0 | EXPECTED_P1
 NAME_RE = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*\Z")
 KEY_RE = re.compile(r"([a-z][a-z-]*):\s+(.+)\Z")
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
@@ -88,7 +98,7 @@ def validate_skill(skill_file: Path) -> list[str]:
 def validate_catalog(root: Path) -> list[str]:
     skills_root = root / "skills"
     discovered = {p.name for p in skills_root.iterdir() if p.is_dir()} if skills_root.is_dir() else set()
-    errors = [f"missing required P0 skill: {name}" for name in sorted(EXPECTED_P0 - discovered)]
+    errors = [f"missing required Agent Skill: {name}" for name in sorted(EXPECTED_SKILLS - discovered)]
     for skill in sorted(discovered):
         skill_file = skills_root / skill / "SKILL.md"
         if not skill_file.is_file():
@@ -107,7 +117,7 @@ def main() -> int:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
         return 1
-    print("PASS: all P0 Agent Skills and portable references are valid")
+    print(f"PASS: all {len(EXPECTED_SKILLS)} P0/P1 Agent Skills and portable references are valid")
     return 0
 
 

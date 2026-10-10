@@ -86,9 +86,9 @@ Consulte a [matriz de seleção](docs/decision-design/choosing-a-template.pt-BR.
 
 A [Action no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) e a [extensão no Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) estão publicadas. A tag móvel `@v1` está publicada e suporta `check`, `index` e `review` opcional desde a v1.1.6; `new` e `draft` continuam fluxos da CLI/container direto. A extensão não inclui a CLI.
 
-## Agent Skills (P0)
+## Agent Skills (P0 + P1)
 
-Seis [Agent Skills](docs/skills/README.pt-BR.md) portáveis orientam a inicialização, criação, validação, revisão técnica, manutenção do ciclo de vida das ADRs e configuração de CI. Elas não instalam a CLI nem aprovam decisões arquiteturais.
+Onze [Agent Skills](docs/skills/README.pt-BR.md) portáveis orientam a inicialização, criação, validação, revisão técnica, manutenção do ciclo de vida, configuração de CI, decisão sobre quando registrar, análise de trade-offs, substituição de ADRs, auditoria e adoção em equipe. Elas não instalam a CLI nem aprovam decisões arquiteturais.
 
 ```bash
 npx skills add rodri-oliveira-dev/adr-guard --list

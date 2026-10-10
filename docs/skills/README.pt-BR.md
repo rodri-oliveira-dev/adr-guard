@@ -1,4 +1,4 @@
-# Agent Skills do ADR Guard — Fase P0
+# Agent Skills do ADR Guard — Fases P0 + P1
 
 [English](README.md) · [Especificação Agent Skills](https://agentskills.io/specification)
 
@@ -14,6 +14,25 @@ As skills são **fluxos opcionais para agentes de IA** que ajudam a usar o ADR G
 | [adr-guard-technical-review](../../skills/adr-guard-technical-review/SKILL.md) | Revisar justificativas, alternativas, riscos e evidências |
 | [adr-guard-lifecycle](../../skills/adr-guard-lifecycle/SKILL.md) | Registrar mudanças de status autorizadas e substituições |
 | [adr-guard-ci-setup](../../skills/adr-guard-ci-setup/SKILL.md) | Configurar validação no GitHub Actions |
+
+### P1 — Análise e governança de decisões
+
+| Skill | Quando utilizar |
+| --- | --- |
+| [adr-guard-when-to-record](../../skills/adr-guard-when-to-record/SKILL.md) | Decidir se uma escolha merece um ADR |
+| [adr-guard-tradeoff-analysis](../../skills/adr-guard-tradeoff-analysis/SKILL.md) | Comparar alternativas, critérios, riscos e incertezas |
+| [adr-guard-supersede](../../skills/adr-guard-supersede/SKILL.md) | Substituir uma decisão preservando seu histórico |
+| [adr-guard-audit](../../skills/adr-guard-audit/SKILL.md) | Auditar documentação e governança sem alterar arquivos |
+| [adr-guard-team-adoption](../../skills/adr-guard-team-adoption/SKILL.md) | Adotar ADRs com papéis, revisão e responsabilidade humana |
+
+## Qual skill utilizar?
+
+- **Preciso mesmo de um ADR?** `adr-guard-when-to-record`. **Quais opções e consequências considerar?** `adr-guard-tradeoff-analysis`. **Documentar a proposta:** `adr-guard-create`.
+- **Preciso substituir uma decisão?** `adr-guard-supersede`, para relações entre registros; `adr-guard-lifecycle` cobre as demais transições autorizadas.
+- **Tenho um acervo de ADRs?** `adr-guard-validate` examina regras verificáveis; `adr-guard-audit` avalia qualitativamente documentação e governança sem escrever.
+- **Quero implantar a prática no time?** `adr-guard-team-adoption` define a proposta de política, `adr-guard-init` faz a configuração e `adr-guard-ci-setup` integra à CI.
+
+As P1 não pressupõem comandos futuros de análise de impacto ou architectural drift já implementados.
 
 ## Descoberta e instalação
 
