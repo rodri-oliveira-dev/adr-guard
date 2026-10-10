@@ -44,7 +44,7 @@ internal static class BaselineCommand
                 null,
                 AdrValidationOptionsFactory.Create(
                     format,
-                    Directory.GetCurrentDirectory(),
+                    AdrRepositoryRoot.Resolve(directoryPath),
                     lifecycleStatuses,
                     conventionalSupersession,
                     filenamePolicy,
