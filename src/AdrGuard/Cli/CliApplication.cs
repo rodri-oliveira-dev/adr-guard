@@ -705,7 +705,8 @@ internal static class CliApplication
                 out var lifecycleStatuses,
                 out var conventionalSupersession,
                 out var filenamePolicy,
-                out var validationProfile))
+                out var validationProfile,
+                out var enrichedCatalog))
         {
             return WriteCommandUsageError("index", error);
         }
@@ -718,6 +719,7 @@ internal static class CliApplication
             conventionalSupersession,
             filenamePolicy,
             validationProfile,
+            enrichedCatalog,
             output,
             error);
     }
@@ -1039,7 +1041,8 @@ internal static class CliApplication
         out string? lifecycleStatuses,
         out bool conventionalSupersession,
         out string? filenamePolicy,
-        out string? validationProfile)
+        out string? validationProfile,
+        out bool enrichedCatalog)
     {
         directoryPath = ".";
         outputPath = null;
@@ -1048,12 +1051,19 @@ internal static class CliApplication
         conventionalSupersession = false;
         filenamePolicy = null;
         validationProfile = null;
+        enrichedCatalog = false;
         var directoryAssigned = false;
         var adrFormatAssigned = false;
 
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
+            if (argument == "--catalog")
+            {
+                if (enrichedCatalog || index + 1 >= args.Count || args[++index] != "enriched") return false;
+                enrichedCatalog = true;
+                continue;
+            }
             if (argument == "--conventional-supersession")
             {
                 if (conventionalSupersession) return false;
