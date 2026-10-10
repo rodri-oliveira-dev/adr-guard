@@ -21,6 +21,21 @@ internal sealed record AdrFilenamePolicy(AdrFilenameConvention Convention, int N
         throw new ArgumentException("Filename policy must be canonical, unnumbered, adr-prefix, or numeric:1..9.", nameof(value));
     }
 
+    // The unnumbered convention treats the entire stem as a slug, including
+    // stems beginning with digits (for example, 2026-plan.md).
+    internal AdrDocument NormalizeIdentity(AdrDocument document)
+    {
+        if (Convention != AdrFilenameConvention.Unnumbered) return document;
+
+        var stem = Path.GetFileNameWithoutExtension(document.FileName);
+        return document with
+        {
+            Id = null,
+            Slug = stem,
+            StableId = $"slug:{stem.ToLowerInvariant()}",
+        };
+    }
+
     internal bool IsValid(AdrDocument document)
     {
         if (!string.Equals(Path.GetExtension(document.FileName), ".md", StringComparison.Ordinal)) return false;
@@ -30,7 +45,7 @@ internal sealed record AdrFilenamePolicy(AdrFilenameConvention Convention, int N
         return Convention switch
         {
             AdrFilenameConvention.Canonical => document.Id is > 0 and <= 9999 && document.FileName.StartsWith($"{document.Id:D4}-", StringComparison.Ordinal),
-            AdrFilenameConvention.Unnumbered => document.Id is null && IsSlug(stem),
+            AdrFilenameConvention.Unnumbered => IsSlug(stem),
             AdrFilenameConvention.AdrPrefix => document.Id is > 0 and <= 9999 && document.FileName.StartsWith($"ADR-{document.Id:D4}-", StringComparison.Ordinal),
             AdrFilenameConvention.Numeric => document.Id is > 0 && document.FileName.StartsWith($"{document.Id.Value.ToString($"D{NumericWidth}", CultureInfo.InvariantCulture)}-", StringComparison.Ordinal),
             _ => false,
