@@ -17,4 +17,5 @@ internal static class ValidationCodes
     internal const string InconsistentSupersession = "ADR013";
     internal const string InactiveDependency = "ADR014";
     internal const string UnresolvedPlaceholder = "ADR015";
+    internal const string InvalidMetadata = "ADR016";
 }

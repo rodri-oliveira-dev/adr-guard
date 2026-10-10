@@ -19,6 +19,7 @@ internal static class CheckCommand
             conventionalSupersession: false,
             filenamePolicy: null,
             placeholderPolicy: null,
+            validateMetadata: false,
             changed: false,
             baseReference: null,
             baselinePath: null,
@@ -36,7 +37,7 @@ internal static class CheckCommand
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken) =>
-        Run(directoryPath, format, adrFormat, null, false, null, null, changed, baseReference, baselinePath, output, error, cancellationToken);
+        Run(directoryPath, format, adrFormat, null, false, null, null, false, changed, baseReference, baselinePath, output, error, cancellationToken);
 
     internal static int Run(
         string directoryPath,
@@ -46,6 +47,7 @@ internal static class CheckCommand
         bool conventionalSupersession,
         string? filenamePolicy,
         string? placeholderPolicy,
+        bool validateMetadata,
         bool changed,
         string? baseReference,
         string? baselinePath,
@@ -73,7 +75,8 @@ internal static class CheckCommand
                 AdrLifecyclePolicy.Parse(lifecycleStatuses),
                 conventionalSupersession,
                 AdrFilenamePolicy.Parse(filenamePolicy),
-                ParsePlaceholderPolicy(placeholderPolicy));
+                ParsePlaceholderPolicy(placeholderPolicy),
+                validateMetadata);
             var fullResult = AdrValidator.Validate(documents, null, options);
             var result = fullResult;
             IReadOnlySet<string>? changedPaths = null;

@@ -9,4 +9,6 @@ internal sealed record AdrDocument(
     string? Status,
     IReadOnlyList<AdrSection> Sections,
     IReadOnlyDictionary<string, string>? Metadata = null,
-    string? StableId = null);
+    string? StableId = null,
+    AdrDecisionMetadata? DecisionMetadata = null,
+    IReadOnlyList<string>? MetadataErrors = null);

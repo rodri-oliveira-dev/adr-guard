@@ -13,7 +13,7 @@ internal static class AdrMarkdownParser
 
         var fileName = Path.GetFileName(filePath);
         var (id, slug) = ParseFileName(fileName);
-        var metadata = ParseFrontMatter(markdown);
+        var (metadata, metadataErrors) = ParseFrontMatter(markdown);
         var sections = new List<AdrSection>();
         string? title = null;
 
@@ -97,24 +97,27 @@ internal static class AdrMarkdownParser
             metadata,
             id.HasValue
                 ? $"ADR-{id.Value.ToString(CultureInfo.InvariantCulture)}"
-                : slug is null ? null : $"slug:{slug.ToLowerInvariant()}");
+                : slug is null ? null : $"slug:{slug.ToLowerInvariant()}",
+            AdrDecisionMetadata.From(metadata),
+            metadataErrors);
     }
 
-    private static Dictionary<string, string> ParseFrontMatter(string markdown)
+    private static (Dictionary<string, string> Values, IReadOnlyList<string> Errors) ParseFrontMatter(string markdown)
     {
         var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var errors = new List<string>();
         using var reader = new StringReader(markdown);
 
         if (!string.Equals(reader.ReadLine()?.Trim(), "---", StringComparison.Ordinal))
         {
-            return metadata;
+            return (metadata, errors);
         }
 
         while (reader.ReadLine() is { } line)
         {
             if (string.Equals(line.Trim(), "---", StringComparison.Ordinal))
             {
-                return metadata;
+                return (metadata, errors);
             }
 
             var separator = line.IndexOf(':');
@@ -125,6 +128,11 @@ internal static class AdrMarkdownParser
 
             var key = line[..separator].Trim();
             var value = line[(separator + 1)..].Trim();
+            if (key.Length > 64 || value.Length > 4096 || value.IndexOfAny(['&', '*', '!']) >= 0)
+            {
+                errors.Add($"Metadata '{key}' exceeds limits or uses unsupported YAML features.");
+                continue;
+            }
             if (value.Length >= 2
                 && ((value[0] == '"' && value[^1] == '"')
                     || (value[0] == '\'' && value[^1] == '\'')))
@@ -132,10 +140,12 @@ internal static class AdrMarkdownParser
                 value = value[1..^1];
             }
 
-            metadata.TryAdd(key, value);
+            if (!metadata.TryAdd(key, value))
+                errors.Add($"Metadata key '{key}' is duplicated.");
         }
 
-        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        errors.Add("Front matter is not terminated.");
+        return (metadata, errors);
     }
 
     private static (int? Id, string? Slug) ParseFileName(string fileName)

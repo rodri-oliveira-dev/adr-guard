@@ -19,6 +19,7 @@ internal static class ValidationRuleCatalog
         ValidationCodes.InconsistentSupersession => "ADR supersession relationship is inconsistent",
         ValidationCodes.InactiveDependency => "ADR depends on an inactive decision",
         ValidationCodes.UnresolvedPlaceholder => "ADR contains an unresolved authoring placeholder",
+        ValidationCodes.InvalidMetadata => "ADR metadata is malformed",
         _ => "ADR validation diagnostic",
     };
 }

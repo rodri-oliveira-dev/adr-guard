@@ -334,6 +334,7 @@ internal static class CliApplication
                 out var conventionalSupersession,
                 out var filenamePolicy,
                 out var placeholderPolicy,
+                out var validateMetadata,
                 out var changed,
                 out var baseReference,
                 out var baselinePath))
@@ -349,6 +350,7 @@ internal static class CliApplication
             conventionalSupersession,
             filenamePolicy,
             placeholderPolicy,
+            validateMetadata,
             changed,
             baseReference,
             baselinePath,
@@ -366,6 +368,7 @@ internal static class CliApplication
         out bool conventionalSupersession,
         out string? filenamePolicy,
         out string? placeholderPolicy,
+        out bool validateMetadata,
         out bool changed,
         out string? baseReference,
         out string? baselinePath)
@@ -377,6 +380,7 @@ internal static class CliApplication
         conventionalSupersession = false;
         filenamePolicy = null;
         placeholderPolicy = null;
+        validateMetadata = false;
         changed = false;
         baseReference = null;
         baselinePath = null;
@@ -387,6 +391,12 @@ internal static class CliApplication
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
+            if (argument == "--validate-metadata")
+            {
+                if (validateMetadata) return false;
+                validateMetadata = true;
+                continue;
+            }
             if (argument == "--conventional-supersession")
             {
                 if (conventionalSupersession) return false;

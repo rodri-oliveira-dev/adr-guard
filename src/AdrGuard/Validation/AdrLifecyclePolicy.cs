@@ -70,7 +70,8 @@ internal sealed record AdrValidationOptions(
     AdrLifecyclePolicy? Lifecycle = null,
     bool ConventionalSupersession = false,
     AdrFilenamePolicy? FilenamePolicy = null,
-    PlaceholderPolicy PlaceholderPolicy = PlaceholderPolicy.Off)
+    PlaceholderPolicy PlaceholderPolicy = PlaceholderPolicy.Off,
+    bool ValidateMetadata = false)
 {
     internal AdrLifecyclePolicy EffectiveLifecycle => Lifecycle ?? AdrLifecyclePolicy.Legacy;
     internal AdrFilenamePolicy EffectiveFilenamePolicy => FilenamePolicy ?? AdrFilenamePolicy.Canonical;

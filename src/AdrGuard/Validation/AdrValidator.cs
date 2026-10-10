@@ -117,6 +117,7 @@ internal static class AdrValidator
         ValidateReferences(document, knownPaths, issues, options.RepositoryRoot);
         ValidateSupersededBy(document, knownPaths, issues, options);
         ValidatePlaceholders(document, issues, options.PlaceholderPolicy);
+        ValidateMetadata(document, issues, options.ValidateMetadata);
     }
 
     private static void ValidateMadr4(
@@ -402,6 +403,26 @@ internal static class AdrValidator
             if (!fenced) result.AppendLine(line);
         }
         return result.ToString();
+    }
+
+    private static void ValidateMetadata(AdrDocument document, List<ValidationIssue> issues, bool enabled)
+    {
+        if (!enabled) return;
+        foreach (var error in document.MetadataErrors ?? [])
+            issues.Add(new ValidationIssue(ValidationCodes.InvalidMetadata, document.FilePath, error));
+
+        var metadata = document.DecisionMetadata;
+        if (metadata is null) return;
+        foreach (var (name, value) in new[] { ("date", metadata.DecisionDate), ("last-reviewed", metadata.LastReviewedDate) })
+        {
+            if (value is not null && !DateOnly.TryParseExact(value, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _))
+                issues.Add(new ValidationIssue(ValidationCodes.InvalidMetadata, document.FilePath, $"Metadata '{name}' must use YYYY-MM-DD."));
+        }
+        foreach (var link in metadata.FollowUps)
+        {
+            if (!Uri.TryCreate(link, UriKind.RelativeOrAbsolute, out _))
+                issues.Add(new ValidationIssue(ValidationCodes.InvalidMetadata, document.FilePath, $"Follow-up link '{link}' is malformed."));
+        }
     }
 
     private static void ValidateReferences(

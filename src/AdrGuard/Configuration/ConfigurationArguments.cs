@@ -44,6 +44,9 @@ internal static class ConfigurationArguments
             configured.Add("--placeholder-policy");
             configured.Add(configuration.PlaceholderPolicy);
         }
+        if (args[0] == "check" && configuration.ValidateMetadata
+            && !configured.Contains("--validate-metadata", StringComparer.Ordinal))
+            configured.Add("--validate-metadata");
 
         return configured;
     }
