@@ -29,7 +29,36 @@ public sealed class AdrPlaceholderPolicyTests
         Assert.True(result.IsValid);
     }
 
-    private static string Canonical(string content) => $$"""
+    [Theory]
+    [InlineData("Todos os componentes possuem responsáveis.")]
+    [InlineData("O método todos() é apenas um exemplo.")]
+    [InlineData("This methodology is documented.")]
+    [InlineData("Already completedTODOtask should not match.")]
+    public void PlaceholderWordsMustNotMatchSubstrings(string content)
+    {
+        var document = AdrMarkdownParser.Parse("0001-draft.md", Canonical(content));
+        var result = AdrValidator.Validate(
+            [document], null, new AdrValidationOptions(AdrFormat.Canonical, PlaceholderPolicy: PlaceholderPolicy.Error));
+
+        Assert.True(result.IsValid);
+        Assert.DoesNotContain(result.Issues, issue => issue.Code == ValidationCodes.UnresolvedPlaceholder);
+    }
+
+    [Theory]
+    [InlineData("TODO: document migration")]
+    [InlineData("(tbd) before rollout")]
+    [InlineData("Complete [EDIT] before merging")]
+    [InlineData("[EDITAR] antes da publicação")]
+    public void StandalonePlaceholderMarkersAreStillDetected(string content)
+    {
+        var document = AdrMarkdownParser.Parse("0001-draft.md", Canonical(content));
+        var result = AdrValidator.Validate(
+            [document], null, new AdrValidationOptions(AdrFormat.Canonical, PlaceholderPolicy: PlaceholderPolicy.Error));
+
+        Assert.Contains(result.Issues, issue => issue.Code == ValidationCodes.UnresolvedPlaceholder);
+    }
+
+    private static string Canonical(string content) => $"""
         # Draft
         ## Status
         Proposed
