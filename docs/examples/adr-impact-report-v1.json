@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0",
+  "advisory": true,
+  "repository": {
+    "baseReference": "origin/main",
+    "mergeBase": "0123456789abcdef0123456789abcdef01234567",
+    "manifestPath": ".adrguard-impact.json"
+  },
+  "summary": {
+    "totalChanges": 1,
+    "affectedDecisions": 1,
+    "unknownDecisions": 0,
+    "notMatchedDecisions": 0
+  },
+  "coverage": {
+    "affectedChanges": 1,
+    "unknownChanges": 0,
+    "notMatchedChanges": 0
+  },
+  "uncertainty": {
+    "hasUnknowns": false,
+    "decisionStableIds": [],
+    "explanation": "Unknown means a mapped ADR could not be resolved to an active or proposed decision; it is not a compliance result."
+  },
+  "changedFiles": [
+    {
+      "scope": "committed",
+      "changeType": "modified",
+      "oldPath": null,
+      "newPath": "src/payments/PaymentService.cs",
+      "similarity": null,
+      "status": "affected",
+      "decisionStableIds": ["ADR-0042"]
+    }
+  ],
+  "decisions": [
+    {
+      "stableId": "ADR-0042",
+      "path": "docs/adr/0042-payment-boundary.md",
+      "title": "Keep payments behind a service boundary",
+      "lifecycleStatus": "Accepted",
+      "resolution": "active",
+      "status": "affected",
+      "uncertainty": null,
+      "evidence": [
+        {
+          "scope": "committed",
+          "changeType": "modified",
+          "pathRole": "current",
+          "path": "src/payments/PaymentService.cs",
+          "pattern": "src/payments/**",
+          "relationship": "governs",
+          "reason": "ADR-0042 governs the payments boundary."
+        }
+      ]
+    }
+  ]
+}

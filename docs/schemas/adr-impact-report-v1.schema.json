@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/schemas/adr-impact-report-v1.schema.json",
+  "title": "ADR Guard architecture impact report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "advisory", "repository", "summary", "coverage", "uncertainty", "changedFiles", "decisions"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "advisory": { "const": true },
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["baseReference", "mergeBase", "manifestPath"],
+      "properties": {
+        "baseReference": { "type": "string", "minLength": 1 },
+        "mergeBase": { "type": "string", "pattern": "^[0-9a-fA-F]{40,64}$" },
+        "manifestPath": { "$ref": "#/$defs/path" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalChanges", "affectedDecisions", "unknownDecisions", "notMatchedDecisions"],
+      "properties": {
+        "totalChanges": { "$ref": "#/$defs/count" },
+        "affectedDecisions": { "$ref": "#/$defs/count" },
+        "unknownDecisions": { "$ref": "#/$defs/count" },
+        "notMatchedDecisions": { "$ref": "#/$defs/count" }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["affectedChanges", "unknownChanges", "notMatchedChanges"],
+      "properties": {
+        "affectedChanges": { "$ref": "#/$defs/count" },
+        "unknownChanges": { "$ref": "#/$defs/count" },
+        "notMatchedChanges": { "$ref": "#/$defs/count" }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hasUnknowns", "decisionStableIds", "explanation"],
+      "properties": {
+        "hasUnknowns": { "type": "boolean" },
+        "decisionStableIds": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
+        "explanation": { "type": "string", "minLength": 1 }
+      }
+    },
+    "changedFiles": { "type": "array", "items": { "$ref": "#/$defs/change" } },
+    "decisions": { "type": "array", "items": { "$ref": "#/$defs/decision" } }
+  },
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0 },
+    "path": { "type": "string", "minLength": 1, "pattern": "^(?![/\\])(?!.*(?:^|/)\\.\\.(?:/|$)).+$" },
+    "status": { "enum": ["affected", "not-matched", "unknown"] },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "changeType", "oldPath", "newPath", "similarity", "status", "decisionStableIds"],
+      "properties": {
+        "scope": { "enum": ["committed", "staged", "unstaged", "untracked"] },
+        "changeType": { "enum": ["added", "modified", "deleted", "renamed", "copied", "type-changed", "unmerged"] },
+        "oldPath": { "oneOf": [{ "$ref": "#/$defs/path" }, { "type": "null" }] },
+        "newPath": { "oneOf": [{ "$ref": "#/$defs/path" }, { "type": "null" }] },
+        "similarity": { "oneOf": [{ "type": "integer", "minimum": 0, "maximum": 100 }, { "type": "null" }] },
+        "status": { "$ref": "#/$defs/status" },
+        "decisionStableIds": { "type": "array", "items": { "type": "string", "minLength": 1 }, "uniqueItems": true }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "changeType", "pathRole", "path", "pattern", "relationship", "reason"],
+      "properties": {
+        "scope": { "enum": ["committed", "staged", "unstaged", "untracked"] },
+        "changeType": { "enum": ["added", "modified", "deleted", "renamed", "copied", "type-changed", "unmerged"] },
+        "pathRole": { "enum": ["current", "previous"] },
+        "path": { "$ref": "#/$defs/path" },
+        "pattern": { "type": "string", "minLength": 1 },
+        "relationship": { "enum": ["governs", "implements", "constrains", "depends-on"] },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stableId", "path", "title", "lifecycleStatus", "resolution", "status", "uncertainty", "evidence"],
+      "properties": {
+        "stableId": { "type": "string", "minLength": 1 },
+        "path": { "$ref": "#/$defs/path" },
+        "title": { "type": ["string", "null"] },
+        "lifecycleStatus": { "type": ["string", "null"] },
+        "resolution": { "enum": ["active", "proposed", "inactive", "unknown"] },
+        "status": { "$ref": "#/$defs/status" },
+        "uncertainty": { "type": ["string", "null"] },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } }
+      }
+    }
+  }
+}
