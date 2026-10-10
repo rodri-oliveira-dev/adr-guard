@@ -22,7 +22,7 @@ internal static class CheckReportRenderer
             writer.WriteString("schemaVersion", "1.0");
             writer.WriteBoolean(
                 "valid",
-                baseline is null ? result.IsValid : baseline.NewIssues.Count == 0);
+                baseline is null ? result.IsValid : new ValidationResult(baseline.NewIssues).IsValid);
             writer.WriteStartObject("summary");
             writer.WriteNumber("files", documents.Count);
             writer.WriteNumber("diagnostics", result.Issues.Count);
