@@ -36,6 +36,25 @@ KEY_RE = re.compile(r"([a-z][a-z-]*):\s+(.+)\Z")
 LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
 
 
+def iter_prose_links(markdown_lines: list[str]):
+    """Find actionable Markdown links, ignoring fenced code examples."""
+    fence_char: str | None = None
+    fence_size = 0
+    for line in markdown_lines:
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if marker:
+            run = marker.group(1)
+            if fence_char is None:
+                fence_char = run[0]
+                fence_size = len(run)
+            elif run[0] == fence_char and len(run) >= fence_size and not marker.group(2).strip():
+                fence_char = None
+                fence_size = 0
+            continue
+        if fence_char is None:
+            yield from LINK_RE.findall(line)
+
+
 def validate_skill(skill_file: Path) -> list[str]:
     errors: list[str] = []
     try:
@@ -79,8 +98,8 @@ def validate_skill(skill_file: Path) -> list[str]:
         errors.append(f"{skill_file}: missing Markdown H1 instruction body")
     if len(lines) > 500:
         errors.append(f"{skill_file}: SKILL.md exceeds 500 lines")
-    for target in LINK_RE.findall(body):
-        # Only verify local links. Remote product docs remain usable after install.
+    for target in iter_prose_links(lines[end + 1 :]):
+        # Only verify local links in prose. Example code fences aren't skill dependencies.
         if target.startswith(("https://", "http://", "mailto:", "#")):
             continue
         local = target.split("#", 1)[0]
