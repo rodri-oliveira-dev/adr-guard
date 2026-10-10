@@ -55,7 +55,9 @@ internal static class IndexCommand
                 return ExitCodes.UsageError;
             }
 
-            var documents = AdrDocumentLoader.LoadDirectory(directoryPath);
+            var policy = AdrFilenamePolicy.Parse(filenamePolicy);
+            var documents = AdrDocumentLoader.LoadDirectory(directoryPath)
+                .Select(policy.NormalizeIdentity).ToArray();
             var validationResult = AdrValidator.Validate(
                 documents,
                 null,
