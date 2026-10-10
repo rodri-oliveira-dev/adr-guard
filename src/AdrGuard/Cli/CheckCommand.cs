@@ -73,7 +73,7 @@ internal static class CheckCommand
             var documents = AdrDocumentLoader.LoadDirectory(directoryPath, cancellationToken);
             var options = AdrValidationOptionsFactory.Create(
                 adrFormat,
-                Directory.GetCurrentDirectory(),
+                AdrRepositoryRoot.Resolve(directoryPath),
                 lifecycleStatuses,
                 conventionalSupersession,
                 filenamePolicy,
