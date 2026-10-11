@@ -10,6 +10,7 @@ internal static class DotNetProjectReferenceChecker
     internal const long MaximumProjectBytes = 1_048_576;
     internal const int MaximumReferences = 10_000;
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
+    private static readonly string[] ImplicitBuildImportFileNames = ["Directory.Build.props", "Directory.Build.targets"];
 
     internal static IReadOnlyList<FitnessRuleResult> Check(FitnessManifest manifest, CancellationToken cancellationToken)
     {
@@ -48,21 +49,28 @@ internal static class DotNetProjectReferenceChecker
             if (references.Length > MaximumReferences) return Unknown(rule, "ProjectReference count exceeds the bounded processing limit.");
             var evidence = new List<FitnessEvidence>();
             var imports = document.Descendants().Where(x => x.Name.LocalName == "Import").ToArray();
-            var ambiguous = imports.Length > 0;
+            var implicitImports = FindImplicitBuildImports(root, fromFull);
+            var ambiguous = imports.Length > 0 || implicitImports.Length > 0;
             if (ambiguous)
             {
-                var import = imports[0];
-                evidence.Add(new("project-import", rule.EvidenceSource, rule.From, import.Attribute("Project")?.Value, Line(import), $"Project declares {imports.Length} explicit Import element(s); imported project references are not evaluated."));
+                if (imports.Length > 0)
+                {
+                    var import = imports[0];
+                    evidence.Add(new("project-import", rule.EvidenceSource, rule.From, import.Attribute("Project")?.Value, Line(import), $"Project declares {imports.Length} explicit Import element(s); imported project references are not evaluated."));
+                }
+                if (implicitImports.Length > 0)
+                    evidence.Add(new("project-import", rule.EvidenceSource, rule.From, implicitImports[0], null, $"Found {implicitImports.Length} implicit Directory.Build import(s); imported project references are not evaluated."));
             }
             foreach (var reference in references)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var include = reference.Attribute("Include")?.Value;
                 var conditional = reference.AncestorsAndSelf().Any(x => x.Attribute("Condition") is not null);
-                if (string.IsNullOrWhiteSpace(include) || conditional || IsDynamicInclude(include))
+                var excluded = reference.Attribute("Exclude") is not null;
+                if (string.IsNullOrWhiteSpace(include) || conditional || excluded || IsDynamicInclude(include))
                 {
                     ambiguous = true;
-                    evidence.Add(new("project-reference-ambiguous", rule.EvidenceSource, rule.From, include, Line(reference), "Conditional, missing, wildcard, expression-expanded, or multi-item ProjectReference cannot be evaluated statically."));
+                    evidence.Add(new("project-reference-ambiguous", rule.EvidenceSource, rule.From, include, Line(reference), "Conditional, excluded, missing, wildcard, expression-expanded, or multi-item ProjectReference cannot be evaluated statically."));
                     continue;
                 }
                 string target;
@@ -99,6 +107,24 @@ internal static class DotNetProjectReferenceChecker
         || include.Contains("%(", StringComparison.Ordinal)
         || include.Contains(';', StringComparison.Ordinal)
         || include.IndexOfAny(['*', '?']) >= 0;
+
+    private static string[] FindImplicitBuildImports(string root, string projectPath)
+    {
+        var imports = new List<string>();
+        var directory = new DirectoryInfo(Path.GetDirectoryName(projectPath)!);
+        while (directory is not null)
+        {
+            foreach (var fileName in ImplicitBuildImportFileNames)
+            {
+                var candidate = Path.Combine(directory.FullName, fileName);
+                if (File.Exists(candidate))
+                    imports.Add(Path.GetRelativePath(root, candidate).Replace(Path.DirectorySeparatorChar, '/'));
+            }
+            if (string.Equals(directory.FullName, root, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)) break;
+            directory = directory.Parent;
+        }
+        return imports.Order(StringComparer.Ordinal).ToArray();
+    }
 
     private static int? Line(XElement element) => (element as IXmlLineInfo)?.HasLineInfo() == true ? ((IXmlLineInfo)element).LineNumber : null;
     private static FitnessRuleResult Unknown(FitnessRule rule, string explanation) => Result(rule, FitnessOutcome.Unknown, "none", explanation, []);

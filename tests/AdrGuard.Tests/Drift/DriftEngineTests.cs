@@ -40,6 +40,23 @@ public sealed class DriftEngineTests
     }
 
     [Fact]
+    public void RemappedRuleIdNeverResolvesBaselineViolation()
+    {
+        using var repository = Repository.Create(ForbiddenReference);
+        var baseline = DriftEngine.Snapshot(DriftEngine.Analyze(repository.Manifest(), null, null, null, Now, CancellationToken.None), Now);
+        repository.WriteDomain("<Project />");
+        var other = "src/Other/Other.csproj";
+        Directory.CreateDirectory(Path.Combine(repository.Root, "src", "Other"));
+        File.WriteAllText(Path.Combine(repository.Root, "src", "Other", "Other.csproj"), "<Project />");
+
+        var remapped = DriftEngine.Analyze(repository.Manifest(other), null, baseline, null, Now, CancellationToken.None);
+
+        Assert.Equal(1, remapped.Coverage.Pass);
+        Assert.Contains(remapped.Findings, x => x.BaselineState == "unresolved-baseline");
+        Assert.DoesNotContain(remapped.Findings, x => x.BaselineState == "resolved");
+    }
+
+    [Fact]
     public void FingerprintAndSnapshotAreStableAcrossPresentationAndSerialization()
     {
         using var repository = Repository.Create(ForbiddenReference);
@@ -67,6 +84,11 @@ public sealed class DriftEngineTests
         Assert.Throws<InvalidDataException>(() => DriftSnapshotService.Load(repository.Root, "bad.json"));
         File.WriteAllText(Path.Combine(repository.Root, "missing-fingerprint.json"), "{\"schemaVersion\":\"1.0\",\"repository\":{\"rulesManifest\":\".adrguard-fitness.json\",\"commit\":null},\"createdAt\":\"2026-01-01T00:00:00Z\",\"findings\":[{\"ruleId\":\"domain-no-infrastructure\",\"adrStableId\":\"ADR-1\",\"outcome\":\"violation\",\"checkType\":\"forbid-project-reference\",\"from\":null,\"to\":null,\"confidence\":\"deterministic-static\"}]}");
         Assert.Throws<InvalidDataException>(() => DriftSnapshotService.Load(repository.Root, "missing-fingerprint.json"));
+        var serialized = DriftSnapshotService.Serialize(snapshot);
+        File.WriteAllText(Path.Combine(repository.Root, "bad-check-type.json"), serialized.Replace("\"checkType\": \"forbid-project-reference\"", "\"checkType\": \"arbitrary\""));
+        Assert.Throws<InvalidDataException>(() => DriftSnapshotService.Load(repository.Root, "bad-check-type.json"));
+        File.WriteAllText(Path.Combine(repository.Root, "missing-confidence.json"), serialized.Replace(",\n      \"confidence\": \"deterministic-static\"", string.Empty));
+        Assert.Throws<InvalidDataException>(() => DriftSnapshotService.Load(repository.Root, "missing-confidence.json"));
         Assert.Throws<InvalidDataException>(() => DriftSnapshotService.Write(repository.Root, "../outside.json", snapshot, false));
     }
 
@@ -85,11 +107,11 @@ public sealed class DriftEngineTests
             var repository = new Repository(root); repository.WriteDomain(xml); return repository;
         }
         internal void WriteDomain(string xml) => File.WriteAllText(Path.Combine(Root, "src", "Domain", "Domain.csproj"), xml);
-        internal FitnessManifest Manifest()
+        internal FitnessManifest Manifest(string to = "src/Infrastructure/Infrastructure.csproj")
         {
             var rule = new FitnessRule("domain-no-infrastructure", new("ADR-1", "docs/adr/0001.md", FitnessDecisionState.Effective, "Accepted", null),
-                ["src/Domain/Domain.csproj", "src/Infrastructure/Infrastructure.csproj"], FitnessCheckType.ForbidProjectReference,
-                "src/Domain/Domain.csproj", "src/Infrastructure/Infrastructure.csproj", null, "dotnet-project-reference", "error", true);
+                ["src/Domain/Domain.csproj", to], FitnessCheckType.ForbidProjectReference,
+                "src/Domain/Domain.csproj", to, null, "dotnet-project-reference", "error", true);
             return new(Root, ".adrguard-fitness.json", [rule]);
         }
         public void Dispose() => Directory.Delete(Root, true);

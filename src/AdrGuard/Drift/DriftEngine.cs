@@ -33,11 +33,12 @@ internal static class DriftEngine
 
         if (baseline is not null)
         {
-            var currentByRule = findings.ToDictionary(x => x.RuleId, StringComparer.Ordinal);
             foreach (var previous in baseline.Findings.Where(x => x.Outcome == "violation"))
             {
                 if (findings.Any(x => x.Fingerprint == previous.Fingerprint && x.Outcome == FitnessOutcome.Violation)) continue;
-                var state = currentByRule.TryGetValue(previous.RuleId, out var current) && current.Outcome == FitnessOutcome.Pass
+                var state = rulesById.TryGetValue(previous.RuleId, out var currentRule)
+                    && findings.Any(x => x.RuleId == previous.RuleId && x.Outcome == FitnessOutcome.Pass)
+                    && Fingerprint(currentRule, FitnessOutcome.Violation) == previous.Fingerprint
                     ? "resolved"
                     : "unresolved-baseline";
                 findings.Add(new DriftFinding(previous.Fingerprint, previous.RuleId, previous.AdrStableId, FitnessOutcome.Violation, previous.CheckType, previous.Confidence, state,

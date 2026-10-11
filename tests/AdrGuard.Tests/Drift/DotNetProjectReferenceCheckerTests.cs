@@ -45,6 +45,7 @@ public sealed class DotNetProjectReferenceCheckerTests
     [InlineData("<Project><ItemGroup><ProjectReference Include=\"%(Identity)\" /></ItemGroup></Project>")]
     [InlineData("<Project><ItemGroup><ProjectReference Include=\"../Infrastructure/Infrastructure.csproj;../Other/Other.csproj\" /></ItemGroup></Project>")]
     [InlineData("<Project><ItemGroup><ProjectReference Include=\"../*/Infrastructure.csproj\" /></ItemGroup></Project>")]
+    [InlineData("<Project><ItemGroup><ProjectReference Include=\"../Infrastructure/Infrastructure.csproj\" Exclude=\"../Infrastructure/Infrastructure.csproj\" /></ItemGroup></Project>")]
     public void ReturnsUnknownForConditionalOrDynamicReferences(string xml)
     {
         using var repository = Repository.Create(xml);
@@ -60,6 +61,18 @@ public sealed class DotNetProjectReferenceCheckerTests
         var result = Assert.Single(DotNetProjectReferenceChecker.Check(repository.Manifest(), CancellationToken.None));
         Assert.Equal(FitnessOutcome.Unknown, result.Outcome);
         Assert.Contains(result.Evidence, evidence => evidence.Kind == "project-import");
+    }
+
+    [Theory]
+    [InlineData("Directory.Build.props")]
+    [InlineData("Directory.Build.targets")]
+    public void ReturnsUnknownWhenAncestorDeclaresImplicitBuildImport(string fileName)
+    {
+        using var repository = Repository.Create("<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        File.WriteAllText(Path.Combine(repository.Root, fileName), "<Project />");
+        var result = Assert.Single(DotNetProjectReferenceChecker.Check(repository.Manifest(), CancellationToken.None));
+        Assert.Equal(FitnessOutcome.Unknown, result.Outcome);
+        Assert.Contains(result.Evidence, evidence => evidence.Kind == "project-import" && evidence.Target == fileName);
     }
 
     [Theory]
@@ -141,6 +154,18 @@ public sealed class DotNetProjectReferenceCheckerTests
         File.WriteAllText(path, File.ReadAllText(path).Replace("\"schemaVersion\": \"1.0\"", "\"schemaVersion\": \"1.0\", \"unknown\": true"));
         Assert.Throws<FitnessManifestException>(() => FitnessManifestLoader.Load(repository.Root, ".adrguard-fitness.json"));
         Assert.Throws<FitnessManifestException>(() => FitnessManifestLoader.Load(repository.Root, "../rules.json"));
+    }
+
+    [Fact]
+    public void ManifestRejectsRuleWithMissingGate()
+    {
+        using var repository = ContractRepository.Copy();
+        var path = Path.Combine(repository.Root, ".adrguard-fitness.json");
+        var manifest = File.ReadAllText(path)
+            .Replace(",\r\n      \"gate\": true", string.Empty)
+            .Replace(",\n      \"gate\": true", string.Empty);
+        File.WriteAllText(path, manifest);
+        Assert.Throws<FitnessManifestException>(() => FitnessManifestLoader.Load(repository.Root, ".adrguard-fitness.json"));
     }
 
     private sealed class Repository : IDisposable

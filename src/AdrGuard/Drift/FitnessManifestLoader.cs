@@ -69,7 +69,9 @@ internal static class FitnessManifestLoader
             }
             if (candidate.Failure.OnInconclusive != "unknown" || candidate.Failure.Severity is not ("error" or "warning" or "notice"))
                 throw new FitnessManifestException($"Rule '{id}' has unsupported failure semantics.");
-            rules.Add(new FitnessRule(id, ResolveDecision(root, Token(candidate.Decision.StableId, "ADR stable ID", 128), decisionPath, lifecycle, format), projects, type, from, to, testId, candidate.Evidence.Source!, candidate.Failure.Severity, candidate.Gate));
+            if (candidate.Gate is null)
+                throw new FitnessManifestException($"Rule '{id}' must declare whether it gates enforcement.");
+            rules.Add(new FitnessRule(id, ResolveDecision(root, Token(candidate.Decision.StableId, "ADR stable ID", 128), decisionPath, lifecycle, format), projects, type, from, to, testId, candidate.Evidence.Source!, candidate.Failure.Severity, candidate.Gate.Value));
         }
 
         return new FitnessManifest(root, Path.GetRelativePath(root, fullPath).Replace(Path.DirectorySeparatorChar, '/'), rules.OrderBy(x => x.Decision.StableId, StringComparer.Ordinal).ThenBy(x => x.Id, StringComparer.Ordinal).ToArray());
@@ -168,7 +170,7 @@ internal static class FitnessManifestLoader
 
     private static StringComparer PathComparer => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
     private sealed record ManifestDefinition(string? SchemaVersion, RuleDefinition[]? Rules);
-    private sealed record RuleDefinition(string? Id, DecisionDefinition? Decision, ScopeDefinition? Scope, CheckDefinition? Check, EvidenceDefinition? Evidence, FailureDefinition? Failure, bool Gate);
+    private sealed record RuleDefinition(string? Id, DecisionDefinition? Decision, ScopeDefinition? Scope, CheckDefinition? Check, EvidenceDefinition? Evidence, FailureDefinition? Failure, bool? Gate);
     private sealed record DecisionDefinition(string? StableId, string? Path);
     private sealed record ScopeDefinition(string[]? Projects);
     private sealed record CheckDefinition(string? Type, string? From, string? To, string? TestId);
