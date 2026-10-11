@@ -1,5 +1,5 @@
-using AdrGuard.Cli;
 using System.Text.Json;
+using AdrGuard.Cli;
 using Xunit;
 
 namespace AdrGuard.Tests.Cli;

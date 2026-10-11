@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0",
+  "rules": [
+    {
+      "id": "architecture-tests",
+      "decision": { "stableId": "ADR-1", "path": "docs/adr/0001-protect-domain-boundary.md" },
+      "scope": { "projects": ["src/Domain/Domain.csproj"] },
+      "check": { "type": "external-test", "testId": "Architecture.DomainBoundary" },
+      "evidence": { "source": "external-test-report" },
+      "failure": { "severity": "warning", "onInconclusive": "unknown" },
+      "gate": false
+    }
+  ]
+}

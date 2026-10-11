@@ -86,7 +86,7 @@ Consulte a [matriz de seleção](docs/decision-design/choosing-a-template.pt-BR.
 | Containers | Executar a mesma CLI versionada por GHCR ou Docker Hub | [Guia de container e cadeia de suprimentos](docs/container.pt-BR.md) |
 | Relatórios de CI | Produzir validação em texto, JSON ou SARIF | [Relatórios de check](docs/check-reports.pt-BR.md) |
 
-A [Action no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) e a [extensão no Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) estão publicadas. A tag móvel `@v1` está publicada e suporta `check`, `index` e `review` opcional desde a v1.1.6; `new` e `draft` continuam fluxos da CLI/container direto. A extensão não inclui a CLI.
+A [Action no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) e a [extensão no Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) estão publicadas. A tag móvel `@v1` está publicada e suporta `check`, `index`, `review` opcional e `impact` opcional; `new`, `draft` e o comando `drift` proposto para a v1.6.0 continuam fluxos da CLI/container direto. A extensão não inclui a CLI.
 
 ## Agent Skills (P0 + P1)
 

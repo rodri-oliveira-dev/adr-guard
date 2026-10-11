@@ -1,5 +1,5 @@
-using AdrGuard.Drift;
 using System.Globalization;
+using AdrGuard.Drift;
 using Xunit;
 
 namespace AdrGuard.Tests.Drift;

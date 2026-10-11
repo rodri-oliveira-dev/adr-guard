@@ -2,6 +2,8 @@
 
 [English](README.md) · [Início da documentação](../index.pt-BR.md) · [Seleção de template](../decision-design/choosing-a-template.pt-BR.md)
 
+Para evidência arquitetural executável, consulte o [estudo de caso de drift arquitetural](architectural-drift/README.pt-BR.md).
+
 Estes exemplos expressam a mesma decisão — usar PostgreSQL como sistema de registro de pedidos — em três níveis de estrutura. Eles contêm justificativas completas, não instruções de template. Cada idioma e formato fica em diretório separado porque toda amostra usa intencionalmente o ID `0001` e a seleção de formato vale para o conjunto validado inteiro.
 
 | Exemplo | Por que esta forma serve |

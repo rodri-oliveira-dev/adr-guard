@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0",
+  "rules": [
+    {
+      "id": "domain-no-infrastructure",
+      "decision": { "stableId": "ADR-1", "path": "docs/adr/0001-protect-domain-boundary.md" },
+      "scope": { "projects": ["src/Domain/Domain.csproj", "src/Infrastructure/Infrastructure.csproj"] },
+      "check": { "type": "forbid-project-reference", "from": "src/Domain/Domain.csproj", "to": "src/Infrastructure/Infrastructure.csproj" },
+      "evidence": { "source": "dotnet-project-reference" },
+      "failure": { "severity": "error", "onInconclusive": "unknown" },
+      "gate": true
+    }
+  ]
+}

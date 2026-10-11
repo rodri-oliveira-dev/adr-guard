@@ -8,8 +8,12 @@
   "properties": {
     "schemaVersion": { "const": "1.0" },
     "policy": { "enum": ["advisory", "enforce"] },
-    "repository": { "type": "object" },
-    "coverage": { "type": "object", "required": ["totalRules", "pass", "violations", "unknown", "notApplicable"] },
-    "findings": { "type": "array", "items": { "type": "object", "required": ["fingerprint", "ruleId", "adrStableId", "outcome", "checkType", "confidence", "baselineState", "explanation", "evidence"] } }
+    "repository": { "type": "object", "additionalProperties": false, "required": ["rulesManifest"], "properties": { "rulesManifest": { "type": "string" }, "commit": { "type": ["string", "null"] } } },
+    "coverage": { "type": "object", "additionalProperties": false, "required": ["totalRules", "pass", "violations", "unknown", "notApplicable"], "properties": { "totalRules": { "type": "integer", "minimum": 0 }, "pass": { "type": "integer", "minimum": 0 }, "violations": { "type": "integer", "minimum": 0 }, "unknown": { "type": "integer", "minimum": 0 }, "notApplicable": { "type": "integer", "minimum": 0 } } },
+    "findings": { "type": "array", "items": { "$ref": "#/$defs/finding" } }
+  },
+  "$defs": {
+    "finding": { "type": "object", "additionalProperties": false, "required": ["fingerprint", "ruleId", "adrStableId", "outcome", "checkType", "confidence", "baselineState", "explanation", "evidence"], "properties": { "fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "ruleId": { "type": "string" }, "adrStableId": { "type": "string" }, "outcome": { "enum": ["pass", "violation", "unknown", "not-applicable"] }, "checkType": { "enum": ["forbid-project-reference", "external-test"] }, "confidence": { "type": "string" }, "baselineState": { "enum": ["current", "new", "existing", "resolved", "unresolved-baseline"] }, "explanation": { "type": "string" }, "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence" } } } },
+    "evidence": { "type": "object", "additionalProperties": false, "required": ["kind", "source", "detail"], "properties": { "kind": { "type": "string" }, "source": { "type": "string" }, "subject": { "type": ["string", "null"] }, "target": { "type": ["string", "null"] }, "line": { "type": ["integer", "null"], "minimum": 1 }, "detail": { "type": "string" } } }
   }
 }

@@ -28,7 +28,7 @@ RUN tdnf install -y git \
     && rm -rf /var/cache/tdnf
 
 LABEL org.opencontainers.image.title="ADR Guard" \
-      org.opencontainers.image.description="A .NET CLI for validating, maintaining, reviewing, and analyzing the impact of Architecture Decision Records (ADRs)." \
+      org.opencontainers.image.description="A .NET CLI for validating, maintaining, reviewing, analyzing impact, and verifying ADR-backed architectural drift." \
       org.opencontainers.image.url="https://github.com/rodri-oliveira-dev/adr-guard" \
       org.opencontainers.image.source="https://github.com/rodri-oliveira-dev/adr-guard" \
       org.opencontainers.image.documentation="https://github.com/rodri-oliveira-dev/adr-guard#readme" \

@@ -2,6 +2,8 @@
 
 [Português (Brasil)](README.pt-BR.md) · [Documentation home](../index.md) · [Template selection](../decision-design/choosing-a-template.md)
 
+For executable architecture evidence, see the bilingual [architectural-drift case study](architectural-drift/README.md).
+
 These examples express the same decision—using PostgreSQL as the order system of record—at three levels of structure. They contain completed reasoning rather than template prompts. Each language and format lives in a separate directory because every sample intentionally uses ADR ID `0001` and format selection applies to the whole validated set.
 
 | Example | Why this form fits |

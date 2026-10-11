@@ -1,7 +1,7 @@
-using AdrGuard.Configuration;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AdrGuard.Configuration;
 
 namespace AdrGuard.Drift;
 
@@ -10,8 +10,11 @@ internal static class DriftSnapshotService
     internal const int MaximumBytes = 4 * 1024 * 1024;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
-        WriteIndented = true, NewLine = "\n", PropertyNameCaseInsensitive = false,
-        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow, MaxDepth = 16,
+        WriteIndented = true,
+        NewLine = "\n",
+        PropertyNameCaseInsensitive = false,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+        MaxDepth = 16,
     };
 
     internal static string Serialize(DriftSnapshot snapshot)

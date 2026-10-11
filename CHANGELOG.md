@@ -2,9 +2,23 @@
 
 Notable changes to **ADR Guard** (`RodriOliveira.AdrGuard`, the .NET CLI/Tool and its coordinated distribution) are tracked here by published version. The separately versioned VS Code extension has its own [changelog](extensions/vscode/CHANGELOG.md).
 
-Version links below point to GitHub Releases. Dates and previously shipped highlights follow the published release history. Version 1.5.0 is prepared but not published; see the [English](docs/releases/v1.5.0.md) and [Portuguese](docs/releases/v1.5.0.pt-BR.md) release candidates.
+Version links below point to GitHub Releases. Dates and previously shipped highlights follow the published release history. Version 1.6.0 is prepared but not published; see the [English](docs/releases/v1.6.0.md) and [Portuguese](docs/releases/v1.6.0.pt-BR.md) release candidates.
 
-## [1.5.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.5.0) — Unreleased
+## [1.6.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.6.0) — Unreleased
+
+### Added
+- Versioned ADR fitness-rule, external-evidence, drift-report and snapshot contracts.
+- Bounded deterministic `.csproj` `ProjectReference` verification without MSBuild evaluation.
+- Optional external test evidence with strict provenance and conservative freshness/conflict handling.
+- Stable drift fingerprints, explicit baselines and `new`/`existing`/`resolved` classification.
+- `adr-guard drift` text/JSON reports and opt-in enforcement for new proven static violations.
+
+### Security and compatibility
+- DTD/entity processing, path traversal, symlink traversal, network retrieval and arbitrary test execution remain prohibited.
+- Missing, conditional, dynamic, stale or contradictory evidence is `unknown`, never pass.
+- Existing CLI commands, Action inputs, extension behavior and published JSON/SARIF contracts remain compatible.
+
+## [1.5.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.5.0) — 2026-10-11
 
 ### Added
 - Opt-in `adr-guard impact` with explicit base refs and strict, versioned ADR-to-code mapping contracts.
@@ -16,9 +30,8 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 - Added Git to the non-root runtime container because impact analysis invokes the bounded local Git CLI; container smoke tests and vulnerability scanning remain release gates.
 - Preserved canonical ADR defaults, Phase 0 opt-in compatibility, existing commands, `check` JSON/SARIF, review reports, and exit-code meanings.
 
-### Release readiness
-- `1.5.0` is the next available backward-compatible feature version because public tag/Release `v1.4.0` already exists, although its coordinated NuGet/container/Action distribution did not complete.
-- No 1.5.0 artifact, tag, package, image, Action reference, or GitHub Release has been published. Publication remains manual after merge and exact-main CI approval.
+### Publication
+- Coordinated NuGet, GitHub Packages, container, Action-tag and GitHub Release publication completed successfully.
 
 ## [1.3.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0) — 2026-10-08
 

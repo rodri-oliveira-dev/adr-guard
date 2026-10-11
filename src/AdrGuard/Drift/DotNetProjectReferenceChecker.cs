@@ -1,7 +1,7 @@
-using AdrGuard.Configuration;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
+using AdrGuard.Configuration;
 
 namespace AdrGuard.Drift;
 

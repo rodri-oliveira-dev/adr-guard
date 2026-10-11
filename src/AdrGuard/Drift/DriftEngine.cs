@@ -69,6 +69,9 @@ internal static class DriftEngine
     }
     internal static string Format<T>(T value) where T : struct, Enum => value.ToString() switch
     {
-        "NotApplicable" => "not-applicable", "ForbidProjectReference" => "forbid-project-reference", "ExternalTest" => "external-test", _ => value.ToString().ToLowerInvariant(),
+        "NotApplicable" => "not-applicable",
+        "ForbidProjectReference" => "forbid-project-reference",
+        "ExternalTest" => "external-test",
+        _ => value.ToString().ToLowerInvariant(),
     };
 }

@@ -1,6 +1,6 @@
+using System.Text.Json;
 using AdrGuard.Drift;
 using AdrGuard.Git;
-using System.Text.Json;
 
 namespace AdrGuard.Cli;
 

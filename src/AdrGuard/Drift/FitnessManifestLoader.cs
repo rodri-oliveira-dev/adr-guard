@@ -1,9 +1,9 @@
-using AdrGuard.Configuration;
-using AdrGuard.Parsing;
-using AdrGuard.Validation;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AdrGuard.Configuration;
+using AdrGuard.Parsing;
+using AdrGuard.Validation;
 
 namespace AdrGuard.Drift;
 
@@ -88,7 +88,12 @@ internal static class FitnessManifestLoader
             if (!string.Equals(document.StableId, stableId, StringComparison.OrdinalIgnoreCase))
                 return new(stableId, path, FitnessDecisionState.Unknown, document.Status, $"ADR resolves to '{document.StableId ?? "<unknown>"}'.");
             if (!lifecycle.TryResolve(document.Status, out var kind))
+            {
+                if (string.Equals(document.Status, "Rejected", StringComparison.OrdinalIgnoreCase)
+                    || document.Status?.StartsWith("Superseded", StringComparison.OrdinalIgnoreCase) == true)
+                    return new(stableId, path, FitnessDecisionState.Inactive, document.Status, $"ADR status '{document.Status}' is not effective governance.");
                 return new(stableId, path, FitnessDecisionState.Unknown, document.Status, "ADR lifecycle status is missing or unrecognized.");
+            }
             return kind == AdrLifecycleKind.Accepted
                 ? new(stableId, path, FitnessDecisionState.Effective, document.Status, null)
                 : new(stableId, path, FitnessDecisionState.Inactive, document.Status, $"ADR status '{document.Status}' is not effective governance.");

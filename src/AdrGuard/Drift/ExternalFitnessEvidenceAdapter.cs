@@ -1,7 +1,7 @@
-using AdrGuard.Configuration;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using AdrGuard.Configuration;
 
 namespace AdrGuard.Drift;
 
@@ -71,7 +71,7 @@ internal static class ExternalFitnessEvidenceAdapter
             var matches = evidence.Observations.Where(x => x.TestId == rule.TestId).ToArray();
             if (matches.Length == 0) return Result(rule, FitnessOutcome.Unknown, "none", "No external observation matches the explicitly mapped test ID.", []);
             var items = matches.Select(item => new FitnessEvidence("external-test-observation", "external-test-report", item.Provenance.EvidencePath, item.Provenance.ArtifactId, null,
-                $"Producer {item.Provenance.Producer} {item.Provenance.ProducerVersion}; run {item.Provenance.RunId}; sha256 {item.Provenance.Sha256}; reported {item.Status}; observedAt {(item.ObservedAt?.ToString("O") ?? "unavailable")}." )).ToArray();
+                $"Producer {item.Provenance.Producer} {item.Provenance.ProducerVersion}; run {item.Provenance.RunId}; sha256 {item.Provenance.Sha256}; reported {item.Status}; observedAt {(item.ObservedAt?.ToString("O") ?? "unavailable")}.")).ToArray();
             if (matches.Select(x => x.Status).Distinct(StringComparer.Ordinal).Count() > 1)
                 return Result(rule, FitnessOutcome.Unknown, "conflicting-external", "External artifacts report contradictory observations.", items);
             if (matches.Any(x => x.ObservedAt is { } timestamp && (timestamp > now.AddMinutes(5) || now - timestamp > maxAge)))

@@ -97,6 +97,40 @@ public sealed class DotNetProjectReferenceCheckerTests
         Assert.All(manifest.Rules, rule => Assert.Equal(FitnessDecisionState.Effective, rule.Decision.State));
     }
 
+    [Theory]
+    [InlineData("Proposed")]
+    [InlineData("Rejected")]
+    [InlineData("Deprecated")]
+    [InlineData("Superseded")]
+    public void NonEffectiveLifecycleStatusesAreNotApplicable(string status)
+    {
+        using var repository = ContractRepository.Copy();
+        repository.ReplaceStatus(status);
+        var manifest = FitnessManifestLoader.Load(repository.Root, ".adrguard-fitness.json");
+        Assert.All(manifest.Rules, rule => Assert.Equal(FitnessDecisionState.Inactive, rule.Decision.State));
+        Assert.Equal(FitnessOutcome.NotApplicable, Assert.Single(DotNetProjectReferenceChecker.Check(manifest, CancellationToken.None)).Outcome);
+    }
+
+    [Fact]
+    public void CustomAcceptedLifecycleAliasIsEffective()
+    {
+        using var repository = ContractRepository.Copy();
+        repository.ReplaceStatus("Approved");
+        File.WriteAllText(Path.Combine(repository.Root, ".adrguard.yml"), "schema-version: 1\nlifecycle-statuses: Approved=accepted\n");
+        var manifest = FitnessManifestLoader.Load(repository.Root, ".adrguard-fitness.json");
+        Assert.All(manifest.Rules, rule => Assert.Equal(FitnessDecisionState.Effective, rule.Decision.State));
+    }
+
+    [Fact]
+    public void ManifestRejectsUnknownFieldsAndTraversal()
+    {
+        using var repository = ContractRepository.Copy();
+        var path = Path.Combine(repository.Root, ".adrguard-fitness.json");
+        File.WriteAllText(path, File.ReadAllText(path).Replace("\"schemaVersion\": \"1.0\"", "\"schemaVersion\": \"1.0\", \"unknown\": true"));
+        Assert.Throws<FitnessManifestException>(() => FitnessManifestLoader.Load(repository.Root, ".adrguard-fitness.json"));
+        Assert.Throws<FitnessManifestException>(() => FitnessManifestLoader.Load(repository.Root, "../rules.json"));
+    }
+
     private sealed class Repository : IDisposable
     {
         private Repository(string root) => Root = root;
@@ -123,5 +157,27 @@ public sealed class DotNetProjectReferenceCheckerTests
         }
 
         public void Dispose() => Directory.Delete(Root, recursive: true);
+    }
+
+    private sealed class ContractRepository : IDisposable
+    {
+        private ContractRepository(string root) => Root = root;
+        internal string Root { get; }
+        internal static ContractRepository Copy()
+        {
+            var source = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Drift", "contract");
+            var root = Path.Combine(Path.GetTempPath(), $"adr-guard-contract-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(root);
+            foreach (var directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories)) Directory.CreateDirectory(Path.Combine(root, Path.GetRelativePath(source, directory)));
+            foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories)) File.Copy(file, Path.Combine(root, Path.GetRelativePath(source, file)));
+            return new(root);
+        }
+        internal void ReplaceStatus(string status)
+        {
+            var path = Path.Combine(Root, "docs", "adr", "0001-protect-domain-boundary.md");
+            var markdown = File.ReadAllText(path).ReplaceLineEndings("\n");
+            File.WriteAllText(path, markdown.Replace("## Status\n\nAccepted", $"## Status\n\n{status}"));
+        }
+        public void Dispose() => Directory.Delete(Root, true);
     }
 }
