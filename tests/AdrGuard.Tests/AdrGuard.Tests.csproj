@@ -19,11 +19,15 @@
     <None Update="Fixtures/Review/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Fixtures/Madr4/*.md" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Fixtures/Impact/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/Drift/**/*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../docs/schemas/adr-impact-map-v1.schema.json"
           Link="Schemas/adr-impact-map-v1.schema.json"
           CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../docs/schemas/adr-impact-report-v1.schema.json"
           Link="Schemas/adr-impact-report-v1.schema.json"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../docs/schemas/adr-fitness-rules-v1.schema.json"
+          Link="Schemas/adr-fitness-rules-v1.schema.json"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
