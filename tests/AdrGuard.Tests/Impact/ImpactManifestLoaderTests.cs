@@ -195,13 +195,13 @@ public sealed class ImpactManifestLoaderTests
     }
 
     [Theory]
-    [InlineData("Under Review=proposed", "Under Review", ImpactDecisionResolutionKind.Proposed)]
-    [InlineData("Approved=accepted", "Approved", ImpactDecisionResolutionKind.Active)]
-    [InlineData("Withdrawn=deprecated", "Withdrawn", ImpactDecisionResolutionKind.Inactive)]
+    [InlineData("Under Review=proposed", "Under Review", "Proposed")]
+    [InlineData("Approved=accepted", "Approved", "Active")]
+    [InlineData("Withdrawn=deprecated", "Withdrawn", "Inactive")]
     public void HonorsRepositoryLifecycleAliases(
         string specification,
         string status,
-        ImpactDecisionResolutionKind expected)
+        string expected)
     {
         using var repository = TemporaryImpactRepository.Create();
         repository.Write(".adrguard.yml",
@@ -211,7 +211,7 @@ public sealed class ImpactManifestLoaderTests
 
         var mapping = Assert.Single(
             ImpactManifestLoader.Load(repository.Root, ".adrguard-impact.json").Mappings);
-        Assert.Equal(expected, mapping.Resolution.Kind);
+        Assert.Equal(expected, mapping.Resolution.Kind.ToString());
         Assert.Equal(status, mapping.Resolution.Status);
     }
 
