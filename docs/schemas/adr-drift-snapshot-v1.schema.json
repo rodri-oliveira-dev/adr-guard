@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodri-oliveira-dev/adr-guard/schemas/adr-drift-snapshot-v1.schema.json",
+  "title": "ADR Guard drift snapshot v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "repository", "createdAt", "findings"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "repository": { "type": "object", "additionalProperties": false, "required": ["rulesManifest"], "properties": { "rulesManifest": { "type": "string" }, "commit": { "type": ["string", "null"] } } },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "findings": { "type": "array", "items": { "type": "object", "additionalProperties": false, "required": ["fingerprint", "ruleId", "adrStableId", "outcome", "checkType", "confidence"], "properties": { "fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "ruleId": { "type": "string" }, "adrStableId": { "type": "string" }, "outcome": { "enum": ["pass", "violation", "unknown", "not-applicable"] }, "checkType": { "enum": ["forbid-project-reference", "external-test"] }, "from": { "type": ["string", "null"] }, "to": { "type": ["string", "null"] }, "confidence": { "type": "string" } } } }
+  }
+}

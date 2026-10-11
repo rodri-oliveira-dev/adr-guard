@@ -13,4 +13,6 @@ External artifacts use `docs/schemas/adr-fitness-evidence-v1.schema.json`. They 
 
 All paths use `/`, are relative to the selected repository, and must remain physically contained by it. Consumers must reject unknown fields, duplicate JSON properties, unsafe XML features, excessive input, and ambiguous references. `gate: true` records that a rule is eligible for an explicitly selected enforcement policy; it does not turn unknown evidence into success or failure.
 
+Snapshots use `docs/schemas/adr-drift-snapshot-v1.schema.json` and are written only by an explicit create/update operation. Writes are atomic and refuse symbolic-link targets. A current violation is `new` or `existing`; a baseline violation becomes `resolved` only when complete current evidence returns `pass`. Missing mappings, inactive decisions, and `unknown` evidence retain an `unresolved-baseline` record. Snapshot fingerprints exclude presentation text, timestamps, absolute paths, and JSON formatting.
+
 The fixture at `tests/AdrGuard.Tests/Fixtures/Drift/contract` contains one rule of each type and the security/regression cases that later Phase 2 work exercises.
