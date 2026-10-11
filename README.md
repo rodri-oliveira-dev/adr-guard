@@ -31,6 +31,7 @@ New to the practice? Follow the progressive guide:
 - generates a deterministic Markdown index only after validation succeeds;
 - supports Git-aware incremental checks, diagnostic baselines, and JSON/SARIF reports;
 - offers opt-in, advisory [architecture impact analysis](docs/guides/architecture-impact-analysis.md) from explicit ADR-to-code mappings;
+- verifies opt-in [architectural drift and fitness evidence](docs/guides/architectural-drift.md) without evaluating MSBuild or treating missing evidence as compliance;
 - offers opt-in, human-reviewed AI drafting and technical review with explicit providers and context;
 - integrates with GitHub Actions, VS Code, and versioned container images.
 

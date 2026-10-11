@@ -31,6 +31,7 @@ Está começando? Siga o guia progressivo:
 - gera um índice Markdown determinístico somente depois da validação;
 - oferece checks incrementais com Git, baselines de diagnóstico e relatórios JSON/SARIF;
 - oferece [análise consultiva de impacto arquitetural](docs/guides/architecture-impact-analysis.pt-BR.md), opcional e baseada em mapeamentos ADR-código explícitos;
+- verifica [drift arquitetural e evidências de fitness](docs/guides/architectural-drift.pt-BR.md) de forma opcional, sem avaliar MSBuild nem tratar evidência ausente como conformidade;
 - oferece escrita e revisão técnica opcionais com IA, revisão humana, providers e contexto explícitos;
 - integra-se a GitHub Actions, VS Code e imagens versionadas de container.
 

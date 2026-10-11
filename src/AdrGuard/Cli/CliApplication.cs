@@ -1,5 +1,6 @@
 using System.Reflection;
 using AdrGuard.Configuration;
+using AdrGuard.Drift;
 using AdrGuard.Generation;
 using AdrGuard.Generation.Providers;
 using AdrGuard.Git;
@@ -31,6 +32,7 @@ internal static class CliApplication
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
           adr-guard review <adr-file> --provider <provider> --model <model> [--compare-ref <ref>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
           adr-guard impact [repository] --base-ref <ref> --map <file> [--format text|json]
+          adr-guard drift [repository] --rules <file> [--evidence <file>]... [--baseline <file>] [--write-baseline <file> [--update-baseline]] [--format text|json] [--policy advisory|enforce]
           adr-guard [options]
 
         Commands:
@@ -42,6 +44,7 @@ internal static class CliApplication
           draft    Generate a Proposed ADR draft through a configured AI provider.
           review   Request an advisory, read-only technical review of one existing ADR.
           impact   Correlate Git changes with explicit ADR-to-code mappings.
+          drift    Verify ADR-backed architecture fitness rules from bounded evidence.
 
         Options:
           -h, --help    Show command-line help.
@@ -70,6 +73,22 @@ internal static class CliApplication
           0  Analysis completed, including when decisions are affected or coverage is incomplete
           2  Invalid command-line usage
           3  Git, manifest, repository or cancellation failure
+        """;
+
+    private const string DriftHelpText = """
+        Usage:
+          adr-guard drift [repository] --rules <file> [--evidence <file>]... [--baseline <file>] [--write-baseline <file> [--update-baseline]] [--format text|json] [--policy advisory|enforce]
+
+        Verify explicit ADR-backed fitness rules from local bounded evidence. Advisory is the default.
+        Unknown evidence returns exit 3 and is never reported as compliance. Enforce returns exit 4 only
+        for a new, gate-enabled, deterministic static violation. Reported external failures never block CI.
+        Existing baselined violations remain visible; only an explicit baseline create/update changes history.
+
+        Exit codes:
+          0  Conclusive advisory result, or enforce result without a new deterministic violation
+          2  Invalid command-line usage
+          3  Unknown/inconclusive evidence, malformed input, repository error or cancellation
+          4  New gate-enabled deterministic violation under --policy enforce
         """;
 
     private const string CheckHelpText = """
@@ -338,8 +357,49 @@ internal static class CliApplication
                 environmentVariableReader,
                 cancellationToken),
             "impact" => RunImpact(effectiveArgs, output, error, cancellationToken),
+            "drift" => RunDrift(effectiveArgs, output, error, cancellationToken),
             _ => WriteUsageError(effectiveArgs, error),
         };
+    }
+
+    private static int RunDrift(IReadOnlyList<string> args, TextWriter output, TextWriter error, CancellationToken cancellationToken)
+    {
+        if (args.Count == 2 && IsHelpOption(args[1])) { output.WriteLine(DriftHelpText); return ExitCodes.Success; }
+        if (!TryParseDriftArguments(args, out var repository, out var rules, out var evidence, out var baseline, out var writeBaseline, out var updateBaseline, out var format, out var policy))
+            return WriteCommandUsageError("drift", error);
+        return DriftCommand.Run(repository, rules, evidence, baseline, writeBaseline, updateBaseline, format, policy, output, error, cancellationToken);
+    }
+
+    private static bool TryParseDriftArguments(IReadOnlyList<string> args, out string repository, out string rules, out IReadOnlyList<string> evidence,
+        out string? baseline, out string? writeBaseline, out bool updateBaseline, out DriftOutputFormat format, out DriftPolicy policy)
+    {
+        repository = Directory.GetCurrentDirectory(); rules = string.Empty; baseline = null; writeBaseline = null; updateBaseline = false;
+        format = DriftOutputFormat.Text; policy = DriftPolicy.Advisory; var files = new List<string>(); evidence = files;
+        var repositoryAssigned = false; var assigned = new HashSet<string>(StringComparer.Ordinal);
+        for (var index = 1; index < args.Count; index++)
+        {
+            var argument = args[index];
+            if (argument == "--update-baseline") { if (updateBaseline) return false; updateBaseline = true; continue; }
+            if (argument is "--rules" or "--evidence" or "--baseline" or "--write-baseline" or "--format" or "--policy")
+            {
+                if (index + 1 >= args.Count) return false;
+                var value = args[++index]; if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-')) return false;
+                if (argument != "--evidence" && !assigned.Add(argument)) return false;
+                switch (argument)
+                {
+                    case "--rules": rules = value; break;
+                    case "--evidence": files.Add(value); break;
+                    case "--baseline": baseline = value; break;
+                    case "--write-baseline": writeBaseline = value; break;
+                    case "--format": if (value is not ("text" or "json")) return false; format = value == "json" ? DriftOutputFormat.Json : DriftOutputFormat.Text; break;
+                    case "--policy": if (value is not ("advisory" or "enforce")) return false; policy = value == "enforce" ? DriftPolicy.Enforce : DriftPolicy.Advisory; break;
+                }
+                continue;
+            }
+            if (argument.StartsWith('-') || repositoryAssigned) return false;
+            repository = argument; repositoryAssigned = true;
+        }
+        return rules.Length > 0 && (!updateBaseline || writeBaseline is not null) && files.Count <= ExternalFitnessEvidenceAdapter.MaximumFiles;
     }
 
     private static int RunImpact(

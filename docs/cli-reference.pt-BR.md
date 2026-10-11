@@ -60,6 +60,14 @@ adr-guard impact [repositório] --base-ref <ref> --map <arquivo> [--format text|
 
 `impact` é explícito, consultivo e somente leitura. `repositório` usa o diretório atual por padrão; `--map` é relativo ao repositório. Texto é o formato padrão, e JSON usa o schema independente de relatório `1.0`. Achados afetados/não mapeados retornam `0`, uso inválido retorna `2`, e falhas de Git/histórico/manifesto/limites retornam `3`. Consulte o [guia completo](guides/architecture-impact-analysis.pt-BR.md).
 
+## Drift arquitetural
+
+```text
+adr-guard drift [repositório] --rules <arquivo> [--evidence <arquivo>]... [--baseline <arquivo>] [--write-baseline <arquivo> [--update-baseline]] [--format text|json] [--policy advisory|enforce]
+```
+
+`drift` verifica regras explícitas ligadas a ADRs sem avaliar MSBuild nem executar testes externos. Advisory é o padrão. Análise conclusiva retorna `0`; uso inválido retorna `2`; evidência desconhecida/inconclusiva ou falhas de entrada retornam `3`; enforcement explícito retorna `4` somente para uma nova violação estática determinística com gate habilitado. Consulte o [guia completo](guides/architectural-drift.pt-BR.md).
+
 ## Solução de problemas
 
 - **Configuração ignorada:** invoque o ADR Guard no diretório de `.adrguard.yml` ou informe diretório/template explicitamente.

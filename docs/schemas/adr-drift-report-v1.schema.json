@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodri-oliveira-dev/adr-guard/schemas/adr-drift-report-v1.schema.json",
+  "title": "ADR Guard drift report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "policy", "repository", "coverage", "findings"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "policy": { "enum": ["advisory", "enforce"] },
+    "repository": { "type": "object" },
+    "coverage": { "type": "object", "required": ["totalRules", "pass", "violations", "unknown", "notApplicable"] },
+    "findings": { "type": "array", "items": { "type": "object", "required": ["fingerprint", "ruleId", "adrStableId", "outcome", "checkType", "confidence", "baselineState", "explanation", "evidence"] } }
+  }
+}
