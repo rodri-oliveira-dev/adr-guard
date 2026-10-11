@@ -86,7 +86,7 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 | Containers | Run the same versioned CLI from GHCR or Docker Hub | [Container and supply-chain guide](docs/container.md) |
 | CI reports | Produce text, JSON, or SARIF validation output | [Check reports](docs/check-reports.md) |
 
-The [GitHub Marketplace Action](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) and [Visual Studio Marketplace extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) are published. The moving `@v1` tag is published and supports `check`, `index`, opt-in `review`, and opt-in `impact`; `new`, `draft`, and the proposed v1.6.0 `drift` command remain CLI/direct-container workflows. The extension does not bundle the CLI.
+The [GitHub Marketplace Action](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) and [Visual Studio Marketplace extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) are published. The moving `@v1` tag is published and supports `check`, `index`, opt-in `review` since v1.1.6, and opt-in `impact` since v1.5.0; `new`, `draft`, and the proposed v1.6.0 `drift` command remain CLI/direct-container workflows. The extension does not bundle the CLI.
 
 ## Agent Skills (P0 + P1)
 
