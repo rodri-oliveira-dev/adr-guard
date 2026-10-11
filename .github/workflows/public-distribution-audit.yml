@@ -6,16 +6,12 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "23 7 * * *"
-  workflow_run:
-    workflows: ["Release"]
-    types: [completed]
 
 permissions:
   contents: read
 
 jobs:
   public-distribution-audit:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     name: Public distribution audit
     runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
     timeout-minutes: 15
