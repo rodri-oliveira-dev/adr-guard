@@ -1,5 +1,6 @@
 using AdrGuard.Configuration;
 using AdrGuard.Parsing;
+using AdrGuard.Validation;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -117,13 +118,26 @@ internal static class ImpactManifestLoader
             throw new ImpactManifestException("Impact manifest JSON is empty.");
         }
 
-        return Resolve(root, fullManifestPath, definition);
+        // Use the same effective lifecycle/format settings as ADR validation,
+        // including local aliases and standard/strict profile defaults.
+        var config = AdrGuardConfigurationLoader.Load(root);
+        var options = AdrValidationOptionsFactory.Create(
+            config?.AdrFormat == "madr-4" ? AdrFormat.Madr4 : AdrFormat.Canonical,
+            root,
+            config?.LifecycleStatuses,
+            config?.ConventionalSupersession ?? false,
+            config?.FilenamePolicy,
+            config?.PlaceholderPolicy,
+            config?.ValidateMetadata ?? false,
+            config?.ValidationProfile);
+        return Resolve(root, fullManifestPath, definition, options);
     }
 
     private static ImpactMappingManifest Resolve(
         string repositoryRoot,
         string manifestPath,
-        ManifestDefinition definition)
+        ManifestDefinition definition,
+        AdrValidationOptions options)
     {
         if (!string.Equals(
                 definition.SchemaVersion,
@@ -160,6 +174,14 @@ internal static class ImpactManifestLoader
                 candidate.Decision.Path,
                 "ADR path");
 
+            // Keep the CLI consistent with the versioned JSON Schema's
+            // exact, lowercase .md decision-path contract.
+            if (!decisionPath.EndsWith(".md", StringComparison.Ordinal))
+            {
+                throw new ImpactManifestException(
+                    $"Mapping ADR path '{decisionPath}' must end in .md.");
+            }
+
             if (stableIds.TryGetValue(stableId, out var existingPath))
             {
                 throw new ImpactManifestException(
@@ -181,7 +203,9 @@ internal static class ImpactManifestLoader
             var resolution = ResolveDecision(
                 repositoryRoot,
                 stableId,
-                decisionPath);
+                decisionPath,
+                options.EffectiveLifecycle,
+                options.Format);
 
             mappings.Add(
                 new ImpactMapping(
@@ -205,7 +229,9 @@ internal static class ImpactManifestLoader
     private static ImpactDecisionResolution ResolveDecision(
         string repositoryRoot,
         string expectedStableId,
-        string decisionPath)
+        string decisionPath,
+        AdrLifecyclePolicy lifecycle,
+        AdrFormat format)
     {
         string fullPath;
         try
@@ -241,6 +267,8 @@ internal static class ImpactManifestLoader
                 $"Mapped ADR '{decisionPath}' could not be read as valid UTF-8: {exception.Message}");
         }
 
+        document = AdrStatusResolver.ForFormat([document], format)[0];
+
         if (!string.Equals(document.StableId, expectedStableId, StringComparison.OrdinalIgnoreCase))
         {
             return Unknown(
@@ -249,27 +277,29 @@ internal static class ImpactManifestLoader
         }
 
         var status = document.Status?.Trim();
-        if (string.Equals(status, "Accepted", StringComparison.OrdinalIgnoreCase))
+        if (lifecycle.TryResolve(status, out var kind))
         {
-            return new ImpactDecisionResolution(
-                ImpactDecisionResolutionKind.Active,
-                status,
-                null,
-                document);
+            return kind switch
+            {
+                AdrLifecycleKind.Accepted => new ImpactDecisionResolution(
+                    ImpactDecisionResolutionKind.Active, status, null, document),
+                AdrLifecycleKind.Proposed => new ImpactDecisionResolution(
+                    ImpactDecisionResolutionKind.Proposed,
+                    status,
+                    "The decision is proposed and is not an effective architectural approval.",
+                    document),
+                _ => new ImpactDecisionResolution(
+                    ImpactDecisionResolutionKind.Inactive,
+                    status,
+                    $"The decision status '{status}' is not active governance.",
+                    document),
+            };
         }
 
-        if (string.Equals(status, "Proposed", StringComparison.OrdinalIgnoreCase))
-        {
-            return new ImpactDecisionResolution(
-                ImpactDecisionResolutionKind.Proposed,
-                status,
-                "The decision is proposed and is not an effective architectural approval.",
-                document);
-        }
-
+        // Retain legacy impact handling for common status variants that the
+        // baseline lifecycle policy does not formally accept.
         if (status is not null
             && (string.Equals(status, "Rejected", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(status, "Deprecated", StringComparison.OrdinalIgnoreCase)
                 || status.StartsWith("Superseded", StringComparison.OrdinalIgnoreCase)))
         {
             return new ImpactDecisionResolution(

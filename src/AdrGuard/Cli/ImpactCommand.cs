@@ -57,6 +57,7 @@ internal static class ImpactCommand
             or InvalidOperationException
             or GitOperationException
             or ImpactManifestException
+            or AdrGuard.Configuration.AdrGuardConfigurationException
             or ImpactAnalysisException)
         {
             error.WriteLine($"Unable to analyze architecture impact: {exception.Message}");

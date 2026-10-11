@@ -10,10 +10,8 @@ var supportsGracefulCancellation =
         "draft",
         StringComparison.Ordinal)
     || (args.Length > 0
-        && string.Equals(
-            args[0],
-            "review",
-            StringComparison.Ordinal));
+        && (string.Equals(args[0], "review", StringComparison.Ordinal)
+            || string.Equals(args[0], "impact", StringComparison.Ordinal)));
 
 ConsoleCancelEventHandler cancelHandler =
     (_, eventArgs) =>

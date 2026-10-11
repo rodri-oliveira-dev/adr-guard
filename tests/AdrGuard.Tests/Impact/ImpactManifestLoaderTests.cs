@@ -111,6 +111,8 @@ public sealed class ImpactManifestLoaderTests
     [InlineData("../outside.md")]
     [InlineData("docs\\adr\\0001.md")]
     [InlineData("docs/adr/../0001.md")]
+    [InlineData("docs/adr/0001-decision.txt")]
+    [InlineData("docs/adr/0001-decision.MD")]
     public void RejectsUnsafeOrNonNormalizedDecisionPaths(string decisionPath)
     {
         using var repository = TemporaryImpactRepository.Create();
@@ -190,6 +192,40 @@ public sealed class ImpactManifestLoaderTests
         Assert.Contains(
             manifest.Mappings,
             mapping => mapping.Resolution.Detail!.Contains("not 'ADR-99'", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("Under Review=proposed", "Under Review", ImpactDecisionResolutionKind.Proposed)]
+    [InlineData("Approved=accepted", "Approved", ImpactDecisionResolutionKind.Active)]
+    [InlineData("Withdrawn=deprecated", "Withdrawn", ImpactDecisionResolutionKind.Inactive)]
+    public void HonorsRepositoryLifecycleAliases(
+        string specification,
+        string status,
+        ImpactDecisionResolutionKind expected)
+    {
+        using var repository = TemporaryImpactRepository.Create();
+        repository.Write(".adrguard.yml",
+            $"schema-version: 1\nlifecycle-statuses: '{specification}'\n");
+        repository.Write("docs/adr/0001-decision.md", Adr(status));
+        repository.WriteManifest(Mapping("ADR-1", "docs/adr/0001-decision.md", "src/**"));
+
+        var mapping = Assert.Single(
+            ImpactManifestLoader.Load(repository.Root, ".adrguard-impact.json").Mappings);
+        Assert.Equal(expected, mapping.Resolution.Kind);
+        Assert.Equal(status, mapping.Resolution.Status);
+    }
+
+    [Fact]
+    public void HonorsValidationProfileLifecycleDefaults()
+    {
+        using var repository = TemporaryImpactRepository.Create();
+        repository.Write(".adrguard.yml", "schema-version: 1\nvalidation-profile: standard\n");
+        repository.Write("docs/adr/0001-rejected.md", Adr("Rejected"));
+        repository.WriteManifest(Mapping("ADR-1", "docs/adr/0001-rejected.md", "src/**"));
+
+        var mapping = Assert.Single(
+            ImpactManifestLoader.Load(repository.Root, ".adrguard-impact.json").Mappings);
+        Assert.Equal(ImpactDecisionResolutionKind.Inactive, mapping.Resolution.Kind);
     }
 
     [Fact]

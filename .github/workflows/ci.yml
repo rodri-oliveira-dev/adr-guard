@@ -176,29 +176,6 @@ jobs:
       - name: Verify release SemVer and version baseline policy
         run: bash scripts/release-version-policy-test.sh
 
-  public-distribution-audit:
-    name: Public distribution audit
-    runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
-    timeout-minutes: 15
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
-        with:
-          global-json-file: global.json
-
-      - name: Verify latest public NuGet, Action refs, GHCR, and Docker Hub artifacts
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: bash scripts/public-distribution-smoke-test.sh
-
   github-action-contract:
     name: GitHub Action contract
     runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
@@ -214,19 +191,38 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Resolve latest published Action runtime version
+      # Test the runtime currently exposed through @v1. A GitHub Release may
+      # exist before the release workflow has published its container and
+      # advanced v1; incomplete distribution is checked independently.
+      - name: Resolve published @v1 Action runtime version
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          latest_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" --jq '.tag_name')"
-          if [[ ! "${latest_tag}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-            echo "::error::Latest GitHub Release is not a stable SemVer tag: ${latest_tag:-<empty>}."
+          action_refs="$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/v1")"
+          major_sha="$(jq -r '.[] | select(.ref == "refs/tags/v1" and .object.type == "commit") | .object.sha' <<< "${action_refs}")"
+
+          if [[ ! "${major_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Published @v1 Action tag is missing or is not a lightweight commit tag."
             exit 1
           fi
-          echo "ADR_GUARD_ACTION_IMAGE_VERSION=${BASH_REMATCH[1]}" >> "${GITHUB_ENV}"
-          echo "Using latest published runtime image version ${BASH_REMATCH[1]} for Action contract tests."
+
+          release_tag="$(jq -r --arg sha "${major_sha}" '
+            .[]
+            | select(.object.type == "commit" and .object.sha == $sha)
+            | .ref
+            | select(test("^refs/tags/v1\\.[0-9]+\\.[0-9]+$"))
+            | sub("^refs/tags/"; "")
+          ' <<< "${action_refs}" | sort -V | tail -n 1)"
+
+          if [[ ! "${release_tag}" =~ ^v1\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Published @v1 must resolve to an immutable v1.MINOR.PATCH tag."
+            exit 1
+          fi
+
+          echo "ADR_GUARD_ACTION_IMAGE_VERSION=${release_tag#v}" >> "${GITHUB_ENV}"
+          echo "Validating published Action @v1 (${release_tag}, commit ${major_sha})."
 
       - name: Verify anonymous GHCR pull and published image security
         run: bash scripts/github-action-security-test.sh "${ADR_GUARD_ACTION_IMAGE_VERSION}"
