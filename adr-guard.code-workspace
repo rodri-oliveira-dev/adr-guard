@@ -1,0 +1,237 @@
+{
+  "folders": [
+    {
+      "name": "ADR Guard",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "files.encoding": "utf8",
+    "files.eol": "\n",
+    "files.insertFinalNewline": true,
+    "files.trimTrailingWhitespace": true,
+    "editor.detectIndentation": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    },
+    "files.exclude": {
+      "**/.artifacts": true,
+      "**/.astro": true,
+      "**/.tmp": true,
+      "**/.vscode-test": true,
+      "**/artifacts": true,
+      "**/bin": true,
+      "**/coverage": true,
+      "**/dist": true,
+      "**/node_modules": true,
+      "**/obj": true,
+      "**/TestResults": true
+    },
+    "search.exclude": {
+      "**/.artifacts": true,
+      "**/.astro": true,
+      "**/.tmp": true,
+      "**/.vscode-test": true,
+      "**/artifacts": true,
+      "**/bin": true,
+      "**/coverage": true,
+      "**/dist": true,
+      "**/node_modules": true,
+      "**/obj": true,
+      "**/TestResults": true
+    },
+    "dotnet.defaultSolution": "AdrGuard.slnx",
+    "eslint.workingDirectories": [
+      {
+        "directory": "extensions/vscode",
+        "changeProcessCWD": true
+      }
+    ],
+    "[csharp]": {
+      "editor.defaultFormatter": "ms-dotnettools.csharp",
+      "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+      }
+    },
+    "[astro]": {
+      "editor.defaultFormatter": "astro-build.astro-vscode"
+    },
+    "[javascript]": {
+      "editor.defaultFormatter": "vscode.typescript-language-features",
+      "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+      }
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "vscode.typescript-language-features",
+      "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+      }
+    },
+    "[markdown]": {
+      "files.trimTrailingWhitespace": false
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-dotnettools.csdevkit",
+      "astro-build.astro-vscode",
+      "dbaeumer.vscode-eslint",
+      "github.vscode-github-actions",
+      "ms-python.python",
+      "docker.docker"
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": ".NET: Restore",
+        "type": "process",
+        "command": "dotnet",
+        "args": ["restore", "AdrGuard.slnx"],
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": ".NET: Build Debug",
+        "type": "process",
+        "command": "dotnet",
+        "args": ["build", "AdrGuard.slnx", "--configuration", "Debug", "--no-restore"],
+        "dependsOn": ".NET: Restore",
+        "dependsOrder": "sequence",
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": ".NET: Build Release",
+        "type": "process",
+        "command": "dotnet",
+        "args": ["build", "AdrGuard.slnx", "--configuration", "Release", "--no-restore"],
+        "dependsOn": ".NET: Restore",
+        "dependsOrder": "sequence",
+        "group": "build",
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": ".NET: Test",
+        "type": "process",
+        "command": "dotnet",
+        "args": ["test", "--solution", "AdrGuard.slnx", "--configuration", "Release", "--no-build"],
+        "dependsOn": ".NET: Build Release",
+        "dependsOrder": "sequence",
+        "group": {
+          "kind": "test",
+          "isDefault": true
+        },
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": ".NET: Pack Tool",
+        "type": "process",
+        "command": "dotnet",
+        "args": ["pack", "src/AdrGuard/AdrGuard.csproj", "--configuration", "Release", "--no-build", "--output", "artifacts/package"],
+        "dependsOn": ".NET: Build Release",
+        "dependsOrder": "sequence",
+        "problemMatcher": "$msCompile"
+      },
+      {
+        "label": "Extension: Lint",
+        "type": "process",
+        "command": "npm",
+        "windows": {
+          "command": "npm.cmd"
+        },
+        "args": ["run", "lint"],
+        "options": {
+          "cwd": "${workspaceFolder}/extensions/vscode"
+        },
+        "problemMatcher": "$eslint-stylish"
+      },
+      {
+        "label": "Extension: Typecheck",
+        "type": "process",
+        "command": "npm",
+        "windows": {
+          "command": "npm.cmd"
+        },
+        "args": ["run", "typecheck"],
+        "options": {
+          "cwd": "${workspaceFolder}/extensions/vscode"
+        },
+        "problemMatcher": "$tsc"
+      },
+      {
+        "label": "Extension: Test",
+        "type": "process",
+        "command": "npm",
+        "windows": {
+          "command": "npm.cmd"
+        },
+        "args": ["test"],
+        "options": {
+          "cwd": "${workspaceFolder}/extensions/vscode"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Extension: Validate",
+        "dependsOn": ["Extension: Lint", "Extension: Typecheck", "Extension: Test"],
+        "dependsOrder": "sequence",
+        "problemMatcher": []
+      },
+      {
+        "label": "Portal: Validate",
+        "type": "process",
+        "command": "npm",
+        "windows": {
+          "command": "npm.cmd"
+        },
+        "args": ["run", "validate"],
+        "options": {
+          "cwd": "${workspaceFolder}/website"
+        },
+        "problemMatcher": []
+      },
+      {
+        "label": "Skills: Validate public catalog",
+        "type": "process",
+        "command": "python3",
+        "windows": {
+          "command": "python"
+        },
+        "args": ["scripts/validate-agent-skills.py"],
+        "problemMatcher": []
+      },
+      {
+        "label": "Skills: Validate development",
+        "type": "process",
+        "command": "python3",
+        "windows": {
+          "command": "python"
+        },
+        "args": ["scripts/validate-development-skills.py"],
+        "problemMatcher": []
+      },
+      {
+        "label": "Skills: Validator tests",
+        "type": "process",
+        "command": "python3",
+        "windows": {
+          "command": "python"
+        },
+        "args": ["-m", "unittest", "discover", "-s", "tests/agent_skills", "-p", "test_*.py"],
+        "problemMatcher": []
+      },
+      {
+        "label": "Skills: Validate",
+        "dependsOn": ["Skills: Validate public catalog", "Skills: Validate development", "Skills: Validator tests"],
+        "dependsOrder": "sequence",
+        "problemMatcher": []
+      }
+    ]
+  }
+}

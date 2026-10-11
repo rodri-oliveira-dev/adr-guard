@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "catalogRevision": "90930c3c593cb91d1737e02f0a2dff133b44b054",
+  "skills": [
+    {
+      "name": "vscode-extension-development",
+      "origin": "repository-local",
+      "repository": "rodri-oliveira-dev/adr-guard",
+      "path": ".agents/skills/vscode-extension-development",
+      "license": "MIT",
+      "licenseFile": "../licenses/adr-guard-MIT.txt"
+    },
+    {
+      "name": "dotnet-issue-implementation",
+      "origin": "catalog-curated-adaptation",
+      "repository": "rodri-oliveira-dev/agent-skills-catalog",
+      "revision": "90930c3c593cb91d1737e02f0a2dff133b44b054",
+      "path": "skills/dotnet-issue-implementation",
+      "license": "MIT",
+      "licenseFile": "../licenses/agent-skills-catalog-MIT.txt"
+    },
+    {
+      "name": "dotnet-bug-investigation",
+      "origin": "catalog-curated-adaptation",
+      "repository": "rodri-oliveira-dev/agent-skills-catalog",
+      "revision": "90930c3c593cb91d1737e02f0a2dff133b44b054",
+      "path": "skills/dotnet-bug-investigation",
+      "license": "MIT",
+      "licenseFile": "../licenses/agent-skills-catalog-MIT.txt"
+    },
+    {
+      "name": "dotnet-security-review",
+      "origin": "catalog-curated-adaptation",
+      "repository": "rodri-oliveira-dev/agent-skills-catalog",
+      "revision": "90930c3c593cb91d1737e02f0a2dff133b44b054",
+      "path": "skills/dotnet-security-review",
+      "license": "MIT",
+      "licenseFile": "../licenses/agent-skills-catalog-MIT.txt"
+    },
+    {
+      "name": "repository-governance-sdd",
+      "origin": "catalog-curated-adaptation",
+      "repository": "rodri-oliveira-dev/agent-skills-catalog",
+      "revision": "90930c3c593cb91d1737e02f0a2dff133b44b054",
+      "path": "skills/repository-governance-sdd",
+      "license": "MIT",
+      "licenseFile": "../licenses/agent-skills-catalog-MIT.txt"
+    },
+    {
+      "name": "run-tests",
+      "origin": "catalog-mirror",
+      "repository": "dotnet/skills",
+      "revision": "1d40f95ed0f2cdedfa4c9b2614b7c2035a4323cb",
+      "catalogRevision": "90930c3c593cb91d1737e02f0a2dff133b44b054",
+      "path": "plugins/dotnet-test/skills/run-tests",
+      "license": "MIT",
+      "licenseFile": "../licenses/dotnet-skills-MIT.txt"
+    },
+    {
+      "name": "csharp-refactoring",
+      "origin": "catalog-mirror",
+      "repository": "dotnet/skills",
+      "revision": "1d40f95ed0f2cdedfa4c9b2614b7c2035a4323cb",
+      "catalogRevision": "90930c3c593cb91d1737e02f0a2dff133b44b054",
+      "path": "plugins/dotnet/skills/csharp-refactoring",
+      "license": "MIT",
+      "licenseFile": "../licenses/dotnet-skills-MIT.txt"
+    }
+  ]
+}

@@ -4,17 +4,25 @@ on:
   push:
     paths:
       - 'skills/**'
+      - '.agents/skills/**'
+      - '.agents/skill-overlays/**'
+      - '.agents/licenses/**'
       - 'docs/skills/**'
       - 'website/**'
       - 'scripts/validate-agent-skills.py'
+      - 'scripts/validate-development-skills.py'
       - 'tests/agent_skills/**'
       - '.github/workflows/agent-skills.yml'
   pull_request:
     paths:
       - 'skills/**'
+      - '.agents/skills/**'
+      - '.agents/skill-overlays/**'
+      - '.agents/licenses/**'
       - 'docs/skills/**'
       - 'website/**'
       - 'scripts/validate-agent-skills.py'
+      - 'scripts/validate-development-skills.py'
       - 'tests/agent_skills/**'
       - '.github/workflows/agent-skills.yml'
 
@@ -32,6 +40,8 @@ jobs:
           persist-credentials: false
       - name: Validate catalog
         run: python3 scripts/validate-agent-skills.py
+      - name: Validate development skills
+        run: python3 scripts/validate-development-skills.py
       - name: Validator regression tests
         run: python3 -m unittest discover -s tests/agent_skills -p 'test_*.py'
 
