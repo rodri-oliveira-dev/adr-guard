@@ -79,7 +79,7 @@ internal static class DriftSnapshotService
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var finding in snapshot.Findings)
         {
-            if (finding is null || finding.Fingerprint.Length != 64 || finding.Fingerprint.Any(x => !char.IsAsciiHexDigit(x) || char.IsUpper(x)) || !ids.Add(finding.Fingerprint)
+            if (finding is null || string.IsNullOrEmpty(finding.Fingerprint) || finding.Fingerprint.Length != 64 || finding.Fingerprint.Any(x => !char.IsAsciiHexDigit(x) || char.IsUpper(x)) || !ids.Add(finding.Fingerprint)
                 || finding.Outcome is not ("pass" or "violation" or "unknown" or "not-applicable") || string.IsNullOrWhiteSpace(finding.RuleId) || string.IsNullOrWhiteSpace(finding.AdrStableId))
                 throw new InvalidDataException("Drift baseline contains an invalid or duplicate finding.");
         }

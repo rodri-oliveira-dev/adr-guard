@@ -65,6 +65,8 @@ public sealed class DriftEngineTests
 
         File.WriteAllText(Path.Combine(repository.Root, "bad.json"), "{\"schemaVersion\":\"2.0\",\"repository\":{},\"createdAt\":\"2026-01-01T00:00:00Z\",\"findings\":[]}");
         Assert.Throws<InvalidDataException>(() => DriftSnapshotService.Load(repository.Root, "bad.json"));
+        File.WriteAllText(Path.Combine(repository.Root, "missing-fingerprint.json"), "{\"schemaVersion\":\"1.0\",\"repository\":{\"rulesManifest\":\".adrguard-fitness.json\",\"commit\":null},\"createdAt\":\"2026-01-01T00:00:00Z\",\"findings\":[{\"ruleId\":\"domain-no-infrastructure\",\"adrStableId\":\"ADR-1\",\"outcome\":\"violation\",\"checkType\":\"forbid-project-reference\",\"from\":null,\"to\":null,\"confidence\":\"deterministic-static\"}]}");
+        Assert.Throws<InvalidDataException>(() => DriftSnapshotService.Load(repository.Root, "missing-fingerprint.json"));
         Assert.Throws<InvalidDataException>(() => DriftSnapshotService.Write(repository.Root, "../outside.json", snapshot, false));
     }
 

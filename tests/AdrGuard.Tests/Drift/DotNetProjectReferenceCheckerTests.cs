@@ -41,6 +41,9 @@ public sealed class DotNetProjectReferenceCheckerTests
     [Theory]
     [InlineData("<Project><ItemGroup Condition=\"'$(Configuration)' == 'Debug'\"><ProjectReference Include=\"../Infrastructure/Infrastructure.csproj\" /></ItemGroup></Project>")]
     [InlineData("<Project><ItemGroup><ProjectReference Include=\"$(TargetProject)\" /></ItemGroup></Project>")]
+    [InlineData("<Project><ItemGroup><ProjectReference Include=\"@(ProjectReferences)\" /></ItemGroup></Project>")]
+    [InlineData("<Project><ItemGroup><ProjectReference Include=\"%(Identity)\" /></ItemGroup></Project>")]
+    [InlineData("<Project><ItemGroup><ProjectReference Include=\"../Infrastructure/Infrastructure.csproj;../Other/Other.csproj\" /></ItemGroup></Project>")]
     [InlineData("<Project><ItemGroup><ProjectReference Include=\"../*/Infrastructure.csproj\" /></ItemGroup></Project>")]
     public void ReturnsUnknownForConditionalOrDynamicReferences(string xml)
     {
@@ -48,6 +51,15 @@ public sealed class DotNetProjectReferenceCheckerTests
         var result = Assert.Single(DotNetProjectReferenceChecker.Check(repository.Manifest(), CancellationToken.None));
         Assert.Equal(FitnessOutcome.Unknown, result.Outcome);
         Assert.NotEmpty(result.Evidence);
+    }
+
+    [Fact]
+    public void ReturnsUnknownWhenProjectDeclaresExplicitImport()
+    {
+        using var repository = Repository.Create("<Project><Import Project=\"Dependencies.props\" /></Project>");
+        var result = Assert.Single(DotNetProjectReferenceChecker.Check(repository.Manifest(), CancellationToken.None));
+        Assert.Equal(FitnessOutcome.Unknown, result.Outcome);
+        Assert.Contains(result.Evidence, evidence => evidence.Kind == "project-import");
     }
 
     [Theory]

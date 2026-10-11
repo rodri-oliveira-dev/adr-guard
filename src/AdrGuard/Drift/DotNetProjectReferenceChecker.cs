@@ -47,16 +47,22 @@ internal static class DotNetProjectReferenceChecker
             var references = document.Descendants().Where(x => x.Name.LocalName == "ProjectReference").ToArray();
             if (references.Length > MaximumReferences) return Unknown(rule, "ProjectReference count exceeds the bounded processing limit.");
             var evidence = new List<FitnessEvidence>();
-            var ambiguous = false;
+            var imports = document.Descendants().Where(x => x.Name.LocalName == "Import").ToArray();
+            var ambiguous = imports.Length > 0;
+            if (ambiguous)
+            {
+                var import = imports[0];
+                evidence.Add(new("project-import", rule.EvidenceSource, rule.From, import.Attribute("Project")?.Value, Line(import), $"Project declares {imports.Length} explicit Import element(s); imported project references are not evaluated."));
+            }
             foreach (var reference in references)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var include = reference.Attribute("Include")?.Value;
                 var conditional = reference.AncestorsAndSelf().Any(x => x.Attribute("Condition") is not null);
-                if (string.IsNullOrWhiteSpace(include) || conditional || include.Contains("$(", StringComparison.Ordinal) || include.IndexOfAny(['*', '?']) >= 0)
+                if (string.IsNullOrWhiteSpace(include) || conditional || IsDynamicInclude(include))
                 {
                     ambiguous = true;
-                    evidence.Add(new("project-reference-ambiguous", rule.EvidenceSource, rule.From, include, Line(reference), "Conditional, missing, wildcard, or property-expanded ProjectReference cannot be evaluated statically."));
+                    evidence.Add(new("project-reference-ambiguous", rule.EvidenceSource, rule.From, include, Line(reference), "Conditional, missing, wildcard, expression-expanded, or multi-item ProjectReference cannot be evaluated statically."));
                     continue;
                 }
                 string target;
@@ -86,6 +92,13 @@ internal static class DotNetProjectReferenceChecker
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or XmlException or DecoderFallbackException or ArgumentException)
         { return Unknown(rule, $"Project evidence could not be read safely: {exception.Message}"); }
     }
+
+    private static bool IsDynamicInclude(string include) =>
+        include.Contains("$(", StringComparison.Ordinal)
+        || include.Contains("@(", StringComparison.Ordinal)
+        || include.Contains("%(", StringComparison.Ordinal)
+        || include.Contains(';', StringComparison.Ordinal)
+        || include.IndexOfAny(['*', '?']) >= 0;
 
     private static int? Line(XElement element) => (element as IXmlLineInfo)?.HasLineInfo() == true ? ((IXmlLineInfo)element).LineNumber : null;
     private static FitnessRuleResult Unknown(FitnessRule rule, string explanation) => Result(rule, FitnessOutcome.Unknown, "none", explanation, []);

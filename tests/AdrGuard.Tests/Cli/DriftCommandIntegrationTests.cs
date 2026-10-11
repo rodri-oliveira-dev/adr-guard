@@ -56,6 +56,17 @@ public sealed class DriftCommandIntegrationTests
         Assert.Contains("inconclusive", result.Error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void BaselineWithoutFingerprintReturnsControlledOperationalError()
+    {
+        using var repository = Repository.Create(violation: false);
+        File.WriteAllText(Path.Combine(repository.Root, "bad-baseline.json"), "{\"schemaVersion\":\"1.0\",\"repository\":{\"rulesManifest\":\".adrguard-fitness.json\",\"commit\":null},\"createdAt\":\"2026-01-01T00:00:00Z\",\"findings\":[{\"ruleId\":\"domain-no-infrastructure\",\"adrStableId\":\"ADR-1\",\"outcome\":\"violation\",\"checkType\":\"forbid-project-reference\",\"from\":null,\"to\":null,\"confidence\":\"deterministic-static\"}]}");
+        var result = Run(repository.Root, "drift", repository.Root, "--rules", ".adrguard-fitness.json", "--baseline", "bad-baseline.json");
+        Assert.Equal(ExitCodes.OperationalError, result.Code);
+        Assert.Equal(string.Empty, result.Output);
+        Assert.Contains("Unable to analyze architecture drift", result.Error, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("--policy", "unsafe")]
     [InlineData("--format", "sarif")]
