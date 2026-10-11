@@ -37,6 +37,10 @@ internal sealed record FitnessRuleResult(
     string Explanation,
     IReadOnlyList<FitnessEvidence> Evidence);
 
+internal sealed record ExternalEvidenceProvenance(string Producer, string ProducerVersion, string RunId, string ArtifactId, string Sha256, string EvidencePath);
+internal sealed record ExternalObservation(string TestId, string Status, DateTimeOffset? ObservedAt, ExternalEvidenceProvenance Provenance);
+internal sealed record ExternalEvidenceSet(IReadOnlyList<ExternalObservation> Observations);
+
 internal sealed class FitnessManifestException : Exception
 {
     internal FitnessManifestException(string message) : base(message) { }

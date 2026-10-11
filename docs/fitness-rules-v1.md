@@ -9,6 +9,8 @@ Version 1 supports two checks:
 - `forbid-project-reference`: inspect exact, repository-relative `.csproj` paths without evaluating MSBuild;
 - `external-test`: correlate an explicit test ID with a bounded local evidence artifact without executing or downloading it.
 
+External artifacts use `docs/schemas/adr-fitness-evidence-v1.schema.json`. They identify the producer/version, CI run, artifact, SHA-256 and observations. ADR Guard validates those identifiers and preserves them in results, but v1 does not attest the producer or independently verify the declared digest. A reported pass or failure therefore has `reported-external` confidence; contradictory, stale, future-dated, skipped, errored, missing, or mismatched observations are `unknown`. Timestamps are optional; when absent, the report discloses that freshness is unavailable. URLs are never dereferenced and scripts/tests are never executed.
+
 All paths use `/`, are relative to the selected repository, and must remain physically contained by it. Consumers must reject unknown fields, duplicate JSON properties, unsafe XML features, excessive input, and ambiguous references. `gate: true` records that a rule is eligible for an explicitly selected enforcement policy; it does not turn unknown evidence into success or failure.
 
 The fixture at `tests/AdrGuard.Tests/Fixtures/Drift/contract` contains one rule of each type and the security/regression cases that later Phase 2 work exercises.

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "1.0",
+  "producer": { "name": "architecture-tests", "version": "2.1.0" },
+  "artifact": { "runId": "ci-1842", "id": "architecture-results", "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" },
+  "observations": [
+    { "testId": "Architecture.DomainBoundary", "status": "passed", "observedAt": "2026-10-11T12:00:00Z" }
+  ]
+}

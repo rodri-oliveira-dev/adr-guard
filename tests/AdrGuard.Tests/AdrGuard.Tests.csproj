@@ -29,5 +29,8 @@
     <None Include="../../docs/schemas/adr-fitness-rules-v1.schema.json"
           Link="Schemas/adr-fitness-rules-v1.schema.json"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../docs/schemas/adr-fitness-evidence-v1.schema.json"
+          Link="Schemas/adr-fitness-evidence-v1.schema.json"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
