@@ -29,6 +29,10 @@ export function parseNewAdrFormMessage(value: unknown): FormMessage | undefined 
 export class VisualCreationSubmission {
   private active = false;
 
+  public accepts(type: FormMessage['type']): boolean {
+    return !this.active || type === 'cancel';
+  }
+
   public begin(): boolean {
     if (this.active) return false;
     this.active = true;

@@ -13,6 +13,7 @@ internal static class NewFormCommand
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
+        PropertyNameCaseInsensitive = false,
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         WriteIndented = false,
@@ -67,6 +68,16 @@ internal static class NewFormCommand
             if (request.Operation is not ("describe" or "preview" or "create"))
             {
                 return UsageError("Visual ADR form operation must be describe, preview, or create.", error);
+            }
+
+            if (request.Operation == "describe" && (request.Title is not null || request.Fields is not null))
+            {
+                return UsageError("Visual ADR form describe requests cannot contain title or fields.", error);
+            }
+
+            if (request.Operation != "describe" && (request.Title is null || request.Fields is null))
+            {
+                return UsageError("Visual ADR form preview and create requests require title and fields.", error);
             }
 
             if (templateFilePath is not null)
@@ -162,7 +173,7 @@ internal static class NewFormCommand
                         .Select(field => new NewFormFieldResponse(field.Id, field.Required))
                         .ToArray()),
                 result.FilePath,
-                result.Content,
+                request.Operation == "preview" ? result.Content : null,
                 result.Written));
             return ExitCodes.Success;
         }

@@ -89,6 +89,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       this.panel.dispose();
       return;
     }
+    if (!this.submission.accepts(message.type)) return;
     if (message.type === 'traditional') {
       this.panel.dispose();
       await vscode.commands.executeCommand('adrGuard.createAdr');

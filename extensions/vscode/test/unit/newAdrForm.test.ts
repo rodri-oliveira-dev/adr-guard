@@ -34,9 +34,16 @@ describe('visual ADR form host boundary', () => {
 
   it('blocks duplicate creation until the active submission settles', () => {
     const submission = new VisualCreationSubmission();
+    assert.equal(submission.accepts('preview'), true);
     assert.equal(submission.begin(), true);
     assert.equal(submission.begin(), false);
+    assert.equal(submission.accepts('describe'), false);
+    assert.equal(submission.accepts('preview'), false);
+    assert.equal(submission.accepts('create'), false);
+    assert.equal(submission.accepts('traditional'), false);
+    assert.equal(submission.accepts('cancel'), true);
     submission.end();
+    assert.equal(submission.accepts('preview'), true);
     assert.equal(submission.begin(), true);
   });
 

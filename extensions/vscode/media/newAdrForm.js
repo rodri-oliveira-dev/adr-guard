@@ -203,6 +203,13 @@
       if (sequence === previewSequence) post('preview');
     }, 450);
   }
+  function setCreateBusy(active) {
+    busyCreate = active;
+    for (const control of document.querySelectorAll(
+      '#adr-form input, #adr-form select, #adr-form textarea, #create, #traditional',
+    )) control.disabled = active;
+    if (!active) document.getElementById('create').disabled = !schema?.compatible;
+  }
   window.addEventListener('message', (event) => {
     const message = event.data;
     if (!message || typeof message.type !== 'string') return;
@@ -229,15 +236,13 @@
     }
     if (message.type === 'busy') {
       if (message.operation === 'create') {
-        busyCreate = true;
-        document.getElementById('create').disabled = true;
+        setCreateBusy(true);
         document.getElementById('status').textContent = t('Creating ADR…');
       }
       return;
     }
     if (message.type === 'idle' && message.operation === 'create') {
-      busyCreate = false;
-      if (schema?.compatible) document.getElementById('create').disabled = false;
+      setCreateBusy(false);
     }
   });
   function hideError() {

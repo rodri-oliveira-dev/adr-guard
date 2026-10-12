@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using AdrGuard.Cli;
 using Xunit;
@@ -69,7 +70,8 @@ public sealed class NewFormCommandIntegrationTests
             var path = Assert.IsType<string>(createJson.RootElement.GetProperty("path").GetString());
             Assert.True(createJson.RootElement.GetProperty("written").GetBoolean());
             Assert.Equal(previewMarkdown, File.ReadAllText(path));
-            Assert.Equal(File.ReadAllText(path), createJson.RootElement.GetProperty("markdown").GetString());
+            Assert.False(createJson.RootElement.TryGetProperty("markdown", out _));
+            Assert.InRange(Encoding.UTF8.GetByteCount(create.Output), 1, 1023);
         }
         finally
         {
@@ -140,6 +142,10 @@ public sealed class NewFormCommandIntegrationTests
     [InlineData("{\"schemaVersion\":\"1.0\",\"operation\":\"preview\",\"title\":\"Title\",\"fields\":{}}")]
     [InlineData("{\"schemaVersion\":\"1.0\",\"operation\":\"describe\",\"unexpected\":true}")]
     [InlineData("{\"schemaVersion\":\"1.0\",\"schemaVersion\":\"1.0\",\"operation\":\"describe\"}")]
+    [InlineData("{\"schemaVersion\":\"1.0\",\"SchemaVersion\":\"2.0\",\"operation\":\"describe\"}")]
+    [InlineData("{\"schemaVersion\":\"1.0\",\"Operation\":\"describe\"}")]
+    [InlineData("{\"schemaVersion\":\"1.0\",\"operation\":\"describe\",\"title\":\"Unexpected\"}")]
+    [InlineData("{\"schemaVersion\":\"1.0\",\"operation\":\"describe\",\"fields\":{}}")]
     public void InvalidRequestsFailClosedWithoutWriting(string request)
     {
         var root = CreateDirectory();
