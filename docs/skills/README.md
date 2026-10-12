@@ -32,7 +32,7 @@ Agent Skills are **optional agent-facing workflows** that help people use ADR Gu
 - **Already have ADRs?** `adr-guard-validate` handles deterministic CLI diagnostics; `adr-guard-audit` covers read-only documentary health, assumptions and stewardship.
 - **Rolling out to a team?** `adr-guard-team-adoption` helps agree on policy; `adr-guard-init` configures the repository and `adr-guard-ci-setup` handles GitHub Actions.
 
-Skills guide workflows; they do not implement CLI features. `impact` was published in v1.5.0. The `drift` command is proposed for v1.6.0 and must not be presented as published until that release is verified.
+Skills guide workflows; they do not implement CLI features. The CLI provides `impact` from v1.5.0 and `drift` from v1.6.0. Install the corresponding .NET Tool release to use these commands; installing a skill alone does not add CLI capabilities.
 
 ## Install and use
 
