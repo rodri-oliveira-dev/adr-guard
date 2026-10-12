@@ -97,7 +97,7 @@ npx skills add rodri-oliveira-dev/adr-guard --list
 npx skills add rodri-oliveira-dev/adr-guard --skill adr-guard-create --agent codex
 ```
 
-A descoberta pela branch padrão só encontrará essas skills após o merge. Veja [instalação, segurança e escopo](docs/skills/README.pt-BR.md).
+As onze Agent Skills já estão disponíveis na branch padrão. Consulte [instalação, segurança e escopo](docs/skills/README.pt-BR.md) para escolher e instalar apenas os fluxos necessários.
 
 ## Documentação
 
