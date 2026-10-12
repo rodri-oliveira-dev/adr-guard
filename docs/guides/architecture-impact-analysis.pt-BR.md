@@ -37,7 +37,7 @@ Argumentos inválidos retornam `2`. Repositório ausente, histórico base ausent
 
 Mapeamentos explícitos exigem manutenção, mas são revisáveis, determinísticos, independentes de linguagem e não inspecionam conteúdo-fonte. Reutilizar o CLI Git preserva semântica nativa de rename/copy ao custo de exigir Git no container de runtime. O subconjunto limitado de glob é menos expressivo que regex, reduzindo deliberadamente riscos de negação de serviço e interpretação.
 
-A Fase 2 pode consumir esses contratos de domínio para fluxos de drift ou policy, mas deve preservar a distinção consultiva/unknown, o versionamento de schema, a ativação explícita, evidências limitadas e a separação dos contratos de validação existentes. Extensões possíveis incluem tendências de cobertura, metadados de ownership e campos de relatório versionados independentemente; vereditos automáticos de conformidade, inferência implícita, escrita oculta no repositório e descoberta por rede continuam fora desse contrato.
+O drift arquitetural da v1.6.0 usa contratos separados de regras de fitness, evidências, snapshot e relatório; um candidato de impacto não é evidência de drift e não pode se tornar um veredito de conformidade. Os dois fluxos preservam ativação explícita, evidências limitadas, schemas versionados e resultados `unknown`. Extensões possíveis da análise de impacto incluem tendências de cobertura, metadados de ownership e campos de relatório versionados independentemente; vereditos automáticos de conformidade, inferência implícita, escrita oculta no repositório e descoberta por rede continuam fora desse contrato.
 
 ## Segurança e exposição de dados
 

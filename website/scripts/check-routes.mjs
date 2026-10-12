@@ -6,6 +6,7 @@ const required = [
   'index.html', 'getting-started/index.html', 'templates/index.html', 'adoption/index.html', 'examples/index.html',
   'examples/redis-cache/index.html', 'examples/service-communication/index.html', 'examples/database-selection/index.html',
   'examples/authentication/index.html', 'examples/supersession/index.html', 'product/index.html', 'learn/what-is-an-adr/index.html',
+  'product/architecture-impact/index.html', 'product/architectural-drift/index.html',
   'skills/index.html', 'skills/installation/index.html', 'skills/catalog/index.html',
   'skills/examples/index.html', 'skills/security-and-governance/index.html'
 ];

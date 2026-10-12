@@ -152,5 +152,13 @@ for (const sitemapFile of sitemapFiles) {
 for (const url of indexable.keys()) if (!sitemapUrls.has(url)) failures.push(`sitemap: missing indexable canonical ${url}`);
 for (const url of sitemapUrls) if (!indexable.has(url)) failures.push(`sitemap: contains non-indexable or missing page ${url}`);
 
+for (const route of ['product/architecture-impact/', 'product/architectural-drift/']) {
+  for (const localizedRoute of [route, `pt-br/${route}`]) {
+    const url = `${site}${basePath}${localizedRoute}`;
+    if (!indexable.has(url)) failures.push(`required capability route is not indexable: ${url}`);
+    if (!sitemapUrls.has(url)) failures.push(`sitemap: missing required capability route ${url}`);
+  }
+}
+
 if (failures.length) throw new Error(`SEO validation failed (${failures.length}):\n${failures.join('\n')}`);
 console.log(`Validated SEO metadata, JSON-LD, hreflang, and sitemap for ${indexable.size} indexable pages.`);

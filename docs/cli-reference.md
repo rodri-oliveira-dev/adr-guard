@@ -2,7 +2,7 @@
 
 > Availability: `init`, `.adrguard.yml`, and structured `check` output were published in ADR Guard v1.2.0. MADR 4.0 format selection was published in v1.3.0. See [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) for exact artifacts.
 
-> Architecture impact analysis is published in v1.5.0. Architectural drift is prepared for v1.6.0 but is not published by this branch.
+> Architecture impact analysis was introduced in v1.5.0. Architectural drift is part of the v1.6.0 code and release scope. Confirm the coordinated v1.6.0 package or container publication in [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) before installing or pinning those artifacts; the implementation branch does not publish them by itself.
 
 ## Initialize a repository
 

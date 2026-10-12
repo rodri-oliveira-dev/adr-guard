@@ -23,7 +23,13 @@ npx skills add rodri-oliveira-dev/adr-guard --list
 
 Read the selected skill before installing it; skills are executable instructions for an agent, and third-party content should be reviewed as code-like input.
 
-**Branch awareness:** the command above discovers skills from the repository's default branch. When reviewing unmerged changes, inspect the proposed branch directly instead of assuming unpublished skills are already available through the default-branch listing.
+The eleven catalogued skills are already available from the repository's default `main` branch. When testing an unmerged change, select that Git revision explicitly instead of expecting default-branch discovery to include it. Current Skills CLI versions accept a Git ref fragment; prefer an immutable commit SHA:
+
+```bash
+npx skills add "rodri-oliveira-dev/adr-guard#<commit-sha>" --list
+```
+
+Use a reviewed branch ref only when following moving development work, and confirm the syntax supported by the Skills CLI version you run.
 
 ## 2. Install only what you need
 
@@ -76,7 +82,8 @@ The destination ADR directory must already exist. On approval, the agent can use
 
 | Problem | What to check |
 | --- | --- |
-| `--list` shows no ADR Guard skills | Have the skills merged into the repository default branch? |
+| `--list` shows no ADR Guard skills | Confirm network/repository access, update the Skills CLI, and rerun the default-branch command. The eleven catalogued skills are present on `main`. |
+| A Git-ref test does not show the expected change | Confirm the ref or commit exists remotely and that the source includes the `#<ref>` fragment; this affects skill discovery, not the installed ADR Guard CLI version. |
 | Agent recognizes a skill, but `adr-guard` is unavailable | Install or restore the independent .NET Tool and verify `adr-guard --version`. |
 | CLI rejects the document | Check the repository's `.adrguard.yml`, required canonical headings, format and real diagnostics; see [validation](../catalog/#adr-guard-validate). |
 | AI review needs credentials | Provide explicit provider/model and authorization for transmitted content. There is **no** automatic provider selection. |

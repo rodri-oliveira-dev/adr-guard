@@ -37,7 +37,7 @@ Invalid arguments return `2`. Missing repositories, missing/disconnected/shallow
 
 Explicit mappings create maintenance work, but they are reviewable, deterministic, independent of programming language, and do not inspect source contents. Git CLI reuse preserves native rename/copy semantics at the cost of requiring Git in the runtime container. The bounded glob subset is less expressive than regex, deliberately reducing denial-of-service and interpretation risk.
 
-Phase 2 can consume these domain contracts for drift or policy workflows, but must preserve the advisory/unknown distinction, schema versioning, explicit activation, bounded evidence, and separation from existing validation contracts. Potential extensions include mapping coverage trends, ownership metadata, and independently versioned report fields; automatic compliance verdicts, implicit inference, hidden repository writes, and network discovery remain outside this contract.
+Architectural drift in v1.6.0 uses separate fitness-rule, evidence, snapshot, and report contracts; an impact candidate is not drift evidence and cannot become a compliance verdict. Both workflows preserve explicit activation, bounded evidence, versioned schemas, and `unknown` results. Potential impact-analysis extensions include mapping coverage trends, ownership metadata, and independently versioned report fields; automatic compliance verdicts, implicit inference, hidden repository writes, and network discovery remain outside this contract.
 
 ## Security and disclosure
 

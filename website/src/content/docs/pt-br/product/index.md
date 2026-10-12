@@ -21,9 +21,20 @@ O ADR Guard mantém o julgamento arquitetural com pessoas e automatiza verifica�
 
 - [Crie ADRs canônicos](./creation/) Minimal, Extended ou com templates customizados restritos.
 - [Valide relações](./relationships/), arquivos alterados e [baselines de diagnósticos](./incremental-validation/).
+- Use a [Análise de Impacto Arquitetural](./architecture-impact/) para identificar decisões associadas a arquivos alterados por mapeamentos ADR-código explícitos. O resultado convida à revisão; não representa uma violação arquitetural.
+- Use o [Drift Arquitetural](./architectural-drift/) para verificar regras de fitness explícitas e ligadas a ADRs com evidências limitadas. Os resultados diferenciam conformidade, violação e evidência insuficiente; o enforcement opcional atua somente dentro dos limites determinísticos implementados.
 - Produza [relatórios legíveis e estruturados](./reports/).
 - Ative [rascunho assistido por IA](./ai-drafting/) ou [revisão](./ai-review/) com provedores explícitos e controles de segurança.
 - Valide MADR 4.0 em [modo opcional separado](./madr-4/).
+
+## Impacto e drift são diferentes
+
+| Funcionalidade | Pergunta respondida | O que ela não afirma |
+| --- | --- | --- |
+| [Análise de Impacto Arquitetural](./architecture-impact/) | Quais ADRs podem precisar de revisão porque arquivos mapeados mudaram? | Não interpreta a mudança como não conformidade nem realiza análise semântica irrestrita do código. |
+| [Drift Arquitetural](./architectural-drift/) | A evidência disponível satisfaz uma regra de fitness explícita e ligada a um ADR? | Não infere regras ausentes, não transforma falta de evidência em sucesso e não aprova a decisão associada. |
+
+Os dois fluxos mantêm evidências rastreáveis e o julgamento arquitetural sob responsabilidade humana. A validação documental verifica se os ADRs seguem os contratos declarados; a avaliação técnica cobre somente regras e escopos configurados explicitamente; pessoas ainda decidem se o ADR é aceito e se a regra representa a arquitetura pretendida.
 
 ## IA e confirmação humana
 

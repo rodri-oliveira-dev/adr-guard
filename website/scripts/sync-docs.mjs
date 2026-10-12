@@ -33,6 +33,8 @@ const product = [
   ['docs/relationship-governance.md', 'product/relationships.md'],
   ['docs/incremental-validation.md', 'product/incremental-validation.md'],
   ['docs/check-reports.md', 'product/reports.md'],
+  ['docs/guides/architecture-impact-analysis.md', 'product/architecture-impact.md'],
+  ['docs/guides/architectural-drift.md', 'product/architectural-drift.md'],
   ['docs/adr-review-security.md', 'product/security.md'],
   ['docs/guides/team-adoption.md', 'adoption/team-playbook.md']
 ];

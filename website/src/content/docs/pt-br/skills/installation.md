@@ -23,7 +23,13 @@ npx skills add rodri-oliveira-dev/adr-guard --list
 
 Leia as instruções antes de instalar: uma skill contém orientações executáveis pelo agente, e seu conteúdo deve ser tratado com o mesmo cuidado de outras dependências.
 
-**Atenção à branch:** o comando acima descobre skills da branch padrão. Ao revisar alterações ainda não incorporadas, consulte diretamente a branch da proposta, sem presumir que já estão disponíveis na listagem padrão.
+As onze skills do catálogo já estão disponíveis na branch padrão `main`. Para testar uma alteração ainda não integrada, selecione explicitamente a revisão Git em vez de esperar que a descoberta na branch padrão a inclua. Versões atuais do Skills CLI aceitam uma referência Git no fragmento; prefira o SHA imutável do commit:
+
+```bash
+npx skills add "rodri-oliveira-dev/adr-guard#<commit-sha>" --list
+```
+
+Use uma referência de branch somente ao acompanhar trabalho de desenvolvimento móvel e confirme a sintaxe aceita pela versão do Skills CLI em uso.
 
 ## 2. Instale somente o necessário
 
@@ -76,7 +82,8 @@ O diretório de ADRs deve existir. Com autorização, o agente pode executar `ne
 
 | Problema | O que verificar |
 | --- | --- |
-| `--list` não encontra as skills | Elas já foram incorporadas à branch padrão? |
+| `--list` não encontra as skills | Confirme acesso à rede e ao repositório, atualize o Skills CLI e repita o comando da branch padrão. As onze skills do catálogo estão na `main`. |
+| Um teste com referência Git não mostra a alteração esperada | Confirme que a referência ou o commit existe no remoto e que a fonte inclui o fragmento `#<ref>`; isso afeta a descoberta da skill, não a versão instalada da CLI do ADR Guard. |
 | A skill é reconhecida, mas o comando `adr-guard` não existe | Instale ou restaure a .NET Tool independente e execute `adr-guard --version`. |
 | A CLI rejeita um ADR | Verifique `.adrguard.yml`, seções canônicas, formato e diagnósticos reais; veja [validação](../catalog/#adr-guard-validate). |
 | A revisão com IA pede credenciais | Defina provedor e modelo e autorize o envio de contexto. Não há escolha automática de provedor. |

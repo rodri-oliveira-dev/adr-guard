@@ -31,7 +31,7 @@ O ADR Guard separa **prática decisória**, **validação documental determinís
 
 Separe evidências observadas de hipóteses, riscos potenciais e falta de contexto. Não invente SLAs, obrigações legais, volumes, estimativas, aprovações ou problemas na implementação.
 
-A `adr-guard-audit` avalia **documentação e governança**. Ela não implementa os roadmaps de [análise de impacto](https://github.com/rodri-oliveira-dev/adr-guard/issues/120), [architectural drift](https://github.com/rodri-oliveira-dev/adr-guard/issues/121) ou [agente de governança](https://github.com/rodri-oliveira-dev/adr-guard/issues/122).
+A `adr-guard-audit` avalia **documentação e governança** pelo fluxo de auditoria documentado. Ela não executa silenciosamente nem substitui os comandos separados de [Análise de Impacto Arquitetural](../../product/architecture-impact/) e [Drift Arquitetural](../../product/architectural-drift/) da CLI. Esses comandos exigem mapeamentos, regras, evidências e políticas explícitas; suas saídas ainda não aprovam um ADR.
 
 ## Ciclo de vida e compatibilidade
 

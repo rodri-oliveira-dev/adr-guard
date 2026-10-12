@@ -21,9 +21,20 @@ ADR Guard keeps architecture judgment with people while automating repeatable do
 
 - [Create canonical ADRs](./creation/) with Minimal, Extended, or constrained custom templates.
 - [Validate relationships](./relationships/), changed files, and [diagnostic baselines](./incremental-validation/).
+- Use [Architecture Impact Analysis](./architecture-impact/) to identify decisions that explicit ADR-to-code mappings associate with changed files. The result is a review prompt, not an architecture violation.
+- Use [Architectural Drift](./architectural-drift/) to verify explicit ADR-backed fitness rules from bounded evidence. Results distinguish conformance, violation, and insufficient evidence; opt-in enforcement applies only within the implemented deterministic limits.
 - Produce [machine-readable and human-readable reports](./reports/).
 - Opt into [AI-assisted drafting](./ai-drafting/) or [review](./ai-review/) with explicit providers and security controls.
 - Validate MADR 4.0 documents in a [separate opt-in mode](./madr-4/).
+
+## Impact and drift are different
+
+| Capability | Question it answers | What it does not claim |
+| --- | --- | --- |
+| [Architecture Impact Analysis](./architecture-impact/) | Which ADRs may deserve review because mapped files changed? | It does not interpret a change as non-compliance or perform unrestricted semantic code analysis. |
+| [Architectural Drift](./architectural-drift/) | Does available evidence satisfy an explicit fitness rule linked to an ADR? | It does not infer undeclared rules, turn missing evidence into a pass, or approve the underlying decision. |
+
+Both workflows keep evidence traceable and architecture judgment human-owned. Document validation checks whether ADRs follow their declared contracts; technical evidence assesses only the rules and scope explicitly configured; people still decide whether an ADR is accepted and whether a rule represents the intended architecture.
 
 ## AI and human confirmation
 

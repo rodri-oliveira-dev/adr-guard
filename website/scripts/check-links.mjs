@@ -40,5 +40,18 @@ for (const [route, expectedHref] of [
   }
 }
 
+// Keep both capabilities discoverable from the localized home and product pages.
+for (const [route, expectedLinks] of [
+  ['index.html', ['/adr-guard/product/architecture-impact/', '/adr-guard/product/architectural-drift/']],
+  ['product/index.html', ['/adr-guard/product/architecture-impact/', '/adr-guard/product/architectural-drift/']],
+  ['pt-br/index.html', ['/adr-guard/pt-br/product/architecture-impact/', '/adr-guard/pt-br/product/architectural-drift/']],
+  ['pt-br/product/index.html', ['/adr-guard/pt-br/product/architecture-impact/', '/adr-guard/pt-br/product/architectural-drift/']]
+]) {
+  const html = await readFile(resolve(dist, route), 'utf8');
+  for (const expectedHref of expectedLinks) {
+    if (!html.includes(`href="${expectedHref}"`)) failures.push(`${route}: missing capability link ${expectedHref}`);
+  }
+}
+
 if (failures.length) throw new Error(`Broken local links:\n${failures.slice(0, 30).join('\n')}`);
 console.log(`Checked local links in ${htmlFiles.length} HTML files.`);

@@ -31,7 +31,7 @@ ADR Guard separates **decision practice**, **deterministic document validation**
 
 When evaluating an ADR, distinguish observed evidence from hypotheses, possible risks and missing context. Never invent SLAs, legal duties, traffic volumes, estimates, review approvals or implementation findings.
 
-The `adr-guard-audit` skill checks **documentation and governance health**. It does not implement the [impact analysis roadmap](https://github.com/rodri-oliveira-dev/adr-guard/issues/120), [architectural drift roadmap](https://github.com/rodri-oliveira-dev/adr-guard/issues/121) or [governance agent roadmap](https://github.com/rodri-oliveira-dev/adr-guard/issues/122).
+The `adr-guard-audit` skill checks **documentation and governance health** through the documented audit workflow. It does not silently run or replace the CLI's separate [Architecture Impact Analysis](../../product/architecture-impact/) and [Architectural Drift](../../product/architectural-drift/) commands. Those commands require explicit mappings, rules, evidence, and policy choices; their output still does not approve an ADR.
 
 ## Lifecycle and compatibility
 
