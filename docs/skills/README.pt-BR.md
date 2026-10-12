@@ -32,7 +32,7 @@ As skills são **fluxos opcionais para agentes de IA** que ajudam a usar o ADR G
 - **Tenho um acervo de ADRs?** `adr-guard-validate` examina regras verificáveis; `adr-guard-audit` avalia qualitativamente documentação e governança sem escrever.
 - **Quero implantar a prática no time?** `adr-guard-team-adoption` define a proposta de política, `adr-guard-init` faz a configuração e `adr-guard-ci-setup` integra à CI.
 
-As skills orientam fluxos de uso, mas não implementam funcionalidades da CLI. O comando `impact` está publicado desde a v1.5.0. O comando `drift` está previsto para a v1.6.0 e não deve ser apresentado como publicado antes da verificação dessa release.
+As skills orientam fluxos de uso, mas não implementam funcionalidades da CLI. A CLI oferece `impact` desde a v1.5.0 e `drift` a partir da v1.6.0. Instale a versão correspondente da .NET Tool para usar esses comandos; instalar uma skill não adiciona funcionalidades à CLI.
 
 ## Descoberta e instalação
 
