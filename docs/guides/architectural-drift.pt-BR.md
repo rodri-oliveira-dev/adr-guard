@@ -23,11 +23,11 @@ steps:
   - uses: actions/setup-dotnet@v5
     with:
       dotnet-version: 10.0.x
-  - run: dotnet tool install --global RodriOliveira.AdrGuard --version <versao-publicada>
+  - run: dotnet tool install --global RodriOliveira.AdrGuard --version 1.6.0
   - run: adr-guard drift . --rules .adrguard-fitness.json --policy enforce --format json
 ```
 
-Fixe uma versão realmente publicada; preparar esta funcionalidade não a publica. O comando não faz chamadas de rede nem lê credenciais de provedores.
+Este exemplo requer o ADR Guard v1.6.0 no NuGet.org. Confirme que a release coordenada foi publicada antes de executar o workflow; o merge do PR de implementação não publica o pacote por si só. O comando `drift` não faz chamadas de rede nem lê credenciais de provedores.
 
 ## Limites
 
