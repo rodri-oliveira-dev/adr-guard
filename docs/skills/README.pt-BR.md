@@ -32,7 +32,7 @@ As skills são **fluxos opcionais para agentes de IA** que ajudam a usar o ADR G
 - **Tenho um acervo de ADRs?** `adr-guard-validate` examina regras verificáveis; `adr-guard-audit` avalia qualitativamente documentação e governança sem escrever.
 - **Quero implantar a prática no time?** `adr-guard-team-adoption` define a proposta de política, `adr-guard-init` faz a configuração e `adr-guard-ci-setup` integra à CI.
 
-As P1 não pressupõem comandos futuros de análise de impacto ou architectural drift já implementados.
+As skills orientam fluxos de uso, mas não implementam funcionalidades da CLI. O comando `impact` está publicado desde a v1.5.0. O comando `drift` está previsto para a v1.6.0 e não deve ser apresentado como publicado antes da verificação dessa release.
 
 ## Descoberta e instalação
 
@@ -41,7 +41,7 @@ npx skills add rodri-oliveira-dev/adr-guard --list
 npx skills add rodri-oliveira-dev/adr-guard --skill adr-guard-create --agent codex
 ```
 
-Antes do merge, o comando apontado para o repositório padrão não encontrará as skills nesta branch. O teste de descoberta deverá ser repetido após a publicação na `main`. [Skills CLI](https://github.com/vercel-labs/skills).
+As onze skills listadas já estão disponíveis na `main`; os comandos acima consultam a branch padrão. Para inspecionar alterações não publicadas em outra branch, selecione explicitamente uma referência Git compatível. [Skills CLI](https://github.com/vercel-labs/skills).
 
 A instalação das skills **não** instala a ferramenta CLI. Para executar seus comandos:
 
