@@ -11,11 +11,21 @@ export interface FormValues {
 
 export interface FormMessage {
   readonly type: 'ready' | 'describe' | 'preview' | 'create' | 'traditional' | 'cancel'
-    | 'showList' | 'newAdr' | 'refreshList' | 'selectWorkspace' | 'openAdr' | 'revealCreated';
+    | 'showList' | 'newAdr' | 'refreshList' | 'selectWorkspace' | 'openAdr' | 'revealCreated'
+    | 'editAdr' | 'saveEdit';
   readonly values?: FormValues;
+  readonly editValues?: EditValues;
   readonly workspace?: string;
   readonly relativePath?: string;
   readonly state?: ListState;
+}
+
+export interface EditValues {
+  readonly workspace: string;
+  readonly relativePath: string;
+  readonly fingerprint: string;
+  readonly title: string;
+  readonly fields: Readonly<Record<string, string>>;
 }
 
 export interface ListState {
@@ -45,9 +55,34 @@ export function parseNewAdrFormMessage(value: unknown): FormMessage | undefined 
       || Object.keys(value).some((key) => !['type', 'workspace', 'relativePath'].includes(key))) return undefined;
     return { type: value.type, workspace: value.workspace, relativePath: value.relativePath };
   }
+  if (value.type === 'editAdr') {
+    if (!isBoundedString(value.workspace, 4096) || !isBoundedString(value.relativePath, 4096)
+      || !isSafeRelativeFile(value.relativePath) || (value.state !== undefined && !isListState(value.state))
+      || Object.keys(value).some((key) => !['type', 'workspace', 'relativePath', 'state'].includes(key))) return undefined;
+    return { type: value.type, workspace: value.workspace, relativePath: value.relativePath,
+      ...(value.state === undefined ? {} : { state: value.state }) };
+  }
+  if (value.type === 'saveEdit') {
+    if (!isEditValues(value.editValues)
+      || Object.keys(value).some((key) => key !== 'type' && key !== 'editValues')) return undefined;
+    return { type: value.type, editValues: value.editValues };
+  }
   if (value.type !== 'describe' && value.type !== 'preview' && value.type !== 'create') return undefined;
   if (!isFormValues(value.values) || Object.keys(value).some((key) => key !== 'type' && key !== 'values')) return undefined;
   return { type: value.type, values: value.values };
+}
+
+function isEditValues(value: unknown): value is EditValues {
+  if (!isRecord(value) || Object.keys(value).some((key) => ![
+    'workspace', 'relativePath', 'fingerprint', 'title', 'fields',
+  ].includes(key))) return false;
+  return isBoundedString(value.workspace, 4096)
+    && isBoundedString(value.relativePath, 4096) && isSafeRelativeFile(value.relativePath)
+    && typeof value.fingerprint === 'string' && /^[A-F0-9]{64}$/u.test(value.fingerprint)
+    && isBoundedString(value.title, 512) && isRecord(value.fields)
+    && Object.keys(value.fields).length <= 64
+    && Object.entries(value.fields).every(([key, fieldValue]) =>
+      /^(?:metadata|section)-[0-9]{1,2}$/u.test(key) && isBoundedString(fieldValue, maximumValueCharacters));
 }
 
 function isWorkspaceMessage(value: Record<string, unknown>, allowState = false): value is Record<string, unknown> & { workspace: string } {

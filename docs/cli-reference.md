@@ -44,6 +44,16 @@ Precedence is:
 
 Configured ADR directories apply when the positional directory is omitted from `check`, `index`, `new`, and `draft`. Configured templates apply only when `new`/`draft` do not receive an explicit template option. `review` continues to require an explicit target.
 
+## Edit an ADR through a structured client
+
+```text
+adr-guard edit <adr-file> --form [--adr-format canonical|madr-4]
+  [--lifecycle-statuses <mapping>] [--filename-policy <policy>]
+  [--validation-profile <profile>]
+```
+
+`edit --form` is a bounded schema `1.0` stdin/stdout contract for trusted clients such as the VS Code extension. A `load` request returns the editable title, status, scalar front matter, and level-two sections plus a SHA-256 fingerprint. A `save` request must return that fingerprint and the exact described field set. ADR Guard patches only changed value spans, preserves unknown and untouched Markdown, keeps the filename/identifier, validates the selected format and lifecycle policy, and atomically replaces the single target. If the file changed after load, save fails with exit `3` instead of overwriting external work. Invalid fields or contracts return `2`; ADR validation findings return `1`.
+
 ## Check output
 
 ```text

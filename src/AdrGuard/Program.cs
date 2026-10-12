@@ -14,6 +14,9 @@ var supportsGracefulCancellation =
             || string.Equals(args[0], "impact", StringComparison.Ordinal)))
     || (args.Length > 0
         && string.Equals(args[0], "new", StringComparison.Ordinal)
+        && args.Contains("--form", StringComparer.Ordinal))
+    || (args.Length > 0
+        && string.Equals(args[0], "edit", StringComparison.Ordinal)
         && args.Contains("--form", StringComparer.Ordinal));
 
 ConsoleCancelEventHandler cancelHandler =

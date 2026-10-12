@@ -31,6 +31,18 @@ describe('visual ADR form host boundary', () => {
       type: 'newAdr', workspace: 'file:///workspace',
       state: { search: 'api', status: 'Accepted', sort: 'number-desc', scrollTop: 42 },
     });
+    assert.deepEqual(parseNewAdrFormMessage({
+      type: 'editAdr', workspace: 'file:///workspace', relativePath: '0001-safe.md',
+      state: { search: '', status: '', sort: 'number-desc', scrollTop: 0 },
+    }), {
+      type: 'editAdr', workspace: 'file:///workspace', relativePath: '0001-safe.md',
+      state: { search: '', status: '', sort: 'number-desc', scrollTop: 0 },
+    });
+    const editValues = {
+      workspace: 'file:///workspace', relativePath: '0001-safe.md', fingerprint: 'A'.repeat(64),
+      title: 'Safe', fields: { 'section-0': 'Accepted' },
+    };
+    assert.deepEqual(parseNewAdrFormMessage({ type: 'saveEdit', editValues }), { type: 'saveEdit', editValues });
     for (const invalid of [
       null,
       { type: 'unknown' },
@@ -41,6 +53,9 @@ describe('visual ADR form host boundary', () => {
       { type: 'preview', values: { ...values, title: 'x'.repeat(513) } },
       { type: 'openAdr', workspace: 'file:///workspace', relativePath: '../outside.md' },
       { type: 'openAdr', workspace: 'file:///workspace', relativePath: 'safe.txt' },
+      { type: 'editAdr', workspace: 'file:///workspace', relativePath: '../outside.md' },
+      { type: 'saveEdit', editValues: { workspace: 'file:///workspace', relativePath: '0001-safe.md', fingerprint: 'bad', title: 'Safe', fields: {} } },
+      { type: 'saveEdit', editValues: { workspace: 'file:///workspace', relativePath: '0001-safe.md', fingerprint: 'A'.repeat(64), title: 'Safe', fields: { '../bad': 'x' } } },
     ]) assert.equal(parseNewAdrFormMessage(invalid), undefined);
   });
 

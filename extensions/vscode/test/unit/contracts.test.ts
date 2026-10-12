@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { classifyExitCode } from '../../src/contracts/cli';
 import { parseNewAdrFormResponse } from '../../src/contracts/newForm';
+import { parseEditFormResponse } from '../../src/contracts/editForm';
 
 describe('CLI exit contracts', () => {
   it('normalizes all documented CLI exit codes', () => {
@@ -13,6 +14,38 @@ describe('CLI exit contracts', () => {
       'policy-failed',
       'unknown',
     ]);
+  });
+});
+
+describe('ADR edit form contracts', () => {
+  const valid = {
+    schemaVersion: '1.0',
+    operation: 'load',
+    format: 'canonical',
+    path: '/workspace/docs/adr/0001-choice.md',
+    fingerprint: 'A'.repeat(64),
+    title: 'Choice',
+    fields: [
+      { id: 'section-0', label: 'Status', kind: 'status', required: true, value: 'Proposed', options: ['Proposed', 'Accepted'] },
+      { id: 'section-1', label: 'Context', kind: 'section', required: true, value: 'Context.' },
+    ],
+    written: false,
+  };
+
+  it('accepts bounded dynamic fields for supported ADR formats', () => {
+    const response = parseEditFormResponse(JSON.stringify(valid));
+    assert.equal(response.fields[0]?.kind, 'status');
+    assert.equal(response.fingerprint, 'A'.repeat(64));
+  });
+
+  it('rejects incompatible, duplicated, and inconsistent edit responses', () => {
+    for (const response of [
+      { ...valid, schemaVersion: '2.0' },
+      { ...valid, written: true },
+      { ...valid, fields: [...valid.fields, valid.fields[0]] },
+      { ...valid, fields: [{ ...valid.fields[0], id: '../outside' }] },
+      { ...valid, unexpected: true },
+    ]) assert.throws(() => parseEditFormResponse(JSON.stringify(response)));
   });
 });
 

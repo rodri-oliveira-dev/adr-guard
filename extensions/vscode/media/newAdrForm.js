@@ -15,6 +15,8 @@
   let busyCreate = false;
   let formDirty = false;
   let createdPath;
+  let highlightKind = 'created';
+  let editDocument;
   const valuesByField = {};
   const restored = vscode.getState() || {};
   let listState = restored.listState || { search: '', status: '', sort: 'number-desc', scrollTop: 0 };
@@ -118,7 +120,9 @@
     if (createdPath) {
       const visible = filtered.some((entry) => entry.relativePath === createdPath);
       banner.classList.remove('hidden');
-      banner.append(element('span', {}, visible ? t('ADR created.') : t('The new ADR is hidden by the current filters.')));
+      banner.append(element('span', {}, visible
+        ? t(highlightKind === 'updated' ? 'ADR updated.' : 'ADR created.')
+        : t(highlightKind === 'updated' ? 'The updated ADR is hidden by the current filters.' : 'The new ADR is hidden by the current filters.')));
       if (!visible) banner.append(button(t('Reveal it'), () => vscode.postMessage({ type: 'revealCreated', workspace: selectedWorkspace }), true));
     }
     persistListState();
@@ -142,10 +146,16 @@
     if (entry.status) metadata.append(element('span', { className: 'status' }, entry.status));
     if (entry.date) metadata.append(element('time', { datetime: entry.date }, entry.date));
     const file = element('p', { className: 'path' }, entry.relativePath);
+    const cardActions = element('div', { className: 'actions compact' });
+    const edit = button(t('Edit'), () => {
+      persistListState();
+      vscode.postMessage({ type: 'editAdr', workspace: selectedWorkspace, relativePath: entry.relativePath, state: listState });
+    });
     const open = button(t('Open Markdown'), () => vscode.postMessage({ type: 'openAdr', workspace: selectedWorkspace, relativePath: entry.relativePath }), true);
+    cardActions.append(edit, open);
     card.append(identity, title, metadata, file);
     if (entry.warning || !entry.title) card.append(element('p', { className: 'warning' }, t('This ADR has incomplete metadata.')));
-    card.append(open);
+    card.append(cardActions);
     return card;
   }
 
@@ -160,6 +170,7 @@
     if (!workspaces.length) return renderMessage(t('ADR Guard'), t('Open a local workspace folder to browse ADRs.'));
     app.replaceChildren();
     const back = button(`← ${t('Back to ADR list')}`, backToList, true);
+    back.id = 'edit-back';
     const heading = element('h1', {}, t('Create ADR with Form'));
     const note = element('p', { className: 'intro' }, t('No file is written until you choose Create ADR.'));
     const statusNode = element('div', { id: 'status', role: 'status', 'aria-live': 'polite' });
@@ -191,11 +202,72 @@
     form.addEventListener('submit', (event) => { event.preventDefault(); if (!busyCreate && form.reportValidity()) postForm('create'); });
     describe();
   }
+
+  function renderEditForm() {
+    if (!editDocument) return;
+    formDirty = false;
+    app.replaceChildren();
+    const back = button(`← ${t('Back to ADR list')}`, backToList, true);
+    const heading = element('h1', {}, t('Edit ADR'));
+    const identity = element('p', { className: 'intro path' }, editDocument.relativePath);
+    const statusNode = element('div', { id: 'status', role: 'status', 'aria-live': 'polite' });
+    const error = element('div', { id: 'error', role: 'alert', className: 'error hidden' });
+    const form = element('form', { id: 'adr-edit-form', novalidate: '' });
+    const title = element('input', { id: 'edit-title', type: 'text', required: '', maxlength: '512', autocomplete: 'off' });
+    title.value = editDocument.response.title;
+    appendField(form, 'edit-title', t('Decision title'), title);
+    editDocument.response.fields.forEach((field) => {
+      const id = `edit-${field.id}`;
+      let control;
+      if (field.kind === 'status' && Array.isArray(field.options) && field.options.length) {
+        const options = field.options.map((value) => ({ value, label: value }));
+        if (!field.options.includes(field.value)) options.unshift({ value: field.value, label: field.value });
+        control = select(id, options);
+        control.value = field.value;
+      } else if (field.kind === 'metadata') {
+        control = element('input', { id, type: 'text', maxlength: '32768', autocomplete: 'off' });
+        control.value = field.value;
+      } else {
+        control = element('textarea', { id, rows: '7', maxlength: '32768' });
+        control.value = field.value;
+      }
+      control.dataset.editFieldId = field.id;
+      if (field.required) control.required = true;
+      control.addEventListener('input', markDirty);
+      control.addEventListener('change', markDirty);
+      appendField(form, id, `${field.label} — ${field.required ? t('Required') : t('Optional')}`, control);
+    });
+    title.addEventListener('input', markDirty);
+    const actions = element('div', { className: 'actions' });
+    const save = element('button', { id: 'save-edit', type: 'submit' }, t('Save changes'));
+    const cancel = button(t('Cancel'), backToList, true);
+    cancel.id = 'edit-cancel';
+    actions.append(save, cancel);
+    form.append(actions);
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (busyCreate || !form.reportValidity()) return;
+      const fields = {};
+      document.querySelectorAll('[data-edit-field-id]').forEach((control) => { fields[control.dataset.editFieldId] = control.value; });
+      vscode.postMessage({
+        type: 'saveEdit',
+        editValues: {
+          workspace: editDocument.workspace,
+          relativePath: editDocument.relativePath,
+          fingerprint: editDocument.response.fingerprint,
+          title: title.value,
+          fields,
+        },
+      });
+    });
+    app.append(back, heading, identity, statusNode, error, form);
+    title.focus();
+  }
   function selectedWorkspaceItem() { return workspaces.find((item) => item.id === document.getElementById('workspace').value) || workspaces[0]; }
   function currentValues() { document.querySelectorAll('[data-field-id]').forEach((control) => { valuesByField[control.dataset.fieldId] = control.value; }); return { workspace: document.getElementById('workspace').value, directory: document.getElementById('directory').value, template: document.getElementById('template').value, culture: document.getElementById('culture').value, title: document.getElementById('title').value, fields: Object.fromEntries((schema?.fields || []).map((field) => [field.id, valuesByField[field.id] || ''])) }; }
   function postForm(type) { vscode.postMessage({ type, values: currentValues() }); }
   function markDirty() { formDirty = true; }
-  function backToList() { if (formDirty && !confirm(t('Discard the unsaved form data and return to the ADR list?'))) return; formDirty = false; vscode.postMessage({ type: 'showList', workspace: selectedWorkspace, state: listState }); }
+  function backToList() { if (busyCreate || (formDirty && !confirm(t('Discard the unsaved form data and return to the ADR list?')))) return; formDirty = false; vscode.postMessage({ type: 'showList', workspace: selectedWorkspace, state: listState }); }
   function describe() { schema = undefined; clearTimeout(previewTimer); document.getElementById('status').textContent = t('Loading template…'); document.getElementById('content-fields').replaceChildren(); postForm('describe'); }
   function fieldLabel(id) { return t(({ context: 'Context', decisionDrivers: 'Decision drivers', optionsConsidered: 'Options considered', decision: 'Decision', rationale: 'Rationale', consequences: 'Consequences', positiveConsequences: 'Positive consequences', negativeConsequences: 'Negative consequences', risks: 'Risks', references: 'References' })[id] || id); }
   function fieldHelp(id) { return t(({ context: 'Describe the problem, constraints, and relevant stakeholders.', decisionDrivers: 'List requirements, quality attributes, constraints, and trade-offs.', optionsConsidered: 'Compare viable alternatives, including keeping the current approach.', decision: 'State the proposed choice, its scope, and why it addresses the problem.', rationale: 'Explain why this option best satisfies the decision drivers.', consequences: 'Describe expected impact and trade-offs.', positiveConsequences: 'Record expected benefits and assumptions.', negativeConsequences: 'Record costs, limitations, and added complexity.', risks: 'Identify uncertainties, failure modes, mitigations, and owners.', references: 'Add links to evidence, related documents, or ADRs.' })[id] || ''); }
@@ -210,15 +282,22 @@
     if (message.type === 'initialize') { strings = message.strings || {}; workspaces = Array.isArray(message.workspaces) ? message.workspaces : []; trusted = message.trusted !== false; selectedWorkspace = restored.selectedWorkspace && workspaces.some((item) => item.id === restored.selectedWorkspace) ? restored.selectedWorkspace : message.initialWorkspace; if (!trusted) renderMessage(t('ADR Guard'), t('Trust this workspace to browse ADRs.')); else if (!workspaces.length) renderMessage(t('ADR Guard'), t('Open a local workspace folder to browse ADRs.')); else if (message.initialScreen === 'form') renderForm(message.initialCulture); else renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'showForm') { if (message.workspace) selectedWorkspace = message.workspace; renderForm(); return; }
     if (message.type === 'showList') { if (message.state) listState = message.state; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
+    if (message.type === 'requestShowList') { backToList(); return; }
+    if (message.type === 'requestShowForm') { if (formDirty && !confirm(t('Discard the unsaved form data and start a new ADR?'))) return; formDirty = false; vscode.postMessage(listMessage('newAdr')); return; }
+    if (message.type === 'editLoading') { renderMessage(t('Edit ADR'), t('Loading ADR…')); return; }
+    if (message.type === 'editLoaded') { selectedWorkspace = message.workspace; editDocument = message; renderEditForm(); return; }
     if (message.type === 'listLoading') { if (!document.getElementById('adr-list')) renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
-    if (message.type === 'listResult') { if (message.workspace !== selectedWorkspace) return; directory = `${workspaces.find((item) => item.id === selectedWorkspace)?.name || ''} · ${message.directory}`; entries = Array.isArray(message.entries) ? message.entries : []; if (message.state) listState = message.state; createdPath = message.createdPath; renderList(); return; }
+    if (message.type === 'listResult') { if (message.workspace !== selectedWorkspace) return; directory = `${workspaces.find((item) => item.id === selectedWorkspace)?.name || ''} · ${message.directory}`; entries = Array.isArray(message.entries) ? message.entries : []; if (message.state) listState = message.state; createdPath = message.createdPath; highlightKind = message.highlightKind || 'created'; renderList(); return; }
     if (message.type === 'listError') { const missing = message.kind === 'missing-directory'; renderMessage(t('Architecture Decision Records'), missing ? t('The configured ADR directory does not exist.') : t('The ADR directory could not be read.'), button(t('Retry'), () => vscode.postMessage(listMessage('refreshList')))); if (missing) app.append(element('p', { className: 'intro centered' }, t('ADR Guard does not create directories while browsing.'))); return; }
     if (message.type === 'clearListFilters') { listState.search = ''; listState.status = ''; return; }
     if (message.type === 'created') { formDirty = false; createdPath = message.relativePath; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
+    if (message.type === 'edited') { formDirty = false; createdPath = message.relativePath; highlightKind = 'updated'; editDocument = undefined; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'result') { hideError(); if (message.response.operation === 'describe') renderSchema(message.response); if (message.response.operation === 'preview') document.querySelector('#preview code').textContent = message.response.markdown || ''; return; }
-    if (message.type === 'error' || message.type === 'listNavigationError') { const error = document.getElementById('error'); if (error) { error.textContent = message.message || 'Error'; error.classList.remove('hidden'); if (message.traditionalAvailable) document.getElementById('traditional')?.classList.remove('hidden'); } else window.alert(message.message || 'Error'); return; }
+    if (message.type === 'error' || message.type === 'listNavigationError' || message.type === 'editError') { const error = document.getElementById('error'); if (error) { error.textContent = message.message || 'Error'; error.classList.remove('hidden'); if (message.traditionalAvailable) document.getElementById('traditional')?.classList.remove('hidden'); } else if (message.type === 'editError') { renderMessage(t('Edit ADR'), message.message || 'Error', button(t('Back to ADR list'), backToList, true)); } else window.alert(message.message || 'Error'); return; }
     if (message.type === 'busy' && message.operation === 'create') { setCreateBusy(true); document.getElementById('status').textContent = t('Creating ADR…'); }
     if (message.type === 'idle' && message.operation === 'create') setCreateBusy(false);
+    if (message.type === 'editBusy') { busyCreate = true; document.querySelectorAll('#adr-edit-form input, #adr-edit-form select, #adr-edit-form textarea, #adr-edit-form button, #edit-back').forEach((control) => { control.disabled = true; }); document.getElementById('status').textContent = t('Saving changes…'); }
+    if (message.type === 'editIdle') { busyCreate = false; document.querySelectorAll('#adr-edit-form input, #adr-edit-form select, #adr-edit-form textarea, #adr-edit-form button, #edit-back').forEach((control) => { control.disabled = false; }); }
   });
   renderMessage('', '');
   vscode.postMessage({ type: 'ready' });

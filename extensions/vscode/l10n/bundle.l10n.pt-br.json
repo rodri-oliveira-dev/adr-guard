@@ -160,5 +160,17 @@
   "ADR created.": "ADR criada.",
   "Back to ADR list": "Voltar para a listagem",
   "Discard the unsaved form data and return to the ADR list?": "Descartar os dados não salvos do formulário e voltar para a listagem?",
-  "The selected ADR could not be opened safely.": "Não foi possível abrir a ADR selecionada com segurança."
+  "The selected ADR could not be opened safely.": "Não foi possível abrir a ADR selecionada com segurança.",
+  "Edit": "Editar",
+  "Edit ADR": "Editar ADR",
+  "Save changes": "Salvar alterações",
+  "Saving changes…": "Salvando alterações…",
+  "Loading ADR…": "Carregando ADR…",
+  "ADR updated.": "ADR atualizada.",
+  "The updated ADR is hidden by the current filters.": "A ADR atualizada está oculta pelos filtros atuais.",
+  "The CLI returned an invalid ADR edit target.": "A CLI retornou um destino de edição de ADR inválido.",
+  "The CLI did not confirm the updated ADR.": "A CLI não confirmou a atualização da ADR.",
+  "ADR Guard updated {0}.": "O ADR Guard atualizou {0}.",
+  "The selected ADR is unavailable or outside the configured ADR directory.": "A ADR selecionada está indisponível ou fora do diretório de ADRs configurado.",
+  "Discard the unsaved form data and start a new ADR?": "Descartar os dados não salvos do formulário e iniciar uma nova ADR?"
 }

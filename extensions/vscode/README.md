@@ -71,6 +71,8 @@ The list distinguishes loading, empty, filtered-empty, missing-directory, unavai
 
 **New ADR** opens the existing form in the same panel and keeps the folder, directory, search, filter, order, and scroll state for the return. Successful creation returns to the refreshed list, highlights the new ADR, refreshes the native Explorer, and offers **Open Markdown** without taking focus away automatically. If current filters hide the new record, the panel says so and offers an explicit reveal action. Cancel and **Back to ADR list** return without writing; leaving a dirty form through these controlled actions requires confirmation. The direct **Create ADR with Form** command remains available and returns to the list as well.
 
+Each list item also provides **Edit**. The same visual panel loads the selected canonical or MADR 4.0 document through the CLI's schema `1.0` `edit --form` contract, exposes its supported title, status, metadata, and level-two sections, and returns to the preserved list after saving or cancelling. The CLI performs format-aware validation and localized Markdown replacement, keeps the path and identifier unchanged, preserves untouched metadata/sections/spacing, and rejects a save when the file fingerprint changed after loading. The extension revalidates workspace and catalog boundaries before every load or save.
+
 ## Visual ADR creation form (unreleased)
 
 Run **ADR Guard: Create ADR with Form** from the Command Palette or use the new-file action in the ADR Explorer title. The form keeps workspace folder and document language separate from the VS Code interface language, initializes the destination from `adrGuard.validation.directory`, and preserves compatible field values when workspace, destination, language, or template changes.

@@ -28,6 +28,13 @@ internal static class ConfigurationArguments
                 AddFilenamePolicyIfMissing(configured, configuration);
                 AddValidationProfileIfMissing(configured, configuration);
                 break;
+            case "edit":
+                AddAdrFormatIfMissing(configured, configuration);
+                AddLifecyclePolicyIfMissing(configured, configuration);
+                AddConventionalSupersessionIfMissing(configured, configuration);
+                AddFilenamePolicyIfMissing(configured, configuration);
+                AddValidationProfileIfMissing(configured, configuration);
+                break;
             case "new":
                 AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
                 AddTemplateIfMissing(configured, configuration);
@@ -39,13 +46,13 @@ internal static class ConfigurationArguments
                 break;
         }
 
-        if (args[0] == "check" && configuration.PlaceholderPolicy is not null
+        if ((args[0] is "check" or "edit") && configuration.PlaceholderPolicy is not null
             && !configured.Contains("--placeholder-policy", StringComparer.Ordinal))
         {
             configured.Add("--placeholder-policy");
             configured.Add(configuration.PlaceholderPolicy);
         }
-        if (args[0] == "check" && configuration.ValidateMetadata
+        if ((args[0] is "check" or "edit") && configuration.ValidateMetadata
             && !configured.Contains("--validate-metadata", StringComparer.Ordinal))
             configured.Add("--validate-metadata");
 

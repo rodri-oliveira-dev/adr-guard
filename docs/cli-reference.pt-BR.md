@@ -44,6 +44,16 @@ A precedência é:
 
 O diretório configurado é aplicado quando o argumento posicional é omitido em `check`, `index`, `new` e `draft`. O template configurado é aplicado somente quando `new`/`draft` não recebem opção explícita. `review` continua exigindo target explícito.
 
+## Editar uma ADR por um cliente estruturado
+
+```text
+adr-guard edit <arquivo-adr> --form [--adr-format canonical|madr-4]
+  [--lifecycle-statuses <mapeamento>] [--filename-policy <política>]
+  [--validation-profile <perfil>]
+```
+
+`edit --form` é um contrato limitado de stdin/stdout com schema `1.0` para clientes confiáveis, como a extensão VS Code. Uma requisição `load` retorna título, status, front matter escalar e seções de nível dois editáveis, além de um fingerprint SHA-256. Uma requisição `save` precisa devolver esse fingerprint e o conjunto exato de campos descritos. O ADR Guard altera somente os intervalos de valores modificados, preserva Markdown desconhecido e não alterado, mantém nome/identificador, valida o formato e a política de ciclo de vida selecionados e substitui atomicamente apenas o arquivo alvo. Se o arquivo mudar depois do carregamento, o salvamento falha com exit `3`, sem sobrescrever trabalho externo. Campos ou contratos inválidos retornam `2`; achados de validação da ADR retornam `1`.
+
 ## Saída do check
 
 ```text

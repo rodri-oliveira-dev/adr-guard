@@ -8,9 +8,11 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ### Added
 - Added the bounded schema `1.0` `adr-guard new --form` stdin/stdout contract for native-template discovery, side-effect-free preview, and atomic creation used by the VS Code visual form.
+- Added the bounded schema `1.0` `adr-guard edit <file> --form` contract for format-aware loading and atomic in-place updates with localized Markdown preservation and external-change detection.
 
 ### Compatibility
 - Existing `adr-guard new` arguments and output remain unchanged. Custom templates are reported as incompatible with structured fields and must use the traditional flow; they are never silently replaced.
+- Existing ADR filenames and identifiers are never changed by `edit`; canonical and MADR 4.0 validation settings continue to come from explicit arguments or repository configuration.
 
 ## [1.6.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.6.0) — Unreleased
 

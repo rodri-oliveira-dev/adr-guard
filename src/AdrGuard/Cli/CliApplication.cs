@@ -29,6 +29,7 @@ internal static class CliApplication
           adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
           adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>] [--catalog enriched]
           adr-guard new [adr-directory] (--title <title> [--dry-run|--preview] | --form) [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>]
+          adr-guard edit <adr-file> --form [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--filename-policy <policy>] [--validation-profile <profile>]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
           adr-guard review <adr-file> --provider <provider> --model <model> [--compare-ref <ref>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--policy advisory|enforce] [--policy-file <path>] [--format text|json] [--output <path> [--overwrite]]
           adr-guard impact [repository] --base-ref <ref> --map <file> [--format text|json]
@@ -41,6 +42,7 @@ internal static class CliApplication
           baseline Generate or explicitly update a versioned diagnostic baseline.
           index    Validate ADR files and generate an index. Defaults to README.md.
           new      Create a Proposed ADR from an offline Markdown template.
+          edit     Safely load or update one existing ADR through a versioned form contract.
           draft    Generate a Proposed ADR draft through a configured AI provider.
           review   Request an advisory, read-only technical review of one existing ADR.
           impact   Correlate Git changes with explicit ADR-to-code mappings.
@@ -361,6 +363,7 @@ internal static class CliApplication
             "baseline" => RunBaseline(effectiveArgs, output, error, cancellationToken),
             "index" => RunIndex(effectiveArgs, output, error),
             "new" => NewCommand.Run(effectiveArgs, input, output, error, cancellationToken),
+            "edit" => EditFormCommand.Run(effectiveArgs, input, output, error, cancellationToken),
             "draft" => RunDraft(
                 effectiveArgs,
                 output,
