@@ -97,7 +97,7 @@ npx skills add rodri-oliveira-dev/adr-guard --list
 npx skills add rodri-oliveira-dev/adr-guard --skill adr-guard-create --agent codex
 ```
 
-Skills are currently under development on a feature branch; the default-branch discovery command will work after merge. See [installation, safeguards, and scope](docs/skills/README.md).
+The eleven Agent Skills are available on the default branch. See [installation, safeguards, and scope](docs/skills/README.md) to select and install only the workflows you need.
 
 ## Documentation
 
