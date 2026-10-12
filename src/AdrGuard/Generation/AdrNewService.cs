@@ -29,7 +29,8 @@ internal sealed class AdrNewService
         AdrTemplateDefinition template,
         bool dryRun,
         CancellationToken cancellationToken,
-        AdrFilenamePolicy? filenamePolicy = null)
+        AdrFilenamePolicy? filenamePolicy = null,
+        IReadOnlyDictionary<string, string>? substitutions = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
@@ -80,7 +81,7 @@ internal sealed class AdrNewService
                 new AdrTemplateRenderRequest(
                     title,
                     template,
-                    new Dictionary<string, string>(),
+                    substitutions ?? new Dictionary<string, string>(),
                     Id: id));
 
         var previewId = AdrIdAllocator.NextId(documents);

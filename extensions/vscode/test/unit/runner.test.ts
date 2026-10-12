@@ -6,7 +6,7 @@ import { CliRunner } from '../../src/cli/runner';
 const fixture = path.resolve(__dirname, '../../../test/fixtures/cli-fixture.cjs');
 const cwd = path.resolve(__dirname);
 
-function request(args: readonly string[], overrides: { timeoutMilliseconds?: number; maxOutputBytes?: number; signal?: AbortSignal } = {}) {
+function request(args: readonly string[], overrides: { timeoutMilliseconds?: number; maxOutputBytes?: number; signal?: AbortSignal; input?: string } = {}) {
   return {
     executable: process.execPath,
     args: [fixture, ...args],
@@ -14,6 +14,7 @@ function request(args: readonly string[], overrides: { timeoutMilliseconds?: num
     timeoutMilliseconds: overrides.timeoutMilliseconds ?? 5000,
     maxOutputBytes: overrides.maxOutputBytes ?? 4096,
     ...(overrides.signal ? { signal: overrides.signal } : {}),
+    ...(overrides.input === undefined ? {} : { input: overrides.input }),
   };
 }
 
@@ -35,6 +36,23 @@ describe('CliRunner', () => {
       assert.equal(result.exitKind, kind);
       assert.equal(result.stderr, 'controlled failure');
     }
+  });
+
+  it('writes bounded structured input to stdin without adding arguments', async () => {
+    const runner = new CliRunner();
+    const input = '{"schemaVersion":"1.0","title":"Decisão com acentos"}';
+    const result = await runner.run(request(['stdin'], { input }));
+    assert.equal(result.termination, 'exited');
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.stdout, input);
+  });
+
+  it('rejects oversized stdin before spawning', async () => {
+    const runner = new CliRunner();
+    await assert.rejects(
+      runner.run(request(['stdin'], { input: 'x'.repeat(131073) })),
+      /input exceeds/iu,
+    );
   });
 
   it('terminates timed-out processes', async () => {

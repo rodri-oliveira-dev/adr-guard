@@ -61,6 +61,16 @@ Recognized exact case-sensitive placeholders: `{{title}}` (escaped single-line t
 
 Unknown or malformed placeholder syntax, duplicate structural headings and attempted status overrides fail validation. Substitutions occur **once**, never as shell commands, interpreted expressions or recursive templates. The template does not control the output directory or filename.
 
+## Visual-form adapter contract
+
+`adr-guard new <directory> --form` is a bounded integration contract for trusted UI adapters. It reads one schema `1.0` JSON document from stdin and writes one schema `1.0` JSON response to stdout. Its `describe`, `preview`, and `create` operations support only the native `minimal` and `extended` templates. Preview uses the same renderer as creation but never writes or reserves an ID; create reallocates and persists atomically. A configured `template-file` is reported as incompatible so the adapter can offer the traditional flow without silently changing templates. This contract is intended for the unreleased VS Code form and is planned for CLI 1.7.0.
+
+Requests contain exactly `schemaVersion`, `operation`, and—except for `describe`—`title` plus the string-valued `fields` object returned by the description. Responses contain `schemaVersion`, `operation`, `template` (`name`, `compatible`, optional `reason`, and ordered `fields`), `written`, and optional `path`/`markdown`. Unknown/duplicate properties, unsupported field IDs, NULs, excessive depth/size, missing required fields, and schema versions other than `1.0` fail closed. Form content is never accepted in command-line arguments or operational logs.
+
+```json
+{"schemaVersion":"1.0","operation":"preview","title":"Adopt a queue","fields":{"context":"...","decision":"...","consequences":"..."}}
+```
+
 ## Rendering and newline compatibility
 
 **Template-rendered** output (`new` and `draft` with `--template`/`--template-file`) uses deterministic LF (`\n`) on Linux, Windows, and macOS. The legacy `draft` path **without a template** intentionally preserves the contract published before this roadmap, including the host-native `Environment.NewLine`. This exception avoids a silent byte-for-byte change to the existing workflow while keeping the new template contract reproducible across platforms.

@@ -12,6 +12,7 @@ export interface CliRunRequest {
   readonly timeoutMilliseconds: number;
   readonly maxOutputBytes: number;
   readonly signal?: AbortSignal;
+  readonly input?: string;
 }
 
 export type CliTermination = 'exited' | 'cancelled' | 'timed-out' | 'output-limit' | 'spawn-error';
@@ -76,8 +77,13 @@ export class CliRunner {
         detached: process.platform !== 'win32',
         shell: false,
         windowsHide: true,
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdio: [request.input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
       });
+
+      if (request.input !== undefined) {
+        child.stdin?.on('error', () => undefined);
+        child.stdin?.end(request.input, 'utf8');
+      }
 
       const settle = (exitCode: number | null, exitSignal: NodeJS.Signals | null): void => {
         if (settled) {
@@ -89,8 +95,8 @@ export class CliRunner {
         if (forcedSettlementTimeout !== undefined) clearTimeout(forcedSettlementTimeout);
         signal.removeEventListener('abort', onAbort);
         if (termination !== 'exited') {
-          child.stdout.destroy();
-          child.stderr.destroy();
+          child.stdout?.destroy();
+          child.stderr?.destroy();
           child.unref();
         }
         const normalizedExitCode = typeof exitCode === 'number' ? exitCode : null;
@@ -124,14 +130,14 @@ export class CliRunner {
       const onAbort = (): void => terminate('cancelled');
       signal.addEventListener('abort', onAbort, { once: true });
 
-      child.stdout.on('data', (chunk: Buffer) => {
+      child.stdout?.on('data', (chunk: Buffer) => {
         const append = appendBounded(stdout, chunk, request.maxOutputBytes);
         stdout = append.value;
         if (append.exceeded) {
           terminate('output-limit');
         }
       });
-      child.stderr.on('data', (chunk: Buffer) => {
+      child.stderr?.on('data', (chunk: Buffer) => {
         const append = appendBounded(stderr, chunk, request.maxOutputBytes);
         stderr = append.value;
         if (append.exceeded) {
@@ -161,6 +167,9 @@ export class CliRunner {
     }
     if (!Number.isInteger(request.maxOutputBytes) || request.maxOutputBytes < 1) {
       throw new RangeError('CLI output limit must be a positive integer.');
+    }
+    if (request.input !== undefined && Buffer.byteLength(request.input, 'utf8') > 131072) {
+      throw new RangeError('CLI input exceeds the bounded visual form contract.');
     }
   }
 }

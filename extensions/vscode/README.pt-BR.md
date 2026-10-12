@@ -9,6 +9,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 - Verificação da CLI no host da extensão do workspace.
 - Inicialização de repositório com prévia `--dry-run` e confirmação explícita.
 - Criação de ADRs com template configurado, mínimo, estendido ou Markdown local seguro.
+- Criação de ADRs por formulário visual orientado, com prévia do Markdown, quando o template configurado é nativo.
 - Validação por JSON versionado com resultados no painel Problems.
 - Validação opcional e agrupada após salvar uma ADR.
 - Geração explícita do índice, sempre com confirmação.
@@ -48,7 +49,8 @@ Abra a Paleta de Comandos e escolha a ação sob **ADR Guard**:
 | --- | --- |
 | Verificar instalação | Executa `adr-guard --version` por descoberta segura. |
 | Inicializar repositório | Mostra a prévia de `init --dry-run` e pede confirmação antes de escrever. |
-| Criar ADR | Executa `new` e abre somente o arquivo criado e verificado. |
+| Criar ADR | Executa o fluxo tradicional compatível de `new` e abre somente o arquivo criado e verificado. |
+| Criar ADR com formulário | Abre o formulário orientado, gera a prévia pela CLI e cria somente após envio explícito. |
 | Validar ADRs | Executa validação JSON completa e atualiza Problems. |
 | Validar ADRs alteradas | Usa `--changed --base-ref`; nunca executa `git fetch`. |
 | Validar ADRs com baseline | Lê o baseline existente e informa novos/existentes/resolvidos. |
@@ -58,6 +60,16 @@ Abra a Paleta de Comandos e escolha a ação sob **ADR Guard**:
 | Revelar ADR atual | Seleciona a ADR ativa no Explorer. |
 
 Workspaces com múltiplas raízes são suportados. Quando possível, os comandos usam a pasta do arquivo ativo; caso contrário, solicitam a pasta. Configurações de escopo de recurso podem variar por pasta.
+
+## Formulário visual de criação de ADR (não publicado)
+
+Execute **ADR Guard: Criar ADR com formulário** pela Paleta de Comandos ou use a ação de novo arquivo no título do ADR Explorer. O formulário separa a pasta do workspace e o idioma do documento do idioma da interface do VS Code, inicia o destino com `adrGuard.validation.directory` e preserva os valores de campos compatíveis quando workspace, destino, idioma ou template mudam.
+
+O formulário oferece os templates nativos `minimal` e `extended`. O mínimo exige Context, Decision e Consequences. O estendido expõe esses campos obrigatórios e também Decision Drivers, Options Considered, Rationale, Positive/Negative Consequences, Risks e References como opcionais; seções opcionais vazias são omitidas. A criação continua canônica—o formato de validação `canonical`/`madr-4` é um conceito separado e não aparece como opção de template de criação.
+
+Templates personalizados configurados não podem ser mapeados com segurança para campos. O formulário explica a limitação e oferece **Usar criação tradicional**, sem substituir o template personalizado. O comando tradicional **Criar ADR** continua disponível para todos os templates personalizados compatíveis e para CLIs antigas.
+
+A criação visual requer uma CLI com o contrato schema `1.0` de `new --form` (planejado para a CLI 1.7.0). Prévia e criação usam o mesmo renderer da CLI; a prévia não grava, reserva número nem atualiza o índice, enquanto a criação resolve a numeração definitiva de forma atômica e nunca sobrescreve arquivos. O estado permanece em memória enquanto o painel retido fica oculto. O VS Code não oferece um evento cancelável de fechamento de WebviewPanel; portanto, não é possível garantir uma confirmação de alterações não salvas ao fechar, e o estado em memória é descartado.
 
 ## ADR Explorer e formatos
 
@@ -95,6 +107,7 @@ A extensão não coleta telemetria, instala software, acessa credenciais de prov
 ## Solução de problemas
 
 - **CLI não encontrada:** execute **Verificar instalação**, confirme `adr-guard --version` no mesmo ambiente local/remoto do workspace e, se necessário, configure o caminho absoluto.
+- **Formulário visual indisponível:** instale a CLI 1.7.0 ou um build de desenvolvimento com `new --form`, ou escolha **Usar criação tradicional**. A extensão detecta o suporte pelo contrato do comando, sem confiar apenas na string de versão.
 - **Opção não suportada / exit 2:** a CLI é anterior ao contrato solicitado de MADR, validação incremental ou baseline. Instale uma CLI compatível ou use a validação canônica completa.
 - **Workspace desabilitado:** confie no workspace e use uma pasta local `file:`. Workspaces virtuais e hosts somente web não são suportados.
 - **Timeout/limite de saída:** aumente a configuração limitada de máquina somente se o repositório realmente exigir.

@@ -2,6 +2,8 @@
 !dist/extension.js
 !l10n/**
 !images/icon-vscode.png
+!media/newAdrForm.js
+!media/newAdrForm.css
 !package.json
 !package.nls.json
 !package.nls.pt-br.json

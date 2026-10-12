@@ -61,6 +61,16 @@ Placeholders exatos e sensíveis a maiúsculas/minúsculas: `{{title}}` (título
 
 Tokens desconhecidos/malformados, headings estruturais duplicados e tentativa de sobrescrever o status são rejeitados. Substituições ocorrem **uma única vez**, sem executar shell, interpretar expressões ou expandir modelos recursivamente. O template não controla diretório de saída nem nome do arquivo.
 
+## Contrato do adaptador de formulário visual
+
+`adr-guard new <diretório> --form` é um contrato limitado para adaptadores de interface confiáveis. Ele lê um documento JSON schema `1.0` pelo stdin e grava uma resposta JSON schema `1.0` no stdout. As operações `describe`, `preview` e `create` oferecem apenas os templates nativos `minimal` e `extended`. A prévia usa o mesmo renderer da criação, mas nunca grava nem reserva ID; `create` realoca e persiste de forma atômica. Um `template-file` configurado é informado como incompatível para que o adaptador ofereça o fluxo tradicional sem trocar templates silenciosamente. Este contrato destina-se ao formulário ainda não publicado da extensão VS Code e está planejado para a CLI 1.7.0.
+
+As requisições contêm exatamente `schemaVersion`, `operation` e—exceto em `describe`—`title` mais o objeto `fields` de strings retornado pela descrição. As respostas contêm `schemaVersion`, `operation`, `template` (`name`, `compatible`, `reason` opcional e `fields` ordenados), `written` e `path`/`markdown` opcionais. Propriedades desconhecidas/duplicadas, IDs de campos não suportados, NULs, profundidade/tamanho excessivos, campos obrigatórios ausentes e versões diferentes de `1.0` falham de forma fechada. O conteúdo do formulário nunca é aceito em argumentos de linha de comando nem em logs operacionais.
+
+```json
+{"schemaVersion":"1.0","operation":"preview","title":"Adotar uma fila","fields":{"context":"...","decision":"...","consequences":"..."}}
+```
+
 ## Compatibilidade de renderização e quebras de linha
 
 A saída produzida por **templates** (`new` e `draft` com `--template`/`--template-file`) usa LF (`\n`) de forma determinística em Linux, Windows e macOS. Já o `draft` legado **sem template** preserva intencionalmente o contrato publicado antes deste roadmap, incluindo `Environment.NewLine` nativo do host. Essa exceção evita uma alteração byte a byte silenciosa no fluxo existente ao mesmo tempo em que mantém o novo contrato de templates reproduzível entre plataformas.

@@ -16,6 +16,7 @@ import { AdrExplorerController } from './explorer/controller';
 import { OperationalLog } from './logging';
 import { DiagnosticManager } from './validation/diagnostics';
 import { SaveValidationController } from './validation/onSave';
+import { NewAdrFormPanel } from './commands/newAdrForm';
 
 let activeRunner: CliRunner | undefined;
 
@@ -40,6 +41,12 @@ export function activate(context: vscode.ExtensionContext): void {
       checkInstallation({ discovery, runner, log })),
     vscode.commands.registerCommand('adrGuard.initializeRepository', async () => initializeRepository(core)),
     vscode.commands.registerCommand('adrGuard.createAdr', async () => createAdr(core)),
+    vscode.commands.registerCommand('adrGuard.createAdrWithForm', async () => NewAdrFormPanel.show({
+      executor,
+      log,
+      extensionUri: context.extensionUri,
+      refreshExplorer: () => explorer.refresh(),
+    })),
     vscode.commands.registerCommand('adrGuard.validateAdrs', async () => validateAdrs(core)),
     vscode.commands.registerCommand('adrGuard.validateChangedAdrs', async () => validateChangedAdrs(core)),
     vscode.commands.registerCommand('adrGuard.validateWithBaseline', async () => validateWithBaseline(core)),

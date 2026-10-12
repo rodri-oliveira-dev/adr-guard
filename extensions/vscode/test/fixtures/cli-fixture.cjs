@@ -29,6 +29,10 @@ switch (mode) {
   case 'error-output':
     process.stderr.write('x'.repeat(Number(process.argv[3])));
     break;
+  case 'stdin':
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', (chunk) => process.stdout.write(chunk));
+    break;
   default:
     process.stderr.write('unknown fixture mode');
     process.exitCode = 2;

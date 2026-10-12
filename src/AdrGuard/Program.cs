@@ -11,7 +11,10 @@ var supportsGracefulCancellation =
         StringComparison.Ordinal)
     || (args.Length > 0
         && (string.Equals(args[0], "review", StringComparison.Ordinal)
-            || string.Equals(args[0], "impact", StringComparison.Ordinal)));
+            || string.Equals(args[0], "impact", StringComparison.Ordinal)))
+    || (args.Length > 0
+        && string.Equals(args[0], "new", StringComparison.Ordinal)
+        && args.Contains("--form", StringComparer.Ordinal));
 
 ConsoleCancelEventHandler cancelHandler =
     (_, eventArgs) =>
@@ -32,6 +35,7 @@ try
 {
     return CliApplication.Run(
         args,
+        Console.In,
         Console.Out,
         Console.Error,
         cancellationSource.Token);

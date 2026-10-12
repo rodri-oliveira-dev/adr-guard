@@ -56,6 +56,17 @@ internal static class AdrMarkdownRenderer
         "guidance-consequences",
     ];
 
+    private static IReadOnlyList<string> FormOnlyPlaceholders { get; } =
+    [
+        "decisionDrivers",
+        "optionsConsidered",
+        "rationale",
+        "positiveConsequences",
+        "negativeConsequences",
+        "risks",
+        "references",
+    ];
+
     internal static string RenderTemplate(AdrTemplateRenderRequest request)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -97,7 +108,8 @@ internal static class AdrMarkdownRenderer
 
         foreach (var pair in request.Substitutions)
         {
-            if (!SupportedPlaceholders.Contains(pair.Key, StringComparer.Ordinal)
+            if ((!SupportedPlaceholders.Contains(pair.Key, StringComparer.Ordinal)
+                    && !FormOnlyPlaceholders.Contains(pair.Key, StringComparer.Ordinal))
                 || pair.Key.StartsWith("guidance-", StringComparison.Ordinal)
                 || pair.Key is "title" or "id" or "status")
             {

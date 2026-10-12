@@ -1,0 +1,124 @@
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  color: var(--vscode-foreground);
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  margin: 0;
+}
+
+main {
+  box-sizing: border-box;
+  margin: 0 auto;
+  max-width: 1100px;
+  padding: 24px;
+}
+
+h1, h2 {
+  line-height: 1.25;
+}
+
+.intro, .help {
+  color: var(--vscode-descriptionForeground);
+}
+
+.field {
+  margin: 0 0 18px;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+input, select, textarea {
+  box-sizing: border-box;
+  width: 100%;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 2px;
+  font: inherit;
+  padding: 7px 9px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, pre:focus-visible {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+.help {
+  font-size: 0.92em;
+  margin: 6px 0 0;
+}
+
+.error {
+  background: var(--vscode-inputValidation-errorBackground);
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  color: var(--vscode-inputValidation-errorForeground, var(--vscode-foreground));
+  margin: 12px 0;
+  padding: 10px;
+}
+
+pre {
+  background: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-panel-border);
+  max-height: 50vh;
+  min-height: 180px;
+  overflow: auto;
+  padding: 14px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+button {
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  border: 1px solid transparent;
+  border-radius: 2px;
+  cursor: pointer;
+  font: inherit;
+  padding: 8px 14px;
+}
+
+button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+button.secondary {
+  color: var(--vscode-button-secondaryForeground);
+  background: var(--vscode-button-secondaryBackground);
+}
+
+button.secondary:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.hidden {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  main { padding: 16px; }
+  .actions { align-items: stretch; flex-direction: column; }
+}

@@ -7,6 +7,7 @@ internal static class NewCommand
     internal const string HelpText = """
         Usage:
           adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>] [--dry-run|--preview]
+          adr-guard new [adr-directory] --form [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>]
 
         Create a Proposed ADR offline. The directory defaults to the current directory.
         The default template is minimal and the default culture is en-US.
@@ -14,6 +15,10 @@ internal static class NewCommand
         A custom --template-file is resolved relative to the invocation working directory.
         --template and --template-file are mutually exclusive.
         Custom templates must be valid UTF-8 Markdown, at most 65536 bytes.
+        --form reads a bounded schema 1.0 JSON request from stdin and writes a
+        schema 1.0 JSON response. Supported operations are describe, preview,
+        and create. Custom templates are described as incompatible so callers
+        can offer the traditional creation flow without substituting templates.
         Dry-run/preview validates and prints the prospective filename and exact content
         without writing files or updating the index. Templates contain author-editable
         guidance and do not represent architect-approved decisions.
@@ -21,11 +26,13 @@ internal static class NewCommand
 
     internal static int Run(
         IReadOnlyList<string> args,
+        TextReader input,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(args);
+        ArgumentNullException.ThrowIfNull(input);
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
 
@@ -33,6 +40,11 @@ internal static class NewCommand
         {
             output.WriteLine(HelpText);
             return ExitCodes.Success;
+        }
+
+        if (args.Contains("--form", StringComparer.Ordinal))
+        {
+            return NewFormCommand.Run(args, input, output, error, cancellationToken);
         }
 
         if (!TryParse(

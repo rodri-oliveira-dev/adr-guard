@@ -9,6 +9,7 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 - Check that the CLI is discoverable in the workspace extension host.
 - Initialize an ADR repository through a dry-run preview and explicit confirmation.
 - Create ADRs with the CLI's configured, minimal, extended, or workspace-local custom template.
+- Create ADRs through a guided visual form with a Markdown source preview when the configured template is native.
 - Validate ADRs and publish versioned JSON findings in the VS Code Problems panel.
 - Opt in to debounced validation after saving an ADR.
 - Generate an ADR index only after explicit confirmation.
@@ -48,7 +49,8 @@ Open the Command Palette and choose the command under **ADR Guard**:
 | --- | --- |
 | Check Installation | Runs `adr-guard --version` using safe discovery. |
 | Initialize Repository | Previews `init --dry-run`, then asks before writing. Existing files are not overwritten. |
-| Create ADR | Runs `new` and opens the verified created file. |
+| Create ADR | Runs the compatible traditional `new` flow and opens the verified created file. |
+| Create ADR with Form | Opens the guided form, previews through the CLI, then creates only after explicit submission. |
 | Validate ADRs | Runs a full JSON validation and updates Problems. |
 | Validate Changed ADRs | Uses `--changed --base-ref`; it never performs `git fetch`. |
 | Validate ADRs with Baseline | Reads the configured existing baseline and reports new/existing/resolved counts. |
@@ -58,6 +60,16 @@ Open the Command Palette and choose the command under **ADR Guard**:
 | Reveal Current ADR | Selects the active ADR in the Explorer. |
 
 Multi-root workspaces are supported. Commands use the active file's folder when possible and otherwise ask which folder to use. Settings with resource scope can differ by workspace folder.
+
+## Visual ADR creation form (unreleased)
+
+Run **ADR Guard: Create ADR with Form** from the Command Palette or use the new-file action in the ADR Explorer title. The form keeps workspace folder and document language separate from the VS Code interface language, initializes the destination from `adrGuard.validation.directory`, and preserves compatible field values when workspace, destination, language, or template changes.
+
+The form supports the native `minimal` and `extended` creation templates. Minimal requires Context, Decision, and Consequences. Extended exposes those required fields plus optional Decision Drivers, Options Considered, Rationale, Positive/Negative Consequences, Risks, and References; optional empty sections are omitted. Creation remains canonical—the `canonical`/`madr-4` validation format setting is a separate concern and is not presented as a creation-template choice.
+
+Configured custom templates cannot be mapped to fields safely. The form reports that limitation and offers **Use traditional creation** without replacing the custom template. The traditional **Create ADR** command remains available for all supported custom templates and older CLIs.
+
+Visual creation requires a CLI containing the schema `1.0` `new --form` contract (planned for CLI 1.7.0). Preview and creation use the same CLI renderer; preview does not write, reserve a number, or update the index, while creation resolves the final number atomically and never overwrites an existing file. Form state remains in the retained panel while it is hidden. VS Code does not provide a cancellable WebviewPanel close event, so closing the panel cannot show a guaranteed unsaved-changes confirmation and discards its in-memory state.
 
 ## ADR Explorer and formats
 
@@ -95,6 +107,7 @@ ADR Guard for VS Code does not collect telemetry, install software, access AI pr
 ## Troubleshooting
 
 - **CLI not found:** run **Check Installation** and verify `adr-guard --version` in the same local or remote environment as the workspace. Set an absolute `adrGuard.cli.path` if needed.
+- **Visual form unavailable:** install CLI 1.7.0 or a development build containing `new --form`, or choose **Use traditional creation**. The extension detects support from the command contract instead of trusting a version string.
 - **Unsupported option / exit code 2:** the installed CLI is older than the requested MADR, changed-validation, or baseline contract. Install a compatible CLI or use full canonical validation.
 - **Workspace disabled:** trust the workspace and use a local `file:` folder. Virtual workspaces and pure browser hosts are intentionally unsupported.
 - **Timeout/output limit:** raise the bounded machine setting only when the repository legitimately requires it.

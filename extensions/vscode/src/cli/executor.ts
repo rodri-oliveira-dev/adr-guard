@@ -22,6 +22,7 @@ export class CliExecutor {
     folder: vscode.WorkspaceFolder,
     args: readonly string[],
     signal?: AbortSignal,
+    input?: string,
   ): Promise<CliExecution> {
     const workspaceRoot = await resolveWorkspaceRoot(asLocation(folder));
     const configuration = readConfiguration();
@@ -40,6 +41,7 @@ export class CliExecutor {
       timeoutMilliseconds: configuration.timeoutMilliseconds,
       maxOutputBytes: configuration.maxOutputBytes,
       ...(signal === undefined ? {} : { signal }),
+      ...(input === undefined ? {} : { input }),
     });
     this.log.info(
       `CLI completed: command=${args[0] ?? 'unknown'}, termination=${result.termination}, exit=${result.exitCode ?? 'none'}, stdoutBytes=${Buffer.byteLength(result.stdout)}, stderrBytes=${Buffer.byteLength(result.stderr)}.`,

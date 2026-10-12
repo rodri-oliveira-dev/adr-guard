@@ -4,6 +4,14 @@ Notable changes to **ADR Guard** (`RodriOliveira.AdrGuard`, the .NET CLI/Tool an
 
 Version links below point to GitHub Releases. Dates and previously shipped highlights follow the published release history. Version 1.6.0 is prepared but not published; see the [English](docs/releases/v1.6.0.md) and [Portuguese](docs/releases/v1.6.0.pt-BR.md) release candidates.
 
+## Unreleased
+
+### Added
+- Added the bounded schema `1.0` `adr-guard new --form` stdin/stdout contract for native-template discovery, side-effect-free preview, and atomic creation used by the VS Code visual form.
+
+### Compatibility
+- Existing `adr-guard new` arguments and output remain unchanged. Custom templates are reported as incompatible with structured fields and must use the traditional flow; they are never silently replaced.
+
 ## [1.6.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.6.0) — Unreleased
 
 ### Added
