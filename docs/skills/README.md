@@ -32,7 +32,7 @@ Agent Skills are **optional agent-facing workflows** that help people use ADR Gu
 - **Already have ADRs?** `adr-guard-validate` handles deterministic CLI diagnostics; `adr-guard-audit` covers read-only documentary health, assumptions and stewardship.
 - **Rolling out to a team?** `adr-guard-team-adoption` helps agree on policy; `adr-guard-init` configures the repository and `adr-guard-ci-setup` handles GitHub Actions.
 
-P1 skills must not claim implementation of future impact-analysis or architectural-drift CLI commands; these capabilities belong to separate product roadmaps.
+Skills guide workflows; they do not implement CLI features. `impact` was published in v1.5.0. The `drift` command is proposed for v1.6.0 and must not be presented as published until that release is verified.
 
 ## Install and use
 
@@ -48,7 +48,7 @@ Install only the relevant skill for Codex (run inside the **consumer** project):
 npx skills add rodri-oliveira-dev/adr-guard --skill adr-guard-create --agent codex
 ```
 
-For a review of unpublished branch content, use a supported Git reference/source URL rather than expecting commands pointed at the default branch to see unmerged files. Verify `npx skills add ... --list` against the public default branch after merge. Skills CLI source: [vercel-labs/skills](https://github.com/vercel-labs/skills).
+The eleven listed skills are already available on `main`; the commands above use the default branch. To inspect unpublished changes on another branch, explicitly select a supported Git source/ref instead of assuming default-branch discovery includes them. Skills CLI source: [vercel-labs/skills](https://github.com/vercel-labs/skills).
 
 The skills are separate from the CLI:
 
