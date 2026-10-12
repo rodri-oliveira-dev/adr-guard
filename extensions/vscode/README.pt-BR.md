@@ -10,6 +10,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 - Inicialização de repositório com prévia `--dry-run` e confirmação explícita.
 - Criação de ADRs com template configurado, mínimo, estendido ou Markdown local seguro.
 - Criação de ADRs por formulário visual orientado, com prévia do Markdown, quando o template configurado é nativo.
+- Consulta, busca, filtro, ordenação e abertura de ADRs pela tela inicial visual do ADR Guard.
 - Validação por JSON versionado com resultados no painel Problems.
 - Validação opcional e agrupada após salvar uma ADR.
 - Geração explícita do índice, sempre com confirmação.
@@ -50,6 +51,7 @@ Abra a Paleta de Comandos e escolha a ação sob **ADR Guard**:
 | Verificar instalação | Executa `adr-guard --version` por descoberta segura. |
 | Inicializar repositório | Mostra a prévia de `init --dry-run` e pede confirmação antes de escrever. |
 | Criar ADR | Executa o fluxo tradicional compatível de `new` e abre somente o arquivo criado e verificado. |
+| Abrir ADR Guard | Abre ou revela a listagem visual de ADRs sem criar arquivos nem executar validação. |
 | Criar ADR com formulário | Abre o formulário orientado, gera a prévia pela CLI e cria somente após envio explícito. |
 | Validar ADRs | Executa validação JSON completa e atualiza Problems. |
 | Validar ADRs alteradas | Usa `--changed --base-ref`; nunca executa `git fetch`. |
@@ -60,6 +62,14 @@ Abra a Paleta de Comandos e escolha a ação sob **ADR Guard**:
 | Revelar ADR atual | Seleciona a ADR ativa no Explorer. |
 
 Workspaces com múltiplas raízes são suportados. Quando possível, os comandos usam a pasta do arquivo ativo; caso contrário, solicitam a pasta. Configurações de escopo de recurso podem variar por pasta.
+
+## Listagem visual de ADRs (não publicada)
+
+Execute **ADR Guard: Abrir ADR Guard** pela Paleta de Comandos ou pelo título do ADR Explorer. O painel visual reutilizável começa no diretório de ADRs configurado para a pasta selecionada e mostra os metadados disponíveis de identificador, título, status, data e caminho relativo. A busca ignora maiúsculas e minúsculas em título, identificador e caminho; filtros de status e ordenações determinísticas por número, título ou data são aplicados localmente, sem executar validação completa pela CLI. Metadados ausentes continuam visivelmente desconhecidos, e documentos sem número ficam depois das ADRs numeradas.
+
+A listagem diferencia carregamento, diretório vazio, filtros sem resultados, diretório inexistente, workspace indisponível e erro de leitura. Ela nunca cria diretórios nem inicializa o repositório durante a consulta. Alterações em arquivos são agrupadas pelo watcher compartilhado com o ADR Explorer, e respostas antigas não substituem a pasta atual durante trocas rápidas.
+
+**Nova ADR** abre o formulário existente no mesmo painel e preserva pasta, diretório, busca, filtro, ordem e rolagem para o retorno. Após uma criação bem-sucedida, a listagem é atualizada, a nova ADR é destacada, o Explorer nativo é atualizado e a ação **Abrir Markdown** é oferecida sem retirar o foco automaticamente. Se os filtros ocultarem o novo registro, o painel informa e oferece uma ação explícita para revelá-lo. **Cancelar** e **Voltar para a listagem** retornam sem gravar; sair de um formulário alterado por essas ações controladas exige confirmação. O comando direto **Criar ADR com formulário** continua disponível e também retorna para a listagem.
 
 ## Formulário visual de criação de ADR (não publicado)
 

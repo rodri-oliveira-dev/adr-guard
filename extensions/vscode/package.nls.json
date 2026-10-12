@@ -5,6 +5,7 @@
   "command.checkInstallation": "Check Installation",
   "command.initializeRepository": "Initialize Repository",
   "command.createAdr": "Create ADR",
+  "command.openVisual": "Open ADR Guard",
   "command.createAdrWithForm": "Create ADR with Form",
   "command.validateAdrs": "Validate ADRs",
   "command.validateChangedAdrs": "Validate Changed ADRs",

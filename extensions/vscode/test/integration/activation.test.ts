@@ -13,6 +13,7 @@ suite('ADR Guard extension activation', () => {
       'onCommand:adrGuard.checkInstallation',
       'onCommand:adrGuard.initializeRepository',
       'onCommand:adrGuard.createAdr',
+      'onCommand:adrGuard.openVisual',
       'onCommand:adrGuard.createAdrWithForm',
       'onCommand:adrGuard.validateAdrs',
       'onCommand:adrGuard.validateChangedAdrs',
@@ -37,6 +38,7 @@ suite('ADR Guard extension activation', () => {
       'adrGuard.checkInstallation',
       'adrGuard.initializeRepository',
       'adrGuard.createAdr',
+      'adrGuard.openVisual',
       'adrGuard.createAdrWithForm',
       'adrGuard.validateAdrs',
       'adrGuard.validateChangedAdrs',
@@ -56,4 +58,24 @@ suite('ADR Guard extension activation', () => {
     assert.equal(configuration.get<string>('baseline'), '.adrguard-baseline.json');
     assert.equal(extension.packageJSON.contributes.views.explorer[0].id, 'adrGuard.adrExplorer');
   });
+
+  test('reuses the visual ADR Guard panel', async () => {
+    const countWebviews = (): number => vscode.window.tabGroups.all.flatMap((group) => group.tabs)
+      .filter((tab) => tab.input instanceof vscode.TabInputWebview && tab.label === 'ADR Guard').length;
+    assert.equal(countWebviews(), 0);
+    await vscode.commands.executeCommand('adrGuard.openVisual');
+    await waitFor(() => countWebviews() === 1);
+    assert.equal(countWebviews(), 1);
+    await vscode.commands.executeCommand('adrGuard.openVisual');
+    assert.equal(countWebviews(), 1);
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+  });
 });
+
+async function waitFor(condition: () => boolean): Promise<void> {
+  const deadline = Date.now() + 3000;
+  while (Date.now() < deadline) {
+    if (condition()) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+}

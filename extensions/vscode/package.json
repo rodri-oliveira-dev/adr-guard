@@ -48,6 +48,7 @@
     "onCommand:adrGuard.checkInstallation",
     "onCommand:adrGuard.initializeRepository",
     "onCommand:adrGuard.createAdr",
+    "onCommand:adrGuard.openVisual",
     "onCommand:adrGuard.createAdrWithForm",
     "onCommand:adrGuard.validateAdrs",
     "onCommand:adrGuard.validateChangedAdrs",
@@ -75,6 +76,12 @@
         "command": "adrGuard.createAdr",
         "title": "%command.createAdr%",
         "category": "%command.category%"
+      },
+      {
+        "command": "adrGuard.openVisual",
+        "title": "%command.openVisual%",
+        "category": "%command.category%",
+        "icon": "$(list-flat)"
       },
       {
         "command": "adrGuard.createAdrWithForm",
@@ -145,9 +152,14 @@
     "menus": {
       "view/title": [
         {
-          "command": "adrGuard.createAdrWithForm",
+          "command": "adrGuard.openVisual",
           "when": "view == adrGuard.adrExplorer",
           "group": "navigation@1"
+        },
+        {
+          "command": "adrGuard.createAdrWithForm",
+          "when": "view == adrGuard.adrExplorer",
+          "group": "navigation@2"
         },
         {
           "command": "adrGuard.refreshExplorer",

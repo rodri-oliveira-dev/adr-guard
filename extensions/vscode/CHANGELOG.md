@@ -4,6 +4,9 @@ All notable changes to ADR Guard for VS Code are documented here. Extension vers
 
 ## Unreleased
 
+- Added **ADR Guard: Open ADR Guard** as the visual home screen and ADR Explorer entry, with a reusable single panel, multi-root folder selection, case-insensitive search, status filters, deterministic ordering, counts, refresh, safe Markdown opening, and explicit empty/error states.
+- Integrated the existing creation form into the list flow, preserving list state on return, refreshing the shared Explorer catalog, highlighting newly created ADRs, reporting filtered-out creations, confirming controlled dirty-form navigation, and no longer opening Markdown automatically after visual creation.
+- Reused the Explorer catalog, metadata parser, path protections, cache invalidation, and batched file watchers; added date display metadata, stale-response protection, per-file degradation, responsive accessible styling, and English/pt-BR strings.
 - Added **ADR Guard: Create ADR with Form** to the Command Palette and ADR Explorer, with multi-root workspace selection, native minimal/extended fields, document-language selection, and a side-effect-free Markdown source preview.
 - Added strict schema `1.0` CLI adaptation over bounded stdin, duplicate-submit protection, safe created-path verification, and explicit fallback to the unchanged traditional flow for missing/incompatible CLIs or custom templates.
 - Added English and Brazilian Portuguese UI, theme/high-contrast styling, keyboard-accessible labels and focus, restrictive CSP, nonce-protected local scripts, and text-only preview rendering.

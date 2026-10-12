@@ -28,6 +28,8 @@ export class AdrExplorerProvider implements vscode.TreeDataProvider<ExplorerNode
   private disposed = false;
   public readonly onDidChangeTreeData = this.changed.event;
 
+  public readonly onDidChangeCatalog = this.changed.event;
+
   public constructor(private readonly log: OperationalLog) {
     this.rebuildWatchers();
     this.disposables.push(
@@ -98,6 +100,10 @@ export class AdrExplorerProvider implements vscode.TreeDataProvider<ExplorerNode
     const entries = await this.catalog(folder);
     const entry = entries.find((candidate) => samePath(candidate.filePath, target));
     return entry === undefined ? undefined : new AdrNode(entry);
+  }
+
+  public async catalogFor(folder: vscode.WorkspaceFolder): Promise<readonly AdrCatalogEntry[]> {
+    return this.catalog(folder);
   }
 
   public dispose(): void {

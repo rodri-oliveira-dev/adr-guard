@@ -40,6 +40,12 @@ Chosen option.
     }]);
   });
 
+  it('reads an available MADR date without inventing one for canonical documents', () => {
+    const madr = parseAdrDisplayMetadata('0001-choice.md', '---\ndate: 2026-10-12\nstatus: accepted\n---\n# Choice', 'madr-4');
+    assert.equal(madr.date, '2026-10-12');
+    assert.equal(parseAdrDisplayMetadata('0002-other.md', '# Other\n## Status\nAccepted', 'canonical').date, undefined);
+  });
+
   it('normalizes numeric IDs for unambiguous MADR relationship matching', () => {
     assert.equal(parseAdrDisplayMetadata('42-target.md', '# Target', 'madr-4').id, '0042');
   });

@@ -10,8 +10,19 @@ export interface FormValues {
 }
 
 export interface FormMessage {
-  readonly type: 'ready' | 'describe' | 'preview' | 'create' | 'traditional' | 'cancel';
+  readonly type: 'ready' | 'describe' | 'preview' | 'create' | 'traditional' | 'cancel'
+    | 'showList' | 'newAdr' | 'refreshList' | 'selectWorkspace' | 'openAdr' | 'revealCreated';
   readonly values?: FormValues;
+  readonly workspace?: string;
+  readonly relativePath?: string;
+  readonly state?: ListState;
+}
+
+export interface ListState {
+  readonly search: string;
+  readonly status: string;
+  readonly sort: 'number-desc' | 'number-asc' | 'title-asc' | 'date-desc';
+  readonly scrollTop: number;
 }
 
 const maximumValueCharacters = 32 * 1024;
@@ -21,9 +32,40 @@ export function parseNewAdrFormMessage(value: unknown): FormMessage | undefined 
   if (value.type === 'ready' || value.type === 'traditional' || value.type === 'cancel') {
     return Object.keys(value).length === 1 ? { type: value.type } : undefined;
   }
+  if (value.type === 'refreshList' || value.type === 'revealCreated') {
+    return isWorkspaceMessage(value) ? { type: value.type, workspace: value.workspace } : undefined;
+  }
+  if (value.type === 'newAdr' || value.type === 'selectWorkspace' || value.type === 'showList') {
+    if (!isWorkspaceMessage(value, true) || (value.state !== undefined && !isListState(value.state))) return undefined;
+    return { type: value.type, workspace: value.workspace, ...(value.state === undefined ? {} : { state: value.state }) };
+  }
+  if (value.type === 'openAdr') {
+    if (!isBoundedString(value.workspace, 4096) || !isBoundedString(value.relativePath, 4096)
+      || !isSafeRelativeFile(value.relativePath)
+      || Object.keys(value).some((key) => !['type', 'workspace', 'relativePath'].includes(key))) return undefined;
+    return { type: value.type, workspace: value.workspace, relativePath: value.relativePath };
+  }
   if (value.type !== 'describe' && value.type !== 'preview' && value.type !== 'create') return undefined;
   if (!isFormValues(value.values) || Object.keys(value).some((key) => key !== 'type' && key !== 'values')) return undefined;
   return { type: value.type, values: value.values };
+}
+
+function isWorkspaceMessage(value: Record<string, unknown>, allowState = false): value is Record<string, unknown> & { workspace: string } {
+  return isBoundedString(value.workspace, 4096)
+    && Object.keys(value).every((key) => ['type', 'workspace', ...(allowState ? ['state'] : [])].includes(key));
+}
+
+function isListState(value: unknown): value is ListState {
+  if (!isRecord(value) || Object.keys(value).some((key) => !['search', 'status', 'sort', 'scrollTop'].includes(key))) return false;
+  return isBoundedString(value.search, 512) && isBoundedString(value.status, 200)
+    && ['number-desc', 'number-asc', 'title-asc', 'date-desc'].includes(String(value.sort))
+    && typeof value.scrollTop === 'number' && Number.isFinite(value.scrollTop)
+    && value.scrollTop >= 0 && value.scrollTop <= 10_000_000;
+}
+
+function isSafeRelativeFile(value: string): boolean {
+  return value.length > 0 && !path.isAbsolute(value) && !value.split(/[\\/]/u).includes('..')
+    && path.extname(value).toLowerCase() === '.md';
 }
 
 export class VisualCreationSubmission {

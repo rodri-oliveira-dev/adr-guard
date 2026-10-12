@@ -21,6 +21,16 @@ describe('visual ADR form host boundary', () => {
   it('accepts only bounded known message shapes', () => {
     assert.deepEqual(parseNewAdrFormMessage({ type: 'preview', values }), { type: 'preview', values });
     assert.deepEqual(parseNewAdrFormMessage({ type: 'cancel' }), { type: 'cancel' });
+    assert.deepEqual(parseNewAdrFormMessage({ type: 'openAdr', workspace: 'file:///workspace', relativePath: 'nested/0001-safe.md' }), {
+      type: 'openAdr', workspace: 'file:///workspace', relativePath: 'nested/0001-safe.md',
+    });
+    assert.deepEqual(parseNewAdrFormMessage({
+      type: 'newAdr', workspace: 'file:///workspace',
+      state: { search: 'api', status: 'Accepted', sort: 'number-desc', scrollTop: 42 },
+    }), {
+      type: 'newAdr', workspace: 'file:///workspace',
+      state: { search: 'api', status: 'Accepted', sort: 'number-desc', scrollTop: 42 },
+    });
     for (const invalid of [
       null,
       { type: 'unknown' },
@@ -29,6 +39,8 @@ describe('visual ADR form host boundary', () => {
       { type: 'preview', values: { ...values, culture: 'fr-FR' } },
       { type: 'preview', values: { ...values, fields: { '<script>': 'alert(1)' } } },
       { type: 'preview', values: { ...values, title: 'x'.repeat(513) } },
+      { type: 'openAdr', workspace: 'file:///workspace', relativePath: '../outside.md' },
+      { type: 'openAdr', workspace: 'file:///workspace', relativePath: 'safe.txt' },
     ]) assert.equal(parseNewAdrFormMessage(invalid), undefined);
   });
 

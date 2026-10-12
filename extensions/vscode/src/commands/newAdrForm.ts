@@ -3,79 +3,69 @@ import { randomBytes } from 'node:crypto';
 import * as vscode from 'vscode';
 import { CliDiscoveryError } from '../cli/discovery';
 import { CliExecutor, requireSuccessfulResult, safeErrorLine } from '../cli/executor';
-import {
-  newAdrFormSchemaVersion,
-  parseNewAdrFormResponse,
-  type NewAdrFormOperation,
-  type NewAdrFormResponse,
-} from '../contracts/newForm';
+import { newAdrFormSchemaVersion, parseNewAdrFormResponse, type NewAdrFormOperation, type NewAdrFormResponse } from '../contracts/newForm';
 import { readValidationConfiguration } from '../configuration';
+import type { AdrExplorerProvider } from '../explorer/provider';
 import { OperationalLog } from '../logging';
 import { asLocation } from '../workspace';
-import {
-  ensureResourceWithinWorkspace,
-  isResolvedPathWithin,
-  resolveWorkspaceRelativePath,
-  resolveWorkspaceRoot,
-  WorkspacePolicyError,
-} from '../workspacePolicy';
-import {
-  parseNewAdrFormMessage,
-  type FormValues,
-  VisualCreationSubmission,
-} from '../webview/newAdrFormMessages';
+import { ensureResourceWithinWorkspace, isResolvedPathWithin, resolveWorkspaceRelativePath, resolveWorkspaceRoot, WorkspacePolicyError } from '../workspacePolicy';
+import { parseNewAdrFormMessage, type FormValues, type ListState, VisualCreationSubmission } from '../webview/newAdrFormMessages';
+import { LatestListRequest } from '../webview/adrListModel';
 
 interface NewAdrFormDependencies {
   readonly executor: CliExecutor;
   readonly log: OperationalLog;
   readonly extensionUri: vscode.Uri;
+  readonly explorer: AdrExplorerProvider;
   readonly refreshExplorer: () => void;
 }
 
+type InitialScreen = 'list' | 'form';
+
 export class NewAdrFormPanel implements vscode.Disposable {
+  private static current: NewAdrFormPanel | undefined;
   private readonly panel: vscode.WebviewPanel;
   private readonly disposables: vscode.Disposable[] = [];
   private activeOperation: AbortController | undefined;
   private readonly submission = new VisualCreationSubmission();
   private disposed = false;
+  private selectedWorkspace: string | undefined;
+  private readonly listRequests = new LatestListRequest();
+  private created: { readonly workspace: string; readonly relativePath: string; readonly filePath: string } | undefined;
 
-  private constructor(private readonly dependencies: NewAdrFormDependencies) {
-    this.panel = vscode.window.createWebviewPanel(
-      'adrGuard.newAdrForm',
-      vscode.l10n.t('Create ADR with Form'),
-      vscode.ViewColumn.Active,
-      {
-        enableScripts: true,
-        retainContextWhenHidden: true,
-        localResourceRoots: [vscode.Uri.joinPath(dependencies.extensionUri, 'media')],
-      },
-    );
+  private constructor(private readonly dependencies: NewAdrFormDependencies, private screen: InitialScreen) {
+    this.panel = vscode.window.createWebviewPanel('adrGuard.visual', vscode.l10n.t('ADR Guard'), vscode.ViewColumn.Active, {
+      enableScripts: true,
+      retainContextWhenHidden: true,
+      localResourceRoots: [vscode.Uri.joinPath(dependencies.extensionUri, 'media')],
+    });
     this.panel.webview.html = this.html();
     this.disposables.push(
       this.panel,
       this.panel.onDidDispose(() => this.dispose()),
       this.panel.webview.onDidReceiveMessage(async (message: unknown) => this.receive(message)),
+      dependencies.explorer.onDidChangeCatalog(() => {
+        if (this.screen === 'list' && this.selectedWorkspace !== undefined) void this.loadList(this.selectedWorkspace);
+      }),
     );
   }
 
-  public static async show(dependencies: NewAdrFormDependencies): Promise<void> {
-    if (!vscode.workspace.isTrusted) {
-      await vscode.window.showErrorMessage(vscode.l10n.t('Trust this workspace before running the ADR Guard CLI.'));
+  public static async show(dependencies: NewAdrFormDependencies, screen: InitialScreen = 'form'): Promise<void> {
+    if (this.current !== undefined && !this.current.disposed) {
+      this.current.screen = screen;
+      this.current.panel.reveal(vscode.ViewColumn.Active);
+      await this.current.navigate(screen);
       return;
     }
-    const folders = (vscode.workspace.workspaceFolders ?? []).filter((folder) => folder.uri.scheme === 'file');
-    if (folders.length === 0) {
-      await vscode.window.showErrorMessage(vscode.l10n.t('Open a local folder or workspace before running ADR Guard.'));
-      return;
-    }
-    new NewAdrFormPanel(dependencies);
+    this.current = new NewAdrFormPanel(dependencies, screen);
   }
 
   public dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.listRequests.invalidate();
     this.activeOperation?.abort();
-    this.activeOperation = undefined;
+    if (NewAdrFormPanel.current === this) NewAdrFormPanel.current = undefined;
     for (const disposable of this.disposables.splice(0)) disposable.dispose();
   }
 
@@ -85,18 +75,39 @@ export class NewAdrFormPanel implements vscode.Disposable {
       if (!this.disposed) await this.post({ type: 'error', message: vscode.l10n.t('The form sent an invalid message.') });
       return;
     }
-    if (message.type === 'cancel') {
-      this.panel.dispose();
+    if (message.type === 'ready') return this.initialize();
+    if (message.type === 'newAdr') {
+      this.selectedWorkspace = message.workspace;
+      this.screen = 'form';
+      await this.post({ type: 'showForm', workspace: message.workspace });
+      return;
+    }
+    if (message.type === 'showList' || message.type === 'cancel') {
+      this.screen = 'list';
+      if (message.workspace !== undefined) this.selectedWorkspace = message.workspace;
+      await this.post({ type: 'showList', ...(message.state === undefined ? {} : { state: message.state }) });
+      if (this.selectedWorkspace !== undefined) await this.loadList(this.selectedWorkspace, message.state);
+      return;
+    }
+    if (message.type === 'selectWorkspace' || message.type === 'refreshList') {
+      if (message.workspace === undefined) return;
+      this.selectedWorkspace = message.workspace;
+      await this.loadList(message.workspace, message.state);
+      return;
+    }
+    if (message.type === 'openAdr') {
+      if (message.workspace === undefined || message.relativePath === undefined) return;
+      return this.openAdr(message.workspace, message.relativePath);
+    }
+    if (message.type === 'revealCreated') {
+      if (message.workspace === undefined) return;
+      await this.post({ type: 'clearListFilters', workspace: message.workspace });
+      await this.loadList(message.workspace);
       return;
     }
     if (!this.submission.accepts(message.type)) return;
     if (message.type === 'traditional') {
-      this.panel.dispose();
       await vscode.commands.executeCommand('adrGuard.createAdr');
-      return;
-    }
-    if (message.type === 'ready') {
-      await this.initialize();
       return;
     }
     if (message.values === undefined) return;
@@ -105,22 +116,73 @@ export class NewAdrFormPanel implements vscode.Disposable {
   }
 
   private async initialize(): Promise<void> {
-    const folders = (vscode.workspace.workspaceFolders ?? []).filter((folder) => folder.uri.scheme === 'file');
-    const activeFolder = vscode.window.activeTextEditor === undefined
-      ? undefined
-      : vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri);
-    const initial = activeFolder?.uri.scheme === 'file' ? activeFolder : folders[0];
+    const folders = localFolders();
+    const activeFolder = vscode.window.activeTextEditor === undefined ? undefined : vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri);
+    const initial = this.selectedWorkspace === undefined
+      ? (activeFolder?.uri.scheme === 'file' ? activeFolder : folders[0])
+      : folders.find((folder) => folder.uri.toString() === this.selectedWorkspace);
+    this.selectedWorkspace = initial?.uri.toString();
     await this.post({
       type: 'initialize',
-      workspaces: folders.map((folder) => ({
-        id: folder.uri.toString(),
-        name: folder.name,
-        directory: readValidationConfiguration(folder.uri).directory,
-      })),
-      initialWorkspace: initial?.uri.toString(),
+      trusted: vscode.workspace.isTrusted,
+      workspaces: folders.map((folder) => ({ id: folder.uri.toString(), name: folder.name, directory: readValidationConfiguration(folder.uri).directory })),
+      initialWorkspace: this.selectedWorkspace,
       initialCulture: vscode.env.language.toLowerCase() === 'pt-br' ? 'pt-BR' : 'en-US',
+      initialScreen: this.screen,
       strings: webviewStrings(),
     });
+    if (this.screen === 'list' && this.selectedWorkspace !== undefined && vscode.workspace.isTrusted) await this.loadList(this.selectedWorkspace);
+  }
+
+  private async navigate(screen: InitialScreen): Promise<void> {
+    if (screen === 'form') await this.post({ type: 'showForm', workspace: this.selectedWorkspace });
+    else {
+      await this.post({ type: 'showList' });
+      if (this.selectedWorkspace !== undefined) await this.loadList(this.selectedWorkspace);
+    }
+  }
+
+  private async loadList(workspace: string, state?: ListState): Promise<void> {
+    const sequence = this.listRequests.begin();
+    await this.post({ type: 'listLoading', workspace });
+    try {
+      if (!vscode.workspace.isTrusted) throw new WorkspacePolicyError('Workspace is not trusted.', 'missing');
+      const folder = workspaceFolder(workspace);
+      const configuration = readValidationConfiguration(folder.uri);
+      const entries = await this.dependencies.explorer.catalogFor(folder);
+      if (!this.listRequests.isCurrent(sequence) || this.disposed || this.selectedWorkspace !== workspace) return;
+      await this.post({
+        type: 'listResult', workspace, directory: configuration.directory,
+        entries: entries.map((entry) => ({
+          relativePath: entry.relativePath, id: entry.metadata.id, title: entry.metadata.title,
+          status: entry.metadata.status, date: entry.metadata.date, warning: entry.metadata.warning,
+        })),
+        ...(state === undefined ? {} : { state }),
+        createdPath: this.created?.workspace === workspace ? this.created.relativePath : undefined,
+      });
+    } catch (error: unknown) {
+      if (!this.listRequests.isCurrent(sequence) || this.disposed) return;
+      this.dependencies.log.info(`ADR list could not load: ${safeLogError(error)}`);
+      const code = isNodeError(error) ? error.code : undefined;
+      await this.post({ type: 'listError', workspace, kind: code === 'ENOENT' ? 'missing-directory' : error instanceof WorkspacePolicyError ? 'workspace' : 'read' });
+    }
+  }
+
+  private async openAdr(workspace: string, relativePath: string): Promise<void> {
+    try {
+      const folder = workspaceFolder(workspace);
+      const root = await resolveWorkspaceRoot(asLocation(folder));
+      const configuration = readValidationConfiguration(folder.uri);
+      const directory = await ensureResourceWithinWorkspace(resolveWorkspaceRelativePath(root, configuration.directory), root);
+      const candidate = await ensureResourceWithinWorkspace(path.resolve(directory, relativePath), root);
+      if (!isResolvedPathWithin(candidate, directory)) throw new WorkspacePolicyError('ADR is outside configured directory.', 'outside-workspace');
+      const entries = await this.dependencies.explorer.catalogFor(folder);
+      if (!entries.some((entry) => samePath(entry.filePath, candidate))) throw new WorkspacePolicyError('ADR is not in the current catalog.', 'outside-workspace');
+      await vscode.window.showTextDocument(vscode.Uri.file(candidate), { preview: true });
+    } catch (error: unknown) {
+      this.dependencies.log.info(`ADR list navigation was blocked: ${safeLogError(error)}`);
+      await this.post({ type: 'listNavigationError', message: vscode.l10n.t('The selected ADR could not be opened safely.') });
+    }
   }
 
   private async run(operation: NewAdrFormOperation, values: FormValues): Promise<void> {
@@ -131,48 +193,36 @@ export class NewAdrFormPanel implements vscode.Disposable {
     try {
       const folder = workspaceFolder(values.workspace);
       const root = await resolveWorkspaceRoot(asLocation(folder));
-      const target = await ensureResourceWithinWorkspace(
-        resolveWorkspaceRelativePath(root, values.directory),
-        root,
-      );
+      const target = await ensureResourceWithinWorkspace(resolveWorkspaceRelativePath(root, values.directory), root);
       const args = buildFormArguments(target, values.template, values.culture);
-      const input = JSON.stringify({
-        schemaVersion: newAdrFormSchemaVersion,
-        operation,
-        ...(operation === 'describe' ? {} : { title: values.title, fields: values.fields }),
-      });
+      const input = JSON.stringify({ schemaVersion: newAdrFormSchemaVersion, operation, ...(operation === 'describe' ? {} : { title: values.title, fields: values.fields }) });
       const execution = await this.dependencies.executor.execute(folder, args, controller.signal, input);
-      if (execution.result.termination === 'exited' && execution.result.exitCode === 2) {
-        throw new FormCapabilityError(safeErrorLine(execution.result.stderr));
-      }
+      if (execution.result.termination === 'exited' && execution.result.exitCode === 2) throw new FormCapabilityError(safeErrorLine(execution.result.stderr));
       requireSuccessfulResult(execution.result);
       const response = parseNewAdrFormResponse(execution.result.stdout.trim());
       validateResponseForOperation(response, operation);
       if (operation === 'create') {
         const reported = response.path;
-        if (reported === undefined || !response.written) {
-          throw new Error(vscode.l10n.t('The CLI did not confirm the created ADR.'));
-        }
+        if (reported === undefined || !response.written) throw new Error(vscode.l10n.t('The CLI did not confirm the created ADR.'));
         const safePath = await ensureResourceWithinWorkspace(path.resolve(root, reported), root);
-        if (!isResolvedPathWithin(safePath, target)) {
-          throw new Error(vscode.l10n.t('The CLI reported an unsafe or unexpected created file path.'));
-        }
-        await vscode.window.showTextDocument(vscode.Uri.file(safePath));
+        if (!isResolvedPathWithin(safePath, target)) throw new Error(vscode.l10n.t('The CLI reported an unsafe or unexpected created file path.'));
+        this.created = { workspace: values.workspace, relativePath: path.relative(target, safePath).replaceAll(path.sep, '/'), filePath: safePath };
+        this.selectedWorkspace = values.workspace;
+        this.screen = 'list';
         this.dependencies.refreshExplorer();
-        await vscode.window.showInformationMessage(vscode.l10n.t('ADR Guard created {0}.', path.basename(safePath)));
-        await this.post({ type: 'created' });
-        this.panel.dispose();
+        await this.post({ type: 'created', workspace: values.workspace, relativePath: this.created.relativePath });
+        await this.loadList(values.workspace);
+        this.panel.reveal(vscode.ViewColumn.Active, true);
+        const open = vscode.l10n.t('Open Markdown');
+        const selection = await vscode.window.showInformationMessage(vscode.l10n.t('ADR Guard created {0}.', path.basename(safePath)), open);
+        if (selection === open) await vscode.window.showTextDocument(vscode.Uri.file(safePath), { preview: true });
         return;
       }
       await this.post({ type: 'result', response });
     } catch (error: unknown) {
       if (controller.signal.aborted) return;
       this.dependencies.log.info(`Visual ADR form operation failed: ${safeLogError(error)}`);
-      await this.post({
-        type: 'error',
-        message: formErrorMessage(error),
-        traditionalAvailable: error instanceof FormCapabilityError || error instanceof CliDiscoveryError,
-      });
+      await this.post({ type: 'error', message: formErrorMessage(error), traditionalAvailable: error instanceof FormCapabilityError || error instanceof CliDiscoveryError });
     } finally {
       if (this.activeOperation === controller) this.activeOperation = undefined;
       if (operation === 'create') this.submission.end();
@@ -180,119 +230,28 @@ export class NewAdrFormPanel implements vscode.Disposable {
     }
   }
 
-  private async post(message: unknown): Promise<void> {
-    if (!this.disposed) await this.panel.webview.postMessage(message);
-  }
+  private async post(message: unknown): Promise<void> { if (!this.disposed) await this.panel.webview.postMessage(message); }
 
   private html(): string {
-    const nonce = createNonce();
+    const nonce = randomBytes(16).toString('base64');
     const script = this.panel.webview.asWebviewUri(vscode.Uri.joinPath(this.dependencies.extensionUri, 'media', 'newAdrForm.js'));
     const style = this.panel.webview.asWebviewUri(vscode.Uri.joinPath(this.dependencies.extensionUri, 'media', 'newAdrForm.css'));
-    return `<!DOCTYPE html>
-<html lang="${escapeAttribute(vscode.env.language)}">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel.webview.cspSource}; script-src 'nonce-${nonce}';">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="${style.toString()}">
-  <title>${escapeHtml(vscode.l10n.t('Create ADR with Form'))}</title>
-</head>
-<body>
-  <main id="app" aria-live="polite"></main>
-  <script nonce="${nonce}" src="${script.toString()}"></script>
-</body>
-</html>`;
+    return `<!DOCTYPE html><html lang="${escapeAttribute(vscode.env.language)}"><head><meta charset="UTF-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel.webview.cspSource}; script-src 'nonce-${nonce}';"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="stylesheet" href="${style.toString()}"><title>${escapeHtml(vscode.l10n.t('ADR Guard'))}</title></head><body><main id="app" aria-live="polite"></main><script nonce="${nonce}" src="${script.toString()}"></script></body></html>`;
   }
 }
 
-class FormCapabilityError extends Error {
-  public constructor(detail?: string) {
-    super(detail);
-    this.name = 'FormCapabilityError';
-  }
-}
-
-function buildFormArguments(
-  directory: string,
-  template: FormValues['template'],
-  culture: FormValues['culture'],
-): string[] {
-  return [
-    'new', directory, '--form',
-    ...(template === 'configured' ? [] : ['--template', template]),
-    '--culture', culture,
-  ];
-}
-
-function workspaceFolder(id: string): vscode.WorkspaceFolder {
-  const folder = vscode.workspace.workspaceFolders?.find((candidate) => candidate.uri.toString() === id);
-  if (folder?.uri.scheme !== 'file') {
-    throw new WorkspacePolicyError('The selected workspace folder is unavailable.', 'missing');
-  }
-  return folder;
-}
-
-function validateResponseForOperation(response: NewAdrFormResponse, operation: NewAdrFormOperation): void {
-  if (response.operation !== operation) throw new Error(vscode.l10n.t('The CLI returned a response for a different form operation.'));
-  if (operation === 'preview' && (response.markdown === undefined || response.written)) {
-    throw new Error(vscode.l10n.t('The CLI returned an invalid preview response.'));
-  }
-  if (operation === 'describe' && (response.path !== undefined || response.markdown !== undefined || response.written)) {
-    throw new Error(vscode.l10n.t('The CLI returned an invalid template description.'));
-  }
-}
-
-function formErrorMessage(error: unknown): string {
-  if (error instanceof FormCapabilityError) {
-    return vscode.l10n.t('The installed ADR Guard CLI does not support visual creation. Install CLI 1.7.0 or newer, or use the traditional creation flow.');
-  }
-  if (error instanceof WorkspacePolicyError) {
-    return error.code === 'outside-workspace' || error.code === 'invalid-path'
-      ? vscode.l10n.t('The ADR destination must be a safe directory inside the selected workspace.')
-      : vscode.l10n.t('Open a trusted local workspace before using the ADR form.');
-  }
-  if (error instanceof CliDiscoveryError) {
-    return vscode.l10n.t('ADR Guard was not found. Configure adrGuard.cli.path or install it on the extension host PATH.');
-  }
-  return error instanceof Error ? error.message : vscode.l10n.t('ADR Guard failed for an unknown reason.');
-}
-
+class FormCapabilityError extends Error { public constructor(detail?: string) { super(detail); this.name = 'FormCapabilityError'; } }
+function localFolders(): vscode.WorkspaceFolder[] { return (vscode.workspace.workspaceFolders ?? []).filter((folder) => folder.uri.scheme === 'file'); }
+function buildFormArguments(directory: string, template: FormValues['template'], culture: FormValues['culture']): string[] { return ['new', directory, '--form', ...(template === 'configured' ? [] : ['--template', template]), '--culture', culture]; }
+function workspaceFolder(id: string): vscode.WorkspaceFolder { const folder = vscode.workspace.workspaceFolders?.find((candidate) => candidate.uri.toString() === id); if (folder?.uri.scheme !== 'file') throw new WorkspacePolicyError('The selected workspace folder is unavailable.', 'missing'); return folder; }
+function validateResponseForOperation(response: NewAdrFormResponse, operation: NewAdrFormOperation): void { if (response.operation !== operation) throw new Error(vscode.l10n.t('The CLI returned a response for a different form operation.')); if (operation === 'preview' && (response.markdown === undefined || response.written)) throw new Error(vscode.l10n.t('The CLI returned an invalid preview response.')); if (operation === 'describe' && (response.path !== undefined || response.markdown !== undefined || response.written)) throw new Error(vscode.l10n.t('The CLI returned an invalid template description.')); }
+function formErrorMessage(error: unknown): string { if (error instanceof FormCapabilityError) return vscode.l10n.t('The installed ADR Guard CLI does not support visual creation. Install CLI 1.7.0 or newer, or use the traditional creation flow.'); if (error instanceof WorkspacePolicyError) return error.code === 'outside-workspace' || error.code === 'invalid-path' ? vscode.l10n.t('The ADR destination must be a safe directory inside the selected workspace.') : vscode.l10n.t('Open a trusted local workspace before using the ADR form.'); if (error instanceof CliDiscoveryError) return vscode.l10n.t('ADR Guard was not found. Configure adrGuard.cli.path or install it on the extension host PATH.'); return error instanceof Error ? error.message : vscode.l10n.t('ADR Guard failed for an unknown reason.'); }
 function webviewStrings(): Record<string, string> {
-  const values = [
-    'Create ADR with Form', 'Workspace folder', 'ADR destination directory', 'Creation template',
-    'Document language', 'Decision title', 'Markdown preview', 'Create ADR', 'Cancel',
-    'Use traditional creation', 'Configured template', 'Minimal', 'Extended',
-    'Minimal captures the context, decision, and consequences.',
-    'Extended adds optional drivers, alternatives, rationale, risks, and references.',
-    'This custom template cannot be mapped safely to form fields. Use the traditional creation flow to preserve it.',
-    'Required', 'Optional', 'Preview updates after you edit the form.', 'No file is written until you choose Create ADR.',
-    'Context', 'Decision drivers', 'Options considered', 'Decision', 'Rationale', 'Consequences',
-    'Positive consequences', 'Negative consequences', 'Risks', 'References',
-    'Describe the problem, constraints, and relevant stakeholders.',
-    'List requirements, quality attributes, constraints, and trade-offs.',
-    'Compare viable alternatives, including keeping the current approach.',
-    'State the proposed choice, its scope, and why it addresses the problem.',
-    'Explain why this option best satisfies the decision drivers.',
-    'Describe expected impact and trade-offs.', 'Record expected benefits and assumptions.',
-    'Record costs, limitations, and added complexity.', 'Identify uncertainties, failure modes, mitigations, and owners.',
-    'Add links to evidence, related documents, or ADRs.', 'Loading template…', 'Creating ADR…',
-    'Preview unavailable until required fields are complete.',
-  ];
+  const values = ['ADR Guard', 'Architecture Decision Records', 'New ADR', 'Refresh', 'Retry', 'Search ADRs', 'All statuses', 'Number (descending)', 'Number (ascending)', 'Title (A–Z)', 'Date (newest)', 'Sort by', 'Filter by status', 'No ADRs were found in this directory.', 'Create your first ADR to record an architectural decision.', 'No ADRs match the current search and filters.', 'Clear filters', 'The configured ADR directory does not exist.', 'ADR Guard does not create directories while browsing.', 'Open a local workspace folder to browse ADRs.', 'Trust this workspace to browse ADRs.', 'The ADR directory could not be read.', 'Loading ADRs…', '{0} ADRs shown', '{0} of {1} ADRs shown', 'Unknown title', 'Unknown status', 'No identifier', 'Open Markdown', 'This ADR has incomplete metadata.', 'The new ADR is hidden by the current filters.', 'Reveal it', 'ADR created.', 'Create ADR with Form', 'Back to ADR list', 'Workspace folder', 'ADR destination directory', 'Creation template', 'Document language', 'Decision title', 'Markdown preview', 'Create ADR', 'Cancel', 'Use traditional creation', 'Configured template', 'Minimal', 'Extended', 'Minimal captures the context, decision, and consequences.', 'Extended adds optional drivers, alternatives, rationale, risks, and references.', 'This custom template cannot be mapped safely to form fields. Use the traditional creation flow to preserve it.', 'Required', 'Optional', 'Preview updates after you edit the form.', 'No file is written until you choose Create ADR.', 'Context', 'Decision drivers', 'Options considered', 'Decision', 'Rationale', 'Consequences', 'Positive consequences', 'Negative consequences', 'Risks', 'References', 'Describe the problem, constraints, and relevant stakeholders.', 'List requirements, quality attributes, constraints, and trade-offs.', 'Compare viable alternatives, including keeping the current approach.', 'State the proposed choice, its scope, and why it addresses the problem.', 'Explain why this option best satisfies the decision drivers.', 'Describe expected impact and trade-offs.', 'Record expected benefits and assumptions.', 'Record costs, limitations, and added complexity.', 'Identify uncertainties, failure modes, mitigations, and owners.', 'Add links to evidence, related documents, or ADRs.', 'Loading template…', 'Creating ADR…', 'Preview unavailable until required fields are complete.', 'Discard the unsaved form data and return to the ADR list?', 'The selected ADR could not be opened safely.'];
   return Object.fromEntries(values.map((value) => [value, vscode.l10n.t(value)]));
 }
-
-function safeLogError(error: unknown): string {
-  return (error instanceof Error ? error.message : 'unknown error').replace(/[\r\n\0]/gu, ' ').slice(0, 300);
-}
-
-function createNonce(): string {
-  return randomBytes(16).toString('base64');
-}
-
-function escapeHtml(value: string): string {
-  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-}
-
-function escapeAttribute(value: string): string {
-  return escapeHtml(value).replaceAll('"', '&quot;').replaceAll("'", '&#39;');
-}
+function safeLogError(error: unknown): string { return (error instanceof Error ? error.message : 'unknown error').replace(/[\r\n\0]/gu, ' ').slice(0, 300); }
+function escapeHtml(value: string): string { return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'); }
+function escapeAttribute(value: string): string { return escapeHtml(value).replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
+function samePath(left: string, right: string): boolean { const normalize = (value: string): string => process.platform === 'win32' ? path.resolve(value).toLowerCase() : path.resolve(value); return normalize(left) === normalize(right); }
+function isNodeError(error: unknown): error is NodeJS.ErrnoException { return error instanceof Error && 'code' in error; }

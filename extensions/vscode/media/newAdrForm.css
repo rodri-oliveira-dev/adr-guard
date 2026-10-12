@@ -17,6 +17,71 @@ main {
   padding: 24px;
 }
 
+.list-header {
+  align-items: flex-start;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.list-header h1, .adr-card h2 { margin-top: 0; }
+
+.directory, .path {
+  overflow-wrap: anywhere;
+}
+
+.filters {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(150px, 1fr) minmax(180px, 2fr) minmax(130px, 1fr) minmax(150px, 1fr);
+  margin: 20px 0 10px;
+}
+
+.count { color: var(--vscode-descriptionForeground); }
+
+.adr-list { display: grid; gap: 12px; }
+
+.adr-card {
+  background: var(--vscode-sideBar-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.adr-card.created {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
+.identifier {
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family);
+}
+
+.metadata { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.status { font-weight: 600; }
+.path, .warning { color: var(--vscode-descriptionForeground); }
+.warning { font-style: italic; }
+
+.notice {
+  align-items: center;
+  background: var(--vscode-textBlockQuote-background);
+  border-left: 3px solid var(--vscode-focusBorder);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin: 12px 0;
+  padding: 10px 12px;
+}
+
+.empty-state {
+  border: 1px dashed var(--vscode-panel-border);
+  padding: 28px;
+  text-align: center;
+}
+
+.centered { text-align: center; }
+
 h1, h2 {
   line-height: 1.25;
 }
@@ -86,6 +151,8 @@ pre {
   margin-top: 20px;
 }
 
+.actions.compact { margin-top: 0; }
+
 button {
   color: var(--vscode-button-foreground);
   background: var(--vscode-button-background);
@@ -120,5 +187,7 @@ button:disabled {
 
 @media (max-width: 600px) {
   main { padding: 16px; }
+  .list-header { display: block; }
+  .filters { grid-template-columns: 1fr; }
   .actions { align-items: stretch; flex-direction: column; }
 }

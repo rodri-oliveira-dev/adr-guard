@@ -14,6 +14,8 @@ export interface AdrDisplayMetadata {
   readonly id?: string;
   readonly title?: string;
   readonly status?: string;
+  readonly date?: string;
+  readonly warning?: string;
   readonly relationships: readonly AdrRelationshipMetadata[];
 }
 
@@ -69,6 +71,7 @@ export function parseAdrDisplayMetadata(
   const status = format === 'madr-4'
     ? frontMatter.get('status') ?? sectionStatus
     : sectionStatus;
+  const date = frontMatter.get('date');
   const statusTarget = format === 'madr-4'
     ? /^superseded\s+by\s+ADR-([0-9]{4})$/iu.exec(status ?? '')?.[1]
     : undefined;
@@ -80,6 +83,7 @@ export function parseAdrDisplayMetadata(
     ...(id === undefined ? {} : { id }),
     ...(title === undefined ? {} : { title }),
     ...(status === undefined ? {} : { status }),
+    ...(date === undefined ? {} : { date }),
     relationships: deduplicateRelationships(relationships),
   };
 }

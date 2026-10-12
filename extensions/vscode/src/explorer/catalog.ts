@@ -34,12 +34,24 @@ export async function loadAdrCatalog(
     throw new Error('The ADR directory resolves outside the workspace.');
   }
   const files = await discoverMarkdownFiles(realDirectory);
-  const preliminary = await mapWithConcurrency(files, 16, async (filePath) => ({
-    filePath,
-    relativePath: path.relative(realDirectory, filePath).replaceAll(path.sep, '/'),
-    fileName: path.basename(filePath),
-    metadata: parseAdrDisplayMetadata(path.basename(filePath), await readPrefix(filePath), format),
-  }));
+  const preliminary = await mapWithConcurrency(files, 16, async (filePath) => {
+    const base = {
+      filePath,
+      relativePath: path.relative(realDirectory, filePath).replaceAll(path.sep, '/'),
+      fileName: path.basename(filePath),
+    };
+    try {
+      return { ...base, metadata: parseAdrDisplayMetadata(base.fileName, await readPrefix(filePath), format) };
+    } catch {
+      return {
+        ...base,
+        metadata: {
+          relationships: [],
+          warning: 'Metadata could not be read.',
+        } satisfies AdrDisplayMetadata,
+      };
+    }
+  });
   const byId = new Map<string, typeof preliminary>();
   for (const entry of preliminary) {
     if (entry.metadata.id === undefined) continue;
