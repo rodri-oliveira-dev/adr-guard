@@ -4,6 +4,7 @@ import { classifyExitCode, type CliExitKind } from '../contracts/cli';
 
 const terminationGraceMilliseconds = 500;
 const forcedSettlementMilliseconds = 500;
+export const defaultMaximumInputCharacters = 128 * 1024;
 
 export interface CliRunRequest {
   readonly executable: string;
@@ -13,6 +14,7 @@ export interface CliRunRequest {
   readonly maxOutputBytes: number;
   readonly signal?: AbortSignal;
   readonly input?: string;
+  readonly maxInputCharacters?: number;
 }
 
 export type CliTermination = 'exited' | 'cancelled' | 'timed-out' | 'output-limit' | 'spawn-error';
@@ -168,7 +170,11 @@ export class CliRunner {
     if (!Number.isInteger(request.maxOutputBytes) || request.maxOutputBytes < 1) {
       throw new RangeError('CLI output limit must be a positive integer.');
     }
-    if (request.input !== undefined && Buffer.byteLength(request.input, 'utf8') > 131072) {
+    const maxInputCharacters = request.maxInputCharacters ?? defaultMaximumInputCharacters;
+    if (!Number.isInteger(maxInputCharacters) || maxInputCharacters < 1) {
+      throw new RangeError('CLI input limit must be a positive integer.');
+    }
+    if (request.input !== undefined && request.input.length > maxInputCharacters) {
       throw new RangeError('CLI input exceeds the bounded visual form contract.');
     }
   }

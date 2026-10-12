@@ -1,4 +1,5 @@
 export const editFormSchemaVersion = '1.0';
+export const editFormMaximumInputCharacters = 384 * 1024;
 
 export interface EditFormField {
   readonly id: string;

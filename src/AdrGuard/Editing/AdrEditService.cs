@@ -89,7 +89,7 @@ internal static class AdrEditService
 
         if (replacements.Count == 0) return layout.ToDocument(filePath, source.Fingerprint);
         var updated = Apply(source.Text, replacements);
-        Validate(filePath, updated, options, cancellationToken);
+        ValidateUpdate(filePath, source.Text, updated, options, cancellationToken);
         Persist(filePath, source, updated, cancellationToken);
         var saved = ReadSource(filePath, cancellationToken);
         return MarkdownLayout.Parse(saved.Text, options).ToDocument(filePath, saved.Fingerprint);
@@ -127,6 +127,41 @@ internal static class AdrEditService
         var known = AdrFileDiscovery.FindMarkdownFiles(directory);
         var document = AdrMarkdownParser.Parse(filePath, markdown);
         var result = AdrValidator.Validate([document], known, options);
+        if (!result.IsValid)
+        {
+            throw new AdrEditValidationException(result);
+        }
+    }
+
+    private static void ValidateUpdate(
+        string filePath,
+        string originalMarkdown,
+        string updatedMarkdown,
+        AdrValidationOptions options,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var fullPath = Path.GetFullPath(filePath);
+        var directory = Path.GetDirectoryName(fullPath)!;
+        var neighbors = AdrDocumentLoader.LoadDirectory(directory, cancellationToken)
+            .Where(document => !string.Equals(
+                Path.GetFullPath(document.FilePath),
+                fullPath,
+                StringComparison.Ordinal))
+            .ToArray();
+        var original = AdrMarkdownParser.Parse(fullPath, originalMarkdown);
+        var updated = AdrMarkdownParser.Parse(fullPath, updatedMarkdown);
+        var before = AdrValidator.Validate([.. neighbors, original], additionalKnownPaths: null, options);
+        var after = AdrValidator.Validate([.. neighbors, updated], additionalKnownPaths: null, options);
+        var existing = before.Issues.ToHashSet();
+        var blocking = after.Issues
+            .Where(issue => string.Equals(
+                    Path.GetFullPath(issue.FilePath),
+                    fullPath,
+                    StringComparison.Ordinal)
+                || !existing.Contains(issue))
+            .ToArray();
+        var result = new ValidationResult(blocking);
         if (!result.IsValid)
         {
             throw new AdrEditValidationException(result);
@@ -299,17 +334,29 @@ internal static class AdrEditService
 
         private static IEnumerable<HeadingInfo> FindHeadings(IReadOnlyList<LineInfo> lines)
         {
-            char? fence = null;
+            char? fenceMarker = null;
+            var fenceLength = 0;
             foreach (var line in lines)
             {
-                var trimmed = line.Text.TrimStart();
-                if (trimmed.StartsWith("```", StringComparison.Ordinal) || trimmed.StartsWith("~~~", StringComparison.Ordinal))
+                if (TryGetFence(line.Text, out var marker, out var markerLength))
                 {
-                    var marker = trimmed[0];
-                    fence = fence is null ? marker : fence == marker ? null : fence;
-                    continue;
+                    if (fenceMarker is null)
+                    {
+                        fenceMarker = marker;
+                        fenceLength = markerLength;
+                        continue;
+                    }
+                    if (marker == fenceMarker
+                        && markerLength >= fenceLength
+                        && IsClosingFence(line.Text, markerLength))
+                    {
+                        fenceMarker = null;
+                        fenceLength = 0;
+                        continue;
+                    }
                 }
-                if (fence is not null) continue;
+                if (fenceMarker is not null) continue;
+                var trimmed = line.Text.TrimStart();
                 var hashes = 0;
                 while (hashes < trimmed.Length && trimmed[hashes] == '#') hashes++;
                 if (hashes is < 1 or > 6 || hashes >= trimmed.Length || !char.IsWhiteSpace(trimmed[hashes])) continue;
@@ -325,6 +372,20 @@ internal static class AdrEditService
                 yield return new HeadingInfo(hashes, line.Start, line.End, valueStart, value.Length, value);
             }
         }
+
+        private static bool TryGetFence(string line, out char marker, out int markerLength)
+        {
+            var trimmed = line.TrimStart();
+            marker = default;
+            markerLength = 0;
+            if (trimmed.Length < 3 || trimmed[0] is not ('`' or '~')) return false;
+            marker = trimmed[0];
+            while (markerLength < trimmed.Length && trimmed[markerLength] == marker) markerLength++;
+            return markerLength >= 3;
+        }
+
+        private static bool IsClosingFence(string line, int markerLength) =>
+            line.TrimStart()[markerLength..].All(char.IsWhiteSpace);
 
         private static List<LineInfo> Lines(string markdown)
         {

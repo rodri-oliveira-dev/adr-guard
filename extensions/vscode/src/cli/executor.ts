@@ -1,10 +1,11 @@
 import * as vscode from 'vscode';
 import { readConfiguration } from '../configuration';
+import { editFormMaximumInputCharacters } from '../contracts/editForm';
 import { OperationalLog } from '../logging';
 import { allWorkspaceRoots, asLocation } from '../workspace';
 import { resolveWorkspaceRoot } from '../workspacePolicy';
 import { CliDiscovery } from './discovery';
-import { CliRunner, type CliRunResult } from './runner';
+import { CliRunner, defaultMaximumInputCharacters, type CliRunResult } from './runner';
 
 export interface CliExecution {
   readonly result: CliRunResult;
@@ -40,6 +41,9 @@ export class CliExecutor {
       cwd: workspaceRoot,
       timeoutMilliseconds: configuration.timeoutMilliseconds,
       maxOutputBytes: configuration.maxOutputBytes,
+      maxInputCharacters: args[0] === 'edit' && args.includes('--form')
+        ? editFormMaximumInputCharacters
+        : defaultMaximumInputCharacters,
       ...(signal === undefined ? {} : { signal }),
       ...(input === undefined ? {} : { input }),
     });

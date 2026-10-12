@@ -78,5 +78,7 @@ describe('visual ADR form host boundary', () => {
     const source = await readFile(path.resolve(__dirname, '../../../media/newAdrForm.js'), 'utf8');
     assert.match(source, /textContent = message\.response\.markdown/u);
     assert.doesNotMatch(source, /innerHTML/u);
+    assert.match(source, /function clearCreationValues\(\)/u);
+    assert.match(source, /backToList\(\).*clearCreationValues\(\)/u);
   });
 });

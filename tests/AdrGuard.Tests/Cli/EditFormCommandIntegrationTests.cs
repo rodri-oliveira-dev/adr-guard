@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AdrGuard.Cli;
+using AdrGuard.Validation;
 using Xunit;
 
 namespace AdrGuard.Tests.Cli;
@@ -169,6 +170,86 @@ public sealed class EditFormCommandIntegrationTests
             var updated = File.ReadAllText(path);
             Assert.Contains("## Options\r\n\r\nOption A\r\nOption B\r\n\r\n## Decision", updated, StringComparison.Ordinal);
             Assert.DoesNotContain("Option B## Decision", updated, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void SaveRejectsANewDependencyOnAnInactiveNeighbor()
+    {
+        var root = CreateDirectory();
+        var inactivePath = Path.Combine(root, "0001-old.md");
+        var path = Path.Combine(root, "0002-current.md");
+        var current = Canonical.Replace(
+            "## Decision\n\nDecision.",
+            "## Dependencies\n\n## Decision\n\nDecision.",
+            StringComparison.Ordinal);
+        try
+        {
+            File.WriteAllText(inactivePath, Canonical.Replace("Proposed", "Deprecated", StringComparison.Ordinal));
+            File.WriteAllText(path, current.Replace("Proposed", "Accepted", StringComparison.Ordinal));
+            var load = Run(path, LoadRequest(), "canonical");
+            Assert.Equal(ExitCodes.Success, load.Code);
+            var request = SaveRequest(load.Output, "Choice", values =>
+                values[FieldId(load.Output, "Dependencies")] = "[Old](0001-old.md)");
+
+            var save = Run(path, request, "canonical");
+
+            Assert.Equal(ExitCodes.ValidationFailed, save.Code);
+            Assert.Contains(ValidationCodes.InactiveDependency, save.Error, StringComparison.Ordinal);
+            Assert.Equal(current.Replace("Proposed", "Accepted", StringComparison.Ordinal), File.ReadAllText(path));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void LoadDoesNotExposeHeadingsInsideLongerFencedCodeBlocks()
+    {
+        var root = CreateDirectory();
+        var path = Path.Combine(root, "0003-fenced-example.md");
+        const string markdown = """
+            # Fenced example
+
+            ## Status
+
+            Proposed
+
+            ## Context
+
+            ````markdown
+            ```example
+            ## Not an editable section
+            ```
+            ````
+
+            Real context.
+
+            ## Decision
+
+            Decision.
+
+            ## Consequences
+
+            Consequences.
+            """;
+        try
+        {
+            File.WriteAllText(path, markdown);
+
+            var load = Run(path, LoadRequest(), "canonical");
+
+            Assert.Equal(ExitCodes.Success, load.Code);
+            var labels = JsonNode.Parse(load.Output)!["fields"]!.AsArray()
+                .Select(field => field!["label"]!.GetValue<string>())
+                .ToArray();
+            Assert.DoesNotContain("Not an editable section", labels);
+            Assert.Equal(["Status", "Context", "Decision", "Consequences"], labels);
         }
         finally
         {

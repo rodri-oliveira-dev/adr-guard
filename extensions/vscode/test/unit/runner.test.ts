@@ -6,7 +6,7 @@ import { CliRunner } from '../../src/cli/runner';
 const fixture = path.resolve(__dirname, '../../../test/fixtures/cli-fixture.cjs');
 const cwd = path.resolve(__dirname);
 
-function request(args: readonly string[], overrides: { timeoutMilliseconds?: number; maxOutputBytes?: number; signal?: AbortSignal; input?: string } = {}) {
+function request(args: readonly string[], overrides: { timeoutMilliseconds?: number; maxOutputBytes?: number; signal?: AbortSignal; input?: string; maxInputCharacters?: number } = {}) {
   return {
     executable: process.execPath,
     args: [fixture, ...args],
@@ -15,6 +15,7 @@ function request(args: readonly string[], overrides: { timeoutMilliseconds?: num
     maxOutputBytes: overrides.maxOutputBytes ?? 4096,
     ...(overrides.signal ? { signal: overrides.signal } : {}),
     ...(overrides.input === undefined ? {} : { input: overrides.input }),
+    ...(overrides.maxInputCharacters === undefined ? {} : { maxInputCharacters: overrides.maxInputCharacters }),
   };
 }
 
@@ -53,6 +54,18 @@ describe('CliRunner', () => {
       runner.run(request(['stdin'], { input: 'x'.repeat(131073) })),
       /input exceeds/iu,
     );
+  });
+
+  it('accepts the larger bounded edit form contract', async () => {
+    const runner = new CliRunner();
+    const input = 'x'.repeat(131073);
+    const result = await runner.run(request(['stdin'], {
+      input,
+      maxInputCharacters: 384 * 1024,
+      maxOutputBytes: 384 * 1024,
+    }));
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.stdout, input);
   });
 
   it('terminates timed-out processes', async () => {
