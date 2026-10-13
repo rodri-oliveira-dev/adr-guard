@@ -91,6 +91,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       return;
     }
     if (message.type === 'showList' || message.type === 'cancel') {
+      this.activeOperation?.abort();
       this.screen = 'list';
       if (message.workspace !== undefined) this.selectedWorkspace = message.workspace;
       await this.post({ type: 'showList', ...(message.state === undefined ? {} : { state: message.state }) });

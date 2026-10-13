@@ -42,8 +42,14 @@ const maximumValueCharacters = 32 * 1024;
 export function parseNewAdrFormMessage(value: unknown): FormMessage | undefined {
   if (visualFormInputLimit(value) !== undefined) return undefined;
   if (!isRecord(value) || typeof value.type !== 'string') return undefined;
-  if (value.type === 'ready' || value.type === 'traditional' || value.type === 'cancel') {
+  if (value.type === 'ready' || value.type === 'traditional') {
     return Object.keys(value).length === 1 ? { type: value.type } : undefined;
+  }
+  if (value.type === 'cancel') {
+    if (Object.keys(value).length === 1) return { type: value.type };
+    if (!isWorkspaceMessage(value, true) || (value.state !== undefined && !isListState(value.state))) return undefined;
+    return { type: value.type, workspace: value.workspace,
+      ...(value.state === undefined ? {} : { state: value.state }) };
   }
   if (value.type === 'refreshList' || value.type === 'revealCreated') {
     return isWorkspaceMessage(value) ? { type: value.type, workspace: value.workspace } : undefined;

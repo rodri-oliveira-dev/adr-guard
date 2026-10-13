@@ -21,6 +21,13 @@ describe('visual ADR form host boundary', () => {
   it('accepts only bounded known message shapes', () => {
     assert.deepEqual(parseNewAdrFormMessage({ type: 'preview', values }), { type: 'preview', values });
     assert.deepEqual(parseNewAdrFormMessage({ type: 'cancel' }), { type: 'cancel' });
+    assert.deepEqual(parseNewAdrFormMessage({
+      type: 'cancel', workspace: 'file:///workspace',
+      state: { search: 'api', status: 'Accepted', sort: 'number-desc', scrollTop: 42 },
+    }), {
+      type: 'cancel', workspace: 'file:///workspace',
+      state: { search: 'api', status: 'Accepted', sort: 'number-desc', scrollTop: 42 },
+    });
     assert.deepEqual(parseNewAdrFormMessage({ type: 'openAdr', workspace: 'file:///workspace', relativePath: 'nested/0001-safe.md' }), {
       type: 'openAdr', workspace: 'file:///workspace', relativePath: 'nested/0001-safe.md',
     });
@@ -47,6 +54,7 @@ describe('visual ADR form host boundary', () => {
       null,
       { type: 'unknown' },
       { type: 'cancel', values },
+      { type: 'cancel', workspace: 'file:///workspace', state: { search: '', status: '', sort: 'invalid', scrollTop: 0 } },
       { type: 'create', values: { ...values, directory: '../outside' }, extra: true },
       { type: 'preview', values: { ...values, culture: 'fr-FR' } },
       { type: 'preview', values: { ...values, fields: { '<script>': 'alert(1)' } } },
@@ -102,7 +110,10 @@ describe('visual ADR form host boundary', () => {
     assert.match(source, /textContent = message\.response\.markdown/u);
     assert.doesNotMatch(source, /innerHTML/u);
     assert.match(source, /function clearCreationValues\(\)/u);
-    assert.match(source, /backToList\(\).*clearCreationValues\(\)/u);
+    assert.match(source, /backToList\(\).*type: 'cancel'/u);
+    assert.doesNotMatch(source, /backToList\(\).*clearCreationValues\(\)/u);
+    assert.match(source, /message\.type === 'showList'.*clearCreationValues\(\)/u);
+    assert.match(source, /message\.type === 'result'.*!document\.getElementById\('adr-form'\)/u);
     assert.match(source, /const targetScroll = listState\.scrollTop \|\| 0/u);
     assert.match(source, /window\.scrollTo\(0, targetScroll\)/u);
   });
