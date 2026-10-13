@@ -19,7 +19,19 @@
   let editDocument;
   const valuesByField = {};
   const restored = vscode.getState() || {};
-  let listState = restored.listState || { search: '', status: '', sort: 'number-desc', scrollTop: 0 };
+  let listState = normalizeListState(restored.listState);
+
+  function normalizeListState(value) {
+    const allowedSorts = ['number-desc', 'number-asc', 'title-asc', 'date-desc'];
+    return {
+      search: typeof value?.search === 'string' ? value.search.slice(0, 512) : '',
+      status: typeof value?.status === 'string' ? value.status.slice(0, 200) : '',
+      sort: allowedSorts.includes(value?.sort) ? value.sort : 'number-desc',
+      scrollTop: typeof value?.scrollTop === 'number' && Number.isFinite(value.scrollTop)
+        ? Math.min(Math.max(value.scrollTop, 0), 10_000_000)
+        : 0,
+    };
+  }
 
   function t(value, ...args) {
     let translated = strings[value] || value;
@@ -274,7 +286,7 @@
   function postForm(type) { vscode.postMessage({ type, values: currentValues() }); }
   function markDirty() { formDirty = true; }
   function clearCreationValues() { Object.keys(valuesByField).forEach((key) => { delete valuesByField[key]; }); }
-  function backToList() { if (busyCreate || (formDirty && !confirm(t('Discard the unsaved form data and return to the ADR list?')))) return; vscode.postMessage({ type: 'cancel', workspace: selectedWorkspace, state: listState }); }
+  function backToList() { if (busyCreate || (formDirty && !confirm(t('Discard the unsaved form data and return to the ADR list?')))) return; vscode.postMessage({ type: 'cancel', workspace: selectedWorkspace }); }
   function describe() { schema = undefined; clearTimeout(previewTimer); document.getElementById('status').textContent = t('Loading template…'); document.getElementById('content-fields').replaceChildren(); postForm('describe'); }
   function fieldLabel(id) { return t(({ context: 'Context', decisionDrivers: 'Decision drivers', optionsConsidered: 'Options considered', decision: 'Decision', rationale: 'Rationale', consequences: 'Consequences', positiveConsequences: 'Positive consequences', negativeConsequences: 'Negative consequences', risks: 'Risks', references: 'References' })[id] || id); }
   function fieldHelp(id) { return t(({ context: 'Describe the problem, constraints, and relevant stakeholders.', decisionDrivers: 'List requirements, quality attributes, constraints, and trade-offs.', optionsConsidered: 'Compare viable alternatives, including keeping the current approach.', decision: 'State the proposed choice, its scope, and why it addresses the problem.', rationale: 'Explain why this option best satisfies the decision drivers.', consequences: 'Describe expected impact and trade-offs.', positiveConsequences: 'Record expected benefits and assumptions.', negativeConsequences: 'Record costs, limitations, and added complexity.', risks: 'Identify uncertainties, failure modes, mitigations, and owners.', references: 'Add links to evidence, related documents, or ADRs.' })[id] || ''); }
