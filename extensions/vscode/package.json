@@ -61,6 +61,15 @@
     "onView:adrGuard.adrExplorer"
   ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "adrGuard",
+          "title": "%view.container%",
+          "icon": "images/icon-activity.svg"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "adrGuard.checkInstallation",
@@ -134,7 +143,7 @@
       }
     ],
     "views": {
-      "explorer": [
+      "adrGuard": [
         {
           "id": "adrGuard.adrExplorer",
           "name": "%view.adrExplorer%",

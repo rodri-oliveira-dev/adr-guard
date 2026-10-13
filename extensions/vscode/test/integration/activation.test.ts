@@ -56,7 +56,10 @@ suite('ADR Guard extension activation', () => {
     assert.equal(configuration.get<number>('debounceMilliseconds'), 750);
     assert.equal(configuration.get<string>('adrFormat'), 'canonical');
     assert.equal(configuration.get<string>('baseline'), '.adrguard-baseline.json');
-    assert.equal(extension.packageJSON.contributes.views.explorer[0].id, 'adrGuard.adrExplorer');
+    assert.deepEqual(extension.packageJSON.contributes.viewsContainers.activitybar, [{
+      id: 'adrGuard', title: 'ADR Guard', icon: 'images/icon-activity.svg',
+    }]);
+    assert.equal(extension.packageJSON.contributes.views.adrGuard[0].id, 'adrGuard.adrExplorer');
   });
 
   test('reuses the visual ADR Guard panel', async () => {

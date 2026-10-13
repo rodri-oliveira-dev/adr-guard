@@ -2,6 +2,7 @@
 !dist/extension.js
 !l10n/**
 !images/icon-vscode.png
+!images/icon-activity.svg
 !media/newAdrForm.js
 !media/newAdrForm.css
 !package.json

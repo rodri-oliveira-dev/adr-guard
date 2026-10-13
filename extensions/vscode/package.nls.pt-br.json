@@ -15,6 +15,7 @@
   "command.refreshExplorer": "Atualizar Explorador de ADRs",
   "command.openAdr": "Abrir ADR",
   "command.revealCurrentAdr": "Revelar ADR atual",
+  "view.container": "ADR Guard",
   "view.adrExplorer": "Registros de Decisões de Arquitetura",
   "view.adrExplorer.welcome": "Abra uma pasta local de workspace para explorar ADRs.\n[Atualizar](command:adrGuard.refreshExplorer)",
   "configuration.title": "ADR Guard",

@@ -4,6 +4,7 @@ All notable changes to ADR Guard for VS Code are documented here. Extension vers
 
 ## 0.9.0 — Unreleased
 
+- Added a dedicated ADR Guard Activity Bar container for direct access to the ADR Explorer and its list, creation, refresh, reveal, and format actions.
 - Added repository initialization and installation-check actions to the visual list header, scoped to its selected workspace folder; initialization is disabled with an explanatory tooltip after ADRs exist.
 - Added an English/Portuguese interface language selector to the visual list header, preserving the selection across list, creation, and editing navigation.
 - Fixed template loading so a successful CLI description uses an explicit Webview message and rendering failures no longer leave the form indefinitely loading.
