@@ -132,6 +132,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       return;
     }
     if (message.values === undefined) return;
+    this.selectedWorkspace = message.values.workspace;
     if (message.type === 'create' && !this.submission.begin()) return;
     await this.run(message.type, message.values);
   }

@@ -111,7 +111,7 @@ describe('visual ADR form host boundary', () => {
     assert.doesNotMatch(source, /innerHTML/u);
     assert.match(source, /function clearCreationValues\(\)/u);
     assert.match(source, /backToList\(\).*type: 'cancel'/u);
-    assert.match(source, /backToList\(\).*workspace: selectedWorkspace/u);
+    assert.doesNotMatch(source, /backToList\(\).*workspace: selectedWorkspace/u);
     assert.doesNotMatch(source, /backToList\(\).*state: listState/u);
     assert.doesNotMatch(source, /backToList\(\).*clearCreationValues\(\)/u);
     assert.match(source, /message\.type === 'showList'.*clearCreationValues\(\)/u);
