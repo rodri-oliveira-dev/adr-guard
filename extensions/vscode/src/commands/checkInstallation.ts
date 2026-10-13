@@ -12,9 +12,12 @@ export interface CheckInstallationDependencies {
   readonly log: OperationalLog;
 }
 
-export async function checkInstallation(dependencies: CheckInstallationDependencies): Promise<void> {
+export async function checkInstallation(
+  dependencies: CheckInstallationDependencies,
+  selectedWorkspace?: vscode.WorkspaceFolder,
+): Promise<void> {
   try {
-    const workspaceFolder = await selectWorkspaceFolder();
+    const workspaceFolder = selectedWorkspace ?? await selectWorkspaceFolder();
     if (workspaceFolder === undefined) {
       return;
     }

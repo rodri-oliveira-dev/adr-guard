@@ -14,7 +14,7 @@ export interface FormValues {
 export interface FormMessage {
   readonly type: 'ready' | 'describe' | 'preview' | 'create' | 'traditional' | 'cancel'
     | 'showList' | 'newAdr' | 'refreshList' | 'selectWorkspace' | 'openAdr' | 'revealCreated'
-    | 'editAdr' | 'saveEdit';
+    | 'editAdr' | 'saveEdit' | 'initializeRepository' | 'checkInstallation';
   readonly values?: FormValues;
   readonly editValues?: EditValues;
   readonly workspace?: string;
@@ -51,10 +51,11 @@ export function parseNewAdrFormMessage(value: unknown): FormMessage | undefined 
     return { type: value.type, workspace: value.workspace,
       ...(value.state === undefined ? {} : { state: value.state }) };
   }
-  if (value.type === 'refreshList' || value.type === 'revealCreated') {
+  if (value.type === 'revealCreated') {
     return isWorkspaceMessage(value) ? { type: value.type, workspace: value.workspace } : undefined;
   }
-  if (value.type === 'newAdr' || value.type === 'selectWorkspace' || value.type === 'showList') {
+  if (value.type === 'newAdr' || value.type === 'selectWorkspace' || value.type === 'showList'
+    || value.type === 'refreshList' || value.type === 'initializeRepository' || value.type === 'checkInstallation') {
     if (!isWorkspaceMessage(value, true) || (value.state !== undefined && !isListState(value.state))) return undefined;
     return { type: value.type, workspace: value.workspace, ...(value.state === undefined ? {} : { state: value.state }) };
   }

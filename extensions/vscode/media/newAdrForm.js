@@ -74,8 +74,7 @@
   function persistState() { vscode.setState({ listState, selectedWorkspace, interfaceLanguage }); }
   function listMessage(type) { return { type, workspace: selectedWorkspace, state: listState }; }
 
-  function renderList() {
-    app.replaceChildren();
+  function renderListHeader(initializationState, rerender) {
     const header = element('header', { className: 'list-header' });
     const heading = element('div');
     heading.append(element('h1', {}, t('Architecture Decision Records')), element('p', { className: 'intro directory' }, directory));
@@ -91,10 +90,31 @@
       persistListState();
       interfaceLanguage = language.value === 'pt-BR' ? 'pt-BR' : 'en-US';
       persistState();
-      renderList();
+      rerender();
     });
-    actions.append(language, button(t('New ADR'), () => { persistListState(); vscode.postMessage(listMessage('newAdr')); }), button(t('Refresh'), () => vscode.postMessage(listMessage('refreshList')), true));
+    const initialize = button(t('Initialize repository'), () => {
+      persistListState();
+      vscode.postMessage(listMessage('initializeRepository'));
+    }, true);
+    let initializeControl = initialize;
+    if (initializationState !== 'available') {
+      const hint = t(initializationState === 'initialized'
+        ? 'The ADR repository is already initialized.'
+        : 'Repository initialization is unavailable until the ADR directory can be read.');
+      initialize.disabled = true;
+      initialize.setAttribute('aria-label', `${t('Initialize repository')}. ${hint}`);
+      initializeControl = element('span', { className: 'disabled-button-wrapper', title: hint });
+      initializeControl.append(initialize);
+    }
+    const check = button(t('Check installation'), () => vscode.postMessage(listMessage('checkInstallation')), true);
+    actions.append(language, initializeControl, check, button(t('New ADR'), () => { persistListState(); vscode.postMessage(listMessage('newAdr')); }), button(t('Refresh'), () => vscode.postMessage(listMessage('refreshList')), true));
     header.append(heading, actions);
+    return header;
+  }
+
+  function renderList() {
+    app.replaceChildren();
+    const header = renderListHeader(entries.length > 0 ? 'initialized' : 'available', renderList);
     const controls = element('section', { className: 'filters', 'aria-label': t('Architecture Decision Records') });
     const workspace = select('list-workspace', workspaces.map((item) => ({ value: item.id, label: item.name })));
     workspace.value = selectedWorkspace;
@@ -158,6 +178,15 @@
   }
 
   function clearFilters() { listState.search = ''; listState.status = ''; renderList(); }
+  function renderListError(kind) {
+    const missing = kind === 'missing-directory';
+    app.replaceChildren(renderListHeader(missing ? 'available' : 'unavailable', () => renderListError(kind)));
+    const state = element('section', { className: 'empty-state', role: 'status' });
+    state.append(element('h2', {}, missing ? t('The configured ADR directory does not exist.') : t('The ADR directory could not be read.')));
+    if (missing) state.append(element('p', { className: 'intro' }, t('ADR Guard does not create directories while browsing.')));
+    state.append(button(t('Retry'), () => vscode.postMessage(listMessage('refreshList')), true));
+    app.append(state);
+  }
   function compareEntries(left, right) {
     const fallback = left.relativePath.localeCompare(right.relativePath, 'en', { sensitivity: 'case' });
     if (listState.sort === 'title-asc') return optionalCompare(left.title, right.title, false) || fallback;
@@ -324,7 +353,7 @@
     if (message.type === 'editLoaded') { selectedWorkspace = message.workspace; editDocument = message; renderEditForm(); return; }
     if (message.type === 'listLoading') { if (!document.getElementById('adr-list')) renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'listResult') { if (message.workspace !== selectedWorkspace) return; directory = `${workspaces.find((item) => item.id === selectedWorkspace)?.name || ''} · ${message.directory}`; entries = Array.isArray(message.entries) ? message.entries : []; if (message.state) listState = message.state; createdPath = message.createdPath; highlightKind = message.highlightKind || 'created'; renderList(); return; }
-    if (message.type === 'listError') { const missing = message.kind === 'missing-directory'; renderMessage(t('Architecture Decision Records'), missing ? t('The configured ADR directory does not exist.') : t('The ADR directory could not be read.'), button(t('Retry'), () => vscode.postMessage(listMessage('refreshList')))); if (missing) app.append(element('p', { className: 'intro centered' }, t('ADR Guard does not create directories while browsing.'))); return; }
+    if (message.type === 'listError') { if (message.workspace !== selectedWorkspace) return; const item = workspaces.find((candidate) => candidate.id === selectedWorkspace); directory = `${item?.name || ''} · ${message.directory || item?.directory || ''}`; renderListError(message.kind); return; }
     if (message.type === 'clearListFilters') { listState.search = ''; listState.status = ''; return; }
     if (message.type === 'created') { clearCreationValues(); formDirty = false; createdPath = message.relativePath; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'edited') { formDirty = false; createdPath = message.relativePath; highlightKind = 'updated'; editDocument = undefined; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }

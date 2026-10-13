@@ -29,9 +29,12 @@ export interface CoreCommandDependencies {
   readonly log: OperationalLog;
 }
 
-export async function initializeRepository(dependencies: CoreCommandDependencies): Promise<void> {
+export async function initializeRepository(
+  dependencies: CoreCommandDependencies,
+  workspaceFolder?: vscode.WorkspaceFolder,
+): Promise<void> {
   await runExplicit(dependencies.log, async () => {
-    const selected = await selectWorkspaceFolder();
+    const selected = workspaceFolder ?? await selectWorkspaceFolder();
     if (selected === undefined) return;
     const root = await resolveWorkspaceRoot(asLocation(selected));
     const directory = await promptDirectory(selected);

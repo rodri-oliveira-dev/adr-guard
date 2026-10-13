@@ -20,6 +20,8 @@ interface NewAdrFormDependencies {
   readonly extensionUri: vscode.Uri;
   readonly explorer: AdrExplorerProvider;
   readonly refreshExplorer: () => void;
+  readonly initializeRepository: (folder: vscode.WorkspaceFolder) => Promise<void>;
+  readonly checkInstallation: (folder: vscode.WorkspaceFolder) => Promise<void>;
 }
 
 type InitialScreen = 'list' | 'form';
@@ -34,6 +36,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
   private disposed = false;
   private selectedWorkspace: string | undefined;
   private readonly listRequests = new LatestListRequest();
+  private listActionActive = false;
   private created: { readonly workspace: string; readonly relativePath: string; readonly filePath: string; readonly kind: 'created' | 'updated' } | undefined;
 
   private constructor(private readonly dependencies: NewAdrFormDependencies, private screen: VisualScreen) {
@@ -103,6 +106,11 @@ export class NewAdrFormPanel implements vscode.Disposable {
       if (message.workspace === undefined) return;
       this.selectedWorkspace = message.workspace;
       await this.loadList(message.workspace, message.state);
+      return;
+    }
+    if (message.type === 'initializeRepository' || message.type === 'checkInstallation') {
+      if (message.workspace === undefined || message.workspace !== this.selectedWorkspace || this.listActionActive) return;
+      await this.runListAction(message.type, message.workspace, message.state);
       return;
     }
     if (message.type === 'openAdr') {
@@ -195,7 +203,9 @@ export class NewAdrFormPanel implements vscode.Disposable {
       if (!this.listRequests.isCurrent(sequence) || this.disposed) return;
       this.dependencies.log.info(`ADR list could not load: ${safeLogError(error)}`);
       const code = isNodeError(error) ? error.code : undefined;
-      await this.post({ type: 'listError', workspace, kind: code === 'ENOENT' ? 'missing-directory' : error instanceof WorkspacePolicyError ? 'workspace' : 'read' });
+      const folder = vscode.workspace.workspaceFolders?.find((candidate) => candidate.uri.toString() === workspace);
+      const directory = folder === undefined ? undefined : readValidationConfiguration(folder.uri).directory;
+      await this.post({ type: 'listError', workspace, directory, kind: code === 'ENOENT' ? 'missing-directory' : error instanceof WorkspacePolicyError ? 'workspace' : 'read' });
     }
   }
 
@@ -206,6 +216,41 @@ export class NewAdrFormPanel implements vscode.Disposable {
     } catch (error: unknown) {
       this.dependencies.log.info(`ADR list navigation was blocked: ${safeLogError(error)}`);
       await this.post({ type: 'listNavigationError', message: vscode.l10n.t('The selected ADR could not be opened safely.') });
+    }
+  }
+
+  private async runListAction(
+    action: 'initializeRepository' | 'checkInstallation',
+    workspace: string,
+    state?: ListState,
+  ): Promise<void> {
+    this.listActionActive = true;
+    try {
+      const folder = workspaceFolder(workspace);
+      if (action === 'checkInstallation') {
+        await this.dependencies.checkInstallation(folder);
+        return;
+      }
+      let entryCount = 0;
+      try {
+        entryCount = (await this.dependencies.explorer.catalogFor(folder)).length;
+      } catch (error: unknown) {
+        if (!isNodeError(error) || error.code !== 'ENOENT') throw error;
+      }
+      if (entryCount > 0) {
+        await vscode.window.showInformationMessage(vscode.l10n.t('The ADR repository is already initialized.'));
+        await this.loadList(workspace, state);
+        return;
+      }
+      await this.dependencies.initializeRepository(folder);
+      this.dependencies.refreshExplorer();
+      await this.loadList(workspace, state);
+      this.panel.reveal(vscode.ViewColumn.Active, true);
+    } catch (error: unknown) {
+      this.dependencies.log.info(`ADR list action failed: ${safeLogError(error)}`);
+      await this.post({ type: 'listNavigationError', message: formErrorMessage(error) });
+    } finally {
+      this.listActionActive = false;
     }
   }
 
@@ -363,7 +408,9 @@ function formErrorMessage(error: unknown): string { if (error instanceof FormCap
 function editErrorMessage(error: unknown): string { if (error instanceof WorkspacePolicyError) return vscode.l10n.t('The selected ADR is unavailable or outside the configured ADR directory.'); if (error instanceof CliDiscoveryError) return vscode.l10n.t('ADR Guard was not found. Configure adrGuard.cli.path or install it on the extension host PATH.'); return error instanceof Error ? error.message : vscode.l10n.t('ADR Guard failed for an unknown reason.'); }
 function webviewStrings(extensionUri: vscode.Uri): Record<'en-US' | 'pt-BR', Record<string, string>> {
   const values = ['ADR Guard', 'Architecture Decision Records', 'New ADR', 'Edit', 'Edit ADR', 'Save changes', 'Saving changes…', 'Loading ADR…', 'Refresh', 'Retry', 'Search ADRs', 'All statuses', 'Number (descending)', 'Number (ascending)', 'Title (A–Z)', 'Date (newest)', 'Sort by', 'Filter by status', 'No ADRs were found in this directory.', 'Create your first ADR to record an architectural decision.', 'No ADRs match the current search and filters.', 'Clear filters', 'The configured ADR directory does not exist.', 'ADR Guard does not create directories while browsing.', 'Open a local workspace folder to browse ADRs.', 'Trust this workspace to browse ADRs.', 'The ADR directory could not be read.', 'Loading ADRs…', '{0} ADRs shown', '{0} of {1} ADRs shown', 'Unknown title', 'Unknown status', 'No identifier', 'Open Markdown', 'This ADR has incomplete metadata.', 'The new ADR is hidden by the current filters.', 'The updated ADR is hidden by the current filters.', 'Reveal it', 'ADR created.', 'ADR updated.', 'Create ADR with Form', 'Back to ADR list', 'Workspace folder', 'ADR destination directory', 'Creation template', 'Document language', 'Decision title', 'Markdown preview', 'Create ADR', 'Cancel', 'Use traditional creation', 'Configured template', 'Minimal', 'Extended', 'Minimal captures the context, decision, and consequences.', 'Extended adds optional drivers, alternatives, rationale, risks, and references.', 'This custom template cannot be mapped safely to form fields. Use the traditional creation flow to preserve it.', 'Required', 'Optional', 'Preview updates after you edit the form.', 'No file is written until you choose Create ADR.', 'Context', 'Decision drivers', 'Options considered', 'Decision', 'Rationale', 'Consequences', 'Positive consequences', 'Negative consequences', 'Risks', 'References', 'Describe the problem, constraints, and relevant stakeholders.', 'List requirements, quality attributes, constraints, and trade-offs.', 'Compare viable alternatives, including keeping the current approach.', 'State the proposed choice, its scope, and why it addresses the problem.', 'Explain why this option best satisfies the decision drivers.', 'Describe expected impact and trade-offs.', 'Record expected benefits and assumptions.', 'Record costs, limitations, and added complexity.', 'Identify uncertainties, failure modes, mitigations, and owners.', 'Add links to evidence, related documents, or ADRs.', 'Loading template…', 'The template could not be displayed. Try again.', 'Creating ADR…', 'Preview unavailable until required fields are complete.', 'Discard the unsaved form data and return to the ADR list?', 'Discard the unsaved form data and start a new ADR?', 'The selected ADR could not be opened safely.'];
-  values.splice(2, 0, 'Interface language');
+  values.splice(2, 0, 'Interface language', 'Initialize repository', 'Check installation',
+    'The ADR repository is already initialized.',
+    'Repository initialization is unavailable until the ADR directory can be read.');
   const english = Object.fromEntries(values.map((value) => [value, value]));
   const portugueseCatalog = readTranslationCatalog(vscode.Uri.joinPath(extensionUri, 'l10n', 'bundle.l10n.pt-br.json'));
   const portuguese = Object.fromEntries(values.map((value) => [value, portugueseCatalog[value] ?? value]));

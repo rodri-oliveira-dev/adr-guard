@@ -29,6 +29,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const saveValidation = new SaveValidationController(diagnostics, log);
   const explorer = new AdrExplorerController(log);
   const core = { executor, diagnostics, log };
+  const installation = { discovery, runner, log };
   activeRunner = runner;
 
   context.subscriptions.push(
@@ -38,7 +39,7 @@ export function activate(context: vscode.ExtensionContext): void {
     saveValidation,
     explorer,
     vscode.commands.registerCommand('adrGuard.checkInstallation', async () =>
-      checkInstallation({ discovery, runner, log })),
+      checkInstallation(installation)),
     vscode.commands.registerCommand('adrGuard.initializeRepository', async () => initializeRepository(core)),
     vscode.commands.registerCommand('adrGuard.createAdr', async () => createAdr(core)),
     vscode.commands.registerCommand('adrGuard.openVisual', async () => NewAdrFormPanel.show({
@@ -47,6 +48,8 @@ export function activate(context: vscode.ExtensionContext): void {
       extensionUri: context.extensionUri,
       explorer: explorer.provider,
       refreshExplorer: () => explorer.refresh(),
+      initializeRepository: async (folder) => initializeRepository(core, folder),
+      checkInstallation: async (folder) => checkInstallation(installation, folder),
     }, 'list')),
     vscode.commands.registerCommand('adrGuard.createAdrWithForm', async () => NewAdrFormPanel.show({
       executor,
@@ -54,6 +57,8 @@ export function activate(context: vscode.ExtensionContext): void {
       extensionUri: context.extensionUri,
       explorer: explorer.provider,
       refreshExplorer: () => explorer.refresh(),
+      initializeRepository: async (folder) => initializeRepository(core, folder),
+      checkInstallation: async (folder) => checkInstallation(installation, folder),
     }, 'form')),
     vscode.commands.registerCommand('adrGuard.validateAdrs', async () => validateAdrs(core)),
     vscode.commands.registerCommand('adrGuard.validateChangedAdrs', async () => validateChangedAdrs(core)),

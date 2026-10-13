@@ -158,6 +158,10 @@ select.language-switch {
   width: auto;
 }
 
+.disabled-button-wrapper {
+  display: inline-flex;
+}
+
 button {
   color: var(--vscode-button-foreground);
   background: var(--vscode-button-background);
@@ -196,4 +200,6 @@ button:disabled {
   .filters { grid-template-columns: 1fr; }
   .actions { align-items: stretch; flex-direction: column; }
   select.language-switch { width: 100%; }
+  .disabled-button-wrapper,
+  .disabled-button-wrapper button { width: 100%; }
 }

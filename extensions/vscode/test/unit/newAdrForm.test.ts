@@ -50,6 +50,15 @@ describe('visual ADR form host boundary', () => {
       title: 'Safe', fields: { 'section-0': 'Accepted' },
     };
     assert.deepEqual(parseNewAdrFormMessage({ type: 'saveEdit', editValues }), { type: 'saveEdit', editValues });
+    for (const type of ['refreshList', 'initializeRepository', 'checkInstallation'] as const) {
+      assert.deepEqual(parseNewAdrFormMessage({
+        type, workspace: 'file:///workspace',
+        state: { search: 'api', status: 'Accepted', sort: 'number-desc', scrollTop: 42 },
+      }), {
+        type, workspace: 'file:///workspace',
+        state: { search: 'api', status: 'Accepted', sort: 'number-desc', scrollTop: 42 },
+      });
+    }
     for (const invalid of [
       null,
       { type: 'unknown' },
@@ -124,6 +133,10 @@ describe('visual ADR form host boundary', () => {
     assert.match(source, /language\.addEventListener\('change'/u);
     assert.match(source, /interfaceLanguage = language\.value === 'pt-BR' \? 'pt-BR' : 'en-US'/u);
     assert.doesNotMatch(source, /aria-pressed/u);
+    assert.match(source, /listMessage\('initializeRepository'\)/u);
+    assert.match(source, /listMessage\('checkInstallation'\)/u);
+    assert.match(source, /entries\.length > 0 \? 'initialized' : 'available'/u);
+    assert.match(source, /className: 'disabled-button-wrapper', title: hint/u);
     assert.match(source, /restored\.interfaceLanguage === 'pt-BR'/u);
     assert.match(source, /let listState = normalizeListState\(restored\.listState\)/u);
     assert.match(source, /const targetScroll = listState\.scrollTop \|\| 0/u);
