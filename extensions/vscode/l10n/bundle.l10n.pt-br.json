@@ -127,6 +127,7 @@
   "Identify uncertainties, failure modes, mitigations, and owners.": "Identifique incertezas, modos de falha, mitigações e responsáveis.",
   "Add links to evidence, related documents, or ADRs.": "Adicione links para evidências, documentos relacionados ou ADRs.",
   "Loading template…": "Carregando template…",
+  "The template could not be displayed. Try again.": "Não foi possível exibir o template. Tente novamente.",
   "Creating ADR…": "Criando ADR…",
   "Preview unavailable until required fields are complete.": "A prévia fica indisponível até que os campos obrigatórios sejam preenchidos.",
   "ADR Guard": "ADR Guard",

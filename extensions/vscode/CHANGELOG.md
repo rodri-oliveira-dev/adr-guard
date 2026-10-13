@@ -4,6 +4,7 @@ All notable changes to ADR Guard for VS Code are documented here. Extension vers
 
 ## 0.9.0 — Unreleased
 
+- Fixed template loading so a successful CLI description uses an explicit Webview message and rendering failures no longer leave the form indefinitely loading.
 - Fixed **Back to ADR list** so it accepts empty forms, remains compatible while an older Extension Host is still loaded, normalizes legacy saved list state, cancels pending form work, waits for host acknowledgement before discarding values, and ignores stale form responses after navigation.
 - Added in-place canonical and MADR 4.0 editing from every visual list item, reusing the existing panel/form controls with dynamic CLI-described fields, dirty-state confirmation, progress/errors, refreshed list highlighting, and safe Markdown opening.
 - Added strict adaptation for the CLI schema `1.0` `edit --form` contract, including workspace/catalog path revalidation, bounded messages, duplicate-save protection, format-aware validation, untouched-content preservation, and SHA-256 conflict detection.

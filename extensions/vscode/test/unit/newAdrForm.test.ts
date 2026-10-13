@@ -115,7 +115,9 @@ describe('visual ADR form host boundary', () => {
     assert.doesNotMatch(source, /backToList\(\).*state: listState/u);
     assert.doesNotMatch(source, /backToList\(\).*clearCreationValues\(\)/u);
     assert.match(source, /message\.type === 'showList'.*clearCreationValues\(\)/u);
-    assert.match(source, /message\.type === 'result'.*!document\.getElementById\('adr-form'\)/u);
+    assert.match(source, /message\.type === 'templateLoaded'.*displayTemplate\(message\.response\)/u);
+    assert.match(source, /function displayTemplate\(response\).*renderSchema\(response\)/u);
+    assert.match(source, /templateTimer = setTimeout/u);
     assert.match(source, /let listState = normalizeListState\(restored\.listState\)/u);
     assert.match(source, /const targetScroll = listState\.scrollTop \|\| 0/u);
     assert.match(source, /window\.scrollTo\(0, targetScroll\)/u);
