@@ -67,6 +67,8 @@ Multi-root workspaces are supported. Commands use the active file's folder when 
 
 Run **ADR Guard: Open ADR Guard** from the Command Palette or the ADR Explorer title. The reusable visual panel starts on the selected workspace folder's configured ADR directory and shows available identifier, title, status, date, and relative path metadata. Search is case-insensitive across title, identifier, and path; status filters and deterministic number/title/date ordering run locally without invoking full CLI validation. Missing metadata remains visibly unknown and unnumbered records sort after numbered ADRs.
 
+Clicking the dedicated ADR Guard icon in the Activity Bar also opens or reveals this visual list. The same panel is reused, so repeated clicks do not create duplicate tabs.
+
 The list header provides an accessible English/Portuguese interface language selector. It also exposes the existing installation check and repository initialization flows for the selected workspace folder. Initialization is available only while the configured directory has no ADRs; once ADRs exist, the disabled control explains that the repository is already initialized. The language choice is kept while navigating between the list, creation form, and edit form, independently from the ADR document language.
 
 The list distinguishes loading, empty, filtered-empty, missing-directory, unavailable-workspace, and read-error states. It never creates a directory or initializes a repository while browsing. File changes are batched by the shared ADR Explorer watcher, and switching workspace folders cannot allow an older response to replace the current folder.

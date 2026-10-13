@@ -73,6 +73,16 @@ suite('ADR Guard extension activation', () => {
     assert.equal(countWebviews(), 1);
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
   });
+
+  test('opens the visual ADR list from the Activity Bar container', async () => {
+    const countWebviews = (): number => vscode.window.tabGroups.all.flatMap((group) => group.tabs)
+      .filter((tab) => tab.input instanceof vscode.TabInputWebview && tab.label === 'ADR Guard').length;
+    assert.equal(countWebviews(), 0);
+    await vscode.commands.executeCommand('workbench.view.extension.adrGuard');
+    await waitFor(() => countWebviews() === 1);
+    assert.equal(countWebviews(), 1);
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+  });
 });
 
 async function waitFor(condition: () => boolean): Promise<void> {

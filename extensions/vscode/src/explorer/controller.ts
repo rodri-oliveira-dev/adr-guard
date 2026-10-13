@@ -9,13 +9,16 @@ export class AdrExplorerController implements vscode.Disposable {
   private readonly view: vscode.TreeView<ReturnTypeNode>;
   private readonly disposables: vscode.Disposable[];
 
-  public constructor(log: OperationalLog) {
+  public constructor(log: OperationalLog, openVisualList: () => void) {
     this.provider = new AdrExplorerProvider(log);
     this.view = vscode.window.createTreeView('adrGuard.adrExplorer', {
       treeDataProvider: this.provider,
       showCollapseAll: true,
     });
-    this.disposables = [this.provider, this.view];
+    const visibility = this.view.onDidChangeVisibility((event) => {
+      if (event.visible) openVisualList();
+    });
+    this.disposables = [this.provider, this.view, visibility];
   }
 
   public refresh(): void {
