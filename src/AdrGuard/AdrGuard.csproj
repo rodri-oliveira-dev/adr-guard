@@ -9,7 +9,7 @@
     <ToolCommandName>adr-guard</ToolCommandName>
 
     <PackageId>RodriOliveira.AdrGuard</PackageId>
-    <VersionPrefix>1.6.0</VersionPrefix>
+    <VersionPrefix>1.7.0</VersionPrefix>
     <Title>ADR Guard - Architecture Decision Records Validator</Title>
     <Authors>Rodrigo de Oliveira</Authors>
     <Description>Validate, index, create, draft, review, analyze impact, and verify ADR-backed architectural drift from the command line. ADR Guard provides deterministic Markdown checks, explicit mappings, bounded fitness evidence, offline ADR generation, and optional human-reviewed AI assistance.</Description>
@@ -18,11 +18,11 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon-nuget.png</PackageIcon>
-    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '1.6.0'">ADR-backed architectural drift verification with deterministic .NET project-reference checks.
-Strict external fitness evidence provenance, explicit unknown semantics, stable fingerprints and reviewable baselines.
-Opt-in advisory or deterministic CI enforcement through the new drift command.
-Preserves existing commands, canonical defaults, JSON/SARIF, impact, review, Action and extension contracts.
-Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.6.0</PackageReleaseNotes>
+    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '1.7.0'">Versioned form contracts for trusted visual ADR creation and editing adapters.
+Native-template discovery, side-effect-free preview, atomic creation and conflict-safe in-place updates.
+Preserves unknown Markdown sections, existing filenames and identifiers during focused edits.
+Preserves existing command-line behavior, canonical defaults, JSON/SARIF, impact, drift, review and Action contracts.
+Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.7.0</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/rodri-oliveira-dev/adr-guard</PackageProjectUrl>
     <RepositoryUrl>https://github.com/rodri-oliveira-dev/adr-guard</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
