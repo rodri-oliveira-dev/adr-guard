@@ -3,7 +3,8 @@
   'use strict';
   const vscode = acquireVsCodeApi();
   const app = document.getElementById('app');
-  let strings = {};
+  let strings = { 'en-US': {}, 'pt-BR': {} };
+  let interfaceLanguage;
   let workspaces = [];
   let trusted = true;
   let selectedWorkspace;
@@ -35,7 +36,7 @@
   }
 
   function t(value, ...args) {
-    let translated = strings[value] || value;
+    let translated = strings[interfaceLanguage]?.[value] || strings['en-US']?.[value] || value;
     args.forEach((arg, index) => { translated = translated.replace(`{${index}}`, String(arg)); });
     return translated;
   }
@@ -68,8 +69,9 @@
   }
   function persistListState() {
     listState.scrollTop = window.scrollY;
-    vscode.setState({ listState, selectedWorkspace });
+    persistState();
   }
+  function persistState() { vscode.setState({ listState, selectedWorkspace, interfaceLanguage }); }
   function listMessage(type) { return { type, workspace: selectedWorkspace, state: listState }; }
 
   function renderList() {
@@ -78,7 +80,13 @@
     const heading = element('div');
     heading.append(element('h1', {}, t('Architecture Decision Records')), element('p', { className: 'intro directory' }, directory));
     const actions = element('div', { className: 'actions compact' });
-    actions.append(button(t('New ADR'), () => { persistListState(); vscode.postMessage(listMessage('newAdr')); }), button(t('Refresh'), () => vscode.postMessage(listMessage('refreshList')), true));
+    const language = element('div', { className: 'language-switch', role: 'group', 'aria-label': t('Interface language') });
+    [['en-US', 'English'], ['pt-BR', 'Português (Brasil)']].forEach(([value, label]) => {
+      const choice = button(label, () => { persistListState(); interfaceLanguage = value; persistState(); renderList(); }, true);
+      choice.setAttribute('aria-pressed', String(interfaceLanguage === value));
+      language.append(choice);
+    });
+    actions.append(language, button(t('New ADR'), () => { persistListState(); vscode.postMessage(listMessage('newAdr')); }), button(t('Refresh'), () => vscode.postMessage(listMessage('refreshList')), true));
     header.append(heading, actions);
     const controls = element('section', { className: 'filters', 'aria-label': t('Architecture Decision Records') });
     const workspace = select('list-workspace', workspaces.map((item) => ({ value: item.id, label: item.name })));
@@ -139,7 +147,7 @@
         : t(highlightKind === 'updated' ? 'The updated ADR is hidden by the current filters.' : 'The new ADR is hidden by the current filters.')));
       if (!visible) banner.append(button(t('Reveal it'), () => vscode.postMessage({ type: 'revealCreated', workspace: selectedWorkspace }), true));
     }
-    vscode.setState({ listState, selectedWorkspace });
+    persistState();
   }
 
   function clearFilters() { listState.search = ''; listState.status = ''; renderList(); }
@@ -300,7 +308,7 @@
 
   window.addEventListener('message', (event) => {
     const message = event.data; if (!message || typeof message.type !== 'string') return;
-    if (message.type === 'initialize') { strings = message.strings || {}; workspaces = Array.isArray(message.workspaces) ? message.workspaces : []; trusted = message.trusted !== false; selectedWorkspace = restored.selectedWorkspace && workspaces.some((item) => item.id === restored.selectedWorkspace) ? restored.selectedWorkspace : message.initialWorkspace; if (!trusted) renderMessage(t('ADR Guard'), t('Trust this workspace to browse ADRs.')); else if (!workspaces.length) renderMessage(t('ADR Guard'), t('Open a local workspace folder to browse ADRs.')); else if (message.initialScreen === 'form') renderForm(message.initialCulture); else renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
+    if (message.type === 'initialize') { strings = message.strings || strings; interfaceLanguage = restored.interfaceLanguage === 'pt-BR' || restored.interfaceLanguage === 'en-US' ? restored.interfaceLanguage : message.initialInterfaceLanguage; workspaces = Array.isArray(message.workspaces) ? message.workspaces : []; trusted = message.trusted !== false; selectedWorkspace = restored.selectedWorkspace && workspaces.some((item) => item.id === restored.selectedWorkspace) ? restored.selectedWorkspace : message.initialWorkspace; if (!trusted) renderMessage(t('ADR Guard'), t('Trust this workspace to browse ADRs.')); else if (!workspaces.length) renderMessage(t('ADR Guard'), t('Open a local workspace folder to browse ADRs.')); else if (message.initialScreen === 'form') renderForm(message.initialCulture); else renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'showForm') { if (message.workspace) selectedWorkspace = message.workspace; renderForm(); return; }
     if (message.type === 'showList') { if (message.state) listState = message.state; clearCreationValues(); formDirty = false; editDocument = undefined; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'requestShowList') { backToList(); return; }

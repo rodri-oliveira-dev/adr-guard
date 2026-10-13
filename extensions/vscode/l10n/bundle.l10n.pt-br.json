@@ -132,6 +132,7 @@
   "Preview unavailable until required fields are complete.": "A prévia fica indisponível até que os campos obrigatórios sejam preenchidos.",
   "ADR Guard": "ADR Guard",
   "Architecture Decision Records": "Registros de Decisões de Arquitetura",
+  "Interface language": "Idioma da interface",
   "New ADR": "Nova ADR",
   "Refresh": "Atualizar",
   "Retry": "Tentar novamente",

@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import * as vscode from 'vscode';
 import { CliDiscoveryError } from '../cli/discovery';
 import { CliExecutor, requireSuccessfulResult, safeErrorLine } from '../cli/executor';
@@ -150,8 +151,9 @@ export class NewAdrFormPanel implements vscode.Disposable {
       workspaces: folders.map((folder) => ({ id: folder.uri.toString(), name: folder.name, directory: readValidationConfiguration(folder.uri).directory })),
       initialWorkspace: this.selectedWorkspace,
       initialCulture: vscode.env.language.toLowerCase() === 'pt-br' ? 'pt-BR' : 'en-US',
+      initialInterfaceLanguage: vscode.env.language.toLowerCase() === 'pt-br' ? 'pt-BR' : 'en-US',
       initialScreen: this.screen,
-      strings: webviewStrings(),
+      strings: webviewStrings(this.dependencies.extensionUri),
     });
     if (this.screen === 'list' && this.selectedWorkspace !== undefined && vscode.workspace.isTrusted) await this.loadList(this.selectedWorkspace);
   }
@@ -359,9 +361,22 @@ function workspaceFolder(id: string): vscode.WorkspaceFolder { const folder = vs
 function validateResponseForOperation(response: NewAdrFormResponse, operation: NewAdrFormOperation): void { if (response.operation !== operation) throw new Error(vscode.l10n.t('The CLI returned a response for a different form operation.')); if (operation === 'preview' && (response.markdown === undefined || response.written)) throw new Error(vscode.l10n.t('The CLI returned an invalid preview response.')); if (operation === 'describe' && (response.path !== undefined || response.markdown !== undefined || response.written)) throw new Error(vscode.l10n.t('The CLI returned an invalid template description.')); }
 function formErrorMessage(error: unknown): string { if (error instanceof FormCapabilityError) return vscode.l10n.t('The installed ADR Guard CLI does not support visual creation. Install CLI 1.7.0 or newer, or use the traditional creation flow.'); if (error instanceof WorkspacePolicyError) return error.code === 'outside-workspace' || error.code === 'invalid-path' ? vscode.l10n.t('The ADR destination must be a safe directory inside the selected workspace.') : vscode.l10n.t('Open a trusted local workspace before using the ADR form.'); if (error instanceof CliDiscoveryError) return vscode.l10n.t('ADR Guard was not found. Configure adrGuard.cli.path or install it on the extension host PATH.'); return error instanceof Error ? error.message : vscode.l10n.t('ADR Guard failed for an unknown reason.'); }
 function editErrorMessage(error: unknown): string { if (error instanceof WorkspacePolicyError) return vscode.l10n.t('The selected ADR is unavailable or outside the configured ADR directory.'); if (error instanceof CliDiscoveryError) return vscode.l10n.t('ADR Guard was not found. Configure adrGuard.cli.path or install it on the extension host PATH.'); return error instanceof Error ? error.message : vscode.l10n.t('ADR Guard failed for an unknown reason.'); }
-function webviewStrings(): Record<string, string> {
+function webviewStrings(extensionUri: vscode.Uri): Record<'en-US' | 'pt-BR', Record<string, string>> {
   const values = ['ADR Guard', 'Architecture Decision Records', 'New ADR', 'Edit', 'Edit ADR', 'Save changes', 'Saving changes…', 'Loading ADR…', 'Refresh', 'Retry', 'Search ADRs', 'All statuses', 'Number (descending)', 'Number (ascending)', 'Title (A–Z)', 'Date (newest)', 'Sort by', 'Filter by status', 'No ADRs were found in this directory.', 'Create your first ADR to record an architectural decision.', 'No ADRs match the current search and filters.', 'Clear filters', 'The configured ADR directory does not exist.', 'ADR Guard does not create directories while browsing.', 'Open a local workspace folder to browse ADRs.', 'Trust this workspace to browse ADRs.', 'The ADR directory could not be read.', 'Loading ADRs…', '{0} ADRs shown', '{0} of {1} ADRs shown', 'Unknown title', 'Unknown status', 'No identifier', 'Open Markdown', 'This ADR has incomplete metadata.', 'The new ADR is hidden by the current filters.', 'The updated ADR is hidden by the current filters.', 'Reveal it', 'ADR created.', 'ADR updated.', 'Create ADR with Form', 'Back to ADR list', 'Workspace folder', 'ADR destination directory', 'Creation template', 'Document language', 'Decision title', 'Markdown preview', 'Create ADR', 'Cancel', 'Use traditional creation', 'Configured template', 'Minimal', 'Extended', 'Minimal captures the context, decision, and consequences.', 'Extended adds optional drivers, alternatives, rationale, risks, and references.', 'This custom template cannot be mapped safely to form fields. Use the traditional creation flow to preserve it.', 'Required', 'Optional', 'Preview updates after you edit the form.', 'No file is written until you choose Create ADR.', 'Context', 'Decision drivers', 'Options considered', 'Decision', 'Rationale', 'Consequences', 'Positive consequences', 'Negative consequences', 'Risks', 'References', 'Describe the problem, constraints, and relevant stakeholders.', 'List requirements, quality attributes, constraints, and trade-offs.', 'Compare viable alternatives, including keeping the current approach.', 'State the proposed choice, its scope, and why it addresses the problem.', 'Explain why this option best satisfies the decision drivers.', 'Describe expected impact and trade-offs.', 'Record expected benefits and assumptions.', 'Record costs, limitations, and added complexity.', 'Identify uncertainties, failure modes, mitigations, and owners.', 'Add links to evidence, related documents, or ADRs.', 'Loading template…', 'The template could not be displayed. Try again.', 'Creating ADR…', 'Preview unavailable until required fields are complete.', 'Discard the unsaved form data and return to the ADR list?', 'Discard the unsaved form data and start a new ADR?', 'The selected ADR could not be opened safely.'];
-  return Object.fromEntries(values.map((value) => [value, vscode.l10n.t(value)]));
+  values.splice(2, 0, 'Interface language');
+  const english = Object.fromEntries(values.map((value) => [value, value]));
+  const portugueseCatalog = readTranslationCatalog(vscode.Uri.joinPath(extensionUri, 'l10n', 'bundle.l10n.pt-br.json'));
+  const portuguese = Object.fromEntries(values.map((value) => [value, portugueseCatalog[value] ?? value]));
+  return { 'en-US': english, 'pt-BR': portuguese };
+}
+function readTranslationCatalog(uri: vscode.Uri): Record<string, string> {
+  try {
+    const value = JSON.parse(readFileSync(uri.fsPath, 'utf8')) as unknown;
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) return {};
+    return Object.fromEntries(Object.entries(value).filter((entry): entry is [string, string] => typeof entry[1] === 'string'));
+  } catch {
+    return {};
+  }
 }
 function safeLogError(error: unknown): string { return (error instanceof Error ? error.message : 'unknown error').replace(/[\r\n\0]/gu, ' ').slice(0, 300); }
 function escapeHtml(value: string): string { return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'); }
