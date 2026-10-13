@@ -106,4 +106,12 @@ describe('visual ADR form host boundary', () => {
     assert.match(source, /const targetScroll = listState\.scrollTop \|\| 0/u);
     assert.match(source, /window\.scrollTo\(0, targetScroll\)/u);
   });
+
+  it('resolves the selected workspace before the form control is mounted', async () => {
+    const source = await readFile(path.resolve(__dirname, '../../../media/newAdrForm.js'), 'utf8');
+    assert.match(source, /workspaceControl \? workspaceControl\.value : selectedWorkspace/u);
+    const selectedWorkspaceFunction = /function selectedWorkspaceItem\(\) \{(?<body>[\s\S]*?)\n[ ]{2}\}/u.exec(source)?.groups?.body;
+    assert.ok(selectedWorkspaceFunction);
+    assert.doesNotMatch(selectedWorkspaceFunction, /document\.getElementById\('workspace'\)\.value/u);
+  });
 });

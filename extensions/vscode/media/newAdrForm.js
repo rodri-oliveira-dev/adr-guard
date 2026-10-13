@@ -265,7 +265,11 @@
     app.append(back, heading, identity, statusNode, error, form);
     title.focus();
   }
-  function selectedWorkspaceItem() { return workspaces.find((item) => item.id === document.getElementById('workspace').value) || workspaces[0]; }
+  function selectedWorkspaceItem() {
+    const workspaceControl = document.getElementById('workspace');
+    const workspaceId = workspaceControl ? workspaceControl.value : selectedWorkspace;
+    return workspaces.find((item) => item.id === workspaceId) || workspaces[0];
+  }
   function currentValues() { document.querySelectorAll('[data-field-id]').forEach((control) => { valuesByField[control.dataset.fieldId] = control.value; }); return { workspace: document.getElementById('workspace').value, directory: document.getElementById('directory').value, template: document.getElementById('template').value, culture: document.getElementById('culture').value, title: document.getElementById('title').value, fields: Object.fromEntries((schema?.fields || []).map((field) => [field.id, valuesByField[field.id] || ''])) }; }
   function postForm(type) { vscode.postMessage({ type, values: currentValues() }); }
   function markDirty() { formDirty = true; }
