@@ -2,7 +2,7 @@
 
 All notable changes to ADR Guard for VS Code are documented here. Extension versions are independent from ADR Guard CLI versions.
 
-## Unreleased
+## 0.9.0 — Unreleased
 
 - Added in-place canonical and MADR 4.0 editing from every visual list item, reusing the existing panel/form controls with dynamic CLI-described fields, dirty-state confirmation, progress/errors, refreshed list highlighting, and safe Markdown opening.
 - Added strict adaptation for the CLI schema `1.0` `edit --form` contract, including workspace/catalog path revalidation, bounded messages, duplicate-save protection, format-aware validation, untouched-content preservation, and SHA-256 conflict detection.

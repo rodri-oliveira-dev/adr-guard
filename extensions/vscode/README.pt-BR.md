@@ -40,7 +40,7 @@ Instale a extensão publicada pela aba **Extensões** do VS Code (pesquise **ADR
 code --install-extension rodrioliveira.adr-guard
 ```
 
-Para testar manualmente um VSIX gerado localmente, use **Extensions: Install from VSIX...** e selecione `adr-guard-0.1.1.vsix`. Esse processo é diferente da instalação pelo Marketplace.
+Para testar manualmente um VSIX gerado localmente, use **Extensions: Install from VSIX...** e selecione `adr-guard-0.9.0.vsix`. Esse processo é diferente da instalação pelo Marketplace.
 
 ## Comandos
 

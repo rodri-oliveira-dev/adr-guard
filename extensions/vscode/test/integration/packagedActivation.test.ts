@@ -2,10 +2,10 @@ import assert from 'node:assert/strict';
 import * as vscode from 'vscode';
 
 suite('Packaged ADR Guard extension', () => {
-  test('installs and activates the 0.1.1 VSIX', async () => {
+  test('installs and activates the 0.9.0 VSIX', async () => {
     const extension = vscode.extensions.all.find(
       (candidate) => candidate.packageJSON.name === 'adr-guard'
-        && candidate.packageJSON.version === '0.1.1',
+        && candidate.packageJSON.version === '0.9.0',
     );
     assert.ok(extension, 'the packaged extension must be installed in the isolated profile');
     assert.equal(extension.isActive, false);
