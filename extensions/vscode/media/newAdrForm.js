@@ -93,8 +93,9 @@
     search.addEventListener('input', () => { listState.search = search.value; update(); });
     status.addEventListener('change', () => { listState.status = status.value; update(); });
     sort.addEventListener('change', () => { listState.sort = sort.value; update(); });
+    const targetScroll = listState.scrollTop || 0;
     update();
-    window.requestAnimationFrame(() => window.scrollTo(0, listState.scrollTop || 0));
+    window.requestAnimationFrame(() => { window.scrollTo(0, targetScroll); listState.scrollTop = targetScroll; });
   }
 
   function renderEntries(list, announcement, banner) {
@@ -125,7 +126,7 @@
         : t(highlightKind === 'updated' ? 'The updated ADR is hidden by the current filters.' : 'The new ADR is hidden by the current filters.')));
       if (!visible) banner.append(button(t('Reveal it'), () => vscode.postMessage({ type: 'revealCreated', workspace: selectedWorkspace }), true));
     }
-    persistListState();
+    vscode.setState({ listState, selectedWorkspace });
   }
 
   function clearFilters() { listState.search = ''; listState.status = ''; renderList(); }

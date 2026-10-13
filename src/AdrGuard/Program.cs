@@ -34,11 +34,20 @@ ConsoleCancelEventHandler cancelHandler =
 
 Console.CancelKeyPress += cancelHandler;
 
+var usesFormContract = args.Length > 0
+    && args[0] is "new" or "edit"
+    && args.Contains("--form", StringComparer.Ordinal);
+using var formInput = usesFormContract
+    ? new StreamReader(
+        Console.OpenStandardInput(),
+        new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true))
+    : null;
+
 try
 {
     return CliApplication.Run(
         args,
-        Console.In,
+        formInput ?? Console.In,
         Console.Out,
         Console.Error,
         cancellationSource.Token);

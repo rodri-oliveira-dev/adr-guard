@@ -68,6 +68,14 @@ describe('CliRunner', () => {
     assert.equal(result.stdout, input);
   });
 
+  it('applies the form limit to characters instead of UTF-8 bytes', async () => {
+    const runner = new CliRunner();
+    const input = 'á'.repeat(80_000);
+    const result = await runner.run(request(['stdin'], { input, maxOutputBytes: 200_000 }));
+    assert.equal(result.exitCode, 0);
+    assert.equal(result.stdout, input);
+  });
+
   it('terminates timed-out processes', async () => {
     const runner = new CliRunner();
     const result = await runner.run(request(['wait'], { timeoutMilliseconds: 50 }));

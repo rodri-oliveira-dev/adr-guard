@@ -172,5 +172,7 @@
   "The CLI did not confirm the updated ADR.": "A CLI não confirmou a atualização da ADR.",
   "ADR Guard updated {0}.": "O ADR Guard atualizou {0}.",
   "The selected ADR is unavailable or outside the configured ADR directory.": "A ADR selecionada está indisponível ou fora do diretório de ADRs configurado.",
-  "Discard the unsaved form data and start a new ADR?": "Descartar os dados não salvos do formulário e iniciar uma nova ADR?"
+  "Discard the unsaved form data and start a new ADR?": "Descartar os dados não salvos do formulário e iniciar uma nova ADR?",
+  "This ADR is too large for visual editing. Reduce the edited content or use the Markdown editor.": "Esta ADR é grande demais para a edição visual. Reduza o conteúdo editado ou use o editor Markdown.",
+  "This ADR draft is too large for the visual form. Reduce the field content or use traditional creation.": "Este rascunho de ADR é grande demais para o formulário visual. Reduza o conteúdo dos campos ou use a criação tradicional."
 }

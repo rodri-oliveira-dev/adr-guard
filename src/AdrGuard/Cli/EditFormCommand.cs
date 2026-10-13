@@ -81,7 +81,7 @@ internal static class EditFormCommand
                 document.Title,
                 document.Fields.Select(field => new EditFieldResponse(
                     field.Id, field.Label, field.Kind, field.Required, field.Value, field.Options)).ToArray(),
-                Written: request.Operation == "save"));
+                Written: document.Written));
             return ExitCodes.Success;
         }
         catch (AdrEditValidationException exception)

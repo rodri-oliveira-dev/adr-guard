@@ -10,7 +10,7 @@ import type { AdrExplorerProvider } from '../explorer/provider';
 import { OperationalLog } from '../logging';
 import { asLocation } from '../workspace';
 import { ensureResourceWithinWorkspace, isResolvedPathWithin, resolveWorkspaceRelativePath, resolveWorkspaceRoot, WorkspacePolicyError } from '../workspacePolicy';
-import { parseNewAdrFormMessage, type EditValues, type FormValues, type ListState, VisualCreationSubmission } from '../webview/newAdrFormMessages';
+import { parseNewAdrFormMessage, type EditValues, type FormValues, type ListState, visualFormInputLimit, VisualCreationSubmission } from '../webview/newAdrFormMessages';
 import { LatestListRequest } from '../webview/adrListModel';
 
 interface NewAdrFormDependencies {
@@ -71,6 +71,13 @@ export class NewAdrFormPanel implements vscode.Disposable {
   }
 
   private async receive(value: unknown): Promise<void> {
+    const inputLimit = visualFormInputLimit(value);
+    if (inputLimit !== undefined) {
+      await this.post({ type: 'error', message: inputLimit === 'edit'
+        ? vscode.l10n.t('This ADR is too large for visual editing. Reduce the edited content or use the Markdown editor.')
+        : vscode.l10n.t('This ADR draft is too large for the visual form. Reduce the field content or use traditional creation.') });
+      return;
+    }
     const message = parseNewAdrFormMessage(value);
     if (message === undefined || this.disposed) {
       if (!this.disposed) await this.post({ type: 'error', message: vscode.l10n.t('The form sent an invalid message.') });
@@ -247,7 +254,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       );
       requireSuccessfulResult(execution.result);
       const response = parseEditFormResponse(execution.result.stdout.trim());
-      if (response.operation !== 'save' || !response.written || !samePath(response.path, target.filePath)) {
+      if (response.operation !== 'save' || !samePath(response.path, target.filePath)) {
         throw new Error(vscode.l10n.t('The CLI did not confirm the updated ADR.'));
       }
       this.created = { workspace: values.workspace, relativePath: values.relativePath, filePath: target.filePath, kind: 'updated' };

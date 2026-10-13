@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { editFormMaximumInputCharacters, editFormSchemaVersion } from '../contracts/editForm';
+import { newAdrFormMaximumInputCharacters, newAdrFormSchemaVersion } from '../contracts/newForm';
 
 export interface FormValues {
   readonly workspace: string;
@@ -38,6 +40,7 @@ export interface ListState {
 const maximumValueCharacters = 32 * 1024;
 
 export function parseNewAdrFormMessage(value: unknown): FormMessage | undefined {
+  if (visualFormInputLimit(value) !== undefined) return undefined;
   if (!isRecord(value) || typeof value.type !== 'string') return undefined;
   if (value.type === 'ready' || value.type === 'traditional' || value.type === 'cancel') {
     return Object.keys(value).length === 1 ? { type: value.type } : undefined;
@@ -70,6 +73,33 @@ export function parseNewAdrFormMessage(value: unknown): FormMessage | undefined 
   if (value.type !== 'describe' && value.type !== 'preview' && value.type !== 'create') return undefined;
   if (!isFormValues(value.values) || Object.keys(value).some((key) => key !== 'type' && key !== 'values')) return undefined;
   return { type: value.type, values: value.values };
+}
+
+export function visualFormInputLimit(value: unknown): 'creation' | 'edit' | undefined {
+  if (!isRecord(value) || typeof value.type !== 'string') return undefined;
+  try {
+    if ((value.type === 'describe' || value.type === 'preview' || value.type === 'create') && isRecord(value.values)) {
+      const input = JSON.stringify({
+        schemaVersion: newAdrFormSchemaVersion,
+        operation: value.type,
+        ...(value.type === 'describe' ? {} : { title: value.values.title, fields: value.values.fields }),
+      });
+      return typeof input === 'string' && input.length > newAdrFormMaximumInputCharacters ? 'creation' : undefined;
+    }
+    if (value.type === 'saveEdit' && isRecord(value.editValues)) {
+      const input = JSON.stringify({
+        schemaVersion: editFormSchemaVersion,
+        operation: 'save',
+        fingerprint: value.editValues.fingerprint,
+        title: value.editValues.title,
+        fields: value.editValues.fields,
+      });
+      return typeof input === 'string' && input.length > editFormMaximumInputCharacters ? 'edit' : undefined;
+    }
+  } catch {
+    return value.type === 'saveEdit' ? 'edit' : 'creation';
+  }
+  return undefined;
 }
 
 function isEditValues(value: unknown): value is EditValues {

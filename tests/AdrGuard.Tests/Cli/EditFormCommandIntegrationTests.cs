@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AdrGuard.Cli;
@@ -257,6 +259,246 @@ public sealed class EditFormCommandIntegrationTests
         }
     }
 
+    [Fact]
+    public void SaveWithoutChangesReportsThatNothingWasWritten()
+    {
+        var root = CreateDirectory();
+        var path = Path.Combine(root, "0004-no-op.md");
+        try
+        {
+            File.WriteAllText(path, Canonical);
+            var load = Run(path, LoadRequest(), "canonical");
+
+            var save = Run(path, SaveRequest(load.Output, "Choice", _ => { }), "canonical");
+
+            Assert.Equal(ExitCodes.Success, save.Code);
+            Assert.False(JsonNode.Parse(save.Output)!["written"]!.GetValue<bool>());
+            Assert.Equal(Canonical, File.ReadAllText(path));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void MadrLoadIgnoresFrontMatterCommentsAndIndentedMarkdownHeadings()
+    {
+        var root = CreateDirectory();
+        var path = Path.Combine(root, "0005-metadata.md");
+        const string markdown = """
+            ---
+            # owner: architecture
+            status: "proposed"
+            date: 2026-10-12
+            ---
+
+            # Actual title
+
+            ## Context and Problem Statement
+
+                ## Not an editable section
+
+            Context.
+
+            ## Considered Options
+
+            Option A.
+
+            ## Decision Outcome
+
+            Choose A.
+            """;
+        try
+        {
+            File.WriteAllText(path, markdown);
+
+            var load = Run(path, LoadRequest(), "madr-4");
+
+            Assert.Equal(ExitCodes.Success, load.Code);
+            var response = JsonNode.Parse(load.Output)!;
+            Assert.Equal("Actual title", response["title"]!.GetValue<string>());
+            var labels = response["fields"]!.AsArray()
+                .Select(field => field!["label"]!.GetValue<string>())
+                .ToArray();
+            Assert.DoesNotContain("# owner", labels);
+            Assert.DoesNotContain("Not an editable section", labels);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Theory]
+    [InlineData("line one\nline two")]
+    [InlineData("pro\"posed")]
+    public void MadrSaveRejectsUnsafeQuotedMetadataWithoutMutation(string status)
+    {
+        var root = CreateDirectory();
+        var path = Path.Combine(root, "0006-metadata.md");
+        const string markdown = """
+            ---
+            status: "proposed"
+            date: 2026-10-12
+            ---
+
+            # Choice
+
+            ## Context and Problem Statement
+
+            Context.
+
+            ## Considered Options
+
+            Option A.
+
+            ## Decision Outcome
+
+            Choose A.
+            """;
+        try
+        {
+            File.WriteAllText(path, markdown);
+            var load = Run(path, LoadRequest(), "madr-4");
+            var request = SaveRequest(load.Output, "Choice", values =>
+                values[FieldId(load.Output, "status")] = status);
+
+            var save = Run(path, request, "madr-4");
+
+            Assert.Equal(ExitCodes.UsageError, save.Code);
+            Assert.Equal(Encoding.UTF8.GetBytes(markdown), File.ReadAllBytes(path));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void SavePreservesUtf8Bom()
+    {
+        var root = CreateDirectory();
+        var path = Path.Combine(root, "0007-bom.md");
+        try
+        {
+            File.WriteAllText(path, Canonical, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            var load = Run(path, LoadRequest(), "canonical");
+
+            var save = Run(path, SaveRequest(load.Output, "Updated choice", _ => { }), "canonical");
+
+            Assert.Equal(ExitCodes.Success, save.Code);
+            Assert.True(File.ReadAllBytes(path).AsSpan().StartsWith(Encoding.UTF8.Preamble));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void EditBoundariesFailClosedWithoutMutatingTheAdr()
+    {
+        var root = CreateDirectory();
+        var path = Path.Combine(root, "0008-boundaries.md");
+        var textPath = Path.Combine(root, "not-markdown.txt");
+        try
+        {
+            File.WriteAllText(path, Canonical);
+            File.WriteAllText(textPath, Canonical);
+            var load = Run(path, LoadRequest(), "canonical");
+            var malformedFingerprint = SaveRequest(load.Output, "Choice", _ => { })
+                .Replace(JsonNode.Parse(load.Output)!["fingerprint"]!.GetValue<string>(), new string('G', 64), StringComparison.Ordinal);
+            var missingField = SaveRequest(load.Output, "Choice", values => values.Remove(FieldId(load.Output, "Context")));
+            var extraField = SaveRequest(load.Output, "Choice", values => values["section-999"] = "Unexpected");
+            var invalidStatus = SaveRequest(load.Output, "Choice", values =>
+                values[FieldId(load.Output, "Status")] = "NotAStatus");
+
+            Assert.Equal(ExitCodes.UsageError, Run(path, malformedFingerprint, "canonical").Code);
+            Assert.Equal(ExitCodes.UsageError, Run(path, missingField, "canonical").Code);
+            Assert.Equal(ExitCodes.UsageError, Run(path, extraField, "canonical").Code);
+            Assert.Equal(ExitCodes.UsageError, Run(path, invalidStatus, "canonical").Code);
+            Assert.Equal(ExitCodes.OperationalError, Run(textPath, LoadRequest(), "canonical").Code);
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                Run(path, new string('x', EditFormCommand.MaximumInputCharacters + 1), "canonical").Code);
+            Assert.Equal(Encoding.UTF8.GetBytes(Canonical), File.ReadAllBytes(path));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void ProcessContractAcceptsRelativeTargetsAndRejectsInvalidUtf8()
+    {
+        var root = CreateDirectory();
+        const string fileName = "0009-relative.md";
+        var path = Path.Combine(root, fileName);
+        try
+        {
+            File.WriteAllText(path, Canonical);
+
+            var load = RunProcess(root, fileName, Encoding.UTF8.GetBytes(LoadRequest()));
+            var invalidUtf8 = RunProcess(root, fileName, [0xC3, 0x28]);
+
+            Assert.Equal(ExitCodes.Success, load.Code);
+            Assert.Equal(ExitCodes.UsageError, invalidUtf8.Code);
+            Assert.NotEmpty(invalidUtf8.Error);
+            Assert.Equal(Canonical, File.ReadAllText(path));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void LoadRejectsOversizedInvalidAndSymbolicLinkTargets()
+    {
+        var root = CreateDirectory();
+        var oversizedPath = Path.Combine(root, "0010-oversized.md");
+        var invalidPath = Path.Combine(root, "0011-invalid.md");
+        var targetPath = Path.Combine(root, "0012-target.md");
+        var linkPath = Path.Combine(root, "0013-link.md");
+        var invalidUtf8Path = Path.Combine(root, "0014-invalid-utf8.md");
+        try
+        {
+            File.WriteAllText(oversizedPath, new string('x', 256 * 1024 + 1));
+            File.WriteAllText(invalidPath, "No editable title.");
+            File.WriteAllText(targetPath, Canonical);
+            var invalidUtf8 = new byte[] { 0x23, 0x20, 0xC3, 0x28 };
+            File.WriteAllBytes(invalidUtf8Path, invalidUtf8);
+            var oversized = File.ReadAllBytes(oversizedPath);
+            var invalid = File.ReadAllBytes(invalidPath);
+
+            Assert.Equal(ExitCodes.OperationalError, Run(oversizedPath, LoadRequest(), "canonical").Code);
+            Assert.Equal(ExitCodes.OperationalError, Run(invalidPath, LoadRequest(), "canonical").Code);
+            Assert.Equal(ExitCodes.OperationalError, Run(invalidUtf8Path, LoadRequest(), "canonical").Code);
+            Assert.Equal(oversized, File.ReadAllBytes(oversizedPath));
+            Assert.Equal(invalid, File.ReadAllBytes(invalidPath));
+            Assert.Equal(invalidUtf8, File.ReadAllBytes(invalidUtf8Path));
+
+            try
+            {
+                File.CreateSymbolicLink(linkPath, targetPath);
+            }
+            catch (Exception exception) when (exception is IOException
+                or UnauthorizedAccessException
+                or PlatformNotSupportedException)
+            {
+                return;
+            }
+            Assert.Equal(ExitCodes.OperationalError, Run(linkPath, LoadRequest(), "canonical").Code);
+            Assert.Equal(Encoding.UTF8.GetBytes(Canonical), File.ReadAllBytes(targetPath));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
     [Theory]
     [InlineData("{\"schemaVersion\":\"2.0\",\"operation\":\"load\"}")]
     [InlineData("{\"schemaVersion\":\"1.0\",\"operation\":\"load\",\"title\":\"bad\"}")]
@@ -314,6 +556,34 @@ public sealed class EditFormCommandIntegrationTests
             error,
             TestContext.Current.CancellationToken);
         return (code, output.ToString(), error.ToString());
+    }
+
+    private static (int Code, string Output, string Error) RunProcess(
+        string workingDirectory,
+        string path,
+        byte[] input)
+    {
+        var startInfo = new ProcessStartInfo("dotnet")
+        {
+            WorkingDirectory = workingDirectory,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        startInfo.ArgumentList.Add(typeof(CliApplication).Assembly.Location);
+        startInfo.ArgumentList.Add("edit");
+        startInfo.ArgumentList.Add(path);
+        startInfo.ArgumentList.Add("--form");
+        startInfo.ArgumentList.Add("--adr-format");
+        startInfo.ArgumentList.Add("canonical");
+        using var process = Process.Start(startInfo)!;
+        process.StandardInput.BaseStream.Write(input);
+        process.StandardInput.Close();
+        var output = process.StandardOutput.ReadToEnd();
+        var error = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+        return (process.ExitCode, output, error);
     }
 
     private static string CreateDirectory()

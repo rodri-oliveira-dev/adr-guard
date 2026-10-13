@@ -36,6 +36,8 @@ describe('ADR edit form contracts', () => {
     const response = parseEditFormResponse(JSON.stringify(valid));
     assert.equal(response.fields[0]?.kind, 'status');
     assert.equal(response.fingerprint, 'A'.repeat(64));
+    assert.equal(parseEditFormResponse(JSON.stringify({ ...valid, operation: 'save' })).written, false);
+    assert.equal(parseEditFormResponse(JSON.stringify({ ...valid, operation: 'save', written: true })).written, true);
   });
 
   it('rejects incompatible, duplicated, and inconsistent edit responses', () => {

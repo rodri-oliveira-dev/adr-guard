@@ -1,10 +1,10 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import { classifyExitCode, type CliExitKind } from '../contracts/cli';
+import { newAdrFormMaximumInputCharacters } from '../contracts/newForm';
 
 const terminationGraceMilliseconds = 500;
 const forcedSettlementMilliseconds = 500;
-export const defaultMaximumInputCharacters = 128 * 1024;
 
 export interface CliRunRequest {
   readonly executable: string;
@@ -170,7 +170,7 @@ export class CliRunner {
     if (!Number.isInteger(request.maxOutputBytes) || request.maxOutputBytes < 1) {
       throw new RangeError('CLI output limit must be a positive integer.');
     }
-    const maxInputCharacters = request.maxInputCharacters ?? defaultMaximumInputCharacters;
+    const maxInputCharacters = request.maxInputCharacters ?? newAdrFormMaximumInputCharacters;
     if (!Number.isInteger(maxInputCharacters) || maxInputCharacters < 1) {
       throw new RangeError('CLI input limit must be a positive integer.');
     }

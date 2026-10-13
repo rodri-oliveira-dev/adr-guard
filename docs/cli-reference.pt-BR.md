@@ -48,11 +48,13 @@ O diretório configurado é aplicado quando o argumento posicional é omitido em
 
 ```text
 adr-guard edit <arquivo-adr> --form [--adr-format canonical|madr-4]
-  [--lifecycle-statuses <mapeamento>] [--filename-policy <política>]
+  [--lifecycle-statuses <mapeamento>] [--conventional-supersession]
+  [--filename-policy <política>] [--placeholder-policy off|warn|error]
+  [--validate-metadata]
   [--validation-profile <perfil>]
 ```
 
-`edit --form` é um contrato limitado de stdin/stdout com schema `1.0` para clientes confiáveis, como a extensão VS Code. Uma requisição `load` retorna título, status, front matter escalar e seções de nível dois editáveis, além de um fingerprint SHA-256. Uma requisição `save` precisa devolver esse fingerprint e o conjunto exato de campos descritos. O ADR Guard altera somente os intervalos de valores modificados, preserva Markdown desconhecido e não alterado, mantém nome/identificador, valida o formato e a política de ciclo de vida selecionados e substitui atomicamente apenas o arquivo alvo. Se o arquivo mudar depois do carregamento, o salvamento falha com exit `3`, sem sobrescrever trabalho externo. Campos ou contratos inválidos retornam `2`; achados de validação da ADR retornam `1`.
+`edit --form` é um contrato limitado de stdin/stdout com schema `1.0` para clientes confiáveis, como a extensão VS Code. Uma requisição `load` retorna título, status, front matter escalar e seções de nível dois editáveis, além de um fingerprint SHA-256. Uma requisição `save` precisa devolver esse fingerprint e o conjunto exato de campos descritos. O ADR Guard altera somente os intervalos de valores modificados, preserva Markdown desconhecido e não alterado, mantém nome/identificador, valida o formato e a política de ciclo de vida selecionados e substitui atomicamente apenas o arquivo alvo. A resposta define `written` como `true` somente quando os bytes foram efetivamente persistidos. O fingerprint é conferido antes da substituição, mas um escritor não cooperante ainda pode alterar o alvo no intervalo inevitável entre essa conferência e o rename atômico. Campos ou contratos inválidos retornam `2`; achados de validação da ADR retornam `1`.
 
 ## Saída do check
 

@@ -33,8 +33,7 @@ export function parseEditFormResponse(value: string): EditFormResponse {
     || typeof parsed.written !== 'boolean') throw new Error('ADR Guard returned an invalid edit form response.');
   const fields = parsed.fields.map(parseField);
   if (new Set(fields.map((field) => field.id)).size !== fields.length
-    || (parsed.operation === 'load' && parsed.written)
-    || (parsed.operation === 'save' && !parsed.written)) throw new Error('ADR Guard returned an inconsistent edit form response.');
+    || (parsed.operation === 'load' && parsed.written)) throw new Error('ADR Guard returned an inconsistent edit form response.');
   return { ...parsed, fields } as unknown as EditFormResponse;
 }
 

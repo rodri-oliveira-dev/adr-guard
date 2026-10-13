@@ -1,4 +1,5 @@
 export const newAdrFormSchemaVersion = '1.0' as const;
+export const newAdrFormMaximumInputCharacters = 128 * 1024;
 
 export type NewAdrFormOperation = 'describe' | 'preview' | 'create';
 

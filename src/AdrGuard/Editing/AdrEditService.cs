@@ -18,7 +18,8 @@ internal sealed record AdrEditDocument(
     string FilePath,
     string Fingerprint,
     string Title,
-    IReadOnlyList<AdrEditField> Fields);
+    IReadOnlyList<AdrEditField> Fields,
+    bool Written = false);
 
 internal sealed class AdrEditConflictException : IOException
 {
@@ -39,6 +40,7 @@ internal static class AdrEditService
         CancellationToken cancellationToken)
     {
         var source = ReadSource(filePath, cancellationToken);
+        filePath = source.FilePath;
         var layout = MarkdownLayout.Parse(source.Text, options);
         Validate(filePath, source.Text, options, cancellationToken);
         return layout.ToDocument(filePath, source.Fingerprint);
@@ -57,6 +59,7 @@ internal static class AdrEditService
         ValidateTitle(title);
 
         var source = ReadSource(filePath, cancellationToken);
+        filePath = source.FilePath;
         if (!CryptographicOperations.FixedTimeEquals(
                 Encoding.ASCII.GetBytes(source.Fingerprint),
                 Encoding.ASCII.GetBytes(expectedFingerprint)))
@@ -77,14 +80,12 @@ internal static class AdrEditService
         foreach (var field in layout.Fields)
         {
             var value = values[field.Id];
+            if (string.Equals(value, field.Value, StringComparison.Ordinal)) continue;
             ValidateField(field, value);
-            if (!string.Equals(value, field.Value, StringComparison.Ordinal))
-            {
-                var replacement = field.Kind == "section"
-                    ? NormalizeSectionValue(value, source.Text, field.Length)
-                    : value;
-                replacements.Add(new TextReplacement(field.Start, field.Length, replacement));
-            }
+            var replacement = field.Kind == "section"
+                ? NormalizeSectionValue(value, source.Text, field.Length)
+                : value;
+            replacements.Add(new TextReplacement(field.Start, field.Length, replacement));
         }
 
         if (replacements.Count == 0) return layout.ToDocument(filePath, source.Fingerprint);
@@ -92,7 +93,7 @@ internal static class AdrEditService
         ValidateUpdate(filePath, source.Text, updated, options, cancellationToken);
         Persist(filePath, source, updated, cancellationToken);
         var saved = ReadSource(filePath, cancellationToken);
-        return MarkdownLayout.Parse(saved.Text, options).ToDocument(filePath, saved.Fingerprint);
+        return MarkdownLayout.Parse(saved.Text, options).ToDocument(filePath, saved.Fingerprint, written: true);
     }
 
     private static SourceDocument ReadSource(string filePath, CancellationToken cancellationToken)
@@ -112,7 +113,15 @@ internal static class AdrEditService
         cancellationToken.ThrowIfCancellationRequested();
         var hasBom = bytes.AsSpan().StartsWith(Encoding.UTF8.Preamble);
         var content = hasBom ? bytes.AsSpan(Encoding.UTF8.Preamble.Length) : bytes.AsSpan();
-        var text = new UTF8Encoding(false, true).GetString(content);
+        string text;
+        try
+        {
+            text = new UTF8Encoding(false, true).GetString(content);
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw new InvalidDataException("The ADR must contain valid UTF-8.", exception);
+        }
         return new SourceDocument(fullPath, bytes, text, hasBom, Fingerprint(bytes));
     }
 
@@ -123,6 +132,7 @@ internal static class AdrEditService
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        filePath = Path.GetFullPath(filePath);
         var directory = Path.GetDirectoryName(filePath)!;
         var known = AdrFileDiscovery.FindMarkdownFiles(directory);
         var document = AdrMarkdownParser.Parse(filePath, markdown);
@@ -174,6 +184,7 @@ internal static class AdrEditService
         string text,
         CancellationToken cancellationToken)
     {
+        filePath = Path.GetFullPath(filePath);
         var directory = Path.GetDirectoryName(filePath)!;
         var temporaryPath = Path.Combine(directory, $".{Path.GetFileName(filePath)}.{Guid.NewGuid():N}.tmp");
         try
@@ -228,6 +239,10 @@ internal static class AdrEditService
     {
         if (value is null || value.Length > MaximumFieldCharacters || value.Contains('\0'))
             throw new ArgumentException($"ADR edit field '{field.Label}' is invalid or exceeds the size limit.");
+        if (field.Kind != "section" && value.IndexOfAny(['\r', '\n']) >= 0)
+            throw new ArgumentException($"ADR edit field '{field.Label}' must be a single line.");
+        if (field.QuoteDelimiter is not null && value.Contains(field.QuoteDelimiter.Value))
+            throw new ArgumentException($"ADR edit field '{field.Label}' cannot contain its YAML quote delimiter.");
         if (field.Required && string.IsNullOrWhiteSpace(value))
             throw new ArgumentException($"ADR edit field '{field.Label}' is required.");
         if (field.Options is not null && !field.Options.Contains(value, StringComparer.OrdinalIgnoreCase))
@@ -254,12 +269,13 @@ internal static class AdrEditService
         internal string Title { get; }
         internal IReadOnlyList<LayoutField> Fields { get; }
 
-        internal AdrEditDocument ToDocument(string filePath, string fingerprint) => new(
+        internal AdrEditDocument ToDocument(string filePath, string fingerprint, bool written = false) => new(
             filePath,
             fingerprint,
             Title,
             Fields.Select(field => new AdrEditField(
-                field.Id, field.Label, field.Kind, field.Required, field.Value, field.Options)).ToArray());
+                field.Id, field.Label, field.Kind, field.Required, field.Value, field.Options)).ToArray(),
+            written);
 
         internal static MarkdownLayout Parse(string markdown, AdrValidationOptions options)
         {
@@ -282,6 +298,7 @@ internal static class AdrEditService
             {
                 var line = lines[index];
                 if (line.Text.Trim() == "---") break;
+                if (line.Text.TrimStart().StartsWith('#')) continue;
                 var separator = line.Text.IndexOf(':');
                 if (separator <= 0) continue;
                 var key = line.Text[..separator].Trim();
@@ -289,13 +306,14 @@ internal static class AdrEditService
                 var leading = raw.Length - raw.TrimStart().Length;
                 var trimmed = raw.Trim();
                 var quoted = trimmed.Length >= 2 && ((trimmed[0] == '"' && trimmed[^1] == '"') || (trimmed[0] == '\'' && trimmed[^1] == '\''));
+                var quoteDelimiter = quoted ? trimmed[0] : (char?)null;
                 var value = quoted ? trimmed[1..^1] : trimmed;
                 var valueOffset = separator + 1 + leading + (quoted ? 1 : 0);
                 var kind = key.Equals("status", StringComparison.OrdinalIgnoreCase)
                     && options.Format == AdrFormat.Madr4 ? "status" : "metadata";
                 IReadOnlyList<string>? choices = null;
                 fields.Add(new LayoutField($"metadata-{fields.Count}", key, kind, Required: false,
-                    line.Start + valueOffset, value.Length, value, choices));
+                    line.Start + valueOffset, value.Length, value, choices, quoteDelimiter));
             }
         }
 
@@ -325,7 +343,7 @@ internal static class AdrEditService
                     ? options.EffectiveLifecycle.StatusNames.ToArray()
                     : null;
                 fields.Add(new LayoutField($"section-{fields.Count}", heading.Value,
-                    isStatus ? "status" : "section", required, start, end - start, value, choices));
+                    isStatus ? "status" : "section", required, start, end - start, value, choices, QuoteDelimiter: null));
             }
         }
 
@@ -336,8 +354,15 @@ internal static class AdrEditService
         {
             char? fenceMarker = null;
             var fenceLength = 0;
-            foreach (var line in lines)
+            var inFrontMatter = lines.Count > 0 && lines[0].Text.Trim() == "---";
+            for (var lineIndex = 0; lineIndex < lines.Count; lineIndex++)
             {
+                var line = lines[lineIndex];
+                if (inFrontMatter)
+                {
+                    if (lineIndex > 0 && line.Text.Trim() == "---") inFrontMatter = false;
+                    continue;
+                }
                 if (TryGetFence(line.Text, out var marker, out var markerLength))
                 {
                     if (fenceMarker is null)
@@ -356,6 +381,9 @@ internal static class AdrEditService
                     }
                 }
                 if (fenceMarker is not null) continue;
+                var indentation = 0;
+                while (indentation < line.Text.Length && line.Text[indentation] == ' ') indentation++;
+                if (indentation >= 4) continue;
                 var trimmed = line.Text.TrimStart();
                 var hashes = 0;
                 while (hashes < trimmed.Length && trimmed[hashes] == '#') hashes++;
@@ -367,7 +395,6 @@ internal static class AdrEditService
                 while (closing > 0 && value[closing - 1] == '#') closing--;
                 if (closing < value.Length && closing > 0 && char.IsWhiteSpace(value[closing - 1])) value = value[..closing].TrimEnd();
                 if (value.Length == 0) continue;
-                var indentation = line.Text.Length - trimmed.Length;
                 var valueStart = line.Start + indentation + contentStartInTrimmed;
                 yield return new HeadingInfo(hashes, line.Start, line.End, valueStart, value.Length, value);
             }
@@ -375,9 +402,12 @@ internal static class AdrEditService
 
         private static bool TryGetFence(string line, out char marker, out int markerLength)
         {
-            var trimmed = line.TrimStart();
             marker = default;
             markerLength = 0;
+            var indentation = 0;
+            while (indentation < line.Length && line[indentation] == ' ') indentation++;
+            if (indentation >= 4) return false;
+            var trimmed = line.AsSpan(indentation);
             if (trimmed.Length < 3 || trimmed[0] is not ('`' or '~')) return false;
             marker = trimmed[0];
             while (markerLength < trimmed.Length && trimmed[markerLength] == marker) markerLength++;
@@ -406,7 +436,7 @@ internal static class AdrEditService
 
     private sealed record LineInfo(int Start, int End, string Text);
     private sealed record HeadingInfo(int Level, int Start, int End, int ValueStart, int ValueLength, string Value);
-    private sealed record LayoutField(string Id, string Label, string Kind, bool Required, int Start, int Length, string Value, IReadOnlyList<string>? Options);
+    private sealed record LayoutField(string Id, string Label, string Kind, bool Required, int Start, int Length, string Value, IReadOnlyList<string>? Options, char? QuoteDelimiter);
 }
 
 internal sealed class AdrEditValidationException : Exception

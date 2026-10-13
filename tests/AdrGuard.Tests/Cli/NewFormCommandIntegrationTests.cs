@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using AdrGuard.Cli;
@@ -186,6 +187,87 @@ public sealed class NewFormCommandIntegrationTests
             using var collisionResponse = JsonDocument.Parse(collision.Output);
             Assert.EndsWith("0003-target.md", collisionResponse.RootElement.GetProperty("path").GetString(), StringComparison.Ordinal);
             Assert.Equal(3, Directory.GetFiles(root, "*.md").Length);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void FormInputBoundariesFailClosedWithoutWriting()
+    {
+        var root = CreateDirectory();
+        const string validFields = """{"context":"Context","decision":"Decision","consequences":"Consequences"}""";
+        try
+        {
+            var unsupportedField = """{"context":"Context","decision":"Decision","consequences":"Consequences","unknown":"value"}""";
+            var missingRequiredField = """{"context":"Context","decision":"Decision"}""";
+            var oversizedField = JsonSerializer.Serialize(new
+            {
+                context = new string('x', NewFormCommand.MaximumFieldCharacters + 1),
+                decision = "Decision",
+                consequences = "Consequences",
+            });
+
+            Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", "Title", unsupportedField)).Code);
+            Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", "Title", missingRequiredField)).Code);
+            Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", "Title", oversizedField)).Code);
+            Assert.Equal(
+                ExitCodes.UsageError,
+                Run(root, Request("preview", "Title", """{"context":"Con\u0000text","decision":"Decision","consequences":"Consequences"}""")).Code);
+            Assert.Equal(
+                ExitCodes.UsageError,
+                Run(root, Request("preview", "Title", """{"context":"   ","decision":"Decision","consequences":"Consequences"}""")).Code);
+            Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", new string('x', 513), validFields)).Code);
+            Assert.Equal(ExitCodes.UsageError, Run(root, Request("create", "Line one\nLine two", validFields)).Code);
+            Assert.Equal(ExitCodes.UsageError, Run(root, Request("create", "!!!", validFields)).Code);
+            Assert.Equal(
+                ExitCodes.UsageError,
+                Run(root, """{"schemaVersion":"1.0","operation":"preview","title":"Title","fields":{"context":{"a":{"b":{"c":{"d":{"e":{"f":{"g":{}}}}}}}}}}""").Code);
+            Assert.Equal(
+                ExitCodes.UsageError,
+                Run(root, Request("preview", "Title", validFields), "--template-file", Path.Combine(root, "template.md")).Code);
+            Assert.Equal(
+                ExitCodes.UsageError,
+                Run(root, Request("create", "Title", validFields), "--template-file", Path.Combine(root, "template.md")).Code);
+            Assert.Equal(
+                ExitCodes.OperationalError,
+                Run(root, new string('x', NewFormCommand.MaximumInputCharacters + 1)).Code);
+            Assert.Empty(Directory.EnumerateFiles(root));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void ProcessContractRejectsInvalidUtf8WithoutWriting()
+    {
+        var root = CreateDirectory();
+        try
+        {
+            var startInfo = new ProcessStartInfo("dotnet")
+            {
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            };
+            startInfo.ArgumentList.Add(typeof(CliApplication).Assembly.Location);
+            startInfo.ArgumentList.Add("new");
+            startInfo.ArgumentList.Add(root);
+            startInfo.ArgumentList.Add("--form");
+            using var process = Process.Start(startInfo)!;
+            process.StandardInput.BaseStream.Write([0xC3, 0x28]);
+            process.StandardInput.Close();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            Assert.Equal(ExitCodes.UsageError, process.ExitCode);
+            Assert.NotEmpty(error);
+            Assert.Empty(Directory.EnumerateFiles(root));
         }
         finally
         {

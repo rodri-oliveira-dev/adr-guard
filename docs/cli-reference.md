@@ -48,11 +48,13 @@ Configured ADR directories apply when the positional directory is omitted from `
 
 ```text
 adr-guard edit <adr-file> --form [--adr-format canonical|madr-4]
-  [--lifecycle-statuses <mapping>] [--filename-policy <policy>]
+  [--lifecycle-statuses <mapping>] [--conventional-supersession]
+  [--filename-policy <policy>] [--placeholder-policy off|warn|error]
+  [--validate-metadata]
   [--validation-profile <profile>]
 ```
 
-`edit --form` is a bounded schema `1.0` stdin/stdout contract for trusted clients such as the VS Code extension. A `load` request returns the editable title, status, scalar front matter, and level-two sections plus a SHA-256 fingerprint. A `save` request must return that fingerprint and the exact described field set. ADR Guard patches only changed value spans, preserves unknown and untouched Markdown, keeps the filename/identifier, validates the selected format and lifecycle policy, and atomically replaces the single target. If the file changed after load, save fails with exit `3` instead of overwriting external work. Invalid fields or contracts return `2`; ADR validation findings return `1`.
+`edit --form` is a bounded schema `1.0` stdin/stdout contract for trusted clients such as the VS Code extension. A `load` request returns the editable title, status, scalar front matter, and level-two sections plus a SHA-256 fingerprint. A `save` request must return that fingerprint and the exact described field set. ADR Guard patches only changed value spans, preserves unknown and untouched Markdown, keeps the filename/identifier, validates the selected format and lifecycle policy, and atomically replaces the single target. The response sets `written` to `true` only when bytes were actually persisted. The fingerprint is checked before replacement, but a non-cooperating writer can still change the target in the unavoidable interval between that check and the atomic rename. Invalid fields or contracts return `2`; ADR validation findings return `1`.
 
 ## Check output
 

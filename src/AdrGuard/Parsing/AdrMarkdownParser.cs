@@ -22,9 +22,23 @@ internal static class AdrMarkdownParser
         var currentContent = new StringBuilder();
         char? fenceMarker = null;
         var fenceLength = 0;
+        var firstLine = true;
+        var inFrontMatter = false;
 
         foreach (var line in ReadLines(markdown))
         {
+            if (firstLine)
+            {
+                firstLine = false;
+                inFrontMatter = string.Equals(line.Trim(), "---", StringComparison.Ordinal);
+                if (inFrontMatter) continue;
+            }
+            else if (inFrontMatter)
+            {
+                if (string.Equals(line.Trim(), "---", StringComparison.Ordinal)) inFrontMatter = false;
+                continue;
+            }
+
             if (TryGetFence(line, out var marker, out var markerLength))
             {
                 if (fenceMarker is null)
@@ -120,6 +134,11 @@ internal static class AdrMarkdownParser
                 return (metadata, errors);
             }
 
+            if (line.TrimStart().StartsWith('#'))
+            {
+                continue;
+            }
+
             var separator = line.IndexOf(':');
             if (separator <= 0)
             {
@@ -194,9 +213,12 @@ internal static class AdrMarkdownParser
 
     private static bool TryGetFence(string line, out char marker, out int markerLength)
     {
-        var trimmed = line.TrimStart();
         marker = default;
         markerLength = 0;
+        var indentation = 0;
+        while (indentation < line.Length && line[indentation] == ' ') indentation++;
+        if (indentation >= 4) return false;
+        var trimmed = line.AsSpan(indentation);
 
         if (trimmed.Length < 3 || trimmed[0] is not ('`' or '~'))
         {
@@ -221,9 +243,12 @@ internal static class AdrMarkdownParser
 
     private static bool TryParseHeading(string line, out int level, out string heading)
     {
-        var trimmed = line.TrimStart();
         level = 0;
         heading = string.Empty;
+        var indentation = 0;
+        while (indentation < line.Length && line[indentation] == ' ') indentation++;
+        if (indentation >= 4) return false;
+        var trimmed = line[indentation..];
 
         while (level < trimmed.Length && trimmed[level] == '#')
         {

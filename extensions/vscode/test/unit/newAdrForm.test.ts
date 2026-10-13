@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, it } from 'node:test';
-import { parseNewAdrFormMessage, VisualCreationSubmission } from '../../src/webview/newAdrFormMessages';
+import { parseNewAdrFormMessage, visualFormInputLimit, VisualCreationSubmission } from '../../src/webview/newAdrFormMessages';
 
 describe('visual ADR form host boundary', () => {
   const values = {
@@ -74,11 +74,36 @@ describe('visual ADR form host boundary', () => {
     assert.equal(submission.begin(), true);
   });
 
+  it('rejects aggregate form payloads that exceed their CLI contract', () => {
+    const largeValue = 'x'.repeat(32 * 1024);
+    const creation = {
+      type: 'preview',
+      values: {
+        ...values,
+        fields: Object.fromEntries(Array.from({ length: 5 }, (_, index) => [`field${index}`, largeValue])),
+      },
+    };
+    const edit = {
+      type: 'saveEdit',
+      editValues: {
+        workspace: 'file:///workspace', relativePath: '0001-safe.md', fingerprint: 'A'.repeat(64), title: 'Safe',
+        fields: Object.fromEntries(Array.from({ length: 13 }, (_, index) => [`section-${index}`, largeValue])),
+      },
+    };
+
+    assert.equal(visualFormInputLimit(creation), 'creation');
+    assert.equal(parseNewAdrFormMessage(creation), undefined);
+    assert.equal(visualFormInputLimit(edit), 'edit');
+    assert.equal(parseNewAdrFormMessage(edit), undefined);
+  });
+
   it('renders untrusted Markdown only through textContent', async () => {
     const source = await readFile(path.resolve(__dirname, '../../../media/newAdrForm.js'), 'utf8');
     assert.match(source, /textContent = message\.response\.markdown/u);
     assert.doesNotMatch(source, /innerHTML/u);
     assert.match(source, /function clearCreationValues\(\)/u);
     assert.match(source, /backToList\(\).*clearCreationValues\(\)/u);
+    assert.match(source, /const targetScroll = listState\.scrollTop \|\| 0/u);
+    assert.match(source, /window\.scrollTo\(0, targetScroll\)/u);
   });
 });
