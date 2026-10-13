@@ -74,8 +74,8 @@ jobs:
           cmp CHANGELOG.md <(unzip -p "${package_file}" CHANGELOG.md)
           nuspec="$(unzip -p "${package_file}" RodriOliveira.AdrGuard.nuspec)"
           grep -Fq '<releaseNotes>' <<< "${nuspec}"
-          grep -Fq 'ADR-backed architectural drift verification' <<< "${nuspec}"
-          grep -Fq 'deterministic CI enforcement' <<< "${nuspec}"
+          grep -Fq 'Versioned form contracts for trusted visual ADR creation and editing adapters' <<< "${nuspec}"
+          grep -Fq 'conflict-safe in-place updates' <<< "${nuspec}"
           grep -Fq "releases/tag/v${ADR_GUARD_VERSION}" <<< "${nuspec}"
           test "$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:PackageVersion | tr -d '\r' | tail -n 1)" = "${ADR_GUARD_VERSION}"
 
