@@ -153,14 +153,9 @@ pre {
 
 .actions.compact { margin-top: 0; }
 
-.language-switch {
-  display: inline-flex;
-  gap: 2px;
-}
-
-.language-switch button[aria-pressed="true"] {
-  border-color: var(--vscode-focusBorder);
-  box-shadow: inset 0 -2px 0 var(--vscode-focusBorder);
+select.language-switch {
+  min-width: 170px;
+  width: auto;
 }
 
 button {
@@ -200,4 +195,5 @@ button:disabled {
   .list-header { display: block; }
   .filters { grid-template-columns: 1fr; }
   .actions { align-items: stretch; flex-direction: column; }
+  select.language-switch { width: 100%; }
 }

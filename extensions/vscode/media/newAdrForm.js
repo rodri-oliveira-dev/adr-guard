@@ -80,11 +80,18 @@
     const heading = element('div');
     heading.append(element('h1', {}, t('Architecture Decision Records')), element('p', { className: 'intro directory' }, directory));
     const actions = element('div', { className: 'actions compact' });
-    const language = element('div', { className: 'language-switch', role: 'group', 'aria-label': t('Interface language') });
-    [['en-US', 'English'], ['pt-BR', 'Português (Brasil)']].forEach(([value, label]) => {
-      const choice = button(label, () => { persistListState(); interfaceLanguage = value; persistState(); renderList(); }, true);
-      choice.setAttribute('aria-pressed', String(interfaceLanguage === value));
-      language.append(choice);
+    const language = select('interface-language', [
+      { value: 'en-US', label: 'English' },
+      { value: 'pt-BR', label: 'Português (Brasil)' },
+    ]);
+    language.classList.add('language-switch');
+    language.setAttribute('aria-label', t('Interface language'));
+    language.value = interfaceLanguage;
+    language.addEventListener('change', () => {
+      persistListState();
+      interfaceLanguage = language.value === 'pt-BR' ? 'pt-BR' : 'en-US';
+      persistState();
+      renderList();
     });
     actions.append(language, button(t('New ADR'), () => { persistListState(); vscode.postMessage(listMessage('newAdr')); }), button(t('Refresh'), () => vscode.postMessage(listMessage('refreshList')), true));
     header.append(heading, actions);

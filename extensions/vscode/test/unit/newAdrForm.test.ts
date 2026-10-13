@@ -118,8 +118,12 @@ describe('visual ADR form host boundary', () => {
     assert.match(source, /message\.type === 'templateLoaded'.*displayTemplate\(message\.response\)/u);
     assert.match(source, /function displayTemplate\(response\).*renderSchema\(response\)/u);
     assert.match(source, /templateTimer = setTimeout/u);
-    assert.match(source, /className: 'language-switch'/u);
-    assert.match(source, /interfaceLanguage = value; persistState\(\); renderList\(\)/u);
+    assert.match(source, /select\('interface-language'/u);
+    assert.match(source, /language\.classList\.add\('language-switch'\)/u);
+    assert.match(source, /language\.setAttribute\('aria-label', t\('Interface language'\)\)/u);
+    assert.match(source, /language\.addEventListener\('change'/u);
+    assert.match(source, /interfaceLanguage = language\.value === 'pt-BR' \? 'pt-BR' : 'en-US'/u);
+    assert.doesNotMatch(source, /aria-pressed/u);
     assert.match(source, /restored\.interfaceLanguage === 'pt-BR'/u);
     assert.match(source, /let listState = normalizeListState\(restored\.listState\)/u);
     assert.match(source, /const targetScroll = listState\.scrollTop \|\| 0/u);
