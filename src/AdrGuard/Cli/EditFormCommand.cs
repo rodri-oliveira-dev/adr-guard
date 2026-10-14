@@ -12,7 +12,7 @@ internal static class EditFormCommand
 
     internal const string HelpText = """
         Usage:
-          adr-guard edit <adr-file> --form [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>]
+          adr-guard edit <adr-file> --form [--adr-directory <directory>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>]
 
         Load or update one existing ADR through a bounded schema 1.0 JSON contract.
         Supported operations are load and save. Save requires the fingerprint returned by load,
@@ -70,8 +70,8 @@ internal static class EditFormCommand
                 parsed.ValidateMetadata,
                 parsed.ValidationProfile);
             var document = request.Operation == "load"
-                ? AdrEditService.Load(parsed.FilePath, options, cancellationToken)
-                : AdrEditService.Save(parsed.FilePath, request.Fingerprint!, request.Title!, request.Fields!, options, cancellationToken);
+                ? AdrEditService.Load(parsed.FilePath, parsed.AdrDirectory, options, cancellationToken)
+                : AdrEditService.Save(parsed.FilePath, request.Fingerprint!, request.Title!, request.Fields!, parsed.AdrDirectory, options, cancellationToken);
             WriteResponse(output, new EditFormResponse(
                 SchemaVersion,
                 request.Operation,
@@ -163,6 +163,7 @@ internal static class EditFormCommand
     private static bool TryParse(IReadOnlyList<string> args, out EditArguments result)
     {
         string? filePath = null;
+        string? adrDirectory = null;
         var format = AdrFormat.Canonical;
         string? lifecycle = null;
         string? filenamePolicy = null;
@@ -183,13 +184,14 @@ internal static class EditFormCommand
                 else validateMetadata = true;
                 continue;
             }
-            if (argument is "--adr-format" or "--lifecycle-statuses" or "--filename-policy" or "--placeholder-policy" or "--validation-profile")
+            if (argument is "--adr-directory" or "--adr-format" or "--lifecycle-statuses" or "--filename-policy" or "--placeholder-policy" or "--validation-profile")
             {
                 if (!assigned.Add(argument) || index + 1 >= args.Count) { result = EditArguments.Empty; return false; }
                 var value = args[++index];
                 if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-')) { result = EditArguments.Empty; return false; }
                 switch (argument)
                 {
+                    case "--adr-directory": adrDirectory = value; break;
                     case "--adr-format":
                         format = value switch { "canonical" => AdrFormat.Canonical, "madr-4" => AdrFormat.Madr4, _ => (AdrFormat)(-1) };
                         if (!Enum.IsDefined(format)) { result = EditArguments.Empty; return false; }
@@ -204,7 +206,7 @@ internal static class EditFormCommand
             if (argument.StartsWith('-') || filePath is not null) { result = EditArguments.Empty; return false; }
             filePath = argument;
         }
-        result = new EditArguments(filePath ?? string.Empty, format, lifecycle, conventional, filenamePolicy, placeholderPolicy, validateMetadata, validationProfile);
+        result = new EditArguments(filePath ?? string.Empty, adrDirectory, format, lifecycle, conventional, filenamePolicy, placeholderPolicy, validateMetadata, validationProfile);
         return form && !string.IsNullOrWhiteSpace(filePath);
     }
 
@@ -222,8 +224,8 @@ internal static class EditFormCommand
     private sealed record ParsedEditFormRequest(EditFormRequest Request, HashSet<string> Properties);
     private sealed record EditFormResponse(string SchemaVersion, string Operation, string Format, string Path, string Fingerprint, string Title, IReadOnlyList<EditFieldResponse> Fields, bool Written);
     private sealed record EditFieldResponse(string Id, string Label, string Kind, bool Required, string Value, IReadOnlyList<string>? Options);
-    private sealed record EditArguments(string FilePath, AdrFormat Format, string? LifecycleStatuses, bool ConventionalSupersession, string? FilenamePolicy, string? PlaceholderPolicy, bool ValidateMetadata, string? ValidationProfile)
+    private sealed record EditArguments(string FilePath, string? AdrDirectory, AdrFormat Format, string? LifecycleStatuses, bool ConventionalSupersession, string? FilenamePolicy, string? PlaceholderPolicy, bool ValidateMetadata, string? ValidationProfile)
     {
-        internal static EditArguments Empty { get; } = new(string.Empty, AdrFormat.Canonical, null, false, null, null, false, null);
+        internal static EditArguments Empty { get; } = new(string.Empty, null, AdrFormat.Canonical, null, false, null, null, false, null);
     }
 }

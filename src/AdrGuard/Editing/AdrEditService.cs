@@ -36,13 +36,14 @@ internal static class AdrEditService
 
     internal static AdrEditDocument Load(
         string filePath,
+        string? adrDirectory,
         AdrValidationOptions options,
         CancellationToken cancellationToken)
     {
         var source = ReadSource(filePath, cancellationToken);
         filePath = source.FilePath;
         var layout = MarkdownLayout.Parse(source.Text, options);
-        Validate(filePath, source.Text, options, cancellationToken);
+        Validate(filePath, adrDirectory, source.Text, options, cancellationToken);
         return layout.ToDocument(filePath, source.Fingerprint);
     }
 
@@ -51,6 +52,7 @@ internal static class AdrEditService
         string expectedFingerprint,
         string title,
         IReadOnlyDictionary<string, string> values,
+        string? adrDirectory,
         AdrValidationOptions options,
         CancellationToken cancellationToken)
     {
@@ -90,7 +92,7 @@ internal static class AdrEditService
 
         if (replacements.Count == 0) return layout.ToDocument(filePath, source.Fingerprint);
         var updated = Apply(source.Text, replacements);
-        ValidateUpdate(filePath, source.Text, updated, options, cancellationToken);
+        ValidateUpdate(filePath, adrDirectory, source.Text, updated, options, cancellationToken);
         Persist(filePath, source, updated, cancellationToken);
         var saved = ReadSource(filePath, cancellationToken);
         return MarkdownLayout.Parse(saved.Text, options).ToDocument(filePath, saved.Fingerprint, written: true);
@@ -104,6 +106,9 @@ internal static class AdrEditService
         var info = new FileInfo(fullPath);
         if (!info.Exists || (info.Attributes & FileAttributes.ReparsePoint) != 0)
             throw new InvalidDataException("The ADR must be an existing regular, non-symbolic-link file.");
+        fullPath = Directory.EnumerateFiles(info.DirectoryName!, info.Name, SearchOption.TopDirectoryOnly)
+            .SingleOrDefault(candidate => PathsEqual(candidate, fullPath))
+            ?? fullPath;
         if (!string.Equals(info.Extension, ".md", StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("The ADR edit target must be a Markdown file.");
         if (info.Length > MaximumFileBytes)
@@ -127,13 +132,14 @@ internal static class AdrEditService
 
     private static void Validate(
         string filePath,
+        string? adrDirectory,
         string markdown,
         AdrValidationOptions options,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         filePath = Path.GetFullPath(filePath);
-        var directory = Path.GetDirectoryName(filePath)!;
+        var directory = ResolveAdrDirectory(filePath, adrDirectory);
         var known = AdrFileDiscovery.FindMarkdownFiles(directory);
         var document = AdrMarkdownParser.Parse(filePath, markdown);
         var result = AdrValidator.Validate([document], known, options);
@@ -145,6 +151,7 @@ internal static class AdrEditService
 
     private static void ValidateUpdate(
         string filePath,
+        string? adrDirectory,
         string originalMarkdown,
         string updatedMarkdown,
         AdrValidationOptions options,
@@ -152,12 +159,9 @@ internal static class AdrEditService
     {
         cancellationToken.ThrowIfCancellationRequested();
         var fullPath = Path.GetFullPath(filePath);
-        var directory = Path.GetDirectoryName(fullPath)!;
+        var directory = ResolveAdrDirectory(fullPath, adrDirectory);
         var neighbors = AdrDocumentLoader.LoadDirectory(directory, cancellationToken)
-            .Where(document => !string.Equals(
-                Path.GetFullPath(document.FilePath),
-                fullPath,
-                StringComparison.Ordinal))
+            .Where(document => !PathsEqual(document.FilePath, fullPath))
             .ToArray();
         var original = AdrMarkdownParser.Parse(fullPath, originalMarkdown);
         var updated = AdrMarkdownParser.Parse(fullPath, updatedMarkdown);
@@ -165,10 +169,7 @@ internal static class AdrEditService
         var after = AdrValidator.Validate([.. neighbors, updated], additionalKnownPaths: null, options);
         var existing = before.Issues.ToHashSet();
         var blocking = after.Issues
-            .Where(issue => string.Equals(
-                    Path.GetFullPath(issue.FilePath),
-                    fullPath,
-                    StringComparison.Ordinal)
+            .Where(issue => PathsEqual(issue.FilePath, fullPath)
                 || !existing.Contains(issue))
             .ToArray();
         var result = new ValidationResult(blocking);
@@ -177,6 +178,40 @@ internal static class AdrEditService
             throw new AdrEditValidationException(result);
         }
     }
+
+    private static string ResolveAdrDirectory(string filePath, string? adrDirectory)
+    {
+        var directory = Path.GetFullPath(adrDirectory ?? Path.GetDirectoryName(filePath)!);
+        var info = new DirectoryInfo(directory);
+        if (!info.Exists || (info.Attributes & FileAttributes.ReparsePoint) != 0)
+            throw new InvalidDataException("The ADR directory must be an existing regular directory.");
+
+        var relative = Path.GetRelativePath(directory, filePath);
+        if (relative == ".."
+            || Path.IsPathRooted(relative)
+            || relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            || relative.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal))
+        {
+            throw new InvalidDataException("The ADR edit target must stay inside the ADR directory.");
+        }
+
+        for (var current = new DirectoryInfo(Path.GetDirectoryName(filePath)!);
+             !PathsEqual(current.FullName, directory);
+             current = current.Parent
+                 ?? throw new InvalidDataException("The ADR edit target must stay inside the ADR directory."))
+        {
+            if ((current.Attributes & FileAttributes.ReparsePoint) != 0)
+                throw new InvalidDataException("The ADR edit target must not traverse a symbolic link.");
+        }
+
+        return directory;
+    }
+
+    private static bool PathsEqual(string left, string right) =>
+        string.Equals(
+            Path.GetFullPath(left),
+            Path.GetFullPath(right),
+            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
     private static void Persist(
         string filePath,

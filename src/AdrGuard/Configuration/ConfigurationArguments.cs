@@ -29,6 +29,7 @@ internal static class ConfigurationArguments
                 AddValidationProfileIfMissing(configured, configuration);
                 break;
             case "edit":
+                AddAdrDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
                 AddAdrFormatIfMissing(configured, configuration);
                 AddLifecyclePolicyIfMissing(configured, configuration);
                 AddConventionalSupersessionIfMissing(configured, configuration);
@@ -102,6 +103,7 @@ internal static class ConfigurationArguments
         or "--policy-file"
         or "--format"
         or "--adr-format"
+        or "--adr-directory"
         or "--lifecycle-statuses"
         or "--filename-policy"
         or "--placeholder-policy"
@@ -109,6 +111,13 @@ internal static class ConfigurationArguments
         or "--base-ref"
         or "--baseline"
         or "--compare-ref";
+
+    private static void AddAdrDirectoryIfMissing(List<string> args, string directory)
+    {
+        if (args.Contains("--adr-directory", StringComparer.Ordinal)) return;
+        args.Add("--adr-directory");
+        args.Add(directory);
+    }
 
     private static void AddAdrFormatIfMissing(
         List<string> args,

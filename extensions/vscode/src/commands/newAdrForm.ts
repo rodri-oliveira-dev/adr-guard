@@ -387,7 +387,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       const target = await this.resolveCatalogAdr(workspace, relativePath);
       const execution = await this.dependencies.executor.execute(
         target.folder,
-        ['edit', target.filePath, '--form', '--adr-format', target.format],
+        ['edit', target.filePath, '--form', '--adr-directory', target.directory, '--adr-format', target.format],
         controller.signal,
         JSON.stringify({ schemaVersion: editFormSchemaVersion, operation: 'load' }),
       );
@@ -415,7 +415,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       const target = await this.resolveCatalogAdr(values.workspace, values.relativePath);
       const execution = await this.dependencies.executor.execute(
         target.folder,
-        ['edit', target.filePath, '--form', '--adr-format', target.format],
+        ['edit', target.filePath, '--form', '--adr-directory', target.directory, '--adr-format', target.format],
         controller.signal,
         JSON.stringify({
           schemaVersion: editFormSchemaVersion,
@@ -452,6 +452,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
 
   private async resolveCatalogAdr(workspace: string, relativePath: string): Promise<{
     readonly folder: vscode.WorkspaceFolder;
+    readonly directory: string;
     readonly filePath: string;
     readonly format: 'canonical' | 'madr-4';
   }> {
@@ -463,7 +464,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
     if (!isResolvedPathWithin(candidate, directory)) throw new WorkspacePolicyError('ADR is outside configured directory.', 'outside-workspace');
     const entries = await this.dependencies.explorer.catalogFor(folder);
     if (!entries.some((entry) => samePath(entry.filePath, candidate))) throw new WorkspacePolicyError('ADR is not in the current catalog.', 'outside-workspace');
-    return { folder, filePath: candidate, format: configuration.adrFormat };
+    return { folder, directory, filePath: candidate, format: configuration.adrFormat };
   }
 
   private async run(operation: NewAdrFormOperation, values: FormValues): Promise<void> {

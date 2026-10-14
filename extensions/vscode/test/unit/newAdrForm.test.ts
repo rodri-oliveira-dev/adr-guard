@@ -218,6 +218,17 @@ describe('visual ADR form host boundary', () => {
     assert.doesNotMatch(refreshRoute, /executor\.execute|executeCommand/u);
   });
 
+  it('passes the configured ADR root to visual edit validation', async () => {
+    const host = await readFile(path.resolve(__dirname, '../../../src/commands/newAdrForm.ts'), 'utf8');
+    const loadEdit = host.slice(host.indexOf('private async loadEdit('), host.indexOf('private async saveEdit('));
+    const saveEdit = host.slice(host.indexOf('private async saveEdit('), host.indexOf('private async resolveCatalogAdr('));
+    const resolveTarget = host.slice(host.indexOf('private async resolveCatalogAdr('), host.indexOf('private async run('));
+
+    assert.match(loadEdit, /'--adr-directory', target\.directory/u);
+    assert.match(saveEdit, /'--adr-directory', target\.directory/u);
+    assert.match(resolveTarget, /return \{ folder, directory, filePath: candidate/u);
+  });
+
   it('keeps settings navigation and persistence isolated from ADR commands', async () => {
     const host = await readFile(path.resolve(__dirname, '../../../src/commands/newAdrForm.ts'), 'utf8');
     const settingsRoutes = host.slice(host.indexOf("if (message.type === 'openSettings'"), host.indexOf("if (message.type === 'newAdr'"));

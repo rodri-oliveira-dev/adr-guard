@@ -211,6 +211,97 @@ public sealed class EditFormCommandIntegrationTests
     }
 
     [Fact]
+    public void SaveRejectsAnUpdateThatInvalidatesAParentDirectoryDependency()
+    {
+        var root = CreateDirectory();
+        var nested = Path.Combine(root, "team");
+        var parentPath = Path.Combine(root, "0001-parent.md");
+        var childPath = Path.Combine(nested, "0002-child.md");
+        var parent = Canonical
+            .Replace("# Choice", "# Parent", StringComparison.Ordinal)
+            .Replace("Proposed", "Accepted", StringComparison.Ordinal)
+            .Replace(
+                "## Decision\n\nDecision.",
+                "## Dependencies\n\n[Child](team/0002-child.md)\n\n## Decision\n\nDecision.",
+                StringComparison.Ordinal);
+        var child = Canonical
+            .Replace("# Choice", "# Child", StringComparison.Ordinal)
+            .Replace("Proposed", "Accepted", StringComparison.Ordinal);
+        try
+        {
+            Directory.CreateDirectory(nested);
+            File.WriteAllText(parentPath, parent);
+            File.WriteAllText(childPath, child);
+            var load = Run(childPath, LoadRequest(), "canonical", root);
+            Assert.Equal(ExitCodes.Success, load.Code);
+            var request = SaveRequest(load.Output, "Child", values =>
+                values[FieldId(load.Output, "Status")] = "Deprecated");
+
+            var save = Run(childPath, request, "canonical", root);
+
+            Assert.Equal(ExitCodes.ValidationFailed, save.Code);
+            Assert.Contains(ValidationCodes.InactiveDependency, save.Error, StringComparison.Ordinal);
+            Assert.Equal(child, File.ReadAllText(childPath));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void SaveAcceptsWindowsTargetPathWithDifferentCasing()
+    {
+        if (!OperatingSystem.IsWindows()) return;
+
+        var root = CreateDirectory();
+        var path = Path.Combine(root, "0003-case.md");
+        try
+        {
+            File.WriteAllText(path, Canonical);
+            var differentlyCasedPath = path.ToUpperInvariant();
+            var load = Run(differentlyCasedPath, LoadRequest(), "canonical", root);
+            Assert.Equal(ExitCodes.Success, load.Code);
+
+            var save = Run(
+                differentlyCasedPath,
+                SaveRequest(load.Output, "Updated choice", _ => { }),
+                "canonical",
+                root);
+
+            Assert.Equal(ExitCodes.Success, save.Code);
+            Assert.Contains("# Updated choice", File.ReadAllText(path), StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void EditRejectsATargetOutsideTheExplicitAdrDirectory()
+    {
+        var root = CreateDirectory();
+        var adrDirectory = Path.Combine(root, "adrs");
+        var outsidePath = Path.Combine(root, "outside.md");
+        try
+        {
+            Directory.CreateDirectory(adrDirectory);
+            File.WriteAllText(outsidePath, Canonical);
+
+            var load = Run(outsidePath, LoadRequest(), "canonical", adrDirectory);
+
+            Assert.Equal(ExitCodes.OperationalError, load.Code);
+            Assert.Contains("inside the ADR directory", load.Error, StringComparison.Ordinal);
+            Assert.Equal(Canonical, File.ReadAllText(outsidePath));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
     public void LoadDoesNotExposeHeadingsInsideLongerFencedCodeBlocks()
     {
         var root = CreateDirectory();
@@ -544,13 +635,23 @@ public sealed class EditFormCommandIntegrationTests
 
     private static string LoadRequest() => """{"schemaVersion":"1.0","operation":"load"}""";
 
-    private static (int Code, string Output, string Error) Run(string path, string request, string format)
+    private static (int Code, string Output, string Error) Run(
+        string path,
+        string request,
+        string format,
+        string? adrDirectory = null)
     {
         using var input = new StringReader(request);
         using var output = new StringWriter();
         using var error = new StringWriter();
+        var args = new List<string> { "edit", path, "--form", "--adr-format", format };
+        if (adrDirectory is not null)
+        {
+            args.Add("--adr-directory");
+            args.Add(adrDirectory);
+        }
         var code = CliApplication.Run(
-            ["edit", path, "--form", "--adr-format", format],
+            args,
             input,
             output,
             error,

@@ -81,6 +81,12 @@ public sealed class AdrGuardConfigurationLoaderTests
         Assert.Contains("--template", configured);
         Assert.Contains("extended", configured);
 
+        var configuredEdit = ConfigurationArguments.Apply(
+            ["edit", "docs/decisions/0001-choice.md", "--form"],
+            configuration);
+        Assert.Contains("--adr-directory", configuredEdit);
+        Assert.Contains(configuration.AdrDirectoryPath, configuredEdit);
+
         var explicitArgs = new[]
         {
             "new", "custom/adrs", "--title", "Explicit", "--template", "minimal",
