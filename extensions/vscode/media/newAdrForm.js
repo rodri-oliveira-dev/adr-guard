@@ -76,9 +76,10 @@
 
   function renderListHeader(initializationState, rerender) {
     const header = element('header', { className: 'list-header' });
-    const heading = element('div');
+    const heading = element('div', { className: 'list-heading' });
     heading.append(element('h1', {}, t('Architecture Decision Records')), element('p', { className: 'intro directory' }, directory));
-    const actions = element('div', { className: 'actions compact' });
+    const controls = element('div', { className: 'header-controls' });
+    const actions = element('div', { className: 'header-actions', role: 'group', 'aria-label': t('Architecture Decision Records') });
     const language = select('interface-language', [
       { value: 'en-US', label: 'English' },
       { value: 'pt-BR', label: 'Português (Brasil)' },
@@ -107,8 +108,10 @@
       initializeControl.append(initialize);
     }
     const check = button(t('Check installation'), () => vscode.postMessage(listMessage('checkInstallation')), true);
-    actions.append(language, initializeControl, check, button(t('New ADR'), () => { persistListState(); vscode.postMessage(listMessage('newAdr')); }), button(t('Refresh'), () => vscode.postMessage(listMessage('refreshList')), true));
-    header.append(heading, actions);
+    const refresh = button(t('Refresh'), () => { persistListState(); vscode.postMessage(listMessage('refreshList')); }, true);
+    actions.append(refresh, check, initializeControl, button(t('New ADR'), () => { persistListState(); vscode.postMessage(listMessage('newAdr')); }));
+    controls.append(language, actions);
+    header.append(heading, controls);
     return header;
   }
 
@@ -153,6 +156,7 @@
       .sort(compareEntries);
     announcement.textContent = filtered.length === entries.length ? t('{0} ADRs shown', filtered.length) : t('{0} of {1} ADRs shown', filtered.length, entries.length);
     list.replaceChildren();
+    list.removeAttribute('role');
     if (!entries.length) {
       const empty = element('section', { className: 'empty-state' });
       empty.append(element('h2', {}, t('No ADRs were found in this directory.')), element('p', { className: 'intro' }, t('Create your first ADR to record an architectural decision.')), button(t('New ADR'), () => vscode.postMessage(listMessage('newAdr'))));
@@ -162,7 +166,8 @@
       empty.append(element('h2', {}, t('No ADRs match the current search and filters.')), button(t('Clear filters'), clearFilters, true));
       list.append(empty);
     } else {
-      filtered.forEach((entry) => list.append(renderCard(entry)));
+      list.setAttribute('role', 'list');
+      filtered.forEach((entry) => list.append(renderRow(entry)));
     }
     banner.replaceChildren();
     banner.classList.add('hidden');
@@ -196,25 +201,24 @@
   }
   function optionalCompare(left, right, descending) { if (left === undefined) return right === undefined ? 0 : 1; if (right === undefined) return -1; const result = left.localeCompare(right, undefined, { sensitivity: 'base' }); return descending ? -result : result; }
   function numberCompare(left, right) { if (left === undefined) return right === undefined ? 0 : 1; if (right === undefined) return -1; return BigInt(left) < BigInt(right) ? -1 : BigInt(left) > BigInt(right) ? 1 : 0; }
-  function renderCard(entry) {
-    const card = element('article', { className: `adr-card${entry.relativePath === createdPath ? ' created' : ''}`, ...(entry.relativePath === createdPath ? { tabindex: '-1' } : {}) });
+  function renderRow(entry) {
+    const row = element('article', { className: `adr-row${entry.relativePath === createdPath ? ' created' : ''}`, role: 'listitem', ...(entry.relativePath === createdPath ? { tabindex: '-1' } : {}) });
     const identity = element('span', { className: 'identifier' }, entry.id || t('No identifier'));
-    const title = element('h2', {}, entry.title || t('Unknown title'));
-    const metadata = element('div', { className: 'metadata' });
-    if (entry.status) metadata.append(element('span', { className: 'status' }, entry.status));
+    const summary = element('div', { className: 'adr-summary' });
+    summary.append(element('h2', {}, entry.title || t('Unknown title')), element('span', { className: 'path' }, entry.relativePath));
+    const metadata = element('div', { className: 'adr-metadata' });
+    metadata.append(element('span', { className: `status${entry.status ? '' : ' unknown'}` }, entry.status || t('Unknown status')));
     if (entry.date) metadata.append(element('time', { datetime: entry.date }, entry.date));
-    const file = element('p', { className: 'path' }, entry.relativePath);
-    const cardActions = element('div', { className: 'actions compact' });
+    const rowActions = element('div', { className: 'row-actions' });
     const edit = button(t('Edit'), () => {
       persistListState();
       vscode.postMessage({ type: 'editAdr', workspace: selectedWorkspace, relativePath: entry.relativePath, state: listState });
     });
     const open = button(t('Open Markdown'), () => vscode.postMessage({ type: 'openAdr', workspace: selectedWorkspace, relativePath: entry.relativePath }), true);
-    cardActions.append(edit, open);
-    card.append(identity, title, metadata, file);
-    if (entry.warning || !entry.title) card.append(element('p', { className: 'warning' }, t('This ADR has incomplete metadata.')));
-    card.append(cardActions);
-    return card;
+    rowActions.append(edit, open);
+    row.append(identity, summary, metadata, rowActions);
+    if (entry.warning || !entry.title) summary.append(element('span', { className: 'warning' }, t('This ADR has incomplete metadata.')));
+    return row;
   }
 
   function appendField(container, id, label, control, help) {
@@ -351,7 +355,7 @@
     if (message.type === 'requestShowForm') { if (formDirty && !confirm(t('Discard the unsaved form data and start a new ADR?'))) return; formDirty = false; vscode.postMessage(listMessage('newAdr')); return; }
     if (message.type === 'editLoading') { renderMessage(t('Edit ADR'), t('Loading ADR…')); return; }
     if (message.type === 'editLoaded') { selectedWorkspace = message.workspace; editDocument = message; renderEditForm(); return; }
-    if (message.type === 'listLoading') { if (!document.getElementById('adr-list')) renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
+    if (message.type === 'listLoading') { const list = document.getElementById('adr-list'); if (list) list.setAttribute('aria-busy', 'true'); else renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'listResult') { if (message.workspace !== selectedWorkspace) return; directory = `${workspaces.find((item) => item.id === selectedWorkspace)?.name || ''} · ${message.directory}`; entries = Array.isArray(message.entries) ? message.entries : []; if (message.state) listState = message.state; createdPath = message.createdPath; highlightKind = message.highlightKind || 'created'; renderList(); return; }
     if (message.type === 'listError') { if (message.workspace !== selectedWorkspace) return; const item = workspaces.find((candidate) => candidate.id === selectedWorkspace); directory = `${item?.name || ''} · ${message.directory || item?.directory || ''}`; renderListError(message.kind); return; }
     if (message.type === 'clearListFilters') { listState.search = ''; listState.status = ''; return; }

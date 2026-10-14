@@ -21,8 +21,18 @@ describe('ADR list model', () => {
   it('sorts numbered ADRs deterministically and leaves unnumbered documents last', () => {
     assert.deepEqual(filterAndSortAdrs(entries, { search: '', status: '', sort: 'number-desc' })
       .map((item) => item.relativePath), ['0010-cache.md', '0002-api.md', 'notes.md']);
+    assert.deepEqual(filterAndSortAdrs(entries, { search: '', status: '', sort: 'number-asc' })
+      .map((item) => item.relativePath), ['0002-api.md', '0010-cache.md', 'notes.md']);
+    assert.deepEqual(filterAndSortAdrs(entries, { search: '', status: '', sort: 'title-asc' })
+      .map((item) => item.relativePath), ['0002-api.md', '0010-cache.md', 'notes.md']);
     assert.deepEqual(filterAndSortAdrs(entries, { search: '', status: '', sort: 'date-desc' })
       .map((item) => item.relativePath), ['0002-api.md', '0010-cache.md', 'notes.md']);
+  });
+
+  it('does not mutate the catalog while filtering and sorting', () => {
+    const originalOrder = entries.map((item) => item.relativePath);
+    filterAndSortAdrs(entries, { search: '', status: '', sort: 'title-asc' });
+    assert.deepEqual(entries.map((item) => item.relativePath), originalOrder);
   });
 
   it('discards obsolete list responses', () => {

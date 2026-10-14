@@ -50,7 +50,7 @@ describe('visual ADR form host boundary', () => {
       title: 'Safe', fields: { 'section-0': 'Accepted' },
     };
     assert.deepEqual(parseNewAdrFormMessage({ type: 'saveEdit', editValues }), { type: 'saveEdit', editValues });
-    for (const type of ['refreshList', 'initializeRepository', 'checkInstallation'] as const) {
+    for (const type of ['showList', 'selectWorkspace', 'refreshList', 'initializeRepository', 'checkInstallation'] as const) {
       assert.deepEqual(parseNewAdrFormMessage({
         type, workspace: 'file:///workspace',
         state: { search: 'api', status: 'Accepted', sort: 'number-desc', scrollTop: 42 },
@@ -149,5 +149,49 @@ describe('visual ADR form host boundary', () => {
     const selectedWorkspaceFunction = /function selectedWorkspaceItem\(\) \{(?<body>[\s\S]*?)\n[ ]{2}\}/u.exec(source)?.groups?.body;
     assert.ok(selectedWorkspaceFunction);
     assert.doesNotMatch(selectedWorkspaceFunction, /document\.getElementById\('workspace'\)\.value/u);
+  });
+
+  it('renders compact accessible rows with responsive VS Code theme styling', async () => {
+    const script = await readFile(path.resolve(__dirname, '../../../media/newAdrForm.js'), 'utf8');
+    const styles = await readFile(path.resolve(__dirname, '../../../media/newAdrForm.css'), 'utf8');
+
+    assert.match(script, /className: `adr-row\$\{entry\.relativePath === createdPath \? ' created' : ''\}`/u);
+    assert.match(script, /role: 'listitem'/u);
+    assert.match(script, /list\.setAttribute\('role', 'list'\)/u);
+    assert.match(script, /row\.append\(identity, summary, metadata, rowActions\)/u);
+    assert.doesNotMatch(script, /adr-card/u);
+    assert.match(styles, /\.adr-row \{[\s\S]*?grid-template-columns:/u);
+    assert.match(styles, /var\(--vscode-list-hoverBackground\)/u);
+    assert.match(styles, /var\(--vscode-badge-background\)/u);
+    assert.match(styles, /var\(--vscode-contrastBorder, transparent\)/u);
+    assert.match(styles, /@media \(max-width: 760px\)/u);
+    assert.match(styles, /@media \(max-width: 480px\)[\s\S]*?\.row-actions/u);
+    assert.doesNotMatch(styles, /#[0-9a-fA-F]{3,8}\b/u);
+  });
+
+  it('sends isolated list actions and captures state before refresh or navigation', async () => {
+    const source = await readFile(path.resolve(__dirname, '../../../media/newAdrForm.js'), 'utf8');
+
+    assert.match(source, /const refresh = button\(t\('Refresh'\), \(\) => \{ persistListState\(\); vscode\.postMessage\(listMessage\('refreshList'\)\); \}/u);
+    assert.match(source, /vscode\.postMessage\(\{ type: 'openAdr', workspace: selectedWorkspace, relativePath: entry\.relativePath \}\)/u);
+    assert.match(source, /vscode\.postMessage\(\{ type: 'editAdr', workspace: selectedWorkspace, relativePath: entry\.relativePath, state: listState \}\)/u);
+    assert.match(source, /vscode\.postMessage\(listMessage\('newAdr'\)\)/u);
+    assert.match(source, /vscode\.setState\(\{ listState, selectedWorkspace, interfaceLanguage \}\)/u);
+    assert.match(source, /const targetScroll = listState\.scrollTop \|\| 0/u);
+    assert.match(source, /window\.scrollTo\(0, targetScroll\)/u);
+  });
+
+  it('keeps list loading, refresh, and Markdown navigation free of CLI validation and writes', async () => {
+    const host = await readFile(path.resolve(__dirname, '../../../src/commands/newAdrForm.ts'), 'utf8');
+    const loadList = host.slice(host.indexOf('private async loadList('), host.indexOf('private async openAdr('));
+    const openAdr = host.slice(host.indexOf('private async openAdr('), host.indexOf('private async runListAction('));
+    const refreshRoute = host.slice(host.indexOf("if (message.type === 'selectWorkspace'"), host.indexOf("if (message.type === 'initializeRepository'"));
+
+    assert.match(loadList, /explorer\.catalogFor\(folder\)/u);
+    assert.doesNotMatch(loadList, /executor\.execute|executeCommand|\['check'|\['new'|\['edit'|\['index'/u);
+    assert.match(openAdr, /showTextDocument\(vscode\.Uri\.file\(target\.filePath\)/u);
+    assert.doesNotMatch(openAdr, /executor\.execute|executeCommand|writeFile|rename|unlink/u);
+    assert.match(refreshRoute, /await this\.loadList\(message\.workspace, message\.state\)/u);
+    assert.doesNotMatch(refreshRoute, /executor\.execute|executeCommand/u);
   });
 });

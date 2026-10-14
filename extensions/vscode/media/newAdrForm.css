@@ -13,18 +13,45 @@ body {
 main {
   box-sizing: border-box;
   margin: 0 auto;
-  max-width: 1100px;
+  max-width: 1200px;
   padding: 24px;
 }
 
 .list-header {
-  align-items: flex-start;
-  display: flex;
-  gap: 24px;
-  justify-content: space-between;
+  align-items: start;
+  display: grid;
+  gap: 12px 24px;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.list-header h1, .adr-card h2 { margin-top: 0; }
+.list-heading {
+  min-width: 0;
+}
+
+.list-header h1 {
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.list-heading .directory {
+  margin: 5px 0 0;
+}
+
+.header-controls {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  justify-content: flex-end;
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
 
 .directory, .path {
   overflow-wrap: anywhere;
@@ -32,36 +59,114 @@ main {
 
 .filters {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   grid-template-columns: minmax(150px, 1fr) minmax(180px, 2fr) minmax(130px, 1fr) minmax(150px, 1fr);
-  margin: 20px 0 10px;
+  margin: 18px 0 8px;
 }
 
-.count { color: var(--vscode-descriptionForeground); }
+.count {
+  color: var(--vscode-descriptionForeground);
+  margin: 8px 0;
+}
 
-.adr-list { display: grid; gap: 12px; }
-
-.adr-card {
-  background: var(--vscode-sideBar-background);
+.adr-list {
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
-  padding: 16px;
+  border-radius: 3px;
+  overflow: hidden;
 }
 
-.adr-card.created {
+.adr-row {
+  align-items: center;
+  background: var(--vscode-editor-background);
+  border-bottom: 1px solid var(--vscode-panel-border);
+  display: grid;
+  gap: 8px 14px;
+  grid-template-columns: minmax(64px, auto) minmax(160px, 1fr) minmax(110px, auto) auto;
+  min-width: 0;
+  padding: 9px 10px;
+}
+
+.adr-row:last-child {
+  border-bottom: 0;
+}
+
+.adr-row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.adr-row.created {
+  background: var(--vscode-list-inactiveSelectionBackground);
   border-color: var(--vscode-focusBorder);
-  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+  box-shadow: inset 3px 0 0 var(--vscode-focusBorder);
 }
 
 .identifier {
   color: var(--vscode-descriptionForeground);
   font-family: var(--vscode-editor-font-family);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
 }
 
-.metadata { display: flex; flex-wrap: wrap; gap: 8px 16px; }
-.status { font-weight: 600; }
-.path, .warning { color: var(--vscode-descriptionForeground); }
-.warning { font-style: italic; }
+.adr-summary {
+  min-width: 0;
+}
+
+.adr-summary h2 {
+  font-size: 1em;
+  line-height: 1.25;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.adr-metadata {
+  align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.status {
+  background: var(--vscode-badge-background);
+  border: 1px solid var(--vscode-contrastBorder, transparent);
+  border-radius: 9px;
+  color: var(--vscode-badge-foreground);
+  font-size: 0.86em;
+  line-height: 1.35;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 1px 7px;
+}
+
+.status.unknown {
+  background: transparent;
+  color: var(--vscode-descriptionForeground);
+}
+
+.adr-metadata time, .path, .warning {
+  color: var(--vscode-descriptionForeground);
+}
+
+.path, .warning {
+  display: block;
+  font-size: 0.88em;
+  margin-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+.warning {
+  font-style: italic;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.row-actions button, .header-actions button {
+  padding: 5px 9px;
+}
 
 .notice {
   align-items: center;
@@ -80,7 +185,13 @@ main {
   text-align: center;
 }
 
-.centered { text-align: center; }
+.adr-list > .empty-state {
+  border: 0;
+}
+
+.centered {
+  text-align: center;
+}
 
 h1, h2 {
   line-height: 1.25;
@@ -151,10 +262,12 @@ pre {
   margin-top: 20px;
 }
 
-.actions.compact { margin-top: 0; }
+.actions.compact {
+  margin-top: 0;
+}
 
 select.language-switch {
-  min-width: 170px;
+  min-width: 150px;
   width: auto;
 }
 
@@ -165,7 +278,7 @@ select.language-switch {
 button {
   color: var(--vscode-button-foreground);
   background: var(--vscode-button-background);
-  border: 1px solid transparent;
+  border: 1px solid var(--vscode-contrastBorder, transparent);
   border-radius: 2px;
   cursor: pointer;
   font: inherit;
@@ -194,12 +307,95 @@ button:disabled {
   display: none;
 }
 
-@media (max-width: 600px) {
-  main { padding: 16px; }
-  .list-header { display: block; }
-  .filters { grid-template-columns: 1fr; }
-  .actions { align-items: stretch; flex-direction: column; }
-  select.language-switch { width: 100%; }
+@media (max-width: 760px) {
+  .list-header {
+    grid-template-columns: 1fr;
+  }
+
+  .header-controls {
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .header-actions {
+    justify-content: flex-start;
+  }
+
+  .filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .adr-row {
+    grid-template-columns: minmax(58px, auto) minmax(0, 1fr) auto;
+  }
+
+  .adr-metadata {
+    align-items: center;
+    flex-direction: row;
+    grid-column: 2;
+  }
+
+  .row-actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+}
+
+@media (max-width: 480px) {
+  main {
+    padding: 16px;
+  }
+
+  .list-header h1 {
+    white-space: normal;
+  }
+
+  .header-controls {
+    display: grid;
+  }
+
+  .header-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .adr-row {
+    align-items: start;
+    grid-template-columns: minmax(52px, auto) minmax(0, 1fr);
+  }
+
+  .adr-metadata {
+    align-items: flex-start;
+    flex-direction: column;
+    grid-column: 2;
+  }
+
+  .row-actions {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    justify-content: flex-end;
+  }
+
+  .row-actions button {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .actions:not(.compact) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  select.language-switch {
+    width: 100%;
+  }
+
   .disabled-button-wrapper,
-  .disabled-button-wrapper button { width: 100%; }
+  .disabled-button-wrapper button {
+    width: 100%;
+  }
 }
