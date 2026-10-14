@@ -46,7 +46,7 @@ The root composite GitHub Action is also an adapter around the released CLI/cont
 
 ## Coding standards
 
-- Use the SDK pinned by `global.json` (currently .NET SDK 10.0.401), target `net10.0`, and use C# 14 as configured in `Directory.Build.props`.
+- Use the SDK pinned by `global.json` (currently .NET SDK 10.0.402), target `net10.0`, and use C# 14 as configured in `Directory.Build.props`.
 - Nullable reference types, implicit usings, deterministic builds, latest-recommended analysis, build-enforced code style, and warnings-as-errors are mandatory. Fix warnings; do not broadly suppress or downgrade them.
 - Follow `.editorconfig`: UTF-8, LF, final newline, spaces, four-space C# indentation, two-space JSON/YAML indentation, file-scoped namespaces, and System usings first.
 - Match the existing namespace and folder layout. Use PascalCase for types and public/internal members, camelCase for locals and parameters, and descriptive domain names rather than generic helpers.

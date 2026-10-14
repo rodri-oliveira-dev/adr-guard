@@ -153,11 +153,7 @@ internal sealed class AdrCreationService
     {
         using var mutex = new Mutex(
             CreateMutexName(directoryPath),
-            new NamedWaitHandleOptions
-            {
-                CurrentSessionOnly = false,
-                CurrentUserOnly = true,
-            });
+            CreateMutexOptions(OperatingSystem.IsWindows()));
 
         var acquired = false;
         try
@@ -270,6 +266,16 @@ internal sealed class AdrCreationService
 
         return "adr-guard-create-" + Convert.ToHexString(hash);
     }
+
+    internal static NamedWaitHandleOptions CreateMutexOptions(bool isWindows) =>
+        new()
+        {
+            // Unix shells define sessions, so session scope still coordinates
+            // cooperating CLI processes without requiring the global shared-memory
+            // directory that hardened read-only containers intentionally omit.
+            CurrentSessionOnly = !isWindows,
+            CurrentUserOnly = true,
+        };
 
     private static string ResolveDirectoryIdentity(string directoryPath)
     {
