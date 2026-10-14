@@ -69,7 +69,7 @@ Run **ADR Guard: Open ADR Guard** from the Command Palette or the ADR Explorer t
 
 Clicking the dedicated ADR Guard icon in the Activity Bar also opens or reveals this visual list. The same panel is reused, so repeated clicks do not create duplicate tabs.
 
-The list header provides an accessible English/Portuguese interface language selector. It also exposes the existing installation check and repository initialization flows for the selected workspace folder. Initialization is available only while the configured directory has no ADRs; once ADRs exist, the disabled control explains that the repository is already initialized. The language choice is kept while navigating between the list, creation form, and edit form, independently from the ADR document language.
+The list header groups refresh, installation check, repository initialization, creation, and a settings gear. Initialization is available only while the configured directory has no ADRs; once ADRs exist, the disabled control explains that the repository is already initialized.
 
 The list distinguishes loading, empty, filtered-empty, missing-directory, unavailable-workspace, and read-error states. It never creates a directory or initializes a repository while browsing. File changes are batched by the shared ADR Explorer watcher, and switching workspace folders cannot allow an older response to replace the current folder.
 
@@ -79,13 +79,19 @@ Each list item also provides **Edit**. The same visual panel loads the selected 
 
 ## Visual ADR creation form (unreleased)
 
-Run **ADR Guard: Create ADR with Form** from the Command Palette or use the new-file action in the ADR Explorer title. The form keeps workspace folder and document language separate from the VS Code interface language, initializes the destination from `adrGuard.validation.directory`, and preserves compatible field values when workspace, destination, language, or template changes.
+Run **ADR Guard: Create ADR with Form** from the Command Palette or use the new-file action in the ADR Explorer title. The form keeps workspace folder and document language separate from the VS Code interface language, initializes the destination from `adrGuard.validation.directory`, uses the folder's default document language and creation template, and still permits per-document changes.
 
 The form supports the native `minimal` and `extended` creation templates. Minimal requires Context, Decision, and Consequences. Extended exposes those required fields plus optional Decision Drivers, Options Considered, Rationale, Positive/Negative Consequences, Risks, and References; optional empty sections are omitted. Creation remains canonical—the `canonical`/`madr-4` validation format setting is a separate concern and is not presented as a creation-template choice.
 
 Configured custom templates cannot be mapped to fields safely. The form reports that limitation and offers **Use traditional creation** without replacing the custom template. The traditional **Create ADR** command remains available for all supported custom templates and older CLIs.
 
 Visual creation requires CLI 1.7.0 or newer with the schema `1.0` `new --form` contract. Preview and creation use the same CLI renderer; preview does not write, reserve a number, or update the index, while creation resolves the final number atomically and never overwrites an existing file. Form state remains in the retained panel while it is hidden. VS Code does not provide a cancellable WebviewPanel close event, so closing the panel cannot show a guaranteed unsaved-changes confirmation and discards its in-memory state.
+
+## Visual settings (unreleased)
+
+Use the list header's settings gear to configure the existing panel without opening another tab. Interface language is stored in user settings as Automatic (VS Code), Portuguese (Brazil), or English. Automatic follows the editor locale for ADR Guard Webview text only; native VS Code commands and controls keep the editor's own locale. Default document language and creation template are independent workspace-folder settings, so multi-root folders may differ.
+
+The Repository section reuses `adrGuard.validation.directory` and `adrGuard.validation.adrFormat`. The directory must be a safe relative path whose existing path ancestry stays within the selected workspace. Saving preferences does not create, move, delete, validate, or index ADR files. Back and Cancel preserve the list state and require confirmation before discarding changed settings.
 
 ## ADR Explorer and formats
 
@@ -114,6 +120,9 @@ ADR Guard for VS Code does not collect telemetry, install software, access AI pr
 - `adrGuard.cli.path`: trusted absolute CLI path in user/machine settings.
 - `adrGuard.cli.timeoutMilliseconds`: process timeout, 1–120 seconds.
 - `adrGuard.cli.maxOutputBytes`: separate stdout/stderr capture limit.
+- `adrGuard.ui.language`: user-level ADR Guard Webview language (`auto`, `pt-BR`, or `en-US`).
+- `adrGuard.creation.documentLanguage`: workspace-folder default language for new ADRs.
+- `adrGuard.creation.defaultTemplate`: workspace-folder creation default (`configured`, `minimal`, or `extended`).
 - `adrGuard.validation.directory`: workspace-relative ADR directory.
 - `adrGuard.validation.adrFormat`: `canonical` or `madr-4`.
 - `adrGuard.validation.baseline`: workspace-relative baseline JSON path.

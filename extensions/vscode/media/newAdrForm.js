@@ -5,6 +5,8 @@
   const app = document.getElementById('app');
   let strings = { 'en-US': {}, 'pt-BR': {} };
   let interfaceLanguage;
+  let interfacePreference = 'auto';
+  let editorInterfaceLanguage = 'en-US';
   let workspaces = [];
   let trusted = true;
   let selectedWorkspace;
@@ -19,6 +21,10 @@
   let createdPath;
   let highlightKind = 'created';
   let editDocument;
+  let settingsBaseline;
+  let settingsDraft;
+  let settingsDirty = false;
+  let settingsBusy = false;
   const valuesByField = {};
   const restored = vscode.getState() || {};
   let listState = normalizeListState(restored.listState);
@@ -71,28 +77,18 @@
     listState.scrollTop = window.scrollY;
     persistState();
   }
-  function persistState() { vscode.setState({ listState, selectedWorkspace, interfaceLanguage }); }
+  function persistState() { vscode.setState({ listState, selectedWorkspace }); }
   function listMessage(type) { return { type, workspace: selectedWorkspace, state: listState }; }
+  function effectiveInterfaceLanguage(preference) {
+    return preference === 'pt-BR' || preference === 'en-US' ? preference : editorInterfaceLanguage;
+  }
 
-  function renderListHeader(initializationState, rerender) {
+  function renderListHeader(initializationState) {
     const header = element('header', { className: 'list-header' });
     const heading = element('div', { className: 'list-heading' });
     heading.append(element('h1', {}, t('Architecture Decision Records')), element('p', { className: 'intro directory' }, directory));
     const controls = element('div', { className: 'header-controls' });
     const actions = element('div', { className: 'header-actions', role: 'group', 'aria-label': t('Architecture Decision Records') });
-    const language = select('interface-language', [
-      { value: 'en-US', label: 'English' },
-      { value: 'pt-BR', label: 'Português (Brasil)' },
-    ]);
-    language.classList.add('language-switch');
-    language.setAttribute('aria-label', t('Interface language'));
-    language.value = interfaceLanguage;
-    language.addEventListener('change', () => {
-      persistListState();
-      interfaceLanguage = language.value === 'pt-BR' ? 'pt-BR' : 'en-US';
-      persistState();
-      rerender();
-    });
     const initialize = button(t('Initialize repository'), () => {
       persistListState();
       vscode.postMessage(listMessage('initializeRepository'));
@@ -109,15 +105,20 @@
     }
     const check = button(t('Check installation'), () => vscode.postMessage(listMessage('checkInstallation')), true);
     const refresh = button(t('Refresh'), () => { persistListState(); vscode.postMessage(listMessage('refreshList')); }, true);
-    actions.append(refresh, check, initializeControl, button(t('New ADR'), () => { persistListState(); vscode.postMessage(listMessage('newAdr')); }));
-    controls.append(language, actions);
+    const settings = button('⚙', () => { persistListState(); vscode.postMessage(listMessage('openSettings')); }, true);
+    settings.id = 'open-settings';
+    settings.classList.add('icon-button');
+    settings.setAttribute('aria-label', t('Settings'));
+    settings.setAttribute('title', t('Settings'));
+    actions.append(refresh, check, initializeControl, button(t('New ADR'), () => { persistListState(); vscode.postMessage(listMessage('newAdr')); }), settings);
+    controls.append(actions);
     header.append(heading, controls);
     return header;
   }
 
   function renderList() {
     app.replaceChildren();
-    const header = renderListHeader(entries.length > 0 ? 'initialized' : 'available', renderList);
+    const header = renderListHeader(entries.length > 0 ? 'initialized' : 'available');
     const controls = element('section', { className: 'filters', 'aria-label': t('Architecture Decision Records') });
     const workspace = select('list-workspace', workspaces.map((item) => ({ value: item.id, label: item.name })));
     workspace.value = selectedWorkspace;
@@ -185,12 +186,135 @@
   function clearFilters() { listState.search = ''; listState.status = ''; renderList(); }
   function renderListError(kind) {
     const missing = kind === 'missing-directory';
-    app.replaceChildren(renderListHeader(missing ? 'available' : 'unavailable', () => renderListError(kind)));
+    app.replaceChildren(renderListHeader(missing ? 'available' : 'unavailable'));
     const state = element('section', { className: 'empty-state', role: 'status' });
     state.append(element('h2', {}, missing ? t('The configured ADR directory does not exist.') : t('The ADR directory could not be read.')));
     if (missing) state.append(element('p', { className: 'intro' }, t('ADR Guard does not create directories while browsing.')));
     state.append(button(t('Retry'), () => vscode.postMessage(listMessage('refreshList')), true));
     app.append(state);
+  }
+  function settingsValues() {
+    return {
+      workspace: document.getElementById('settings-workspace').value,
+      uiLanguage: document.getElementById('ui-language').value,
+      documentLanguage: document.getElementById('document-language').value,
+      directory: document.getElementById('settings-directory').value,
+      adrFormat: document.getElementById('adr-format').value,
+      defaultTemplate: document.getElementById('default-template').value,
+    };
+  }
+  function updateSettingsDraft() {
+    settingsDraft = settingsValues();
+    settingsDirty = JSON.stringify(settingsDraft) !== JSON.stringify(settingsBaseline);
+  }
+  function validSettingsDirectory(value) {
+    const candidate = value.trim();
+    return candidate.length > 0 && candidate.length <= 4096
+      && !candidate.startsWith('/') && !candidate.startsWith('\\') && !/^[A-Za-z]:[\\/]/u.test(candidate)
+      && !candidate.split(/[\\/]/u).includes('..');
+  }
+  function leaveSettings() {
+    if (settingsBusy) return;
+    if (settingsDirty && !confirm(t('Discard the unsaved settings and return to the ADR list?'))) return;
+    if (settingsBaseline) {
+      interfacePreference = settingsBaseline.uiLanguage;
+      interfaceLanguage = effectiveInterfaceLanguage(interfacePreference);
+    }
+    settingsDirty = false;
+    vscode.postMessage(listMessage('cancelSettings'));
+  }
+  function setSettingsBusy(active) {
+    settingsBusy = active;
+    document.querySelectorAll('#settings-form input, #settings-form select, #settings-form button, .settings-back')
+      .forEach((control) => { control.disabled = active; });
+    const status = document.getElementById('settings-status');
+    if (status) status.textContent = active ? t('Saving settings…') : '';
+  }
+  function renderSettings(values) {
+    if (values) {
+      settingsBaseline = { ...values };
+      settingsDraft = { ...values };
+      settingsDirty = false;
+      selectedWorkspace = values.workspace;
+      interfacePreference = values.uiLanguage;
+      interfaceLanguage = effectiveInterfaceLanguage(interfacePreference);
+    }
+    if (!settingsDraft) return;
+    app.replaceChildren();
+    const back = button(`← ${t('Back to ADR list')}`, leaveSettings, true);
+    back.classList.add('form-back', 'settings-back');
+    const headingGroup = element('div', { className: 'form-heading' });
+    headingGroup.append(element('h1', {}, t('Settings')), element('p', { className: 'intro' }, t('Configure ADR Guard preferences.')));
+    const header = element('header', { className: 'form-header' }); header.append(back, headingGroup);
+    const navigation = sectionNavigation([
+      { id: 'settings-languages', label: 'Languages' }, { id: 'settings-repository', label: 'Repository' },
+      { id: 'settings-creation', label: 'Document creation' },
+    ]);
+    const status = element('div', { id: 'settings-status', role: 'status', 'aria-live': 'polite' });
+    const error = element('div', { id: 'error', role: 'alert', className: 'error hidden' });
+    const form = element('form', { id: 'settings-form', novalidate: '' });
+    const languages = element('fieldset', { id: 'settings-languages', className: 'form-section' }); languages.append(element('legend', {}, t('Languages')));
+    const repository = element('fieldset', { id: 'settings-repository', className: 'form-section' }); repository.append(element('legend', {}, t('Repository')));
+    const creation = element('fieldset', { id: 'settings-creation', className: 'form-section' }); creation.append(element('legend', {}, t('Document creation')));
+    const workspace = select('settings-workspace', workspaces.map((item) => ({ value: item.id, label: item.name }))); workspace.value = settingsDraft.workspace;
+    const uiLanguage = select('ui-language', [
+      { value: 'auto', label: t('Automatic (VS Code)') }, { value: 'pt-BR', label: 'Português (Brasil)' }, { value: 'en-US', label: 'English' },
+    ]); uiLanguage.value = settingsDraft.uiLanguage;
+    const documentLanguage = select('document-language', [
+      { value: 'pt-BR', label: 'Português (Brasil)' }, { value: 'en-US', label: 'English' },
+    ]); documentLanguage.value = settingsDraft.documentLanguage;
+    const directoryInput = element('input', { id: 'settings-directory', type: 'text', required: '', maxlength: '4096', autocomplete: 'off' }); directoryInput.value = settingsDraft.directory;
+    const adrFormat = select('adr-format', [{ value: 'canonical', label: t('Canonical') }, { value: 'madr-4', label: t('MADR 4.0') }]); adrFormat.value = settingsDraft.adrFormat;
+    const defaultTemplate = select('default-template', [
+      { value: 'configured', label: t('Configured in the CLI') }, { value: 'minimal', label: t('Minimal') }, { value: 'extended', label: t('Extended') },
+    ]); defaultTemplate.value = settingsDraft.defaultTemplate;
+    appendField(languages, 'ui-language', t('Interface language'), uiLanguage, t('Native VS Code commands and controls continue to use the editor language.'));
+    appendField(languages, 'document-language', t('Default language for new documents'), documentLanguage);
+    appendField(repository, 'settings-workspace', t('Selected workspace'), workspace);
+    appendField(repository, 'settings-directory', t('ADR directory'), directoryInput, t('Use a relative path inside the selected workspace.'), true);
+    appendField(repository, 'adr-format', t('ADR format'), adrFormat, t('The validation format is independent from the creation template.'));
+    appendField(creation, 'default-template', t('Default creation template'), defaultTemplate, t('You can still choose another template for an individual document.'));
+    const actions = element('div', { className: 'actions form-actions' });
+    actions.append(element('button', { id: 'save-settings', type: 'submit' }, t('Save settings')), button(t('Cancel'), leaveSettings, true));
+    form.append(languages, repository, creation, actions); app.append(header, navigation, status, error, form);
+    workspace.addEventListener('change', () => {
+      const targetWorkspace = workspace.value;
+      if (settingsDirty && !confirm(t('Discard the unsaved settings and switch workspace?'))) {
+        workspace.value = settingsDraft.workspace;
+        return;
+      }
+      interfacePreference = settingsBaseline.uiLanguage;
+      interfaceLanguage = effectiveInterfaceLanguage(interfacePreference);
+      settingsDirty = false;
+      selectedWorkspace = targetWorkspace;
+      persistState();
+      vscode.postMessage(listMessage('openSettings'));
+    });
+    uiLanguage.addEventListener('change', () => {
+      updateSettingsDraft();
+      interfacePreference = settingsDraft.uiLanguage;
+      interfaceLanguage = effectiveInterfaceLanguage(interfacePreference);
+      renderSettings();
+    });
+    [documentLanguage, directoryInput, adrFormat, defaultTemplate].forEach((control) => {
+      control.addEventListener('input', updateSettingsDraft);
+      control.addEventListener('change', updateSettingsDraft);
+    });
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (settingsBusy || !form.reportValidity()) return;
+      updateSettingsDraft();
+      if (!validSettingsDirectory(settingsDraft.directory)) {
+        error.textContent = t('Enter a safe relative directory inside the selected workspace.');
+        error.classList.remove('hidden');
+        directoryInput.focus();
+        return;
+      }
+      error.classList.add('hidden');
+      setSettingsBusy(true);
+      vscode.postMessage({ type: 'saveSettings', settings: settingsDraft, state: listState });
+    });
+    setSettingsBusy(settingsBusy);
   }
   function compareEntries(left, right) {
     const fallback = left.relativePath.localeCompare(right.relativePath, 'en', { sensitivity: 'case' });
@@ -234,7 +358,7 @@
     if (help) { const helpId = `${id}-help`; control.setAttribute('aria-describedby', helpId); group.append(element('p', { id: helpId, className: 'help' }, help)); }
     container.append(group);
   }
-  function renderForm(initialCulture) {
+  function renderForm() {
     if (!trusted) return renderMessage(t('ADR Guard'), t('Trust this workspace to browse ADRs.'));
     if (!workspaces.length) return renderMessage(t('ADR Guard'), t('Open a local workspace folder to browse ADRs.'));
     clearCreationValues();
@@ -259,11 +383,13 @@
     const workspace = select('workspace', workspaces.map((item) => ({ value: item.id, label: item.name })));
     workspace.value = selectedWorkspace || workspaces[0].id;
     selectedWorkspace = workspace.value;
+    const defaults = selectedWorkspaceItem();
     const directoryInput = element('input', { id: 'directory', type: 'text', required: '', autocomplete: 'off' });
-    directoryInput.value = selectedWorkspaceItem().directory;
+    directoryInput.value = defaults.directory;
     const template = select('template', [{ value: 'configured', label: t('Configured template') }, { value: 'minimal', label: t('Minimal') }, { value: 'extended', label: t('Extended') }]);
+    template.value = defaults.defaultTemplate || 'configured';
     const templateHelp = element('p', { id: 'template-help', className: 'help' }); template.setAttribute('aria-describedby', 'template-help');
-    const culture = select('culture', [{ value: 'en-US', label: 'English (United States)' }, { value: 'pt-BR', label: 'Português (Brasil)' }]); culture.value = initialCulture || 'en-US';
+    const culture = select('culture', [{ value: 'en-US', label: 'English (United States)' }, { value: 'pt-BR', label: 'Português (Brasil)' }]); culture.value = defaults.documentLanguage || 'en-US';
     const title = element('input', { id: 'title', type: 'text', required: '', maxlength: '512', autocomplete: 'off' });
     const fields = element('section', { id: 'content-fields', 'aria-label': t('Creation template') });
     const preview = element('pre', { id: 'preview', tabindex: '0' }); preview.append(element('code', {}, t('Preview unavailable until required fields are complete.')));
@@ -278,7 +404,15 @@
     content.append(fields);
     previewSection.append(element('h2', { id: 'preview-heading' }, t('Markdown preview')), preview);
     form.append(setup, content, previewSection, actions); app.append(header, navigation, statusNode, error, form);
-    workspace.addEventListener('change', () => { selectedWorkspace = workspace.value; directoryInput.value = selectedWorkspaceItem().directory; markDirty(); describe(); });
+    workspace.addEventListener('change', () => {
+      selectedWorkspace = workspace.value;
+      const workspaceDefaults = selectedWorkspaceItem();
+      directoryInput.value = workspaceDefaults.directory;
+      template.value = workspaceDefaults.defaultTemplate || 'configured';
+      culture.value = workspaceDefaults.documentLanguage || 'en-US';
+      markDirty();
+      describe();
+    });
     [directoryInput, template, culture].forEach((control) => control.addEventListener('change', () => { markDirty(); describe(); }));
     title.addEventListener('input', () => { identity.textContent = title.value.trim() || t('Decision title'); markDirty(); schedulePreview(); });
     form.addEventListener('submit', (event) => { event.preventDefault(); if (!busyCreate && form.reportValidity()) { setCreateBusy(true); postForm('create'); } });
@@ -377,11 +511,21 @@
 
   window.addEventListener('message', (event) => {
     const message = event.data; if (!message || typeof message.type !== 'string') return;
-    if (message.type === 'initialize') { strings = message.strings || strings; interfaceLanguage = restored.interfaceLanguage === 'pt-BR' || restored.interfaceLanguage === 'en-US' ? restored.interfaceLanguage : message.initialInterfaceLanguage; workspaces = Array.isArray(message.workspaces) ? message.workspaces : []; trusted = message.trusted !== false; selectedWorkspace = restored.selectedWorkspace && workspaces.some((item) => item.id === restored.selectedWorkspace) ? restored.selectedWorkspace : message.initialWorkspace; if (!trusted) renderMessage(t('ADR Guard'), t('Trust this workspace to browse ADRs.')); else if (!workspaces.length) renderMessage(t('ADR Guard'), t('Open a local workspace folder to browse ADRs.')); else if (message.initialScreen === 'form') renderForm(message.initialCulture); else renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
+    if (message.type === 'initialize') { strings = message.strings || strings; editorInterfaceLanguage = message.editorInterfaceLanguage === 'pt-BR' ? 'pt-BR' : 'en-US'; interfacePreference = ['auto', 'en-US', 'pt-BR'].includes(message.initialInterfacePreference) ? message.initialInterfacePreference : 'auto'; interfaceLanguage = effectiveInterfaceLanguage(interfacePreference); workspaces = Array.isArray(message.workspaces) ? message.workspaces : []; trusted = message.trusted !== false; selectedWorkspace = restored.selectedWorkspace && workspaces.some((item) => item.id === restored.selectedWorkspace) ? restored.selectedWorkspace : message.initialWorkspace; if (!trusted) renderMessage(t('ADR Guard'), t('Trust this workspace to browse ADRs.')); else if (!workspaces.length) renderMessage(t('ADR Guard'), t('Open a local workspace folder to browse ADRs.')); else if (message.initialScreen === 'form') renderForm(); else renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'showForm') { if (message.workspace) selectedWorkspace = message.workspace; renderForm(); return; }
-    if (message.type === 'showList') { if (message.state) listState = message.state; clearCreationValues(); formDirty = false; editDocument = undefined; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
-    if (message.type === 'requestShowList') { backToList(); return; }
-    if (message.type === 'requestShowForm') { if (formDirty && !confirm(t('Discard the unsaved form data and start a new ADR?'))) return; formDirty = false; vscode.postMessage(listMessage('newAdr')); return; }
+    if (message.type === 'showSettings') { renderSettings(message.settings); return; }
+    if (message.type === 'showList') { if (message.state) listState = message.state; clearCreationValues(); formDirty = false; editDocument = undefined; settingsBaseline = undefined; settingsDraft = undefined; settingsDirty = false; settingsBusy = false; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
+    if (message.type === 'requestShowList') { if (document.getElementById('settings-form')) leaveSettings(); else backToList(); return; }
+    if (message.type === 'requestShowForm') {
+      if (document.getElementById('settings-form')) {
+        if (settingsBusy || (settingsDirty && !confirm(t('Discard the unsaved settings and start a new ADR?')))) return;
+        if (settingsBaseline) { interfacePreference = settingsBaseline.uiLanguage; interfaceLanguage = effectiveInterfaceLanguage(interfacePreference); }
+        settingsDirty = false;
+        vscode.postMessage(listMessage('newAdr'));
+        return;
+      }
+      if (formDirty && !confirm(t('Discard the unsaved form data and start a new ADR?'))) return; formDirty = false; vscode.postMessage(listMessage('newAdr')); return;
+    }
     if (message.type === 'editLoading') { renderMessage(t('Edit ADR'), t('Loading ADR…')); return; }
     if (message.type === 'editLoaded') { selectedWorkspace = message.workspace; editDocument = message; renderEditForm(); return; }
     if (message.type === 'listLoading') { const list = document.getElementById('adr-list'); if (list) list.setAttribute('aria-busy', 'true'); else renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
@@ -390,6 +534,16 @@
     if (message.type === 'clearListFilters') { listState.search = ''; listState.status = ''; return; }
     if (message.type === 'created') { clearCreationValues(); formDirty = false; createdPath = message.relativePath; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'edited') { formDirty = false; createdPath = message.relativePath; highlightKind = 'updated'; editDocument = undefined; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
+    if (message.type === 'settingsSaved') {
+      settingsBaseline = { ...message.settings };
+      settingsDraft = { ...message.settings };
+      settingsDirty = false;
+      interfacePreference = message.settings.uiLanguage;
+      interfaceLanguage = effectiveInterfaceLanguage(interfacePreference);
+      const workspace = workspaces.find((item) => item.id === message.settings.workspace);
+      if (workspace) { workspace.directory = message.settings.directory; workspace.documentLanguage = message.settings.documentLanguage; workspace.defaultTemplate = message.settings.defaultTemplate; }
+      return;
+    }
     if (message.type === 'templateLoaded') { displayTemplate(message.response); return; }
     if (message.type === 'result') { if (!document.getElementById('adr-form')) return; hideError(); if (message.response.operation === 'preview') document.querySelector('#preview code').textContent = message.response.markdown || ''; return; }
     if (message.type === 'error' || message.type === 'listNavigationError' || message.type === 'editError') { const error = document.getElementById('error'); if (error) { error.textContent = message.message || 'Error'; error.classList.remove('hidden'); if (message.traditionalAvailable) document.getElementById('traditional')?.classList.remove('hidden'); } else if (message.type === 'editError') { renderMessage(t('Edit ADR'), message.message || 'Error', button(t('Back to ADR list'), backToList, true)); } else window.alert(message.message || 'Error'); return; }
@@ -397,6 +551,9 @@
     if (message.type === 'idle' && message.operation === 'create') setCreateBusy(false);
     if (message.type === 'editBusy') { setEditBusy(true); document.getElementById('status').textContent = t('Saving changes…'); }
     if (message.type === 'editIdle') setEditBusy(false);
+    if (message.type === 'settingsBusy') setSettingsBusy(true);
+    if (message.type === 'settingsIdle') setSettingsBusy(false);
+    if (message.type === 'settingsError') { const error = document.getElementById('error'); if (error) { error.textContent = message.message || 'Error'; error.classList.remove('hidden'); } }
   });
   renderMessage('', '');
   vscode.postMessage({ type: 'ready' });

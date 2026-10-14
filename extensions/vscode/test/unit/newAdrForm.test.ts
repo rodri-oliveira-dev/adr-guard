@@ -17,6 +17,10 @@ describe('visual ADR form host boundary', () => {
       consequences: 'Consequências',
     },
   };
+  const settings = {
+    workspace: 'file:///workspace', uiLanguage: 'auto' as const, documentLanguage: 'pt-BR' as const,
+    directory: 'docs/adr', adrFormat: 'canonical' as const, defaultTemplate: 'extended' as const,
+  };
 
   it('accepts only bounded known message shapes', () => {
     assert.deepEqual(parseNewAdrFormMessage({ type: 'preview', values }), { type: 'preview', values });
@@ -50,7 +54,10 @@ describe('visual ADR form host boundary', () => {
       title: 'Safe', fields: { 'section-0': 'Accepted' },
     };
     assert.deepEqual(parseNewAdrFormMessage({ type: 'saveEdit', editValues }), { type: 'saveEdit', editValues });
-    for (const type of ['showList', 'selectWorkspace', 'refreshList', 'initializeRepository', 'checkInstallation'] as const) {
+    assert.deepEqual(parseNewAdrFormMessage({ type: 'saveSettings', settings, state: { search: '', status: '', sort: 'number-desc', scrollTop: 0 } }), {
+      type: 'saveSettings', settings, state: { search: '', status: '', sort: 'number-desc', scrollTop: 0 },
+    });
+    for (const type of ['showList', 'selectWorkspace', 'refreshList', 'initializeRepository', 'checkInstallation', 'openSettings', 'cancelSettings'] as const) {
       assert.deepEqual(parseNewAdrFormMessage({
         type, workspace: 'file:///workspace',
         state: { search: 'api', status: 'Accepted', sort: 'number-desc', scrollTop: 42 },
@@ -73,6 +80,8 @@ describe('visual ADR form host boundary', () => {
       { type: 'editAdr', workspace: 'file:///workspace', relativePath: '../outside.md' },
       { type: 'saveEdit', editValues: { workspace: 'file:///workspace', relativePath: '0001-safe.md', fingerprint: 'bad', title: 'Safe', fields: {} } },
       { type: 'saveEdit', editValues: { workspace: 'file:///workspace', relativePath: '0001-safe.md', fingerprint: 'A'.repeat(64), title: 'Safe', fields: { '../bad': 'x' } } },
+      { type: 'saveSettings', settings: { ...settings, directory: '../outside' } },
+      { type: 'saveSettings', settings: { ...settings, uiLanguage: 'fr-FR' } },
     ]) assert.equal(parseNewAdrFormMessage(invalid), undefined);
   });
 
@@ -125,17 +134,14 @@ describe('visual ADR form host boundary', () => {
     assert.match(source, /message\.type === 'templateLoaded'.*displayTemplate\(message\.response\)/u);
     assert.match(source, /function displayTemplate\(response\).*renderSchema\(response\)/u);
     assert.match(source, /templateTimer = setTimeout/u);
-    assert.match(source, /select\('interface-language'/u);
-    assert.match(source, /language\.classList\.add\('language-switch'\)/u);
-    assert.match(source, /language\.setAttribute\('aria-label', t\('Interface language'\)\)/u);
-    assert.match(source, /language\.addEventListener\('change'/u);
-    assert.match(source, /interfaceLanguage = language\.value === 'pt-BR' \? 'pt-BR' : 'en-US'/u);
+    assert.match(source, /select\('ui-language'/u);
+    assert.match(source, /vscode\.postMessage\(listMessage\('openSettings'\)\)/u);
     assert.doesNotMatch(source, /aria-pressed/u);
     assert.match(source, /listMessage\('initializeRepository'\)/u);
     assert.match(source, /listMessage\('checkInstallation'\)/u);
     assert.match(source, /entries\.length > 0 \? 'initialized' : 'available'/u);
     assert.match(source, /className: 'disabled-button-wrapper', title: hint/u);
-    assert.match(source, /restored\.interfaceLanguage === 'pt-BR'/u);
+    assert.doesNotMatch(source, /restored\.interfaceLanguage/u);
     assert.match(source, /let listState = normalizeListState\(restored\.listState\)/u);
     assert.match(source, /const targetScroll = listState\.scrollTop \|\| 0/u);
     assert.match(source, /window\.scrollTo\(0, targetScroll\)/u);
@@ -186,7 +192,7 @@ describe('visual ADR form host boundary', () => {
     assert.match(source, /vscode\.postMessage\(\{ type: 'openAdr', workspace: selectedWorkspace, relativePath: entry\.relativePath \}\)/u);
     assert.match(source, /vscode\.postMessage\(\{ type: 'editAdr', workspace: selectedWorkspace, relativePath: entry\.relativePath, state: listState \}\)/u);
     assert.match(source, /vscode\.postMessage\(listMessage\('newAdr'\)\)/u);
-    assert.match(source, /vscode\.setState\(\{ listState, selectedWorkspace, interfaceLanguage \}\)/u);
+    assert.match(source, /vscode\.setState\(\{ listState, selectedWorkspace \}\)/u);
     assert.match(source, /const targetScroll = listState\.scrollTop \|\| 0/u);
     assert.match(source, /window\.scrollTo\(0, targetScroll\)/u);
   });
@@ -207,5 +213,18 @@ describe('visual ADR form host boundary', () => {
     assert.doesNotMatch(openAdr, /executor\.execute|executeCommand|writeFile|rename|unlink/u);
     assert.match(refreshRoute, /await this\.loadList\(message\.workspace, message\.state\)/u);
     assert.doesNotMatch(refreshRoute, /executor\.execute|executeCommand/u);
+  });
+
+  it('keeps settings navigation and persistence isolated from ADR commands', async () => {
+    const host = await readFile(path.resolve(__dirname, '../../../src/commands/newAdrForm.ts'), 'utf8');
+    const settingsRoutes = host.slice(host.indexOf("if (message.type === 'openSettings'"), host.indexOf("if (message.type === 'newAdr'"));
+    const saveSettings = host.slice(host.indexOf('private async saveSettings('), host.indexOf('private async loadList('));
+
+    assert.match(settingsRoutes, /settingsFor\(workspaceFolder\(message\.workspace\)\)/u);
+    assert.match(settingsRoutes, /message\.type === 'cancelSettings'/u);
+    assert.match(saveSettings, /ConfigurationTarget\.Global/u);
+    assert.match(saveSettings, /ConfigurationTarget\.WorkspaceFolder/u);
+    assert.match(saveSettings, /getConfiguration\(write\.section, scope\)\.update/u);
+    assert.doesNotMatch(`${settingsRoutes}\n${saveSettings}`, /executor\.execute|executeCommand|\['check'|\['new'|\['edit'|\['index'|writeFile|rename|unlink/u);
   });
 });

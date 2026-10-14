@@ -69,7 +69,7 @@ Execute **ADR Guard: Abrir ADR Guard** pela Paleta de Comandos ou pelo título d
 
 Ao clicar no ícone dedicado do ADR Guard na Barra de Atividades, essa listagem visual também é aberta ou revelada. O mesmo painel é reutilizado, portanto cliques repetidos não criam abas duplicadas.
 
-O cabeçalho da listagem oferece um seletor acessível entre inglês e português. Ele também expõe os fluxos existentes de verificação da instalação e inicialização do repositório para a pasta selecionada. A inicialização fica disponível apenas enquanto o diretório configurado não possui ADRs; quando já existem ADRs, o controle desabilitado informa que o repositório já foi inicializado. A escolha de idioma é preservada durante a navegação entre listagem, cadastro e edição, independentemente do idioma do documento ADR.
+O cabeçalho da listagem agrupa atualização, verificação da instalação, inicialização do repositório, criação e uma engrenagem de configurações. A inicialização fica disponível apenas enquanto o diretório configurado não possui ADRs; quando já existem ADRs, o controle desabilitado informa que o repositório já foi inicializado.
 
 A listagem diferencia carregamento, diretório vazio, filtros sem resultados, diretório inexistente, workspace indisponível e erro de leitura. Ela nunca cria diretórios nem inicializa o repositório durante a consulta. Alterações em arquivos são agrupadas pelo watcher compartilhado com o ADR Explorer, e respostas antigas não substituem a pasta atual durante trocas rápidas.
 
@@ -79,13 +79,19 @@ Cada item também oferece **Editar**. O mesmo painel visual carrega o documento 
 
 ## Formulário visual de criação de ADR (não publicado)
 
-Execute **ADR Guard: Criar ADR com formulário** pela Paleta de Comandos ou use a ação de novo arquivo no título do ADR Explorer. O formulário separa a pasta do workspace e o idioma do documento do idioma da interface do VS Code, inicia o destino com `adrGuard.validation.directory` e preserva os valores de campos compatíveis quando workspace, destino, idioma ou template mudam.
+Execute **ADR Guard: Criar ADR com formulário** pela Paleta de Comandos ou use a ação de novo arquivo no título do ADR Explorer. O formulário separa a pasta do workspace e o idioma do documento do idioma da interface do VS Code, inicia o destino com `adrGuard.validation.directory`, usa o idioma e o template padrão da pasta e ainda permite alterações para um documento específico.
 
 O formulário oferece os templates nativos `minimal` e `extended`. O mínimo exige Context, Decision e Consequences. O estendido expõe esses campos obrigatórios e também Decision Drivers, Options Considered, Rationale, Positive/Negative Consequences, Risks e References como opcionais; seções opcionais vazias são omitidas. A criação continua canônica—o formato de validação `canonical`/`madr-4` é um conceito separado e não aparece como opção de template de criação.
 
 Templates personalizados configurados não podem ser mapeados com segurança para campos. O formulário explica a limitação e oferece **Usar criação tradicional**, sem substituir o template personalizado. O comando tradicional **Criar ADR** continua disponível para todos os templates personalizados compatíveis e para CLIs antigas.
 
 A criação visual requer a CLI 1.7.0 ou superior com o contrato schema `1.0` de `new --form`. Prévia e criação usam o mesmo renderer da CLI; a prévia não grava, reserva número nem atualiza o índice, enquanto a criação resolve a numeração definitiva de forma atômica e nunca sobrescreve arquivos. O estado permanece em memória enquanto o painel retido fica oculto. O VS Code não oferece um evento cancelável de fechamento de WebviewPanel; portanto, não é possível garantir uma confirmação de alterações não salvas ao fechar, e o estado em memória é descartado.
+
+## Configurações visuais (não publicadas)
+
+Use a engrenagem do cabeçalho da listagem para configurar o painel existente sem abrir outra aba. O idioma da interface é salvo nas configurações do usuário como Automático (VS Code), Português (Brasil) ou English. Automático acompanha a localização do editor somente nos textos da Webview do ADR Guard; comandos e controles nativos do VS Code mantêm o idioma do próprio editor. O idioma padrão dos documentos e o template de criação são configurações independentes por pasta do workspace, inclusive em workspaces com múltiplas raízes.
+
+A seção Repositório reutiliza `adrGuard.validation.directory` e `adrGuard.validation.adrFormat`. O diretório precisa ser um caminho relativo seguro cuja parte existente permaneça dentro do workspace selecionado. Salvar preferências não cria, move, exclui, valida nem indexa arquivos ADR. Voltar e Cancelar preservam o estado da listagem e exigem confirmação antes de descartar configurações alteradas.
 
 ## ADR Explorer e formatos
 
@@ -114,6 +120,9 @@ A extensão não coleta telemetria, instala software, acessa credenciais de prov
 - `adrGuard.cli.path`: caminho absoluto confiável da CLI em configuração de usuário/máquina.
 - `adrGuard.cli.timeoutMilliseconds`: timeout do processo, entre 1 e 120 segundos.
 - `adrGuard.cli.maxOutputBytes`: limite separado para stdout e stderr.
+- `adrGuard.ui.language`: idioma da Webview do ADR Guard no escopo do usuário (`auto`, `pt-BR` ou `en-US`).
+- `adrGuard.creation.documentLanguage`: idioma padrão de novas ADRs por pasta do workspace.
+- `adrGuard.creation.defaultTemplate`: template padrão de criação por pasta (`configured`, `minimal` ou `extended`).
 - `adrGuard.validation.directory`: diretório de ADRs relativo ao workspace.
 - `adrGuard.validation.adrFormat`: `canonical` ou `madr-4`.
 - `adrGuard.validation.baseline`: caminho relativo para o JSON de baseline.

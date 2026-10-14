@@ -6,7 +6,8 @@ All notable changes to ADR Guard for VS Code are documented here. Extension vers
 
 - Added a dedicated ADR Guard Activity Bar container that opens or reveals the reusable visual ADR list while retaining Explorer actions for creation, refresh, reveal, and format selection.
 - Added repository initialization and installation-check actions to the visual list header, scoped to its selected workspace folder; initialization is disabled with an explanatory tooltip after ADRs exist.
-- Added an English/Portuguese interface language selector to the visual list header, preserving the selection across list, creation, and editing navigation.
+- Added an in-panel settings screen for user-scoped Webview language and workspace-folder-scoped document language, creation template, ADR directory, and validation format, with multi-root support, dirty-state confirmation, safe path validation, and no ADR or CLI side effects while navigating or saving preferences.
+- Creation forms now start from the selected workspace folder's persisted language and template defaults while retaining per-document overrides and the traditional custom-template flow.
 - Fixed template loading so a successful CLI description uses an explicit Webview message and rendering failures no longer leave the form indefinitely loading.
 - Fixed **Back to ADR list** so it accepts empty forms, remains compatible while an older Extension Host is still loaded, normalizes legacy saved list state, cancels pending form work, waits for host acknowledgement before discarding values, and ignores stale form responses after navigation.
 - Added in-place canonical and MADR 4.0 editing from every visual list item, reusing the existing panel/form controls with dynamic CLI-described fields, dirty-state confirmation, progress/errors, refreshed list highlighting, and safe Markdown opening.

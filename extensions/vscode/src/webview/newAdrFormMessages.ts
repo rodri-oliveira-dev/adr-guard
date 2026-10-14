@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { editFormMaximumInputCharacters, editFormSchemaVersion } from '../contracts/editForm';
 import { newAdrFormMaximumInputCharacters, newAdrFormSchemaVersion } from '../contracts/newForm';
+import { parseVisualSettingsValues, type VisualSettingsValues } from './settingsModel';
 
 export interface FormValues {
   readonly workspace: string;
@@ -14,12 +15,14 @@ export interface FormValues {
 export interface FormMessage {
   readonly type: 'ready' | 'describe' | 'preview' | 'create' | 'traditional' | 'cancel'
     | 'showList' | 'newAdr' | 'refreshList' | 'selectWorkspace' | 'openAdr' | 'revealCreated'
-    | 'editAdr' | 'saveEdit' | 'initializeRepository' | 'checkInstallation';
+    | 'editAdr' | 'saveEdit' | 'initializeRepository' | 'checkInstallation'
+    | 'openSettings' | 'cancelSettings' | 'saveSettings';
   readonly values?: FormValues;
   readonly editValues?: EditValues;
   readonly workspace?: string;
   readonly relativePath?: string;
   readonly state?: ListState;
+  readonly settings?: VisualSettingsValues;
 }
 
 export interface EditValues {
@@ -54,7 +57,14 @@ export function parseNewAdrFormMessage(value: unknown): FormMessage | undefined 
   if (value.type === 'revealCreated') {
     return isWorkspaceMessage(value) ? { type: value.type, workspace: value.workspace } : undefined;
   }
+  if (value.type === 'saveSettings') {
+    const settings = parseVisualSettingsValues(value.settings);
+    if (settings === undefined || (value.state !== undefined && !isListState(value.state))
+      || Object.keys(value).some((key) => !['type', 'settings', 'state'].includes(key))) return undefined;
+    return { type: value.type, settings, ...(value.state === undefined ? {} : { state: value.state }) };
+  }
   if (value.type === 'newAdr' || value.type === 'selectWorkspace' || value.type === 'showList'
+    || value.type === 'openSettings' || value.type === 'cancelSettings'
     || value.type === 'refreshList' || value.type === 'initializeRepository' || value.type === 'checkInstallation') {
     if (!isWorkspaceMessage(value, true) || (value.state !== undefined && !isListState(value.state))) return undefined;
     return { type: value.type, workspace: value.workspace, ...(value.state === undefined ? {} : { state: value.state }) };

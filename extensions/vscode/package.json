@@ -219,6 +219,38 @@
           "scope": "machine",
           "description": "%configuration.cli.maxOutputBytes%"
         },
+        "adrGuard.ui.language": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "pt-BR",
+            "en-US"
+          ],
+          "default": "auto",
+          "scope": "window",
+          "description": "%configuration.ui.language%"
+        },
+        "adrGuard.creation.documentLanguage": {
+          "type": "string",
+          "enum": [
+            "pt-BR",
+            "en-US"
+          ],
+          "default": "en-US",
+          "scope": "resource",
+          "description": "%configuration.creation.documentLanguage%"
+        },
+        "adrGuard.creation.defaultTemplate": {
+          "type": "string",
+          "enum": [
+            "configured",
+            "minimal",
+            "extended"
+          ],
+          "default": "configured",
+          "scope": "resource",
+          "description": "%configuration.creation.defaultTemplate%"
+        },
         "adrGuard.validation.directory": {
           "type": "string",
           "default": "docs/adr",

@@ -6,13 +6,14 @@ import { CliDiscoveryError } from '../cli/discovery';
 import { CliExecutor, requireSuccessfulResult, safeErrorLine } from '../cli/executor';
 import { newAdrFormSchemaVersion, parseNewAdrFormResponse, type NewAdrFormOperation, type NewAdrFormResponse } from '../contracts/newForm';
 import { editFormSchemaVersion, parseEditFormResponse } from '../contracts/editForm';
-import { readValidationConfiguration } from '../configuration';
+import { readCreationConfiguration, readUiConfiguration, readValidationConfiguration } from '../configuration';
 import type { AdrExplorerProvider } from '../explorer/provider';
 import { OperationalLog } from '../logging';
 import { asLocation } from '../workspace';
-import { ensureResourceWithinWorkspace, isResolvedPathWithin, resolveWorkspaceRelativePath, resolveWorkspaceRoot, WorkspacePolicyError } from '../workspacePolicy';
+import { ensurePotentialDirectoryWithinWorkspace, ensureResourceWithinWorkspace, isResolvedPathWithin, resolveWorkspaceRelativePath, resolveWorkspaceRoot, WorkspacePolicyError } from '../workspacePolicy';
 import { parseNewAdrFormMessage, type EditValues, type FormValues, type ListState, visualFormInputLimit, VisualCreationSubmission } from '../webview/newAdrFormMessages';
 import { LatestListRequest } from '../webview/adrListModel';
+import { configurationWrites, type VisualSettingsValues } from '../webview/settingsModel';
 
 interface NewAdrFormDependencies {
   readonly executor: CliExecutor;
@@ -25,7 +26,7 @@ interface NewAdrFormDependencies {
 }
 
 type InitialScreen = 'list' | 'form';
-type VisualScreen = InitialScreen | 'edit';
+type VisualScreen = InitialScreen | 'edit' | 'settings';
 
 export class NewAdrFormPanel implements vscode.Disposable {
   private static current: NewAdrFormPanel | undefined;
@@ -88,6 +89,26 @@ export class NewAdrFormPanel implements vscode.Disposable {
       return;
     }
     if (message.type === 'ready') return this.initialize();
+    if (message.type === 'openSettings') {
+      if (this.submission.isActive || message.workspace === undefined) return;
+      this.selectedWorkspace = message.workspace;
+      this.screen = 'settings';
+      await this.post({ type: 'showSettings', settings: this.settingsFor(workspaceFolder(message.workspace)) });
+      return;
+    }
+    if (message.type === 'cancelSettings') {
+      if (this.submission.isActive) return;
+      this.screen = 'list';
+      if (message.workspace !== undefined) this.selectedWorkspace = message.workspace;
+      await this.post({ type: 'showList', ...(message.state === undefined ? {} : { state: message.state }) });
+      if (this.selectedWorkspace !== undefined) await this.loadList(this.selectedWorkspace, message.state);
+      return;
+    }
+    if (message.type === 'saveSettings') {
+      if (message.settings === undefined || !this.submission.begin()) return;
+      await this.saveSettings(message.settings, message.state);
+      return;
+    }
     if (message.type === 'newAdr') {
       this.selectedWorkspace = message.workspace;
       this.screen = 'form';
@@ -157,10 +178,14 @@ export class NewAdrFormPanel implements vscode.Disposable {
     await this.post({
       type: 'initialize',
       trusted: vscode.workspace.isTrusted,
-      workspaces: folders.map((folder) => ({ id: folder.uri.toString(), name: folder.name, directory: readValidationConfiguration(folder.uri).directory })),
+      workspaces: folders.map((folder) => ({
+        id: folder.uri.toString(), name: folder.name,
+        directory: readValidationConfiguration(folder.uri).directory,
+        ...readCreationConfiguration(folder.uri),
+      })),
       initialWorkspace: this.selectedWorkspace,
-      initialCulture: vscode.env.language.toLowerCase() === 'pt-br' ? 'pt-BR' : 'en-US',
-      initialInterfaceLanguage: vscode.env.language.toLowerCase() === 'pt-br' ? 'pt-BR' : 'en-US',
+      initialInterfacePreference: readUiConfiguration().language,
+      editorInterfaceLanguage: vscode.env.language.toLowerCase() === 'pt-br' ? 'pt-BR' : 'en-US',
       initialScreen: this.screen,
       strings: webviewStrings(this.dependencies.extensionUri),
     });
@@ -178,6 +203,51 @@ export class NewAdrFormPanel implements vscode.Disposable {
       if (this.selectedWorkspace !== undefined) await this.loadList(this.selectedWorkspace);
     } else {
       await this.post({ type: 'requestShowList' });
+    }
+  }
+
+  private settingsFor(folder: vscode.WorkspaceFolder): VisualSettingsValues {
+    const validation = readValidationConfiguration(folder.uri);
+    const creation = readCreationConfiguration(folder.uri);
+    return {
+      workspace: folder.uri.toString(), uiLanguage: readUiConfiguration().language,
+      documentLanguage: creation.documentLanguage, directory: validation.directory,
+      adrFormat: validation.adrFormat, defaultTemplate: creation.defaultTemplate,
+    };
+  }
+
+  private async saveSettings(values: VisualSettingsValues, state?: ListState): Promise<void> {
+    await this.post({ type: 'settingsBusy' });
+    try {
+      if (!vscode.workspace.isTrusted) throw new WorkspacePolicyError('Workspace is not trusted.', 'missing');
+      const normalized = { ...values, directory: values.directory.trim() };
+      const folder = workspaceFolder(values.workspace);
+      const root = await resolveWorkspaceRoot(asLocation(folder));
+      await ensurePotentialDirectoryWithinWorkspace(resolveWorkspaceRelativePath(root, normalized.directory), root);
+      for (const write of configurationWrites(normalized)) {
+        const scope = write.target === 'workspaceFolder' ? folder.uri : undefined;
+        const target = write.target === 'global'
+          ? vscode.ConfigurationTarget.Global
+          : vscode.ConfigurationTarget.WorkspaceFolder;
+        await vscode.workspace.getConfiguration(write.section, scope).update(write.key, write.value, target);
+      }
+      this.selectedWorkspace = values.workspace;
+      this.screen = 'list';
+      this.dependencies.refreshExplorer();
+      await this.post({ type: 'settingsSaved', settings: normalized });
+      await this.post({ type: 'showList', ...(state === undefined ? {} : { state }) });
+      await this.loadList(values.workspace, state);
+    } catch (error: unknown) {
+      this.dependencies.log.info(`Visual settings could not be saved: ${safeLogError(error)}`);
+      await this.post({
+        type: 'settingsError',
+        message: error instanceof WorkspacePolicyError
+          ? vscode.l10n.t('The ADR directory must be a safe relative path inside the selected workspace.')
+          : vscode.l10n.t('Settings could not be saved completely. Review the values and try again.'),
+      });
+    } finally {
+      this.submission.end();
+      if (!this.disposed) await this.post({ type: 'settingsIdle' });
     }
   }
 
@@ -412,6 +482,16 @@ function webviewStrings(extensionUri: vscode.Uri): Record<'en-US' | 'pt-BR', Rec
   values.splice(2, 0, 'Interface language', 'Initialize repository', 'Check installation',
     'The ADR repository is already initialized.',
     'Repository initialization is unavailable until the ADR directory can be read.');
+  values.push(
+    'Settings', 'Configure ADR Guard preferences.', 'Languages', 'Automatic (VS Code)',
+    'Default language for new documents', 'Native VS Code commands and controls continue to use the editor language.',
+    'Repository', 'Selected workspace', 'ADR directory', 'Use a relative path inside the selected workspace.',
+    'ADR format', 'Canonical', 'MADR 4.0', 'The validation format is independent from the creation template.',
+    'Document creation', 'Default creation template', 'Configured in the CLI',
+    'You can still choose another template for an individual document.', 'Save settings', 'Saving settings…',
+    'Discard the unsaved settings and return to the ADR list?', 'Discard the unsaved settings and switch workspace?',
+    'Discard the unsaved settings and start a new ADR?', 'Enter a safe relative directory inside the selected workspace.',
+  );
   const english = Object.fromEntries(values.map((value) => [value, value]));
   const portugueseCatalog = readTranslationCatalog(vscode.Uri.joinPath(extensionUri, 'l10n', 'bundle.l10n.pt-br.json'));
   const portuguese = Object.fromEntries(values.map((value) => [value, portugueseCatalog[value] ?? value]));

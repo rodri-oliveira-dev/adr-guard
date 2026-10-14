@@ -16,6 +16,7 @@ interface WebviewHarness {
   confirmWith(value: boolean): void;
   dispatchHost(message: Record<string, unknown>): void;
   input(id: string, value: string): void;
+  change(id: string, value: string): void;
   click(id: string): void;
   clickButton(label: string): void;
   submit(id: string): void;
@@ -58,7 +59,7 @@ describe('visual ADR form control events', () => {
 
     assert.ok(harness.document.getElementById('adr-form'));
     assert.equal(valueOf(harness, 'title'), 'Keep this decision');
-    assert.deepEqual(harness.messages, []);
+    assert.equal(harness.messages.length, 0);
 
     harness.confirmWith(true);
     harness.click('create-back');
@@ -157,7 +158,101 @@ describe('visual ADR form control events', () => {
     assert.equal(valueOf(harness, 'list-workspace'), workspace);
     assert.equal(harness.lastScroll, 77);
   });
+
+  it('opens settings in the same Webview and cancels pristine preferences without ADR operations', () => {
+    const harness = createHarness('list');
+    harness.dispatchHost(listResult(listState));
+    harness.setScroll(81);
+    harness.click('open-settings');
+    const open = harness.messages.find((message) => message.type === 'openSettings');
+    assert.deepEqual(open?.state, { ...listState, scrollTop: 81 });
+
+    harness.dispatchHost({ type: 'showSettings', settings: settingsValues() });
+    harness.clearMessages();
+    harness.clickButton('Cancel');
+    assert.deepEqual(harness.messages, [{ type: 'cancelSettings', workspace, state: { ...listState, scrollTop: 81 } }]);
+    assertNoMutationOrValidation(harness.messages);
+  });
+
+  it('keeps unsaved settings when discard is refused and discards without CLI work when confirmed', () => {
+    const harness = settingsHarness();
+    harness.input('settings-directory', 'decisions/architecture');
+    harness.confirmWith(false);
+    harness.clickButton('Cancel');
+    assert.equal(valueOf(harness, 'settings-directory'), 'decisions/architecture');
+    assert.equal(harness.messages.length, 0);
+
+    harness.confirmWith(true);
+    harness.clickButton('Cancel');
+    assert.equal(harness.messages[0]?.type, 'cancelSettings');
+    assertNoMutationOrValidation(harness.messages);
+  });
+
+  it('saves settings once, preserves the draft after errors, and rejects unsafe directories locally', () => {
+    const harness = settingsHarness();
+    harness.input('settings-directory', '../outside');
+    harness.submit('settings-form');
+    assert.equal(harness.messages.length, 0);
+    assert.match(harness.document.getElementById('error')?.textContent ?? '', /safe relative directory/u);
+
+    harness.input('settings-directory', 'docs/decisions');
+    harness.change('document-language', 'pt-BR');
+    harness.change('default-template', 'extended');
+    harness.submit('settings-form');
+    harness.submit('settings-form');
+    const saves = harness.messages.filter((message) => message.type === 'saveSettings');
+    assert.equal(saves.length, 1);
+    assert.deepEqual(saves[0]?.settings, {
+      ...settingsValues(), directory: 'docs/decisions', documentLanguage: 'pt-BR', defaultTemplate: 'extended',
+    });
+    assertNoMutationOrValidation(harness.messages);
+
+    harness.dispatchHost({ type: 'settingsError', message: 'Could not persist settings' });
+    harness.dispatchHost({ type: 'settingsIdle' });
+    assert.equal(valueOf(harness, 'settings-directory'), 'docs/decisions');
+    harness.submit('settings-form');
+    assert.equal(harness.messages.filter((message) => message.type === 'saveSettings').length, 2);
+  });
+
+  it('previews the Webview language independently and applies persisted defaults to new ADRs', () => {
+    const settings = settingsHarness();
+    settings.change('ui-language', 'pt-BR');
+    assert.equal(settings.document.querySelector('h1')?.textContent, 'Configurações');
+    assert.equal(settings.messages.length, 0);
+
+    const creation = createHarness('form', { documentLanguage: 'pt-BR', defaultTemplate: 'extended' });
+    assert.equal(valueOf(creation, 'culture'), 'pt-BR');
+    assert.equal(valueOf(creation, 'template'), 'extended');
+  });
+
+  it('restores persisted preferences when settings are reopened', () => {
+    const harness = settingsHarness();
+    const persisted = { ...settingsValues(), documentLanguage: 'pt-BR', directory: 'architecture/decisions', defaultTemplate: 'minimal' };
+    harness.dispatchHost({ type: 'settingsSaved', settings: persisted });
+    harness.dispatchHost({ type: 'showList', state: listState });
+    harness.dispatchHost(listResult());
+    harness.dispatchHost({ type: 'showSettings', settings: persisted });
+
+    assert.equal(valueOf(harness, 'document-language'), 'pt-BR');
+    assert.equal(valueOf(harness, 'settings-directory'), 'architecture/decisions');
+    assert.equal(valueOf(harness, 'default-template'), 'minimal');
+  });
 });
+
+function settingsValues(): Record<string, string> {
+  return {
+    workspace, uiLanguage: 'auto', documentLanguage: 'en-US', directory: 'docs/adr',
+    adrFormat: 'canonical', defaultTemplate: 'configured',
+  };
+}
+
+function settingsHarness(): WebviewHarness {
+  const harness = createHarness('list');
+  harness.dispatchHost(listResult());
+  harness.dispatchHost({ type: 'showSettings', settings: settingsValues() });
+  harness.clearMessages();
+  return harness;
+}
 
 function creationHarness(): WebviewHarness {
   const harness = createHarness('form');
@@ -196,7 +291,10 @@ function editHarness(): WebviewHarness {
   return harness;
 }
 
-function createHarness(initialScreen: 'list' | 'form'): WebviewHarness {
+function createHarness(
+  initialScreen: 'list' | 'form',
+  defaults: { readonly documentLanguage: string; readonly defaultTemplate: string } = { documentLanguage: 'en-US', defaultTemplate: 'configured' },
+): WebviewHarness {
   const window = parseHtml('<!doctype html><html><body><main id="app"></main></body></html>');
   const document = window.document;
   const messages: PostedMessage[] = [];
@@ -240,9 +338,9 @@ function createHarness(initialScreen: 'list' | 'form'): WebviewHarness {
   });
   dispatch({
     type: 'initialize', trusted: true,
-    workspaces: [{ id: workspace, name: 'Workspace', directory: 'docs/adr' }],
-    initialWorkspace: workspace, initialCulture: 'en-US', initialInterfaceLanguage: 'en-US', initialScreen,
-    strings: { 'en-US': {}, 'pt-BR': {} },
+    workspaces: [{ id: workspace, name: 'Workspace', directory: 'docs/adr', ...defaults }],
+    initialWorkspace: workspace, initialInterfacePreference: 'auto', editorInterfaceLanguage: 'en-US', initialScreen,
+    strings: { 'en-US': {}, 'pt-BR': { Settings: 'Configurações' } },
   });
 
   return {
@@ -253,6 +351,11 @@ function createHarness(initialScreen: 'list' | 'form'): WebviewHarness {
       const control = requiredElement(id) as unknown as { value: string; dispatchEvent(event: unknown): void };
       control.value = value;
       control.dispatchEvent(new window.Event('input', { bubbles: true }));
+    },
+    change: (id, value) => {
+      const control = requiredElement(id) as unknown as { value: string; dispatchEvent(event: unknown): void };
+      control.value = value;
+      control.dispatchEvent(new window.Event('change', { bubbles: true }));
     },
     click: (id) => { (requiredElement(id) as unknown as { click(): void }).click(); },
     clickButton: (label) => {
