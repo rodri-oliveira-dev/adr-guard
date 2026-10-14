@@ -270,11 +270,11 @@ internal sealed class AdrCreationService
     internal static NamedWaitHandleOptions CreateMutexOptions(bool isWindows) =>
         new()
         {
-            // Unix shells define sessions, so session scope still coordinates
-            // cooperating CLI processes without requiring the global shared-memory
-            // directory that hardened read-only containers intentionally omit.
-            CurrentSessionOnly = !isWindows,
-            CurrentUserOnly = true,
+            CurrentSessionOnly = false,
+            // .NET 10.0.13 stores user-scoped Unix mutexes under XDG_RUNTIME_DIR
+            // or HOME, neither of which is writable for arbitrary container UIDs.
+            // The patched runtime secures the global shared-memory directory.
+            CurrentUserOnly = isWindows,
         };
 
     private static string ResolveDirectoryIdentity(string directoryPath)

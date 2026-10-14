@@ -28,16 +28,16 @@ public sealed class AdrCreationServiceTests
         """;
 
     [Theory]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    public void CreationMutexUsesGlobalScopeOnlyOnWindows(
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void CreationMutexUsesUserScopeOnlyOnWindows(
         bool isWindows,
-        bool expectedCurrentSessionOnly)
+        bool expectedCurrentUserOnly)
     {
         var options = AdrCreationService.CreateMutexOptions(isWindows);
 
-        Assert.Equal(expectedCurrentSessionOnly, options.CurrentSessionOnly);
-        Assert.True(options.CurrentUserOnly);
+        Assert.False(options.CurrentSessionOnly);
+        Assert.Equal(expectedCurrentUserOnly, options.CurrentUserOnly);
     }
 
     [Fact]
