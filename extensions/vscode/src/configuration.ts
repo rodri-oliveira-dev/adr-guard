@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { AdrFormat } from './commands/arguments';
+import { isSafeGitBaseReference, type AdrFormat } from './commands/arguments';
 import type { DefaultTemplate, DocumentLanguage, InterfaceLanguagePreference } from './webview/settingsModel';
 
 export interface AdrGuardConfiguration {
@@ -15,6 +15,7 @@ export interface ValidationConfiguration {
   readonly baseline: string;
   readonly onSave: boolean;
   readonly debounceMilliseconds: number;
+  readonly baseReference: string;
 }
 
 export interface CreationConfiguration {
@@ -51,6 +52,7 @@ export function readConfiguration(): AdrGuardConfiguration {
 
 export function readValidationConfiguration(scope?: vscode.ConfigurationScope): ValidationConfiguration {
   const configuration = vscode.workspace.getConfiguration('adrGuard.validation', scope);
+  const baseReference = configuration.get<string>('baseReference', 'main').trim();
   return {
     directory: configuration.get<string>('directory', 'docs/adr').trim() || 'docs/adr',
     adrFormat: configuration.get<AdrFormat>('adrFormat', 'canonical') === 'madr-4' ? 'madr-4' : 'canonical',
@@ -61,6 +63,7 @@ export function readValidationConfiguration(scope?: vscode.ConfigurationScope): 
       200,
       5000,
     ),
+    baseReference: isSafeGitBaseReference(baseReference) ? baseReference : 'main',
   };
 }
 

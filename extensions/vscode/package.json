@@ -286,6 +286,14 @@
           "maximum": 5000,
           "scope": "resource",
           "description": "%configuration.validation.debounceMilliseconds%"
+        },
+        "adrGuard.validation.baseReference": {
+          "type": "string",
+          "default": "main",
+          "minLength": 1,
+          "maxLength": 256,
+          "scope": "resource",
+          "description": "%configuration.validation.baseReference%"
         }
       }
     }

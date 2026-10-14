@@ -29,5 +29,6 @@
   "configuration.validation.adrFormat": "Formato dos documentos ADR usado pela validação, geração de índice e metadados do Explorador: canônico ou MADR 4.0.",
   "configuration.validation.baseline": "Caminho relativo ao workspace para o arquivo JSON de baseline de diagnósticos existente usado na validação com baseline.",
   "configuration.validation.onSave": "Valida ADRs após salvar um arquivo Markdown no diretório de ADRs configurado. Desabilitado por padrão.",
-  "configuration.validation.debounceMilliseconds": "Atraso, em milissegundos, usado para agrupar validações após salvamentos."
+  "configuration.validation.debounceMilliseconds": "Atraso, em milissegundos, usado para agrupar validações após salvamentos.",
+  "configuration.validation.baseReference": "Referência Git local padrão sugerida para validação incremental. O comando continua editável e nunca executa fetch automaticamente."
 }

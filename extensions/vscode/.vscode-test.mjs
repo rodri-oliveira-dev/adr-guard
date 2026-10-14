@@ -28,6 +28,7 @@ export default defineConfig([
       'out/test/integration/activation.test.js',
       'out/test/integration/diagnostics.test.js',
       'out/test/integration/explorer.test.js',
+      'out/test/integration/installation.test.js',
     ],
     version: '1.100.0',
     extensionDevelopmentPath: root,

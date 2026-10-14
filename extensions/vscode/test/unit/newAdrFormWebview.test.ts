@@ -17,6 +17,7 @@ interface WebviewHarness {
   dispatchHost(message: Record<string, unknown>): void;
   input(id: string, value: string): void;
   change(id: string, value: string): void;
+  check(id: string, value: boolean): void;
   click(id: string): void;
   clickButton(label: string): void;
   submit(id: string): void;
@@ -237,12 +238,63 @@ describe('visual ADR form control events', () => {
     assert.equal(valueOf(harness, 'settings-directory'), 'architecture/decisions');
     assert.equal(valueOf(harness, 'default-template'), 'minimal');
   });
+
+  it('preserves debounce while automatic validation is disabled and validates numeric limits', () => {
+    const harness = settingsHarness();
+    assert.equal(disabledOf(harness, 'validation-debounce'), true);
+    harness.check('validation-on-save', true);
+    assert.equal(disabledOf(harness, 'validation-debounce'), false);
+    harness.input('validation-debounce', '1200');
+    harness.check('validation-on-save', false);
+    assert.equal(disabledOf(harness, 'validation-debounce'), true);
+    assert.equal(valueOf(harness, 'validation-debounce'), '1200');
+    harness.submit('settings-form');
+    const saved = harness.messages.find((message) => message.type === 'saveSettings')?.settings as Record<string, unknown>;
+    assert.equal(saved.onSave, false);
+    assert.equal(saved.debounceMilliseconds, 1200);
+
+    const invalid = settingsHarness();
+    invalid.check('validation-on-save', true);
+    invalid.input('validation-debounce', '199');
+    invalid.input('cli-timeout', '120001');
+    invalid.submit('settings-form');
+    assert.equal(invalid.messages.some((message) => message.type === 'saveSettings'), false);
+    assert.match(invalid.document.getElementById('error')?.textContent ?? '', /accepted limits/u);
+  });
+
+  it('checks CLI installation only after the explicit control event and displays its version', () => {
+    const harness = settingsHarness();
+    assert.equal(harness.messages.length, 0);
+    harness.click('check-settings-installation');
+    harness.click('check-settings-installation');
+    assert.deepEqual(harness.messages.map((message) => message.type), ['checkSettingsInstallation']);
+    assertNoMutationOrValidation(harness.messages);
+    assert.equal(disabledOf(harness, 'check-settings-installation'), true);
+
+    harness.dispatchHost({ type: 'installationResult', result: { available: true, version: '1.7.0', source: 'path', message: 'ADR Guard 1.7.0 is available (path).' } });
+    harness.dispatchHost({ type: 'installationCheckIdle' });
+    assert.match(harness.document.getElementById('installation-status')?.textContent ?? '', /1\.7\.0/u);
+    assert.equal(disabledOf(harness, 'check-settings-installation'), false);
+  });
+
+  it('rejects unsafe baseline, Git reference, and executable values from real controls', () => {
+    for (const [id, value] of [
+      ['validation-baseline', '../outside.json'], ['validation-base-reference', '--all'], ['cli-path', 'workspace/tool'],
+    ] as const) {
+      const harness = settingsHarness();
+      harness.input(id, value);
+      harness.submit('settings-form');
+      assert.equal(harness.messages.some((message) => message.type === 'saveSettings'), false, id);
+    }
+  });
 });
 
-function settingsValues(): Record<string, string> {
+function settingsValues(): Record<string, unknown> {
   return {
     workspace, uiLanguage: 'auto', documentLanguage: 'en-US', directory: 'docs/adr',
     adrFormat: 'canonical', defaultTemplate: 'configured',
+    onSave: false, debounceMilliseconds: 750, baseline: '.adrguard-baseline.json', baseReference: 'main',
+    cliPath: '', timeoutMilliseconds: 15000, maxOutputBytes: 262144,
   };
 }
 
@@ -339,7 +391,7 @@ function createHarness(
   dispatch({
     type: 'initialize', trusted: true,
     workspaces: [{ id: workspace, name: 'Workspace', directory: 'docs/adr', ...defaults }],
-    initialWorkspace: workspace, initialInterfacePreference: 'auto', editorInterfaceLanguage: 'en-US', initialScreen,
+    initialWorkspace: workspace, initialInterfacePreference: 'auto', editorInterfaceLanguage: 'en-US', hostPlatform: process.platform, initialScreen,
     strings: { 'en-US': {}, 'pt-BR': { Settings: 'Configurações' } },
   });
 
@@ -355,6 +407,11 @@ function createHarness(
     change: (id, value) => {
       const control = requiredElement(id) as unknown as { value: string; dispatchEvent(event: unknown): void };
       control.value = value;
+      control.dispatchEvent(new window.Event('change', { bubbles: true }));
+    },
+    check: (id, value) => {
+      const control = requiredElement(id) as unknown as { checked: boolean; dispatchEvent(event: unknown): void };
+      control.checked = value;
       control.dispatchEvent(new window.Event('change', { bubbles: true }));
     },
     click: (id) => { (requiredElement(id) as unknown as { click(): void }).click(); },

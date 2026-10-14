@@ -148,17 +148,17 @@ export async function validateChangedAdrs(dependencies: CoreCommandDependencies)
   await runExplicit(dependencies.log, async () => {
     const selected = await selectWorkspaceFolder();
     if (selected === undefined) return;
+    const configuration = readValidationConfiguration(selected.uri);
     const baseReference = await vscode.window.showInputBox({
       title: vscode.l10n.t('Git base reference'),
       prompt: vscode.l10n.t('Enter a local Git reference such as main or origin/main. No fetch will be performed.'),
-      value: 'main',
+      value: configuration.baseReference,
       ignoreFocusOut: true,
       validateInput: (value) => isSafeGitBaseReference(value.trim())
         ? undefined
         : vscode.l10n.t('Enter a non-empty Git reference that does not start with a dash or contain whitespace or control characters.'),
     });
     if (baseReference === undefined) return;
-    const configuration = readValidationConfiguration(selected.uri);
     try {
       const result = await withCancellationProgress(
         vscode.l10n.t('Validate Changed ADRs'),

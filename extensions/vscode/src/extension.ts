@@ -40,7 +40,7 @@ export function activate(context: vscode.ExtensionContext): void {
       explorer: explorer.provider,
       refreshExplorer: () => explorer.refresh(),
       initializeRepository: async (folder) => initializeRepository(core, folder),
-      checkInstallation: async (folder) => checkInstallation(installation, folder),
+      checkInstallation: async (folder, showNotification) => checkInstallation(installation, folder, showNotification),
     }, screen);
   }
 

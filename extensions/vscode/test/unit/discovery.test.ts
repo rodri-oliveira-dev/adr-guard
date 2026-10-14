@@ -3,7 +3,7 @@ import { chmod, mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, it } from 'node:test';
-import { CliDiscovery, CliDiscoveryError } from '../../src/cli/discovery';
+import { CliDiscovery, CliDiscoveryError, isSafeConfiguredExecutablePath } from '../../src/cli/discovery';
 
 const temporaryDirectories: string[] = [];
 
@@ -81,5 +81,14 @@ describe('CliDiscovery', () => {
       new CliDiscovery().find({ configuredPath: '\\\\server\\share\\adr-guard.exe', platform: 'win32' }),
       (error: unknown) => error instanceof CliDiscoveryError && error.code === 'invalid-configured-path',
     );
+  });
+
+  it('validates configured executable paths using extension-host platform rules', () => {
+    assert.equal(isSafeConfiguredExecutablePath('C:\\tools\\adr-guard.exe', 'win32'), true);
+    assert.equal(isSafeConfiguredExecutablePath('\\\\server\\share\\adr-guard.exe', 'win32'), false);
+    assert.equal(isSafeConfiguredExecutablePath('tools\\adr-guard.exe', 'win32'), false);
+    assert.equal(isSafeConfiguredExecutablePath('/usr/local/bin/adr-guard', 'linux'), true);
+    assert.equal(isSafeConfiguredExecutablePath('./adr-guard', 'linux'), false);
+    assert.equal(isSafeConfiguredExecutablePath('/tmp/bad\0path', 'linux'), false);
   });
 });

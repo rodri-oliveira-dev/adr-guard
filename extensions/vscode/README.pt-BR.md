@@ -93,6 +93,10 @@ Use a engrenagem do cabeçalho da listagem para configurar o painel existente se
 
 A seção Repositório reutiliza `adrGuard.validation.directory` e `adrGuard.validation.adrFormat`. O diretório precisa ser um caminho relativo seguro cuja parte existente permaneça dentro do workspace selecionado. Salvar preferências não cria, move, exclui, valida nem indexa arquivos ADR. Voltar e Cancelar preservam o estado da listagem e exigem confirmação antes de descartar configurações alteradas.
 
+A seção Validação configura a validação opt-in ao salvar, seu debounce de 200 a 5000 ms, o caminho somente leitura do baseline e a referência Git local padrão sugerida pela validação incremental. Desligar a validação ao salvar preserva o valor do debounce. O comando incremental ainda permite editar a referência antes da execução e nunca executa `git fetch`. Alterar configurações apenas atualiza preferências do VS Code; a validação ocorre depois somente em um salvamento de arquivo aplicável ou por comando explícito.
+
+A seção Integração com a CLI expõe o executável, timeout e limite de saída no escopo de máquina. Um executável vazio usa a descoberta segura no `PATH` do host da extensão; valores configurados precisam ser caminhos locais absolutos e continuam passando pela validação existente do executável. Timeout e limite de saída ficam na seção avançada recolhível. **Verificar instalação** é sempre uma ação explícita, usa as últimas configurações da CLI salvas e informa a versão detectada ou uma falha acionável, sem instalar nem atualizar nada.
+
 ## ADR Explorer e formatos
 
 A view **Registros de Decisões de Arquitetura** aparece no Explorer padrão. Ela percorre o diretório configurado, ignora o `README.md` gerado e exibe um subconjunto limitado de título, status e relacionamentos Markdown reconhecidos. Esses dados servem apenas à navegação; a CLI continua sendo a autoridade para estrutura e governança canônica e MADR 4.0.
@@ -128,6 +132,7 @@ A extensão não coleta telemetria, instala software, acessa credenciais de prov
 - `adrGuard.validation.baseline`: caminho relativo para o JSON de baseline.
 - `adrGuard.validation.onSave`: validação ao salvar, opt-in.
 - `adrGuard.validation.debounceMilliseconds`: intervalo de agrupamento dos salvamentos.
+- `adrGuard.validation.baseReference`: referência padrão por pasta sugerida pela validação incremental (`main` por padrão).
 
 ## Solução de problemas
 

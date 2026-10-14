@@ -29,5 +29,6 @@
   "configuration.validation.adrFormat": "ADR document format used by validation, index generation, and Explorer metadata: canonical or MADR 4.0.",
   "configuration.validation.baseline": "Workspace-relative path to the existing diagnostic baseline JSON file used by baseline validation.",
   "configuration.validation.onSave": "Validate ADRs after saving a Markdown file in the configured ADR directory. Disabled by default.",
-  "configuration.validation.debounceMilliseconds": "Delay in milliseconds used to coalesce validation after saves."
+  "configuration.validation.debounceMilliseconds": "Delay in milliseconds used to coalesce validation after saves.",
+  "configuration.validation.baseReference": "Default local Git reference suggested for incremental validation. The command remains editable and never fetches automatically."
 }

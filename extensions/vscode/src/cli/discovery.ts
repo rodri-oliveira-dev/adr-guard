@@ -41,7 +41,7 @@ export class CliDiscovery {
     const configuredPath = options.configuredPath?.trim();
     if (configuredPath) {
       const platform = options.platform ?? process.platform;
-      if (!isLocalAbsolutePath(configuredPath, platform) || configuredPath.includes('\0')) {
+      if (!isSafeConfiguredExecutablePath(configuredPath, platform)) {
         throw new CliDiscoveryError(
           'The configured ADR Guard executable path must be an absolute local path.',
           'invalid-configured-path',
@@ -128,11 +128,16 @@ function isPathWithin(candidate: string, root: string, platform: NodeJS.Platform
   return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
 }
 
-function isLocalAbsolutePath(candidate: string, platform: NodeJS.Platform): boolean {
+export function isSafeConfiguredExecutablePath(candidate: string, platform: NodeJS.Platform = process.platform): boolean {
+  if (candidate.includes('\0')) return false;
   if (platform === 'win32') {
     return path.win32.isAbsolute(candidate) && !candidate.startsWith('\\\\');
   }
   return path.posix.isAbsolute(candidate);
+}
+
+function isLocalAbsolutePath(candidate: string, platform: NodeJS.Platform): boolean {
+  return isSafeConfiguredExecutablePath(candidate, platform);
 }
 
 function errorMessage(error: unknown): string {

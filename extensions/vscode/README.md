@@ -93,6 +93,10 @@ Use the list header's settings gear to configure the existing panel without open
 
 The Repository section reuses `adrGuard.validation.directory` and `adrGuard.validation.adrFormat`. The directory must be a safe relative path whose existing path ancestry stays within the selected workspace. Saving preferences does not create, move, delete, validate, or index ADR files. Back and Cancel preserve the list state and require confirmation before discarding changed settings.
 
+The Validation section configures opt-in validation on save, its 200-5000 ms debounce, the read-only baseline path, and the default local Git reference suggested by incremental validation. Turning save validation off preserves the debounce value. The incremental command still lets you edit the reference before execution and never runs `git fetch`. A settings change only updates VS Code preferences; validation runs later only for an applicable file-save event or an explicit validation command.
+
+The CLI Integration section exposes the machine-scoped executable, timeout, and output limit. An empty executable uses secure discovery on the extension host `PATH`; configured values must be absolute local paths and continue through the existing executable validation. Timeout and output limits remain inside the collapsible advanced section. **Check installation** is always explicit, uses the last saved CLI settings, and reports the detected version or actionable failure without installing or updating anything.
+
 ## ADR Explorer and formats
 
 The **Architecture Decision Records** view appears in the built-in Explorer. It scans the configured ADR directory, ignores its generated `README.md`, and displays a bounded subset of title, status, and recognized Markdown relationships. Those fields are navigation metadata only; the CLI remains authoritative for canonical and MADR 4.0 structure and governance.
@@ -128,6 +132,7 @@ ADR Guard for VS Code does not collect telemetry, install software, access AI pr
 - `adrGuard.validation.baseline`: workspace-relative baseline JSON path.
 - `adrGuard.validation.onSave`: opt-in save validation.
 - `adrGuard.validation.debounceMilliseconds`: save debounce interval.
+- `adrGuard.validation.baseReference`: workspace-folder default suggested by incremental validation (`main` by default).
 
 ## Troubleshooting
 

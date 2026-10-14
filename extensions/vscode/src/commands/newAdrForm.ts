@@ -6,11 +6,12 @@ import { CliDiscoveryError } from '../cli/discovery';
 import { CliExecutor, requireSuccessfulResult, safeErrorLine } from '../cli/executor';
 import { newAdrFormSchemaVersion, parseNewAdrFormResponse, type NewAdrFormOperation, type NewAdrFormResponse } from '../contracts/newForm';
 import { editFormSchemaVersion, parseEditFormResponse } from '../contracts/editForm';
-import { readCreationConfiguration, readUiConfiguration, readValidationConfiguration } from '../configuration';
+import { readConfiguration, readCreationConfiguration, readUiConfiguration, readValidationConfiguration } from '../configuration';
+import type { InstallationCheckResult } from './checkInstallation';
 import type { AdrExplorerProvider } from '../explorer/provider';
 import { OperationalLog } from '../logging';
 import { asLocation } from '../workspace';
-import { ensurePotentialDirectoryWithinWorkspace, ensureResourceWithinWorkspace, isResolvedPathWithin, resolveWorkspaceRelativePath, resolveWorkspaceRoot, WorkspacePolicyError } from '../workspacePolicy';
+import { ensurePotentialDirectoryWithinWorkspace, ensurePotentialFileWithinWorkspace, ensureResourceWithinWorkspace, isResolvedPathWithin, resolveWorkspaceRelativePath, resolveWorkspaceRoot, WorkspacePolicyError } from '../workspacePolicy';
 import { parseNewAdrFormMessage, type EditValues, type FormValues, type ListState, visualFormInputLimit, VisualCreationSubmission } from '../webview/newAdrFormMessages';
 import { LatestListRequest } from '../webview/adrListModel';
 import { configurationWrites, type VisualSettingsValues } from '../webview/settingsModel';
@@ -22,7 +23,7 @@ interface NewAdrFormDependencies {
   readonly explorer: AdrExplorerProvider;
   readonly refreshExplorer: () => void;
   readonly initializeRepository: (folder: vscode.WorkspaceFolder) => Promise<void>;
-  readonly checkInstallation: (folder: vscode.WorkspaceFolder) => Promise<void>;
+  readonly checkInstallation: (folder: vscode.WorkspaceFolder, showNotification?: boolean) => Promise<InstallationCheckResult | undefined>;
 }
 
 type InitialScreen = 'list' | 'form';
@@ -38,6 +39,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
   private selectedWorkspace: string | undefined;
   private readonly listRequests = new LatestListRequest();
   private listActionActive = false;
+  private settingsCheckActive = false;
   private created: { readonly workspace: string; readonly relativePath: string; readonly filePath: string; readonly kind: 'created' | 'updated' } | undefined;
 
   private constructor(private readonly dependencies: NewAdrFormDependencies, private screen: VisualScreen) {
@@ -97,7 +99,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       return;
     }
     if (message.type === 'cancelSettings') {
-      if (this.submission.isActive) return;
+      if (this.submission.isActive || this.settingsCheckActive) return;
       this.screen = 'list';
       if (message.workspace !== undefined) this.selectedWorkspace = message.workspace;
       await this.post({ type: 'showList', ...(message.state === undefined ? {} : { state: message.state }) });
@@ -107,6 +109,11 @@ export class NewAdrFormPanel implements vscode.Disposable {
     if (message.type === 'saveSettings') {
       if (message.settings === undefined || !this.submission.begin()) return;
       await this.saveSettings(message.settings, message.state);
+      return;
+    }
+    if (message.type === 'checkSettingsInstallation') {
+      if (message.workspace === undefined || this.settingsCheckActive || this.screen !== 'settings') return;
+      await this.checkSettingsInstallation(message.workspace);
       return;
     }
     if (message.type === 'newAdr') {
@@ -186,6 +193,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       initialWorkspace: this.selectedWorkspace,
       initialInterfacePreference: readUiConfiguration().language,
       editorInterfaceLanguage: vscode.env.language.toLowerCase() === 'pt-br' ? 'pt-BR' : 'en-US',
+      hostPlatform: process.platform,
       initialScreen: this.screen,
       strings: webviewStrings(this.dependencies.extensionUri),
     });
@@ -209,21 +217,33 @@ export class NewAdrFormPanel implements vscode.Disposable {
   private settingsFor(folder: vscode.WorkspaceFolder): VisualSettingsValues {
     const validation = readValidationConfiguration(folder.uri);
     const creation = readCreationConfiguration(folder.uri);
+    const cli = readConfiguration();
     return {
       workspace: folder.uri.toString(), uiLanguage: readUiConfiguration().language,
       documentLanguage: creation.documentLanguage, directory: validation.directory,
       adrFormat: validation.adrFormat, defaultTemplate: creation.defaultTemplate,
+      onSave: validation.onSave, debounceMilliseconds: validation.debounceMilliseconds,
+      baseline: validation.baseline, baseReference: validation.baseReference,
+      cliPath: cli.executablePath ?? '', timeoutMilliseconds: cli.timeoutMilliseconds,
+      maxOutputBytes: cli.maxOutputBytes,
     };
   }
 
   private async saveSettings(values: VisualSettingsValues, state?: ListState): Promise<void> {
     await this.post({ type: 'settingsBusy' });
+    let pathSetting: 'directory' | 'baseline' = 'directory';
     try {
       if (!vscode.workspace.isTrusted) throw new WorkspacePolicyError('Workspace is not trusted.', 'missing');
-      const normalized = { ...values, directory: values.directory.trim() };
+      const normalized = {
+        ...values,
+        directory: values.directory.trim(), baseline: values.baseline.trim(),
+        baseReference: values.baseReference.trim(), cliPath: values.cliPath.trim(),
+      };
       const folder = workspaceFolder(values.workspace);
       const root = await resolveWorkspaceRoot(asLocation(folder));
       await ensurePotentialDirectoryWithinWorkspace(resolveWorkspaceRelativePath(root, normalized.directory), root);
+      pathSetting = 'baseline';
+      await ensurePotentialFileWithinWorkspace(resolveWorkspaceRelativePath(root, normalized.baseline), root);
       for (const write of configurationWrites(normalized)) {
         const scope = write.target === 'workspaceFolder' ? folder.uri : undefined;
         const target = write.target === 'global'
@@ -242,12 +262,32 @@ export class NewAdrFormPanel implements vscode.Disposable {
       await this.post({
         type: 'settingsError',
         message: error instanceof WorkspacePolicyError
-          ? vscode.l10n.t('The ADR directory must be a safe relative path inside the selected workspace.')
+          ? pathSetting === 'baseline'
+            ? vscode.l10n.t('The baseline must be a safe relative JSON file inside the selected workspace.')
+            : vscode.l10n.t('The ADR directory must be a safe relative path inside the selected workspace.')
           : vscode.l10n.t('Settings could not be saved completely. Review the values and try again.'),
       });
     } finally {
       this.submission.end();
       if (!this.disposed) await this.post({ type: 'settingsIdle' });
+    }
+  }
+
+  private async checkSettingsInstallation(workspace: string): Promise<void> {
+    this.settingsCheckActive = true;
+    await this.post({ type: 'installationChecking' });
+    try {
+      const result = await this.dependencies.checkInstallation(workspaceFolder(workspace), false);
+      if (result !== undefined) await this.post({ type: 'installationResult', result });
+    } catch (error: unknown) {
+      this.dependencies.log.info(`Settings installation check failed: ${safeLogError(error)}`);
+      await this.post({
+        type: 'installationResult',
+        result: { available: false, message: vscode.l10n.t('ADR Guard installation check failed for an unknown reason.') },
+      });
+    } finally {
+      this.settingsCheckActive = false;
+      if (!this.disposed) await this.post({ type: 'installationCheckIdle' });
     }
   }
 
@@ -491,6 +531,16 @@ function webviewStrings(extensionUri: vscode.Uri): Record<'en-US' | 'pt-BR', Rec
     'You can still choose another template for an individual document.', 'Save settings', 'Saving settings…',
     'Discard the unsaved settings and return to the ADR list?', 'Discard the unsaved settings and switch workspace?',
     'Discard the unsaved settings and start a new ADR?', 'Enter a safe relative directory inside the selected workspace.',
+    'Validation', 'Automatic validation on save', 'Validation runs only after an applicable ADR file is saved.',
+    'Validation interval (milliseconds)', 'Accepted range: 200 to 5000 milliseconds.', 'Baseline file',
+    'ADR Guard only reads this existing JSON file during explicit baseline validation.', 'Default Git reference',
+    'Incremental validation lets you edit this value and never fetches automatically.', 'CLI integration',
+    'ADR Guard executable', 'Leave empty to discover ADR Guard on the extension host PATH.',
+    'Checking installation…', 'Installation check failed.', 'The check uses the saved CLI settings.',
+    'Advanced settings', 'CLI timeout (milliseconds)', 'Accepted range: 1000 to 120000 milliseconds.',
+    'CLI output limit (bytes)', 'Accepted range: 1024 to 1048576 bytes.',
+    'Review the validation and CLI settings and enter values within the accepted limits.',
+    'ADR Guard {0} is available ({1}).', 'configured path',
   );
   const english = Object.fromEntries(values.map((value) => [value, value]));
   const portugueseCatalog = readTranslationCatalog(vscode.Uri.joinPath(extensionUri, 'l10n', 'bundle.l10n.pt-br.json'));

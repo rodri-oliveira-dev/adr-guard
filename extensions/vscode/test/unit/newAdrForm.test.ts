@@ -20,6 +20,8 @@ describe('visual ADR form host boundary', () => {
   const settings = {
     workspace: 'file:///workspace', uiLanguage: 'auto' as const, documentLanguage: 'pt-BR' as const,
     directory: 'docs/adr', adrFormat: 'canonical' as const, defaultTemplate: 'extended' as const,
+    onSave: false, debounceMilliseconds: 750, baseline: '.adrguard-baseline.json', baseReference: 'main',
+    cliPath: '', timeoutMilliseconds: 15000, maxOutputBytes: 262144,
   };
 
   it('accepts only bounded known message shapes', () => {
@@ -57,7 +59,7 @@ describe('visual ADR form host boundary', () => {
     assert.deepEqual(parseNewAdrFormMessage({ type: 'saveSettings', settings, state: { search: '', status: '', sort: 'number-desc', scrollTop: 0 } }), {
       type: 'saveSettings', settings, state: { search: '', status: '', sort: 'number-desc', scrollTop: 0 },
     });
-    for (const type of ['showList', 'selectWorkspace', 'refreshList', 'initializeRepository', 'checkInstallation', 'openSettings', 'cancelSettings'] as const) {
+    for (const type of ['showList', 'selectWorkspace', 'refreshList', 'initializeRepository', 'checkInstallation', 'openSettings', 'cancelSettings', 'checkSettingsInstallation'] as const) {
       assert.deepEqual(parseNewAdrFormMessage({
         type, workspace: 'file:///workspace',
         state: { search: 'api', status: 'Accepted', sort: 'number-desc', scrollTop: 42 },
@@ -222,9 +224,30 @@ describe('visual ADR form host boundary', () => {
 
     assert.match(settingsRoutes, /settingsFor\(workspaceFolder\(message\.workspace\)\)/u);
     assert.match(settingsRoutes, /message\.type === 'cancelSettings'/u);
+    assert.match(settingsRoutes, /message\.type === 'checkSettingsInstallation'/u);
+    assert.match(settingsRoutes, /this\.checkSettingsInstallation\(message\.workspace\)/u);
     assert.match(saveSettings, /ConfigurationTarget\.Global/u);
     assert.match(saveSettings, /ConfigurationTarget\.WorkspaceFolder/u);
     assert.match(saveSettings, /getConfiguration\(write\.section, scope\)\.update/u);
     assert.doesNotMatch(`${settingsRoutes}\n${saveSettings}`, /executor\.execute|executeCommand|\['check'|\['new'|\['edit'|\['index'|writeFile|rename|unlink/u);
+    const explicitInstallationCheck = saveSettings.slice(saveSettings.indexOf('private async checkSettingsInstallation('));
+    assert.match(explicitInstallationCheck, /dependencies\.checkInstallation\(workspaceFolder\(workspace\), false\)/u);
+  });
+
+  it('uses the persisted Git reference only as the editable incremental-validation default', async () => {
+    const source = await readFile(path.resolve(__dirname, '../../../src/commands/coreCommands.ts'), 'utf8');
+    const changed = source.slice(source.indexOf('export async function validateChangedAdrs'), source.indexOf('export async function validateWithBaseline'));
+    assert.match(changed, /value: configuration\.baseReference/u);
+    assert.match(changed, /validateInput: \(value\) => isSafeGitBaseReference\(value\.trim\(\)\)/u);
+    assert.match(changed, /baseReference: baseReference\.trim\(\)/u);
+    assert.match(changed, /No fetch will be performed/u);
+    assert.doesNotMatch(changed, /git\s+fetch|args:\s*\['fetch'/u);
+  });
+
+  it('keeps automatic validation gated by document saves, the toggle, and the configured debounce', async () => {
+    const source = await readFile(path.resolve(__dirname, '../../../src/validation/onSave.ts'), 'utf8');
+    assert.match(source, /onDidSaveTextDocument\(\(document\) => \{ void this\.saved\(document\); \}\)/u);
+    assert.match(source, /if \(!configuration\.onSave\) return/u);
+    assert.match(source, /scheduler\.schedule\(configuration\.debounceMilliseconds\)/u);
   });
 });

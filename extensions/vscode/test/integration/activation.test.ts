@@ -56,10 +56,15 @@ suite('ADR Guard extension activation', () => {
     assert.equal(configuration.get<number>('debounceMilliseconds'), 750);
     assert.equal(configuration.get<string>('adrFormat'), 'canonical');
     assert.equal(configuration.get<string>('baseline'), '.adrguard-baseline.json');
+    assert.equal(configuration.get<string>('baseReference'), 'main');
     assert.equal(vscode.workspace.getConfiguration('adrGuard.ui').get<string>('language'), 'auto');
     const creation = vscode.workspace.getConfiguration('adrGuard.creation');
     assert.equal(creation.get<string>('documentLanguage'), 'en-US');
     assert.equal(creation.get<string>('defaultTemplate'), 'configured');
+    const cli = vscode.workspace.getConfiguration('adrGuard.cli');
+    assert.equal(cli.get<string>('path'), '');
+    assert.equal(cli.get<number>('timeoutMilliseconds'), 15000);
+    assert.equal(cli.get<number>('maxOutputBytes'), 262144);
     assert.deepEqual(extension.packageJSON.contributes.viewsContainers.activitybar, [{
       id: 'adrGuard', title: 'ADR Guard', icon: 'images/icon-activity.svg',
     }]);

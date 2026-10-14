@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { isSafeConfiguredExecutablePath } from '../cli/discovery';
+import { isSafeGitBaseReference } from '../commands/arguments';
 
 export type InterfaceLanguagePreference = 'auto' | 'en-US' | 'pt-BR';
 export type DocumentLanguage = 'en-US' | 'pt-BR';
@@ -12,25 +14,44 @@ export interface VisualSettingsValues {
   readonly directory: string;
   readonly adrFormat: SettingsAdrFormat;
   readonly defaultTemplate: DefaultTemplate;
+  readonly onSave: boolean;
+  readonly debounceMilliseconds: number;
+  readonly baseline: string;
+  readonly baseReference: string;
+  readonly cliPath: string;
+  readonly timeoutMilliseconds: number;
+  readonly maxOutputBytes: number;
 }
 
 export interface ConfigurationWrite {
-  readonly section: 'adrGuard.ui' | 'adrGuard.creation' | 'adrGuard.validation';
-  readonly key: 'language' | 'documentLanguage' | 'defaultTemplate' | 'directory' | 'adrFormat';
-  readonly value: string;
+  readonly section: 'adrGuard.ui' | 'adrGuard.creation' | 'adrGuard.validation' | 'adrGuard.cli';
+  readonly key: 'language' | 'documentLanguage' | 'defaultTemplate' | 'directory' | 'adrFormat'
+    | 'onSave' | 'debounceMilliseconds' | 'baseline' | 'baseReference'
+    | 'path' | 'timeoutMilliseconds' | 'maxOutputBytes';
+  readonly value: string | number | boolean;
   readonly target: 'global' | 'workspaceFolder';
 }
 
 export function parseVisualSettingsValues(value: unknown): VisualSettingsValues | undefined {
   if (!isRecord(value) || Object.keys(value).some((key) => ![
     'workspace', 'uiLanguage', 'documentLanguage', 'directory', 'adrFormat', 'defaultTemplate',
+    'onSave', 'debounceMilliseconds', 'baseline', 'baseReference', 'cliPath',
+    'timeoutMilliseconds', 'maxOutputBytes',
   ].includes(key))) return undefined;
   if (!boundedString(value.workspace, 4096)
     || !['auto', 'en-US', 'pt-BR'].includes(String(value.uiLanguage))
     || !['en-US', 'pt-BR'].includes(String(value.documentLanguage))
     || !isSafeRelativeDirectory(value.directory)
     || !['canonical', 'madr-4'].includes(String(value.adrFormat))
-    || !['configured', 'minimal', 'extended'].includes(String(value.defaultTemplate))) return undefined;
+    || !['configured', 'minimal', 'extended'].includes(String(value.defaultTemplate))
+    || typeof value.onSave !== 'boolean'
+    || !integerInRange(value.debounceMilliseconds, 200, 5000)
+    || !isSafeRelativeJsonFile(value.baseline)
+    || !boundedString(value.baseReference, 256) || !isSafeGitBaseReference(value.baseReference.trim())
+    || !boundedString(value.cliPath, 4096)
+    || (value.cliPath.trim().length > 0 && !isSafeConfiguredExecutablePath(value.cliPath.trim()))
+    || !integerInRange(value.timeoutMilliseconds, 1000, 120000)
+    || !integerInRange(value.maxOutputBytes, 1024, 1048576)) return undefined;
   return value as unknown as VisualSettingsValues;
 }
 
@@ -41,6 +62,13 @@ export function configurationWrites(values: VisualSettingsValues): readonly Conf
     { section: 'adrGuard.creation', key: 'defaultTemplate', value: values.defaultTemplate, target: 'workspaceFolder' },
     { section: 'adrGuard.validation', key: 'directory', value: values.directory.trim(), target: 'workspaceFolder' },
     { section: 'adrGuard.validation', key: 'adrFormat', value: values.adrFormat, target: 'workspaceFolder' },
+    { section: 'adrGuard.validation', key: 'onSave', value: values.onSave, target: 'workspaceFolder' },
+    { section: 'adrGuard.validation', key: 'debounceMilliseconds', value: values.debounceMilliseconds, target: 'workspaceFolder' },
+    { section: 'adrGuard.validation', key: 'baseline', value: values.baseline.trim(), target: 'workspaceFolder' },
+    { section: 'adrGuard.validation', key: 'baseReference', value: values.baseReference.trim(), target: 'workspaceFolder' },
+    { section: 'adrGuard.cli', key: 'path', value: values.cliPath.trim(), target: 'global' },
+    { section: 'adrGuard.cli', key: 'timeoutMilliseconds', value: values.timeoutMilliseconds, target: 'global' },
+    { section: 'adrGuard.cli', key: 'maxOutputBytes', value: values.maxOutputBytes, target: 'global' },
   ];
 }
 
@@ -58,6 +86,14 @@ export function isSafeRelativeDirectory(value: unknown): value is string {
   return !path.posix.isAbsolute(candidate)
     && !path.win32.isAbsolute(candidate)
     && !candidate.split(/[\\/]/u).includes('..');
+}
+
+export function isSafeRelativeJsonFile(value: unknown): value is string {
+  return isSafeRelativeDirectory(value) && path.extname(value.trim()).toLowerCase() === '.json';
+}
+
+function integerInRange(value: unknown, minimum: number, maximum: number): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= minimum && value <= maximum;
 }
 
 function boundedString(value: unknown, maximum: number): value is string {

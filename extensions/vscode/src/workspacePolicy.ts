@@ -1,4 +1,4 @@
-import { realpath, stat } from 'node:fs/promises';
+import { lstat, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 export interface WorkspaceLocation {
@@ -128,6 +128,28 @@ export async function ensurePotentialDirectoryWithinWorkspace(
       const detail = error instanceof Error ? error.message : 'unknown filesystem error';
       throw new WorkspacePolicyError(`The requested directory is inaccessible: ${detail}`, 'invalid-path');
     }
+  }
+}
+
+export async function ensurePotentialFileWithinWorkspace(
+  filePath: string,
+  workspaceRoot: string,
+): Promise<string> {
+  try {
+    const fileStat = await lstat(filePath);
+    if (fileStat.isSymbolicLink() || !fileStat.isFile()) {
+      throw new WorkspacePolicyError('The requested file must be a regular, non-symbolic-link file.', 'invalid-path');
+    }
+    await ensureResourceWithinWorkspace(filePath, workspaceRoot);
+    return filePath;
+  } catch (error: unknown) {
+    if (error instanceof WorkspacePolicyError) throw error;
+    if (isMissingPathError(error)) {
+      await ensurePotentialDirectoryWithinWorkspace(path.dirname(filePath), workspaceRoot);
+      return filePath;
+    }
+    const detail = error instanceof Error ? error.message : 'unknown filesystem error';
+    throw new WorkspacePolicyError(`The requested file is inaccessible: ${detail}`, 'invalid-path');
   }
 }
 

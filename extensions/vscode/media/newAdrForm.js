@@ -7,6 +7,7 @@
   let interfaceLanguage;
   let interfacePreference = 'auto';
   let editorInterfaceLanguage = 'en-US';
+  let hostPlatform = 'linux';
   let workspaces = [];
   let trusted = true;
   let selectedWorkspace;
@@ -25,6 +26,8 @@
   let settingsDraft;
   let settingsDirty = false;
   let settingsBusy = false;
+  let installationCheckBusy = false;
+  let installationCheckResult;
   const valuesByField = {};
   const restored = vscode.getState() || {};
   let listState = normalizeListState(restored.listState);
@@ -201,6 +204,13 @@
       directory: document.getElementById('settings-directory').value,
       adrFormat: document.getElementById('adr-format').value,
       defaultTemplate: document.getElementById('default-template').value,
+      onSave: document.getElementById('validation-on-save').checked,
+      debounceMilliseconds: Number(document.getElementById('validation-debounce').value),
+      baseline: document.getElementById('validation-baseline').value,
+      baseReference: document.getElementById('validation-base-reference').value,
+      cliPath: document.getElementById('cli-path').value,
+      timeoutMilliseconds: Number(document.getElementById('cli-timeout').value),
+      maxOutputBytes: Number(document.getElementById('cli-output-limit').value),
     };
   }
   function updateSettingsDraft() {
@@ -213,8 +223,17 @@
       && !candidate.startsWith('/') && !candidate.startsWith('\\') && !/^[A-Za-z]:[\\/]/u.test(candidate)
       && !candidate.split(/[\\/]/u).includes('..');
   }
+  function validBaseline(value) { return validSettingsDirectory(value) && value.trim().toLocaleLowerCase().endsWith('.json'); }
+  function validGitReference(value) { const candidate = value.trim(); return candidate.length > 0 && candidate.length <= 256 && !candidate.startsWith('-') && !/[\s\p{Cc}]/u.test(candidate); }
+  function validCliPath(value) {
+    const candidate = value.trim();
+    if (!candidate) return true;
+    if (hostPlatform === 'win32') return /^[A-Za-z]:[\\/]/u.test(candidate) && !candidate.startsWith('\\\\');
+    return candidate.startsWith('/');
+  }
+  function validInteger(value, minimum, maximum) { return Number.isInteger(value) && value >= minimum && value <= maximum; }
   function leaveSettings() {
-    if (settingsBusy) return;
+    if (settingsBusy || installationCheckBusy) return;
     if (settingsDirty && !confirm(t('Discard the unsaved settings and return to the ADR list?'))) return;
     if (settingsBaseline) {
       interfacePreference = settingsBaseline.uiLanguage;
@@ -227,8 +246,19 @@
     settingsBusy = active;
     document.querySelectorAll('#settings-form input, #settings-form select, #settings-form button, .settings-back')
       .forEach((control) => { control.disabled = active; });
+    const debounce = document.getElementById('validation-debounce');
+    const onSave = document.getElementById('validation-on-save');
+    if (!active && debounce && onSave) debounce.disabled = !onSave.checked;
     const status = document.getElementById('settings-status');
     if (status) status.textContent = active ? t('Saving settings…') : '';
+  }
+  function setInstallationCheckBusy(active) {
+    installationCheckBusy = active;
+    const control = document.getElementById('check-settings-installation');
+    if (control) control.disabled = active || settingsBusy;
+    document.querySelectorAll('#save-settings, .settings-back').forEach((item) => { item.disabled = active || settingsBusy; });
+    const status = document.getElementById('installation-status');
+    if (status && active) status.textContent = t('Checking installation…');
   }
   function renderSettings(values) {
     if (values) {
@@ -238,6 +268,7 @@
       selectedWorkspace = values.workspace;
       interfacePreference = values.uiLanguage;
       interfaceLanguage = effectiveInterfaceLanguage(interfacePreference);
+      installationCheckResult = undefined;
     }
     if (!settingsDraft) return;
     app.replaceChildren();
@@ -248,7 +279,8 @@
     const header = element('header', { className: 'form-header' }); header.append(back, headingGroup);
     const navigation = sectionNavigation([
       { id: 'settings-languages', label: 'Languages' }, { id: 'settings-repository', label: 'Repository' },
-      { id: 'settings-creation', label: 'Document creation' },
+      { id: 'settings-creation', label: 'Document creation' }, { id: 'settings-validation', label: 'Validation' },
+      { id: 'settings-cli', label: 'CLI integration' },
     ]);
     const status = element('div', { id: 'settings-status', role: 'status', 'aria-live': 'polite' });
     const error = element('div', { id: 'error', role: 'alert', className: 'error hidden' });
@@ -256,6 +288,8 @@
     const languages = element('fieldset', { id: 'settings-languages', className: 'form-section' }); languages.append(element('legend', {}, t('Languages')));
     const repository = element('fieldset', { id: 'settings-repository', className: 'form-section' }); repository.append(element('legend', {}, t('Repository')));
     const creation = element('fieldset', { id: 'settings-creation', className: 'form-section' }); creation.append(element('legend', {}, t('Document creation')));
+    const validation = element('fieldset', { id: 'settings-validation', className: 'form-section' }); validation.append(element('legend', {}, t('Validation')));
+    const cli = element('fieldset', { id: 'settings-cli', className: 'form-section' }); cli.append(element('legend', {}, t('CLI integration')));
     const workspace = select('settings-workspace', workspaces.map((item) => ({ value: item.id, label: item.name }))); workspace.value = settingsDraft.workspace;
     const uiLanguage = select('ui-language', [
       { value: 'auto', label: t('Automatic (VS Code)') }, { value: 'pt-BR', label: 'Português (Brasil)' }, { value: 'en-US', label: 'English' },
@@ -268,15 +302,44 @@
     const defaultTemplate = select('default-template', [
       { value: 'configured', label: t('Configured in the CLI') }, { value: 'minimal', label: t('Minimal') }, { value: 'extended', label: t('Extended') },
     ]); defaultTemplate.value = settingsDraft.defaultTemplate;
+    const onSave = element('input', { id: 'validation-on-save', type: 'checkbox' }); onSave.checked = settingsDraft.onSave;
+    const debounce = element('input', { id: 'validation-debounce', type: 'number', min: '200', max: '5000', step: '1', required: '' }); debounce.value = String(settingsDraft.debounceMilliseconds);
+    debounce.disabled = !settingsDraft.onSave;
+    const baseline = element('input', { id: 'validation-baseline', type: 'text', required: '', maxlength: '4096', autocomplete: 'off' }); baseline.value = settingsDraft.baseline;
+    const baseReference = element('input', { id: 'validation-base-reference', type: 'text', required: '', maxlength: '256', autocomplete: 'off' }); baseReference.value = settingsDraft.baseReference;
+    const cliPath = element('input', { id: 'cli-path', type: 'text', maxlength: '4096', autocomplete: 'off' }); cliPath.value = settingsDraft.cliPath;
+    const timeout = element('input', { id: 'cli-timeout', type: 'number', min: '1000', max: '120000', step: '1', required: '' }); timeout.value = String(settingsDraft.timeoutMilliseconds);
+    const outputLimit = element('input', { id: 'cli-output-limit', type: 'number', min: '1024', max: '1048576', step: '1', required: '' }); outputLimit.value = String(settingsDraft.maxOutputBytes);
     appendField(languages, 'ui-language', t('Interface language'), uiLanguage, t('Native VS Code commands and controls continue to use the editor language.'));
     appendField(languages, 'document-language', t('Default language for new documents'), documentLanguage);
     appendField(repository, 'settings-workspace', t('Selected workspace'), workspace);
     appendField(repository, 'settings-directory', t('ADR directory'), directoryInput, t('Use a relative path inside the selected workspace.'), true);
     appendField(repository, 'adr-format', t('ADR format'), adrFormat, t('The validation format is independent from the creation template.'));
     appendField(creation, 'default-template', t('Default creation template'), defaultTemplate, t('You can still choose another template for an individual document.'));
+    appendField(validation, 'validation-on-save', t('Automatic validation on save'), onSave, t('Validation runs only after an applicable ADR file is saved.'));
+    appendField(validation, 'validation-debounce', t('Validation interval (milliseconds)'), debounce, t('Accepted range: 200 to 5000 milliseconds.'));
+    appendField(validation, 'validation-baseline', t('Baseline file'), baseline, t('ADR Guard only reads this existing JSON file during explicit baseline validation.'));
+    appendField(validation, 'validation-base-reference', t('Default Git reference'), baseReference, t('Incremental validation lets you edit this value and never fetches automatically.'));
+    appendField(cli, 'cli-path', t('ADR Guard executable'), cliPath, t('Leave empty to discover ADR Guard on the extension host PATH.'));
+    const checkInstallation = button(t('Check installation'), () => {
+      if (installationCheckBusy || settingsBusy) return;
+      installationCheckResult = undefined;
+      setInstallationCheckBusy(true);
+      vscode.postMessage(listMessage('checkSettingsInstallation'));
+    }, true);
+    checkInstallation.id = 'check-settings-installation';
+    const installationStatus = element('p', { id: 'installation-status', className: 'help', role: 'status', 'aria-live': 'polite' }, installationCheckResult || t('The check uses the saved CLI settings.'));
+    const checkActions = element('div', { className: 'actions compact' }); checkActions.append(checkInstallation);
+    cli.append(checkActions, installationStatus);
+    const advanced = element('details', { className: 'advanced-settings' });
+    advanced.append(element('summary', {}, t('Advanced settings')));
+    const advancedFields = element('div', { className: 'advanced-fields' });
+    appendField(advancedFields, 'cli-timeout', t('CLI timeout (milliseconds)'), timeout, t('Accepted range: 1000 to 120000 milliseconds.'));
+    appendField(advancedFields, 'cli-output-limit', t('CLI output limit (bytes)'), outputLimit, t('Accepted range: 1024 to 1048576 bytes.'));
+    advanced.append(advancedFields); cli.append(advanced);
     const actions = element('div', { className: 'actions form-actions' });
     actions.append(element('button', { id: 'save-settings', type: 'submit' }, t('Save settings')), button(t('Cancel'), leaveSettings, true));
-    form.append(languages, repository, creation, actions); app.append(header, navigation, status, error, form);
+    form.append(languages, repository, creation, validation, cli, actions); app.append(header, navigation, status, error, form);
     workspace.addEventListener('change', () => {
       const targetWorkspace = workspace.value;
       if (settingsDirty && !confirm(t('Discard the unsaved settings and switch workspace?'))) {
@@ -296,13 +359,14 @@
       interfaceLanguage = effectiveInterfaceLanguage(interfacePreference);
       renderSettings();
     });
-    [documentLanguage, directoryInput, adrFormat, defaultTemplate].forEach((control) => {
+    onSave.addEventListener('change', () => { debounce.disabled = !onSave.checked; updateSettingsDraft(); });
+    [documentLanguage, directoryInput, adrFormat, defaultTemplate, debounce, baseline, baseReference, cliPath, timeout, outputLimit].forEach((control) => {
       control.addEventListener('input', updateSettingsDraft);
       control.addEventListener('change', updateSettingsDraft);
     });
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      if (settingsBusy || !form.reportValidity()) return;
+      if (settingsBusy || installationCheckBusy || !form.reportValidity()) return;
       updateSettingsDraft();
       if (!validSettingsDirectory(settingsDraft.directory)) {
         error.textContent = t('Enter a safe relative directory inside the selected workspace.');
@@ -310,11 +374,21 @@
         directoryInput.focus();
         return;
       }
+      if (!validBaseline(settingsDraft.baseline) || !validGitReference(settingsDraft.baseReference)
+        || !validCliPath(settingsDraft.cliPath)
+        || !validInteger(settingsDraft.debounceMilliseconds, 200, 5000)
+        || !validInteger(settingsDraft.timeoutMilliseconds, 1000, 120000)
+        || !validInteger(settingsDraft.maxOutputBytes, 1024, 1048576)) {
+        error.textContent = t('Review the validation and CLI settings and enter values within the accepted limits.');
+        error.classList.remove('hidden');
+        return;
+      }
       error.classList.add('hidden');
       setSettingsBusy(true);
       vscode.postMessage({ type: 'saveSettings', settings: settingsDraft, state: listState });
     });
     setSettingsBusy(settingsBusy);
+    setInstallationCheckBusy(installationCheckBusy);
   }
   function compareEntries(left, right) {
     const fallback = left.relativePath.localeCompare(right.relativePath, 'en', { sensitivity: 'case' });
@@ -511,14 +585,14 @@
 
   window.addEventListener('message', (event) => {
     const message = event.data; if (!message || typeof message.type !== 'string') return;
-    if (message.type === 'initialize') { strings = message.strings || strings; editorInterfaceLanguage = message.editorInterfaceLanguage === 'pt-BR' ? 'pt-BR' : 'en-US'; interfacePreference = ['auto', 'en-US', 'pt-BR'].includes(message.initialInterfacePreference) ? message.initialInterfacePreference : 'auto'; interfaceLanguage = effectiveInterfaceLanguage(interfacePreference); workspaces = Array.isArray(message.workspaces) ? message.workspaces : []; trusted = message.trusted !== false; selectedWorkspace = restored.selectedWorkspace && workspaces.some((item) => item.id === restored.selectedWorkspace) ? restored.selectedWorkspace : message.initialWorkspace; if (!trusted) renderMessage(t('ADR Guard'), t('Trust this workspace to browse ADRs.')); else if (!workspaces.length) renderMessage(t('ADR Guard'), t('Open a local workspace folder to browse ADRs.')); else if (message.initialScreen === 'form') renderForm(); else renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
+    if (message.type === 'initialize') { strings = message.strings || strings; editorInterfaceLanguage = message.editorInterfaceLanguage === 'pt-BR' ? 'pt-BR' : 'en-US'; hostPlatform = message.hostPlatform === 'win32' ? 'win32' : 'posix'; interfacePreference = ['auto', 'en-US', 'pt-BR'].includes(message.initialInterfacePreference) ? message.initialInterfacePreference : 'auto'; interfaceLanguage = effectiveInterfaceLanguage(interfacePreference); workspaces = Array.isArray(message.workspaces) ? message.workspaces : []; trusted = message.trusted !== false; selectedWorkspace = restored.selectedWorkspace && workspaces.some((item) => item.id === restored.selectedWorkspace) ? restored.selectedWorkspace : message.initialWorkspace; if (!trusted) renderMessage(t('ADR Guard'), t('Trust this workspace to browse ADRs.')); else if (!workspaces.length) renderMessage(t('ADR Guard'), t('Open a local workspace folder to browse ADRs.')); else if (message.initialScreen === 'form') renderForm(); else renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'showForm') { if (message.workspace) selectedWorkspace = message.workspace; renderForm(); return; }
     if (message.type === 'showSettings') { renderSettings(message.settings); return; }
-    if (message.type === 'showList') { if (message.state) listState = message.state; clearCreationValues(); formDirty = false; editDocument = undefined; settingsBaseline = undefined; settingsDraft = undefined; settingsDirty = false; settingsBusy = false; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
+    if (message.type === 'showList') { if (message.state) listState = message.state; clearCreationValues(); formDirty = false; editDocument = undefined; settingsBaseline = undefined; settingsDraft = undefined; settingsDirty = false; settingsBusy = false; installationCheckBusy = false; installationCheckResult = undefined; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'requestShowList') { if (document.getElementById('settings-form')) leaveSettings(); else backToList(); return; }
     if (message.type === 'requestShowForm') {
       if (document.getElementById('settings-form')) {
-        if (settingsBusy || (settingsDirty && !confirm(t('Discard the unsaved settings and start a new ADR?')))) return;
+        if (settingsBusy || installationCheckBusy || (settingsDirty && !confirm(t('Discard the unsaved settings and start a new ADR?')))) return;
         if (settingsBaseline) { interfacePreference = settingsBaseline.uiLanguage; interfaceLanguage = effectiveInterfaceLanguage(interfacePreference); }
         settingsDirty = false;
         vscode.postMessage(listMessage('newAdr'));
@@ -554,6 +628,9 @@
     if (message.type === 'settingsBusy') setSettingsBusy(true);
     if (message.type === 'settingsIdle') setSettingsBusy(false);
     if (message.type === 'settingsError') { const error = document.getElementById('error'); if (error) { error.textContent = message.message || 'Error'; error.classList.remove('hidden'); } }
+    if (message.type === 'installationChecking') setInstallationCheckBusy(true);
+    if (message.type === 'installationResult') { installationCheckResult = message.result?.available === true && message.result.version ? t('ADR Guard {0} is available ({1}).', message.result.version, message.result.source === 'configured' ? t('configured path') : 'PATH') : message.result?.message || t('Installation check failed.'); const status = document.getElementById('installation-status'); if (status) { status.textContent = installationCheckResult; status.classList.toggle('error-text', message.result?.available !== true); } }
+    if (message.type === 'installationCheckIdle') setInstallationCheckBusy(false);
   });
   renderMessage('', '');
   vscode.postMessage({ type: 'ready' });

@@ -12,10 +12,18 @@ export interface CheckInstallationDependencies {
   readonly log: OperationalLog;
 }
 
+export interface InstallationCheckResult {
+  readonly available: boolean;
+  readonly message: string;
+  readonly version?: string;
+  readonly source?: 'configured' | 'path';
+}
+
 export async function checkInstallation(
   dependencies: CheckInstallationDependencies,
   selectedWorkspace?: vscode.WorkspaceFolder,
-): Promise<void> {
+  showNotification = true,
+): Promise<InstallationCheckResult | undefined> {
   try {
     const workspaceFolder = selectedWorkspace ?? await selectWorkspaceFolder();
     if (workspaceFolder === undefined) {
@@ -58,20 +66,23 @@ export async function checkInstallation(
       },
     );
 
-    await reportResult(result, executable.source, dependencies.log);
+    const version = validateResult(result, dependencies.log);
+    const message = vscode.l10n.t('ADR Guard {0} is available ({1}).', version, executable.source);
+    if (showNotification) await vscode.window.showInformationMessage(message);
+    return { available: true, message, version, source: executable.source };
   } catch (error: unknown) {
     const message = actionableError(error);
     dependencies.log.info(`Installation check failed: ${message}`);
     dependencies.log.show();
-    await vscode.window.showErrorMessage(message);
+    if (showNotification) await vscode.window.showErrorMessage(message);
+    return { available: false, message };
   }
 }
 
-async function reportResult(
+function validateResult(
   result: CliRunResult,
-  source: 'configured' | 'path',
   log: OperationalLog,
-): Promise<void> {
+): string {
   log.info(
     `CLI completed: termination=${result.termination}, exit=${result.exitCode ?? 'none'}, stdoutBytes=${Buffer.byteLength(result.stdout)}, stderrBytes=${Buffer.byteLength(result.stderr)}.`,
   );
@@ -90,7 +101,7 @@ async function reportResult(
     throw new Error(vscode.l10n.t('ADR Guard returned no recognizable version text.'));
   }
   log.info(`Detected ADR Guard version: ${version}`);
-  await vscode.window.showInformationMessage(vscode.l10n.t('ADR Guard {0} is available ({1}).', version, source));
+  return version;
 }
 
 function firstSafeLine(output: string): string | undefined {

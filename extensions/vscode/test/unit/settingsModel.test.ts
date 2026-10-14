@@ -15,6 +15,13 @@ describe('visual settings model', () => {
     directory: 'docs/decisions',
     adrFormat: 'madr-4' as const,
     defaultTemplate: 'extended' as const,
+    onSave: true,
+    debounceMilliseconds: 900,
+    baseline: '.adrguard-baseline.json',
+    baseReference: 'origin/main',
+    cliPath: process.platform === 'win32' ? 'C:\\tools\\adr-guard.exe' : '/opt/adr-guard',
+    timeoutMilliseconds: 30000,
+    maxOutputBytes: 524288,
   };
 
   it('accepts the supported values and rejects unsafe paths or unknown options', () => {
@@ -27,6 +34,14 @@ describe('visual settings model', () => {
     assert.equal(parseVisualSettingsValues({ ...values, documentLanguage: 'auto' }), undefined);
     assert.equal(parseVisualSettingsValues({ ...values, adrFormat: 'custom' }), undefined);
     assert.equal(parseVisualSettingsValues({ ...values, defaultTemplate: 'custom' }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, debounceMilliseconds: 199 }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, debounceMilliseconds: 5001 }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, baseline: '../baseline.json' }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, baseline: 'baseline.txt' }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, baseReference: '--all' }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, cliPath: 'workspace/tool' }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, timeoutMilliseconds: 999 }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, maxOutputBytes: 1048577 }), undefined);
     assert.equal(parseVisualSettingsValues({ ...values, extra: true }), undefined);
   });
 
@@ -37,6 +52,13 @@ describe('visual settings model', () => {
       { section: 'adrGuard.creation', key: 'defaultTemplate', value: 'extended', target: 'workspaceFolder' },
       { section: 'adrGuard.validation', key: 'directory', value: 'docs/decisions', target: 'workspaceFolder' },
       { section: 'adrGuard.validation', key: 'adrFormat', value: 'madr-4', target: 'workspaceFolder' },
+      { section: 'adrGuard.validation', key: 'onSave', value: true, target: 'workspaceFolder' },
+      { section: 'adrGuard.validation', key: 'debounceMilliseconds', value: 900, target: 'workspaceFolder' },
+      { section: 'adrGuard.validation', key: 'baseline', value: '.adrguard-baseline.json', target: 'workspaceFolder' },
+      { section: 'adrGuard.validation', key: 'baseReference', value: 'origin/main', target: 'workspaceFolder' },
+      { section: 'adrGuard.cli', key: 'path', value: values.cliPath, target: 'global' },
+      { section: 'adrGuard.cli', key: 'timeoutMilliseconds', value: 30000, target: 'global' },
+      { section: 'adrGuard.cli', key: 'maxOutputBytes', value: 524288, target: 'global' },
     ]);
   });
 
