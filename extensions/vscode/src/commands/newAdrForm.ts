@@ -15,6 +15,7 @@ import { ensurePotentialDirectoryWithinWorkspace, ensurePotentialFileWithinWorks
 import { parseNewAdrFormMessage, type EditValues, type FormValues, type ListState, visualFormInputLimit, VisualCreationSubmission } from '../webview/newAdrFormMessages';
 import { LatestListRequest } from '../webview/adrListModel';
 import { applyConfigurationWrites, configurationWrites, type ConfigurationWrite, type VisualSettingsValues } from '../webview/settingsModel';
+import { buildVisualEditArguments } from './editArguments';
 
 interface NewAdrFormDependencies {
   readonly executor: CliExecutor;
@@ -385,9 +386,10 @@ export class NewAdrFormPanel implements vscode.Disposable {
     await this.post({ type: 'editLoading' });
     try {
       const target = await this.resolveCatalogAdr(workspace, relativePath);
+      const args = await this.visualEditArguments(target, controller.signal);
       const execution = await this.dependencies.executor.execute(
         target.folder,
-        ['edit', target.filePath, '--form', '--adr-directory', target.directory, '--adr-format', target.format],
+        args,
         controller.signal,
         JSON.stringify({ schemaVersion: editFormSchemaVersion, operation: 'load' }),
       );
@@ -413,9 +415,10 @@ export class NewAdrFormPanel implements vscode.Disposable {
     await this.post({ type: 'editBusy' });
     try {
       const target = await this.resolveCatalogAdr(values.workspace, values.relativePath);
+      const args = await this.visualEditArguments(target, controller.signal);
       const execution = await this.dependencies.executor.execute(
         target.folder,
-        ['edit', target.filePath, '--form', '--adr-directory', target.directory, '--adr-format', target.format],
+        args,
         controller.signal,
         JSON.stringify({
           schemaVersion: editFormSchemaVersion,
@@ -465,6 +468,15 @@ export class NewAdrFormPanel implements vscode.Disposable {
     const entries = await this.dependencies.explorer.catalogFor(folder);
     if (!entries.some((entry) => samePath(entry.filePath, candidate))) throw new WorkspacePolicyError('ADR is not in the current catalog.', 'outside-workspace');
     return { folder, directory, filePath: candidate, format: configuration.adrFormat };
+  }
+
+  private async visualEditArguments(
+    target: Awaited<ReturnType<NewAdrFormPanel['resolveCatalogAdr']>>,
+    signal: AbortSignal,
+  ): Promise<string[]> {
+    const help = await this.dependencies.executor.execute(target.folder, ['edit', '--help'], signal);
+    requireSuccessfulResult(help.result);
+    return buildVisualEditArguments(target.filePath, target.directory, target.format, help.result.stdout);
   }
 
   private async run(operation: NewAdrFormOperation, values: FormValues): Promise<void> {

@@ -218,15 +218,17 @@ describe('visual ADR form host boundary', () => {
     assert.doesNotMatch(refreshRoute, /executor\.execute|executeCommand/u);
   });
 
-  it('passes the configured ADR root to visual edit validation', async () => {
+  it('negotiates configured-root support before visual edit validation', async () => {
     const host = await readFile(path.resolve(__dirname, '../../../src/commands/newAdrForm.ts'), 'utf8');
     const loadEdit = host.slice(host.indexOf('private async loadEdit('), host.indexOf('private async saveEdit('));
     const saveEdit = host.slice(host.indexOf('private async saveEdit('), host.indexOf('private async resolveCatalogAdr('));
     const resolveTarget = host.slice(host.indexOf('private async resolveCatalogAdr('), host.indexOf('private async run('));
 
-    assert.match(loadEdit, /'--adr-directory', target\.directory/u);
-    assert.match(saveEdit, /'--adr-directory', target\.directory/u);
+    assert.match(loadEdit, /this\.visualEditArguments\(target, controller\.signal\)/u);
+    assert.match(saveEdit, /this\.visualEditArguments\(target, controller\.signal\)/u);
     assert.match(resolveTarget, /return \{ folder, directory, filePath: candidate/u);
+    assert.match(resolveTarget, /\['edit', '--help'\]/u);
+    assert.match(resolveTarget, /buildVisualEditArguments\(target\.filePath, target\.directory, target\.format, help\.result\.stdout\)/u);
   });
 
   it('keeps settings navigation and persistence isolated from ADR commands', async () => {
