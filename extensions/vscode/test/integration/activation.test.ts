@@ -69,6 +69,37 @@ suite('ADR Guard extension activation', () => {
       id: 'adrGuard', title: 'ADR Guard', icon: 'images/icon-activity.svg',
     }]);
     assert.equal(extension.packageJSON.contributes.views.adrGuard[0].id, 'adrGuard.adrExplorer');
+
+    const contributedCommands = extension.packageJSON.contributes.commands as {
+      command: string;
+      title: string;
+      category: string;
+      icon?: string;
+    }[];
+    const viewTitleCommands = extension.packageJSON.contributes.menus['view/title'] as {
+      command: string;
+      group: string;
+      when: string;
+    }[];
+    assert.ok(contributedCommands.some((command) => command.command === 'adrGuard.selectAdrFormat'));
+    const openVisualCommand = contributedCommands.find((command) => command.command === 'adrGuard.openVisual');
+    assert.ok(openVisualCommand);
+    assert.equal(openVisualCommand.icon, '$(list-flat)');
+    assert.ok(openVisualCommand.title.length > 0);
+    assert.ok(openVisualCommand.category.length > 0);
+    assert.equal(viewTitleCommands.some((item) => item.command === 'adrGuard.selectAdrFormat'), false);
+    assert.equal(viewTitleCommands.filter((item) => item.command === 'adrGuard.openVisual').length, 1);
+    assert.deepEqual(viewTitleCommands.map((item) => item.command), [
+      'adrGuard.createAdrWithForm',
+      'adrGuard.refreshExplorer',
+      'adrGuard.revealCurrentAdr',
+      'adrGuard.openVisual',
+    ]);
+    assert.deepEqual(viewTitleCommands.at(-1), {
+      command: 'adrGuard.openVisual',
+      when: 'view == adrGuard.adrExplorer',
+      group: 'navigation',
+    });
   });
 
   test('reuses the visual ADR Guard panel', async () => {

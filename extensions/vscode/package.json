@@ -161,11 +161,6 @@
     "menus": {
       "view/title": [
         {
-          "command": "adrGuard.openVisual",
-          "when": "view == adrGuard.adrExplorer",
-          "group": "navigation@1"
-        },
-        {
           "command": "adrGuard.createAdrWithForm",
           "when": "view == adrGuard.adrExplorer",
           "group": "navigation@2"
@@ -181,7 +176,7 @@
           "group": "navigation"
         },
         {
-          "command": "adrGuard.selectAdrFormat",
+          "command": "adrGuard.openVisual",
           "when": "view == adrGuard.adrExplorer",
           "group": "navigation"
         }
