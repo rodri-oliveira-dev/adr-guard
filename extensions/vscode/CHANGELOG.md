@@ -4,6 +4,8 @@ All notable changes to ADR Guard for VS Code are documented here. Extension vers
 
 ## 0.9.0 — Unreleased
 
+- Hardened visual-flow integration with screen-scoped message handling, complete DOM coverage for Back/Cancel and successful returns, explicit save-validation/watcher integration checks, and rollback of earlier VS Code preference writes after a later persistence failure.
+
 - Added a dedicated ADR Guard Activity Bar container that opens or reveals the reusable visual ADR list while retaining Explorer actions for creation, refresh, reveal, and format selection.
 - Added repository initialization and installation-check actions to the visual list header, scoped to its selected workspace folder; initialization is disabled with an explanatory tooltip after ADRs exist.
 - Added an in-panel settings screen for user-scoped Webview language and workspace-folder-scoped document language, creation template, ADR directory, and validation format, with multi-root support, dirty-state confirmation, safe path validation, and no ADR or CLI side effects while navigating or saving preferences.

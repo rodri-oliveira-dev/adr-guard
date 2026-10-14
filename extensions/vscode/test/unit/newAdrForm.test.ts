@@ -210,6 +210,7 @@ describe('visual ADR form host boundary', () => {
     assert.match(cancelRoute, /await this\.loadList\(this\.selectedWorkspace, message\.state\)/u);
     assert.doesNotMatch(cancelRoute, /executor\.execute|executeCommand|saveEdit|this\.run\(/u);
     assert.match(loadList, /explorer\.catalogFor\(folder\)/u);
+    assert.match(loadList, /this\.screen !== 'list'/u);
     assert.doesNotMatch(loadList, /executor\.execute|executeCommand|\['check'|\['new'|\['edit'|\['index'/u);
     assert.match(openAdr, /showTextDocument\(vscode\.Uri\.file\(target\.filePath\)/u);
     assert.doesNotMatch(openAdr, /executor\.execute|executeCommand|writeFile|rename|unlink/u);
@@ -246,7 +247,7 @@ describe('visual ADR form host boundary', () => {
 
   it('keeps automatic validation gated by document saves, the toggle, and the configured debounce', async () => {
     const source = await readFile(path.resolve(__dirname, '../../../src/validation/onSave.ts'), 'utf8');
-    assert.match(source, /onDidSaveTextDocument\(\(document\) => \{ void this\.saved\(document\); \}\)/u);
+    assert.match(source, /onDidSaveTextDocument\(\(document\) => \{ void this\.handleSavedDocument\(document\); \}\)/u);
     assert.match(source, /if \(!configuration\.onSave\) return/u);
     assert.match(source, /scheduler\.schedule\(configuration\.debounceMilliseconds\)/u);
   });

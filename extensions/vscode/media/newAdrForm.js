@@ -273,6 +273,7 @@
     if (!settingsDraft) return;
     app.replaceChildren();
     const back = button(`← ${t('Back to ADR list')}`, leaveSettings, true);
+    back.id = 'settings-back';
     back.classList.add('form-back', 'settings-back');
     const headingGroup = element('div', { className: 'form-heading' });
     headingGroup.append(element('h1', {}, t('Settings')), element('p', { className: 'intro' }, t('Configure ADR Guard preferences.')));
@@ -338,7 +339,8 @@
     appendField(advancedFields, 'cli-output-limit', t('CLI output limit (bytes)'), outputLimit, t('Accepted range: 1024 to 1048576 bytes.'));
     advanced.append(advancedFields); cli.append(advanced);
     const actions = element('div', { className: 'actions form-actions' });
-    actions.append(element('button', { id: 'save-settings', type: 'submit' }, t('Save settings')), button(t('Cancel'), leaveSettings, true));
+    const cancel = button(t('Cancel'), leaveSettings, true); cancel.id = 'settings-cancel';
+    actions.append(element('button', { id: 'save-settings', type: 'submit' }, t('Save settings')), cancel);
     form.append(languages, repository, creation, validation, cli, actions); app.append(header, navigation, status, error, form);
     workspace.addEventListener('change', () => {
       const targetWorkspace = workspace.value;
@@ -470,6 +472,7 @@
     const actions = element('div', { className: 'actions form-actions' });
     const submit = element('button', { id: 'create', type: 'submit' }, t('Create ADR'));
     const cancel = button(t('Cancel'), backToList, true);
+    cancel.id = 'create-cancel';
     const traditional = button(t('Use traditional creation'), () => vscode.postMessage({ type: 'traditional' }), true); traditional.id = 'traditional'; traditional.classList.add('hidden');
     actions.append(submit, cancel, traditional);
     appendField(setup, 'workspace', t('Workspace folder'), workspace); appendField(setup, 'directory', t('ADR destination directory'), directoryInput);
@@ -498,6 +501,7 @@
     formDirty = false;
     app.replaceChildren();
     const back = button(`← ${t('Back to ADR list')}`, backToList, true);
+    back.id = 'edit-back';
     back.classList.add('form-back');
     const heading = element('h1', {}, t('Edit ADR'));
     const identity = element('p', { className: 'intro path' }, editDocument.relativePath);

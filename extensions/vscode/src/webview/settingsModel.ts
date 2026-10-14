@@ -32,6 +32,40 @@ export interface ConfigurationWrite {
   readonly target: 'global' | 'workspaceFolder';
 }
 
+export async function applyConfigurationWrites(
+  writes: readonly ConfigurationWrite[],
+  currentValue: (write: ConfigurationWrite) => unknown,
+  update: (write: ConfigurationWrite, value: unknown) => PromiseLike<void>,
+): Promise<void> {
+  const snapshots = writes.map((write) => ({ write, value: currentValue(write) }));
+  let applied = 0;
+  try {
+    for (const write of writes) {
+      await update(write, write.value);
+      applied += 1;
+    }
+  } catch (error: unknown) {
+    const rollbackFailures: unknown[] = [];
+    for (let index = applied - 1; index >= 0; index -= 1) {
+      const snapshot = snapshots[index];
+      if (snapshot === undefined) continue;
+      try {
+        await update(snapshot.write, snapshot.value);
+      } catch (rollbackError: unknown) {
+        rollbackFailures.push(rollbackError);
+      }
+    }
+    if (rollbackFailures.length > 0) {
+      throw new AggregateError(
+        [error, ...rollbackFailures],
+        'Settings persistence and rollback failed.',
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+}
+
 export function parseVisualSettingsValues(value: unknown): VisualSettingsValues | undefined {
   if (!isRecord(value) || Object.keys(value).some((key) => ![
     'workspace', 'uiLanguage', 'documentLanguage', 'directory', 'adrFormat', 'defaultTemplate',

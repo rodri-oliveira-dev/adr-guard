@@ -22,6 +22,7 @@ interface WebviewHarness {
   clickButton(label: string): void;
   submit(id: string): void;
   clearMessages(): void;
+  runTimers(): void;
   setScroll(value: number): void;
   readonly lastScroll: number;
 }
@@ -69,8 +70,24 @@ describe('visual ADR form control events', () => {
   });
 
   it('cancels pristine creation without creating or validating an ADR', () => {
+    for (const control of ['create-back', 'create-cancel']) {
+      const harness = creationHarness();
+      harness.click(control);
+      assert.deepEqual(harness.messages, [{ type: 'cancel' }], control);
+      assertNoMutationOrValidation(harness.messages);
+    }
+  });
+
+  it('confirms dirty creation Cancel independently from Back', () => {
     const harness = creationHarness();
-    harness.clickButton('Cancel');
+    harness.input('title', 'Keep this draft');
+    harness.confirmWith(false);
+    harness.click('create-cancel');
+    assert.equal(valueOf(harness, 'title'), 'Keep this draft');
+    assert.deepEqual(harness.messages, []);
+
+    harness.confirmWith(true);
+    harness.click('create-cancel');
     assert.deepEqual(harness.messages, [{ type: 'cancel' }]);
     assertNoMutationOrValidation(harness.messages);
   });
@@ -89,9 +106,24 @@ describe('visual ADR form control events', () => {
     assertNoMutationOrValidation(cancelHarness.messages);
 
     const backHarness = editHarness();
-    backHarness.clickButton('← Back to ADR list');
+    backHarness.click('edit-back');
     assert.deepEqual(backHarness.messages, [{ type: 'cancel' }]);
     assertNoMutationOrValidation(backHarness.messages);
+
+    const pristineCancelHarness = editHarness();
+    pristineCancelHarness.click('edit-cancel');
+    assert.deepEqual(pristineCancelHarness.messages, [{ type: 'cancel' }]);
+
+    const dirtyBackHarness = editHarness();
+    dirtyBackHarness.input('edit-title', 'Keep the changed title');
+    dirtyBackHarness.confirmWith(false);
+    dirtyBackHarness.click('edit-back');
+    assert.equal(valueOf(dirtyBackHarness, 'edit-title'), 'Keep the changed title');
+    assert.deepEqual(dirtyBackHarness.messages, []);
+    dirtyBackHarness.confirmWith(true);
+    dirtyBackHarness.click('edit-back');
+    assert.deepEqual(dirtyBackHarness.messages, [{ type: 'cancel' }]);
+    assertNoMutationOrValidation(dirtyBackHarness.messages);
   });
 
   it('creates one document per explicit submission and preserves values after an error', () => {
@@ -108,6 +140,7 @@ describe('visual ADR form control events', () => {
     assert.equal((creates[0]?.values as { title?: string }).title, 'Adopt queues');
     assert.equal(disabledOf(harness, 'create-back'), true);
     harness.click('create-back');
+    harness.click('create-cancel');
     assert.equal(harness.messages.some((message) => message.type === 'cancel'), false);
 
     harness.dispatchHost({ type: 'error', message: 'Validation failed' });
@@ -116,6 +149,18 @@ describe('visual ADR form control events', () => {
     assert.equal(valueOf(harness, 'content-decision'), 'Adopt a managed queue.');
     harness.submit('adr-form');
     assert.equal(harness.messages.filter((message) => message.type === 'create').length, 2);
+  });
+
+  it('keeps Markdown preview read-only and distinct from validation or persistence', () => {
+    const harness = creationHarness();
+    harness.input('title', 'Preview queues');
+    harness.input('content-context', 'Requests need buffering.');
+    harness.input('content-decision', 'Adopt a managed queue.');
+    harness.input('content-consequences', 'Operations owns queue health.');
+    harness.runTimers();
+
+    assert.deepEqual(harness.messages.map((message) => message.type), ['preview']);
+    assertNoMutationOrValidation(harness.messages);
   });
 
   it('saves one edit at a time and preserves all values for retry after an error', () => {
@@ -132,6 +177,7 @@ describe('visual ADR form control events', () => {
     assert.equal(editValues.fields?.['section-0'], 'Updated context');
     assert.equal(disabledOf(harness, 'edit-cancel'), true);
     harness.click('edit-cancel');
+    harness.click('edit-back');
     assert.equal(harness.messages.some((message) => message.type === 'cancel'), false);
 
     harness.dispatchHost({ type: 'editError', message: 'The ADR changed externally.' });
@@ -170,23 +216,39 @@ describe('visual ADR form control events', () => {
 
     harness.dispatchHost({ type: 'showSettings', settings: settingsValues() });
     harness.clearMessages();
-    harness.clickButton('Cancel');
+    harness.click('settings-cancel');
     assert.deepEqual(harness.messages, [{ type: 'cancelSettings', workspace, state: { ...listState, scrollTop: 81 } }]);
     assertNoMutationOrValidation(harness.messages);
+
+    const backHarness = settingsHarness();
+    backHarness.click('settings-back');
+    assert.equal(backHarness.messages[0]?.type, 'cancelSettings');
+    assertNoMutationOrValidation(backHarness.messages);
   });
 
   it('keeps unsaved settings when discard is refused and discards without CLI work when confirmed', () => {
     const harness = settingsHarness();
     harness.input('settings-directory', 'decisions/architecture');
     harness.confirmWith(false);
-    harness.clickButton('Cancel');
+    harness.click('settings-cancel');
     assert.equal(valueOf(harness, 'settings-directory'), 'decisions/architecture');
     assert.equal(harness.messages.length, 0);
 
     harness.confirmWith(true);
-    harness.clickButton('Cancel');
+    harness.click('settings-cancel');
     assert.equal(harness.messages[0]?.type, 'cancelSettings');
     assertNoMutationOrValidation(harness.messages);
+
+    const backHarness = settingsHarness();
+    backHarness.input('settings-directory', 'decisions/architecture');
+    backHarness.confirmWith(false);
+    backHarness.click('settings-back');
+    assert.equal(valueOf(backHarness, 'settings-directory'), 'decisions/architecture');
+    assert.equal(backHarness.messages.length, 0);
+    backHarness.confirmWith(true);
+    backHarness.click('settings-back');
+    assert.equal(backHarness.messages[0]?.type, 'cancelSettings');
+    assertNoMutationOrValidation(backHarness.messages);
   });
 
   it('saves settings once, preserves the draft after errors, and rejects unsafe directories locally', () => {
@@ -207,12 +269,49 @@ describe('visual ADR form control events', () => {
       ...settingsValues(), directory: 'docs/decisions', documentLanguage: 'pt-BR', defaultTemplate: 'extended',
     });
     assertNoMutationOrValidation(harness.messages);
+    assert.equal(disabledOf(harness, 'settings-back'), true);
+    assert.equal(disabledOf(harness, 'settings-cancel'), true);
+    harness.click('settings-back');
+    harness.click('settings-cancel');
+    assert.equal(harness.messages.some((message) => message.type === 'cancelSettings'), false);
 
     harness.dispatchHost({ type: 'settingsError', message: 'Could not persist settings' });
     harness.dispatchHost({ type: 'settingsIdle' });
     assert.equal(valueOf(harness, 'settings-directory'), 'docs/decisions');
     harness.submit('settings-form');
     assert.equal(harness.messages.filter((message) => message.type === 'saveSettings').length, 2);
+  });
+
+  it('returns successful create, edit, and settings submissions to the preserved refreshed list', () => {
+    const created = creationHarness();
+    created.input('title', 'Adopt queues');
+    created.input('content-context', 'Requests need buffering.');
+    created.input('content-decision', 'Adopt a managed queue.');
+    created.input('content-consequences', 'Operations owns queue health.');
+    created.submit('adr-form');
+    created.dispatchHost({ type: 'created', workspace, relativePath: '0002-adopt-queues.md' });
+    created.dispatchHost({ type: 'showList', state: listState });
+    created.dispatchHost(listResult(listState, '0002-adopt-queues.md', 'created'));
+    assert.ok(created.document.querySelector('.adr-row.created'));
+    assert.equal(valueOf(created, 'search'), 'api');
+
+    const edited = editHarness();
+    edited.input('edit-title', 'Updated decision');
+    edited.submit('adr-edit-form');
+    edited.dispatchHost({ type: 'edited', workspace, relativePath: '0001-current.md' });
+    edited.dispatchHost({ type: 'showList', state: listState });
+    edited.dispatchHost(listResult(listState, '0001-current.md', 'updated'));
+    assert.ok(edited.document.querySelector('.adr-row.created'));
+    assert.equal(valueOf(edited, 'status-filter'), 'Accepted');
+
+    const settings = settingsHarness();
+    settings.change('ui-language', 'pt-BR');
+    settings.submit('settings-form');
+    settings.dispatchHost({ type: 'settingsSaved', settings: { ...settingsValues(), uiLanguage: 'pt-BR' } });
+    settings.dispatchHost({ type: 'showList', state: listState });
+    settings.dispatchHost(listResult(listState));
+    assert.ok(settings.document.getElementById('adr-list'));
+    assert.equal(valueOf(settings, 'sort'), 'title-asc');
   });
 
   it('previews the Webview language independently and applies persisted defaults to new ADRs', () => {
@@ -355,6 +454,7 @@ function createHarness(
   let scrollY = 0;
   let lastScroll = 0;
   let timer = 0;
+  const timers = new Map<number, () => void>();
   const windowRecord = window as unknown as Record<string, unknown>;
   windowRecord.requestAnimationFrame = (callback: () => void): number => { callback(); return 1; };
   windowRecord.scrollTo = (_left: number, top: number): void => { lastScroll = top; };
@@ -382,10 +482,10 @@ function createHarness(
   };
   vm.runInNewContext(source, {
     acquireVsCodeApi: () => vscode,
-    clearTimeout: () => undefined,
+    clearTimeout: (id: number) => { timers.delete(id); },
     confirm: () => confirmResult,
     document,
-    setTimeout: () => ++timer,
+    setTimeout: (callback: () => void) => { timer += 1; timers.set(timer, callback); return timer; },
     window,
   });
   dispatch({
@@ -422,6 +522,11 @@ function createHarness(
     },
     submit: (id) => { requiredElement(id).dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })); },
     clearMessages: () => { messages.splice(0); },
+    runTimers: () => {
+      const pending = [...timers.entries()];
+      timers.clear();
+      pending.forEach(([, callback]) => callback());
+    },
     setScroll: (value) => { scrollY = value; },
     get lastScroll() { return lastScroll; },
   };
@@ -439,11 +544,17 @@ function createHarness(
   }
 }
 
-function listResult(state?: typeof listState): Record<string, unknown> {
+function listResult(
+  state?: typeof listState,
+  highlightedPath?: string,
+  highlightKind?: 'created' | 'updated',
+): Record<string, unknown> {
+  const relativePath = highlightedPath ?? '0001-api.md';
   return {
     type: 'listResult', workspace, directory: 'docs/adr',
-    entries: [{ relativePath: '0001-api.md', id: '0001', title: 'Public API', status: 'Accepted', date: '2026-10-14' }],
+    entries: [{ relativePath, id: relativePath.startsWith('0002') ? '0002' : '0001', title: 'Public API', status: 'Accepted', date: '2026-10-14' }],
     ...(state === undefined ? {} : { state }),
+    ...(highlightedPath === undefined ? {} : { createdPath: highlightedPath, highlightKind }),
   };
 }
 

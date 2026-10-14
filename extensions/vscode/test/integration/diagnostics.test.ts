@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { rm, writeFile } from 'node:fs/promises';
 import * as vscode from 'vscode';
 import type { CliExecutor } from '../../src/cli/executor';
 import type { CliRunResult } from '../../src/cli/runner';
@@ -128,7 +129,78 @@ suite('ADR Guard Problems diagnostics', () => {
       provider.dispose();
     }
   });
+
+  test('runs debounced save validation only when enabled', async () => {
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    assert.ok(folder);
+    const configuration = vscode.workspace.getConfiguration('adrGuard.validation', folder.uri);
+    const previousOnSave = configuration.inspect<boolean>('onSave')?.globalValue;
+    const previousDebounce = configuration.inspect<number>('debounceMilliseconds')?.globalValue;
+    let controller: SaveValidationController | undefined;
+    let validations = 0;
+    const diagnostics = {
+      validate: () => { validations += 1; return Promise.resolve(); },
+      delete: () => undefined,
+      clearWorkspace: () => undefined,
+    } as unknown as DiagnosticManager;
+    try {
+      await configuration.update('debounceMilliseconds', 200, vscode.ConfigurationTarget.Global);
+      await configuration.update('onSave', false, vscode.ConfigurationTarget.Global);
+      controller = new SaveValidationController(diagnostics, { info: () => undefined } as unknown as OperationalLog);
+      const document = await vscode.workspace.openTextDocument(vscode.Uri.joinPath(folder.uri, 'docs', 'adr', '0001-invalid.md'));
+      await controller.handleSavedDocument(document);
+      await delay(250);
+      assert.equal(validations, 0, 'disabled save validation must not invoke the CLI adapter');
+
+      controller.dispose();
+      controller = undefined;
+      await configuration.update('onSave', true, vscode.ConfigurationTarget.Global);
+      controller = new SaveValidationController(diagnostics, { info: () => undefined } as unknown as OperationalLog);
+      await controller.handleSavedDocument(document);
+      await controller.handleSavedDocument(document);
+      assert.equal(validations, 0, 'validation must wait for the configured debounce');
+      await delay(250);
+      assert.equal(validations, 1, 'a save burst must produce one validation');
+    } finally {
+      controller?.dispose();
+      await configuration.update('onSave', previousOnSave, vscode.ConfigurationTarget.Global);
+      await configuration.update('debounceMilliseconds', previousDebounce, vscode.ConfigurationTarget.Global);
+    }
+  });
+
+  test('does not validate ADRs for Explorer watcher file-system events', async () => {
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    assert.ok(folder);
+    const configuration = vscode.workspace.getConfiguration('adrGuard.validation', folder.uri);
+    const previousOnSave = configuration.inspect<boolean>('onSave')?.globalValue;
+    const previousDebounce = configuration.inspect<number>('debounceMilliseconds')?.globalValue;
+    const uri = vscode.Uri.joinPath(folder.uri, 'docs', 'adr', '0002-watcher-only.md');
+    let validations = 0;
+    let controller: SaveValidationController | undefined;
+    try {
+      await configuration.update('debounceMilliseconds', 200, vscode.ConfigurationTarget.Global);
+      await configuration.update('onSave', true, vscode.ConfigurationTarget.Global);
+      controller = new SaveValidationController({
+        validate: () => { validations += 1; return Promise.resolve(); },
+        delete: () => undefined,
+        clearWorkspace: () => undefined,
+      } as unknown as DiagnosticManager, { info: () => undefined } as unknown as OperationalLog);
+
+      await writeFile(uri.fsPath, '# ADR-0002: Watcher only\n\n## Status\n\nProposed\n', 'utf8');
+      await delay(300);
+      assert.equal(validations, 0, 'file watchers must refresh catalogs without invoking validation');
+    } finally {
+      controller?.dispose();
+      await rm(uri.fsPath, { force: true });
+      await configuration.update('onSave', previousOnSave, vscode.ConfigurationTarget.Global);
+      await configuration.update('debounceMilliseconds', previousDebounce, vscode.ConfigurationTarget.Global);
+    }
+  });
 });
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
 
 class FakeExecutor {
   public report = invalidReport();

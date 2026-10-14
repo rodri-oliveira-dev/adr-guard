@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  applyConfigurationWrites,
   configurationWrites,
   effectiveInterfaceLanguage,
   isSafeRelativeDirectory,
@@ -59,6 +60,34 @@ describe('visual settings model', () => {
       { section: 'adrGuard.cli', key: 'path', value: values.cliPath, target: 'global' },
       { section: 'adrGuard.cli', key: 'timeoutMilliseconds', value: 30000, target: 'global' },
       { section: 'adrGuard.cli', key: 'maxOutputBytes', value: 524288, target: 'global' },
+    ]);
+  });
+
+  it('rolls back earlier settings when a later VS Code configuration write fails', async () => {
+    const writes = configurationWrites(values).slice(0, 3);
+    const stored = new Map(writes.map((write) => [`${write.section}.${write.key}`, `before-${write.key}`]));
+    const updates: string[] = [];
+
+    await assert.rejects(
+      applyConfigurationWrites(
+        writes,
+        (write) => stored.get(`${write.section}.${write.key}`),
+        (write, value) => {
+          const key = `${write.section}.${write.key}`;
+          updates.push(`${key}=${String(value)}`);
+          if (write.key === 'defaultTemplate' && value === 'extended') return Promise.reject(new Error('controlled write failure'));
+          stored.set(key, value as string);
+          return Promise.resolve();
+        },
+      ),
+      /controlled write failure/u,
+    );
+
+    assert.equal(stored.get('adrGuard.ui.language'), 'before-language');
+    assert.equal(stored.get('adrGuard.creation.documentLanguage'), 'before-documentLanguage');
+    assert.deepEqual(updates.slice(-2), [
+      'adrGuard.creation.documentLanguage=before-documentLanguage',
+      'adrGuard.ui.language=before-language',
     ]);
   });
 

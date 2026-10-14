@@ -17,7 +17,7 @@ export class SaveValidationController implements vscode.Disposable {
     private readonly log: OperationalLog,
   ) {
     this.subscriptions = [
-      vscode.workspace.onDidSaveTextDocument((document) => { void this.saved(document); }),
+      vscode.workspace.onDidSaveTextDocument((document) => { void this.handleSavedDocument(document); }),
       vscode.workspace.onDidDeleteFiles((event) => event.files.forEach((uri) => this.diagnostics.delete(uri))),
       vscode.workspace.onDidRenameFiles((event) => event.files.forEach(({ oldUri }) => this.diagnostics.delete(oldUri))),
       vscode.workspace.onDidChangeWorkspaceFolders((event) => {
@@ -37,7 +37,7 @@ export class SaveValidationController implements vscode.Disposable {
     for (const subscription of this.subscriptions) subscription.dispose();
   }
 
-  private async saved(document: vscode.TextDocument): Promise<void> {
+  public async handleSavedDocument(document: vscode.TextDocument): Promise<void> {
     if (!vscode.workspace.isTrusted || document.uri.scheme !== 'file' || document.isDirty) return;
     if (path.extname(document.uri.fsPath).toLowerCase() !== '.md' || path.basename(document.uri.fsPath).toLowerCase() === 'readme.md') return;
     const folder = vscode.workspace.getWorkspaceFolder(document.uri);

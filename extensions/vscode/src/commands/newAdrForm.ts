@@ -14,7 +14,7 @@ import { asLocation } from '../workspace';
 import { ensurePotentialDirectoryWithinWorkspace, ensurePotentialFileWithinWorkspace, ensureResourceWithinWorkspace, isResolvedPathWithin, resolveWorkspaceRelativePath, resolveWorkspaceRoot, WorkspacePolicyError } from '../workspacePolicy';
 import { parseNewAdrFormMessage, type EditValues, type FormValues, type ListState, visualFormInputLimit, VisualCreationSubmission } from '../webview/newAdrFormMessages';
 import { LatestListRequest } from '../webview/adrListModel';
-import { configurationWrites, type VisualSettingsValues } from '../webview/settingsModel';
+import { applyConfigurationWrites, configurationWrites, type ConfigurationWrite, type VisualSettingsValues } from '../webview/settingsModel';
 
 interface NewAdrFormDependencies {
   readonly executor: CliExecutor;
@@ -92,14 +92,14 @@ export class NewAdrFormPanel implements vscode.Disposable {
     }
     if (message.type === 'ready') return this.initialize();
     if (message.type === 'openSettings') {
-      if (this.submission.isActive || message.workspace === undefined) return;
+      if (this.screen !== 'list' || this.submission.isActive || message.workspace === undefined) return;
       this.selectedWorkspace = message.workspace;
       this.screen = 'settings';
       await this.post({ type: 'showSettings', settings: this.settingsFor(workspaceFolder(message.workspace)) });
       return;
     }
     if (message.type === 'cancelSettings') {
-      if (this.submission.isActive || this.settingsCheckActive) return;
+      if (this.screen !== 'settings' || this.submission.isActive || this.settingsCheckActive) return;
       this.screen = 'list';
       if (message.workspace !== undefined) this.selectedWorkspace = message.workspace;
       await this.post({ type: 'showList', ...(message.state === undefined ? {} : { state: message.state }) });
@@ -107,7 +107,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       return;
     }
     if (message.type === 'saveSettings') {
-      if (message.settings === undefined || !this.submission.begin()) return;
+      if (this.screen !== 'settings' || message.settings === undefined || !this.submission.begin()) return;
       await this.saveSettings(message.settings, message.state);
       return;
     }
@@ -117,6 +117,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       return;
     }
     if (message.type === 'newAdr') {
+      if (this.submission.isActive) return;
       this.selectedWorkspace = message.workspace;
       this.screen = 'form';
       await this.post({ type: 'showForm', workspace: message.workspace });
@@ -132,39 +133,39 @@ export class NewAdrFormPanel implements vscode.Disposable {
       return;
     }
     if (message.type === 'selectWorkspace' || message.type === 'refreshList') {
-      if (message.workspace === undefined) return;
+      if (this.screen !== 'list' || message.workspace === undefined) return;
       this.selectedWorkspace = message.workspace;
       await this.loadList(message.workspace, message.state);
       return;
     }
     if (message.type === 'initializeRepository' || message.type === 'checkInstallation') {
-      if (message.workspace === undefined || message.workspace !== this.selectedWorkspace || this.listActionActive) return;
+      if (this.screen !== 'list' || message.workspace === undefined || message.workspace !== this.selectedWorkspace || this.listActionActive) return;
       await this.runListAction(message.type, message.workspace, message.state);
       return;
     }
     if (message.type === 'openAdr') {
-      if (message.workspace === undefined || message.relativePath === undefined) return;
+      if (this.screen !== 'list' || message.workspace === undefined || message.relativePath === undefined) return;
       return this.openAdr(message.workspace, message.relativePath);
     }
     if (message.type === 'editAdr') {
-      if (message.workspace === undefined || message.relativePath === undefined) return;
+      if (this.screen !== 'list' || message.workspace === undefined || message.relativePath === undefined) return;
       this.selectedWorkspace = message.workspace;
       this.screen = 'edit';
       await this.loadEdit(message.workspace, message.relativePath);
       return;
     }
     if (message.type === 'saveEdit') {
-      if (message.editValues === undefined || !this.submission.begin()) return;
+      if (this.screen !== 'edit' || message.editValues === undefined || !this.submission.begin()) return;
       await this.saveEdit(message.editValues);
       return;
     }
     if (message.type === 'revealCreated') {
-      if (message.workspace === undefined) return;
+      if (this.screen !== 'list' || message.workspace === undefined) return;
       await this.post({ type: 'clearListFilters', workspace: message.workspace });
       await this.loadList(message.workspace);
       return;
     }
-    if (!this.submission.accepts()) return;
+    if (this.screen !== 'form' || !this.submission.accepts()) return;
     if (message.type === 'traditional') {
       await vscode.commands.executeCommand('adrGuard.createAdr');
       return;
@@ -244,13 +245,11 @@ export class NewAdrFormPanel implements vscode.Disposable {
       await ensurePotentialDirectoryWithinWorkspace(resolveWorkspaceRelativePath(root, normalized.directory), root);
       pathSetting = 'baseline';
       await ensurePotentialFileWithinWorkspace(resolveWorkspaceRelativePath(root, normalized.baseline), root);
-      for (const write of configurationWrites(normalized)) {
-        const scope = write.target === 'workspaceFolder' ? folder.uri : undefined;
-        const target = write.target === 'global'
-          ? vscode.ConfigurationTarget.Global
-          : vscode.ConfigurationTarget.WorkspaceFolder;
-        await vscode.workspace.getConfiguration(write.section, scope).update(write.key, write.value, target);
-      }
+      await applyConfigurationWrites(
+        configurationWrites(normalized),
+        (write) => this.configurationValue(write, folder),
+        (write, value) => this.updateConfiguration(write, value, folder),
+      );
       this.selectedWorkspace = values.workspace;
       this.screen = 'list';
       this.dependencies.refreshExplorer();
@@ -271,6 +270,20 @@ export class NewAdrFormPanel implements vscode.Disposable {
       this.submission.end();
       if (!this.disposed) await this.post({ type: 'settingsIdle' });
     }
+  }
+
+  private configurationValue(write: ConfigurationWrite, folder: vscode.WorkspaceFolder): unknown {
+    const scope = write.target === 'workspaceFolder' ? folder.uri : undefined;
+    const inspected = vscode.workspace.getConfiguration(write.section, scope).inspect(write.key);
+    return write.target === 'global' ? inspected?.globalValue : inspected?.workspaceFolderValue;
+  }
+
+  private updateConfiguration(write: ConfigurationWrite, value: unknown, folder: vscode.WorkspaceFolder): Thenable<void> {
+    const scope = write.target === 'workspaceFolder' ? folder.uri : undefined;
+    const target = write.target === 'global'
+      ? vscode.ConfigurationTarget.Global
+      : vscode.ConfigurationTarget.WorkspaceFolder;
+    return vscode.workspace.getConfiguration(write.section, scope).update(write.key, value, target);
   }
 
   private async checkSettingsInstallation(workspace: string): Promise<void> {
@@ -299,7 +312,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       const folder = workspaceFolder(workspace);
       const configuration = readValidationConfiguration(folder.uri);
       const entries = await this.dependencies.explorer.catalogFor(folder);
-      if (!this.listRequests.isCurrent(sequence) || this.disposed || this.selectedWorkspace !== workspace) return;
+      if (!this.listRequests.isCurrent(sequence) || this.disposed || this.screen !== 'list' || this.selectedWorkspace !== workspace) return;
       await this.post({
         type: 'listResult', workspace, directory: configuration.directory,
         entries: entries.map((entry) => ({
@@ -311,7 +324,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
         highlightKind: this.created?.workspace === workspace ? this.created.kind : undefined,
       });
     } catch (error: unknown) {
-      if (!this.listRequests.isCurrent(sequence) || this.disposed) return;
+      if (!this.listRequests.isCurrent(sequence) || this.disposed || this.screen !== 'list') return;
       this.dependencies.log.info(`ADR list could not load: ${safeLogError(error)}`);
       const code = isNodeError(error) ? error.code : undefined;
       const folder = vscode.workspace.workspaceFolders?.find((candidate) => candidate.uri.toString() === workspace);
