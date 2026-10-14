@@ -143,8 +143,10 @@ function isSafeRelativeFile(value: string): boolean {
 export class VisualCreationSubmission {
   private active = false;
 
-  public accepts(type: FormMessage['type']): boolean {
-    return !this.active || type === 'cancel';
+  public get isActive(): boolean { return this.active; }
+
+  public accepts(): boolean {
+    return !this.active;
   }
 
   public begin(): boolean {

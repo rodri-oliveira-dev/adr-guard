@@ -78,16 +78,14 @@ describe('visual ADR form host boundary', () => {
 
   it('blocks duplicate creation until the active submission settles', () => {
     const submission = new VisualCreationSubmission();
-    assert.equal(submission.accepts('preview'), true);
+    assert.equal(submission.accepts(), true);
     assert.equal(submission.begin(), true);
     assert.equal(submission.begin(), false);
-    assert.equal(submission.accepts('describe'), false);
-    assert.equal(submission.accepts('preview'), false);
-    assert.equal(submission.accepts('create'), false);
-    assert.equal(submission.accepts('traditional'), false);
-    assert.equal(submission.accepts('cancel'), true);
+    assert.equal(submission.accepts(), false);
+    assert.equal(submission.isActive, true);
     submission.end();
-    assert.equal(submission.accepts('preview'), true);
+    assert.equal(submission.isActive, false);
+    assert.equal(submission.accepts(), true);
     assert.equal(submission.begin(), true);
   });
 
@@ -169,6 +167,18 @@ describe('visual ADR form host boundary', () => {
     assert.doesNotMatch(styles, /#[0-9a-fA-F]{3,8}\b/u);
   });
 
+  it('keeps form navigation and actions accessible, responsive, and theme-aware', async () => {
+    const script = await readFile(path.resolve(__dirname, '../../../media/newAdrForm.js'), 'utf8');
+    const styles = await readFile(path.resolve(__dirname, '../../../media/newAdrForm.css'), 'utf8');
+
+    assert.match(script, /function sectionNavigation\(items\)/u);
+    assert.match(script, /className: 'form-section-nav', 'aria-label': t\('Form sections'\)/u);
+    assert.match(script, /className: `requirement \$\{required \? 'required' : 'optional'\}`/u);
+    assert.match(styles, /@media \(min-width: 700px\) and \(min-height: 500px\)[\s\S]*?\.form-actions[\s\S]*?position: sticky/u);
+    assert.match(styles, /\.form-section-nav a:focus-visible[\s\S]*?var\(--vscode-focusBorder\)/u);
+    assert.match(styles, /@media \(max-width: 480px\)[\s\S]*?\.form-header[\s\S]*?display: grid/u);
+  });
+
   it('sends isolated list actions and captures state before refresh or navigation', async () => {
     const source = await readFile(path.resolve(__dirname, '../../../media/newAdrForm.js'), 'utf8');
 
@@ -183,10 +193,14 @@ describe('visual ADR form host boundary', () => {
 
   it('keeps list loading, refresh, and Markdown navigation free of CLI validation and writes', async () => {
     const host = await readFile(path.resolve(__dirname, '../../../src/commands/newAdrForm.ts'), 'utf8');
+    const cancelRoute = host.slice(host.indexOf("if (message.type === 'showList'"), host.indexOf("if (message.type === 'selectWorkspace'"));
     const loadList = host.slice(host.indexOf('private async loadList('), host.indexOf('private async openAdr('));
     const openAdr = host.slice(host.indexOf('private async openAdr('), host.indexOf('private async runListAction('));
     const refreshRoute = host.slice(host.indexOf("if (message.type === 'selectWorkspace'"), host.indexOf("if (message.type === 'initializeRepository'"));
 
+    assert.match(cancelRoute, /if \(this\.submission\.isActive\) return/u);
+    assert.match(cancelRoute, /await this\.loadList\(this\.selectedWorkspace, message\.state\)/u);
+    assert.doesNotMatch(cancelRoute, /executor\.execute|executeCommand|saveEdit|this\.run\(/u);
     assert.match(loadList, /explorer\.catalogFor\(folder\)/u);
     assert.doesNotMatch(loadList, /executor\.execute|executeCommand|\['check'|\['new'|\['edit'|\['index'/u);
     assert.match(openAdr, /showTextDocument\(vscode\.Uri\.file\(target\.filePath\)/u);

@@ -221,9 +221,16 @@
     return row;
   }
 
-  function appendField(container, id, label, control, help) {
+  function sectionNavigation(items) {
+    const navigation = element('nav', { className: 'form-section-nav', 'aria-label': t('Form sections') });
+    items.forEach((item) => navigation.append(element('a', { href: `#${item.id}` }, t(item.label))));
+    return navigation;
+  }
+  function appendField(container, id, label, control, help, required) {
     const group = element('div', { className: 'field' });
-    group.append(element('label', { for: id }, label), control);
+    const fieldLabelNode = element('label', { for: id }, label);
+    if (required !== undefined) fieldLabelNode.append(element('span', { className: `requirement ${required ? 'required' : 'optional'}` }, t(required ? 'Required' : 'Optional')));
+    group.append(fieldLabelNode, control);
     if (help) { const helpId = `${id}-help`; control.setAttribute('aria-describedby', helpId); group.append(element('p', { id: helpId, className: 'help' }, help)); }
     container.append(group);
   }
@@ -233,12 +240,22 @@
     clearCreationValues();
     app.replaceChildren();
     const back = button(`← ${t('Back to ADR list')}`, backToList, true);
-    back.id = 'edit-back';
+    back.id = 'create-back'; back.classList.add('form-back');
     const heading = element('h1', {}, t('Create ADR with Form'));
     const note = element('p', { className: 'intro' }, t('No file is written until you choose Create ADR.'));
+    const identity = element('p', { id: 'form-document-identity', className: 'form-document-identity' }, t('Decision title'));
+    const headingGroup = element('div', { className: 'form-heading' }); headingGroup.append(heading, identity, note);
+    const header = element('header', { className: 'form-header' }); header.append(back, headingGroup);
+    const navigation = sectionNavigation([
+      { id: 'creation-setup', label: 'Document setup' }, { id: 'creation-content', label: 'Decision content' },
+      { id: 'creation-preview', label: 'Markdown preview' },
+    ]);
     const statusNode = element('div', { id: 'status', role: 'status', 'aria-live': 'polite' });
     const error = element('div', { id: 'error', role: 'alert', className: 'error hidden' });
     const form = element('form', { id: 'adr-form', novalidate: '' });
+    const setup = element('fieldset', { id: 'creation-setup', className: 'form-section' }); setup.append(element('legend', {}, t('Document setup')));
+    const content = element('fieldset', { id: 'creation-content', className: 'form-section' }); content.append(element('legend', {}, t('Decision content')));
+    const previewSection = element('section', { id: 'creation-preview', className: 'form-section preview-section', 'aria-labelledby': 'preview-heading' });
     const workspace = select('workspace', workspaces.map((item) => ({ value: item.id, label: item.name })));
     workspace.value = selectedWorkspace || workspaces[0].id;
     selectedWorkspace = workspace.value;
@@ -250,19 +267,21 @@
     const title = element('input', { id: 'title', type: 'text', required: '', maxlength: '512', autocomplete: 'off' });
     const fields = element('section', { id: 'content-fields', 'aria-label': t('Creation template') });
     const preview = element('pre', { id: 'preview', tabindex: '0' }); preview.append(element('code', {}, t('Preview unavailable until required fields are complete.')));
-    const actions = element('div', { className: 'actions' });
+    const actions = element('div', { className: 'actions form-actions' });
     const submit = element('button', { id: 'create', type: 'submit' }, t('Create ADR'));
     const cancel = button(t('Cancel'), backToList, true);
     const traditional = button(t('Use traditional creation'), () => vscode.postMessage({ type: 'traditional' }), true); traditional.id = 'traditional'; traditional.classList.add('hidden');
     actions.append(submit, cancel, traditional);
-    appendField(form, 'workspace', t('Workspace folder'), workspace); appendField(form, 'directory', t('ADR destination directory'), directoryInput);
-    const templateGroup = element('div', { className: 'field' }); templateGroup.append(element('label', { for: 'template' }, t('Creation template')), template, templateHelp); form.append(templateGroup);
-    appendField(form, 'culture', t('Document language'), culture); appendField(form, 'title', t('Decision title'), title);
-    form.append(fields, element('h2', {}, t('Markdown preview')), preview, actions); app.append(back, heading, note, statusNode, error, form);
+    appendField(setup, 'workspace', t('Workspace folder'), workspace); appendField(setup, 'directory', t('ADR destination directory'), directoryInput);
+    const templateGroup = element('div', { className: 'field' }); templateGroup.append(element('label', { for: 'template' }, t('Creation template')), template, templateHelp); setup.append(templateGroup);
+    appendField(setup, 'culture', t('Document language'), culture); appendField(content, 'title', t('Decision title'), title, undefined, true);
+    content.append(fields);
+    previewSection.append(element('h2', { id: 'preview-heading' }, t('Markdown preview')), preview);
+    form.append(setup, content, previewSection, actions); app.append(header, navigation, statusNode, error, form);
     workspace.addEventListener('change', () => { selectedWorkspace = workspace.value; directoryInput.value = selectedWorkspaceItem().directory; markDirty(); describe(); });
     [directoryInput, template, culture].forEach((control) => control.addEventListener('change', () => { markDirty(); describe(); }));
-    title.addEventListener('input', () => { markDirty(); schedulePreview(); });
-    form.addEventListener('submit', (event) => { event.preventDefault(); if (!busyCreate && form.reportValidity()) postForm('create'); });
+    title.addEventListener('input', () => { identity.textContent = title.value.trim() || t('Decision title'); markDirty(); schedulePreview(); });
+    form.addEventListener('submit', (event) => { event.preventDefault(); if (!busyCreate && form.reportValidity()) { setCreateBusy(true); postForm('create'); } });
     describe();
   }
 
@@ -271,14 +290,22 @@
     formDirty = false;
     app.replaceChildren();
     const back = button(`← ${t('Back to ADR list')}`, backToList, true);
+    back.classList.add('form-back');
     const heading = element('h1', {}, t('Edit ADR'));
     const identity = element('p', { className: 'intro path' }, editDocument.relativePath);
+    const headingGroup = element('div', { className: 'form-heading' }); headingGroup.append(heading, identity);
+    const header = element('header', { className: 'form-header' }); header.append(back, headingGroup);
+    const navigation = sectionNavigation([
+      { id: 'edit-metadata', label: 'Document metadata' }, { id: 'edit-content', label: 'Document sections' },
+    ]);
     const statusNode = element('div', { id: 'status', role: 'status', 'aria-live': 'polite' });
     const error = element('div', { id: 'error', role: 'alert', className: 'error hidden' });
     const form = element('form', { id: 'adr-edit-form', novalidate: '' });
+    const metadataFields = element('fieldset', { id: 'edit-metadata', className: 'form-section' }); metadataFields.append(element('legend', {}, t('Document metadata')));
+    const sectionFields = element('fieldset', { id: 'edit-content', className: 'form-section' }); sectionFields.append(element('legend', {}, t('Document sections')));
     const title = element('input', { id: 'edit-title', type: 'text', required: '', maxlength: '512', autocomplete: 'off' });
     title.value = editDocument.response.title;
-    appendField(form, 'edit-title', t('Decision title'), title);
+    appendField(metadataFields, 'edit-title', t('Decision title'), title, undefined, true);
     editDocument.response.fields.forEach((field) => {
       const id = `edit-${field.id}`;
       let control;
@@ -298,18 +325,19 @@
       if (field.required) control.required = true;
       control.addEventListener('input', markDirty);
       control.addEventListener('change', markDirty);
-      appendField(form, id, `${field.label} — ${field.required ? t('Required') : t('Optional')}`, control);
+      appendField(field.kind === 'section' ? sectionFields : metadataFields, id, field.label, control, undefined, field.required);
     });
     title.addEventListener('input', markDirty);
-    const actions = element('div', { className: 'actions' });
+    const actions = element('div', { className: 'actions form-actions' });
     const save = element('button', { id: 'save-edit', type: 'submit' }, t('Save changes'));
     const cancel = button(t('Cancel'), backToList, true);
     cancel.id = 'edit-cancel';
     actions.append(save, cancel);
-    form.append(actions);
+    form.append(metadataFields, sectionFields, actions);
     form.addEventListener('submit', (event) => {
       event.preventDefault();
       if (busyCreate || !form.reportValidity()) return;
+      setEditBusy(true);
       const fields = {};
       document.querySelectorAll('[data-edit-field-id]').forEach((control) => { fields[control.dataset.editFieldId] = control.value; });
       vscode.postMessage({
@@ -323,7 +351,7 @@
         },
       });
     });
-    app.append(back, heading, identity, statusNode, error, form);
+    app.append(header, navigation, statusNode, error, form);
     title.focus();
   }
   function selectedWorkspaceItem() {
@@ -339,11 +367,12 @@
   function describe() { schema = undefined; clearTimeout(previewTimer); clearTimeout(templateTimer); document.getElementById('status').textContent = t('Loading template…'); document.getElementById('content-fields').replaceChildren(); hideError(); postForm('describe'); templateTimer = setTimeout(() => { if (schema || !document.getElementById('adr-form')) return; const error = document.getElementById('error'); error.textContent = t('The template could not be displayed. Try again.'); error.classList.remove('hidden'); document.getElementById('status').textContent = ''; }, 5000); }
   function fieldLabel(id) { return t(({ context: 'Context', decisionDrivers: 'Decision drivers', optionsConsidered: 'Options considered', decision: 'Decision', rationale: 'Rationale', consequences: 'Consequences', positiveConsequences: 'Positive consequences', negativeConsequences: 'Negative consequences', risks: 'Risks', references: 'References' })[id] || id); }
   function fieldHelp(id) { return t(({ context: 'Describe the problem, constraints, and relevant stakeholders.', decisionDrivers: 'List requirements, quality attributes, constraints, and trade-offs.', optionsConsidered: 'Compare viable alternatives, including keeping the current approach.', decision: 'State the proposed choice, its scope, and why it addresses the problem.', rationale: 'Explain why this option best satisfies the decision drivers.', consequences: 'Describe expected impact and trade-offs.', positiveConsequences: 'Record expected benefits and assumptions.', negativeConsequences: 'Record costs, limitations, and added complexity.', risks: 'Identify uncertainties, failure modes, mitigations, and owners.', references: 'Add links to evidence, related documents, or ADRs.' })[id] || ''); }
-  function renderSchema(response) { clearTimeout(templateTimer); schema = response.template; const fields = document.getElementById('content-fields'); const traditional = document.getElementById('traditional'); const create = document.getElementById('create'); const help = document.getElementById('template-help'); const status = document.getElementById('status'); if (!fields || !traditional || !create || !help || !status) { schema = undefined; return; } fields.replaceChildren(); if (!schema.compatible) { help.textContent = t('This custom template cannot be mapped safely to form fields. Use the traditional creation flow to preserve it.'); traditional.classList.remove('hidden'); create.disabled = true; status.textContent = ''; return; } traditional.classList.add('hidden'); create.disabled = false; help.textContent = schema.name === 'extended' ? t('Extended adds optional drivers, alternatives, rationale, risks, and references.') : t('Minimal captures the context, decision, and consequences.'); schema.fields.forEach((field) => { const id = `content-${field.id}`; const control = element('textarea', { id, rows: field.id === 'context' || field.id === 'decision' ? '7' : '5', 'data-field-id': field.id, maxlength: '32768', ...(field.required ? { required: '' } : {}) }); control.value = valuesByField[field.id] || ''; control.addEventListener('input', () => { valuesByField[field.id] = control.value; markDirty(); schedulePreview(); }); appendField(fields, id, `${fieldLabel(field.id)} — ${field.required ? t('Required') : t('Optional')}`, control, fieldHelp(field.id)); }); status.textContent = t('Preview updates after you edit the form.'); schedulePreview(); }
+  function renderSchema(response) { clearTimeout(templateTimer); schema = response.template; const fields = document.getElementById('content-fields'); const traditional = document.getElementById('traditional'); const create = document.getElementById('create'); const help = document.getElementById('template-help'); const status = document.getElementById('status'); if (!fields || !traditional || !create || !help || !status) { schema = undefined; return; } fields.replaceChildren(); if (!schema.compatible) { help.textContent = t('This custom template cannot be mapped safely to form fields. Use the traditional creation flow to preserve it.'); traditional.classList.remove('hidden'); create.disabled = true; status.textContent = ''; return; } traditional.classList.add('hidden'); create.disabled = false; help.textContent = schema.name === 'extended' ? t('Extended adds optional drivers, alternatives, rationale, risks, and references.') : t('Minimal captures the context, decision, and consequences.'); schema.fields.forEach((field) => { const id = `content-${field.id}`; const control = element('textarea', { id, rows: field.id === 'context' || field.id === 'decision' ? '7' : '5', 'data-field-id': field.id, maxlength: '32768', ...(field.required ? { required: '' } : {}) }); control.value = valuesByField[field.id] || ''; control.addEventListener('input', () => { valuesByField[field.id] = control.value; markDirty(); schedulePreview(); }); appendField(fields, id, fieldLabel(field.id), control, fieldHelp(field.id), field.required); }); status.textContent = t('Preview updates after you edit the form.'); schedulePreview(); }
   function displayTemplate(response) { try { if (!document.getElementById('adr-form')) return; hideError(); renderSchema(response); } catch { clearTimeout(templateTimer); schema = undefined; const error = document.getElementById('error'); if (error) { error.textContent = t('The template could not be displayed. Try again.'); error.classList.remove('hidden'); } const status = document.getElementById('status'); if (status) status.textContent = ''; } }
   function completeForPreview() { return schema?.compatible && document.getElementById('title').value.trim() && schema.fields.every((field) => !field.required || (valuesByField[field.id] || '').trim()); }
   function schedulePreview() { clearTimeout(previewTimer); if (!completeForPreview()) { document.querySelector('#preview code').textContent = t('Preview unavailable until required fields are complete.'); return; } const sequence = ++previewSequence; previewTimer = setTimeout(() => { if (sequence === previewSequence) postForm('preview'); }, 450); }
-  function setCreateBusy(active) { busyCreate = active; document.querySelectorAll('#adr-form input, #adr-form select, #adr-form textarea, #create, #traditional').forEach((control) => { control.disabled = active; }); if (!active) document.getElementById('create').disabled = !schema?.compatible; }
+  function setCreateBusy(active) { busyCreate = active; document.querySelectorAll('#adr-form input, #adr-form select, #adr-form textarea, #adr-form button, .form-back').forEach((control) => { control.disabled = active; }); if (!active) document.getElementById('create').disabled = !schema?.compatible; }
+  function setEditBusy(active) { busyCreate = active; document.querySelectorAll('#adr-edit-form input, #adr-edit-form select, #adr-edit-form textarea, #adr-edit-form button, .form-back').forEach((control) => { control.disabled = active; }); }
   function hideError() { const error = document.getElementById('error'); if (error) { error.textContent = ''; error.classList.add('hidden'); } }
 
   window.addEventListener('message', (event) => {
@@ -366,8 +395,8 @@
     if (message.type === 'error' || message.type === 'listNavigationError' || message.type === 'editError') { const error = document.getElementById('error'); if (error) { error.textContent = message.message || 'Error'; error.classList.remove('hidden'); if (message.traditionalAvailable) document.getElementById('traditional')?.classList.remove('hidden'); } else if (message.type === 'editError') { renderMessage(t('Edit ADR'), message.message || 'Error', button(t('Back to ADR list'), backToList, true)); } else window.alert(message.message || 'Error'); return; }
     if (message.type === 'busy' && message.operation === 'create') { setCreateBusy(true); document.getElementById('status').textContent = t('Creating ADR…'); }
     if (message.type === 'idle' && message.operation === 'create') setCreateBusy(false);
-    if (message.type === 'editBusy') { busyCreate = true; document.querySelectorAll('#adr-edit-form input, #adr-edit-form select, #adr-edit-form textarea, #adr-edit-form button, #edit-back').forEach((control) => { control.disabled = true; }); document.getElementById('status').textContent = t('Saving changes…'); }
-    if (message.type === 'editIdle') { busyCreate = false; document.querySelectorAll('#adr-edit-form input, #adr-edit-form select, #adr-edit-form textarea, #adr-edit-form button, #edit-back').forEach((control) => { control.disabled = false; }); }
+    if (message.type === 'editBusy') { setEditBusy(true); document.getElementById('status').textContent = t('Saving changes…'); }
+    if (message.type === 'editIdle') setEditBusy(false);
   });
   renderMessage('', '');
   vscode.postMessage({ type: 'ready' });

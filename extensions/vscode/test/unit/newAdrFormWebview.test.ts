@@ -1,0 +1,308 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import vm from 'node:vm';
+import { before, describe, it } from 'node:test';
+
+interface PostedMessage {
+  readonly type: string;
+  readonly [key: string]: unknown;
+}
+
+interface WebviewHarness {
+  readonly document: Document;
+  readonly messages: PostedMessage[];
+  readonly window: Window;
+  confirmWith(value: boolean): void;
+  dispatchHost(message: Record<string, unknown>): void;
+  input(id: string, value: string): void;
+  click(id: string): void;
+  clickButton(label: string): void;
+  submit(id: string): void;
+  clearMessages(): void;
+  setScroll(value: number): void;
+  readonly lastScroll: number;
+}
+
+const workspace = 'file:///workspace';
+const listState = { search: 'api', status: 'Accepted', sort: 'title-asc', scrollTop: 32 };
+let source = '';
+let parseHtml: (html: string) => Window & typeof globalThis;
+
+describe('visual ADR form control events', () => {
+  before(async () => {
+    ({ parseHTML: parseHtml } = await import('linkedom'));
+    source = await readFile(path.resolve(__dirname, '../../../media/newAdrForm.js'), 'utf8');
+  });
+
+  it('groups supported fields into keyboard-navigable creation and edit sections', () => {
+    const creation = creationHarness();
+    assert.deepEqual([...creation.document.querySelectorAll('.form-section-nav a')].map((link) => link.getAttribute('href')), [
+      '#creation-setup', '#creation-content', '#creation-preview',
+    ]);
+    assert.equal(creation.document.querySelectorAll('#creation-content .requirement.required').length, 4);
+    creation.input('title', 'Visible decision title');
+    assert.equal(creation.document.getElementById('form-document-identity')?.textContent, 'Visible decision title');
+
+    const edit = editHarness();
+    assert.equal(edit.document.getElementById('edit-metadata')?.contains(edit.document.getElementById('edit-metadata-0')), true);
+    assert.equal(edit.document.getElementById('edit-content')?.contains(edit.document.getElementById('edit-section-0')), true);
+    assert.equal(edit.document.querySelectorAll('#edit-content .requirement.optional').length, 1);
+  });
+
+  it('keeps creation values when discard is refused and returns without mutations when confirmed', () => {
+    const harness = creationHarness();
+    harness.input('title', 'Keep this decision');
+    harness.confirmWith(false);
+    harness.click('create-back');
+
+    assert.ok(harness.document.getElementById('adr-form'));
+    assert.equal(valueOf(harness, 'title'), 'Keep this decision');
+    assert.deepEqual(harness.messages, []);
+
+    harness.confirmWith(true);
+    harness.click('create-back');
+    assert.deepEqual(harness.messages, [{ type: 'cancel' }]);
+    assertNoMutationOrValidation(harness.messages);
+  });
+
+  it('cancels pristine creation without creating or validating an ADR', () => {
+    const harness = creationHarness();
+    harness.clickButton('Cancel');
+    assert.deepEqual(harness.messages, [{ type: 'cancel' }]);
+    assertNoMutationOrValidation(harness.messages);
+  });
+
+  it('keeps edit values when discard is refused and lets Back or Cancel leave without saving', () => {
+    const cancelHarness = editHarness();
+    cancelHarness.input('edit-title', 'Changed title');
+    cancelHarness.confirmWith(false);
+    cancelHarness.click('edit-cancel');
+    assert.equal(valueOf(cancelHarness, 'edit-title'), 'Changed title');
+    assert.deepEqual(cancelHarness.messages, []);
+
+    cancelHarness.confirmWith(true);
+    cancelHarness.click('edit-cancel');
+    assert.deepEqual(cancelHarness.messages, [{ type: 'cancel' }]);
+    assertNoMutationOrValidation(cancelHarness.messages);
+
+    const backHarness = editHarness();
+    backHarness.clickButton('← Back to ADR list');
+    assert.deepEqual(backHarness.messages, [{ type: 'cancel' }]);
+    assertNoMutationOrValidation(backHarness.messages);
+  });
+
+  it('creates one document per explicit submission and preserves values after an error', () => {
+    const harness = creationHarness();
+    harness.input('title', 'Adopt queues');
+    harness.input('content-context', 'Requests need buffering.');
+    harness.input('content-decision', 'Adopt a managed queue.');
+    harness.input('content-consequences', 'Operations owns queue health.');
+
+    harness.submit('adr-form');
+    harness.submit('adr-form');
+    const creates = harness.messages.filter((message) => message.type === 'create');
+    assert.equal(creates.length, 1);
+    assert.equal((creates[0]?.values as { title?: string }).title, 'Adopt queues');
+    assert.equal(disabledOf(harness, 'create-back'), true);
+    harness.click('create-back');
+    assert.equal(harness.messages.some((message) => message.type === 'cancel'), false);
+
+    harness.dispatchHost({ type: 'error', message: 'Validation failed' });
+    harness.dispatchHost({ type: 'idle', operation: 'create' });
+    assert.equal(valueOf(harness, 'title'), 'Adopt queues');
+    assert.equal(valueOf(harness, 'content-decision'), 'Adopt a managed queue.');
+    harness.submit('adr-form');
+    assert.equal(harness.messages.filter((message) => message.type === 'create').length, 2);
+  });
+
+  it('saves one edit at a time and preserves all values for retry after an error', () => {
+    const harness = editHarness();
+    harness.input('edit-title', 'Updated decision');
+    harness.input('edit-section-0', 'Updated context');
+
+    harness.submit('adr-edit-form');
+    harness.submit('adr-edit-form');
+    const saves = harness.messages.filter((message) => message.type === 'saveEdit');
+    assert.equal(saves.length, 1);
+    const editValues = saves[0]?.editValues as { title?: string; fields?: Record<string, string> };
+    assert.equal(editValues.title, 'Updated decision');
+    assert.equal(editValues.fields?.['section-0'], 'Updated context');
+    assert.equal(disabledOf(harness, 'edit-cancel'), true);
+    harness.click('edit-cancel');
+    assert.equal(harness.messages.some((message) => message.type === 'cancel'), false);
+
+    harness.dispatchHost({ type: 'editError', message: 'The ADR changed externally.' });
+    harness.dispatchHost({ type: 'editIdle' });
+    assert.equal(valueOf(harness, 'edit-title'), 'Updated decision');
+    assert.equal(valueOf(harness, 'edit-section-0'), 'Updated context');
+    harness.submit('adr-edit-form');
+    assert.equal(harness.messages.filter((message) => message.type === 'saveEdit').length, 2);
+  });
+
+  it('restores list search, filters, ordering, selection, and scroll after navigation', () => {
+    const harness = createHarness('list');
+    harness.dispatchHost(listResult(listState));
+    harness.setScroll(77);
+    harness.clickButton('New ADR');
+    const navigation = harness.messages.find((message) => message.type === 'newAdr');
+    assert.deepEqual(navigation?.state, { ...listState, scrollTop: 77 });
+
+    harness.dispatchHost({ type: 'showForm', workspace });
+    harness.dispatchHost({ type: 'showList' });
+    harness.dispatchHost(listResult());
+    assert.equal(valueOf(harness, 'search'), 'api');
+    assert.equal(valueOf(harness, 'status-filter'), 'Accepted');
+    assert.equal(valueOf(harness, 'sort'), 'title-asc');
+    assert.equal(valueOf(harness, 'list-workspace'), workspace);
+    assert.equal(harness.lastScroll, 77);
+  });
+});
+
+function creationHarness(): WebviewHarness {
+  const harness = createHarness('form');
+  harness.dispatchHost({
+    type: 'templateLoaded',
+    response: {
+      operation: 'describe', written: false,
+      template: {
+        name: 'minimal', compatible: true,
+        fields: [
+          { id: 'context', required: true },
+          { id: 'decision', required: true },
+          { id: 'consequences', required: true },
+        ],
+      },
+    },
+  });
+  harness.clearMessages();
+  return harness;
+}
+
+function editHarness(): WebviewHarness {
+  const harness = createHarness('list');
+  harness.dispatchHost({
+    type: 'editLoaded', workspace, relativePath: '0001-current.md',
+    response: {
+      fingerprint: 'A'.repeat(64), title: 'Current decision',
+      fields: [
+        { id: 'metadata-0', label: 'Status', kind: 'status', required: true, value: 'Accepted', options: ['Proposed', 'Accepted'] },
+        { id: 'section-0', label: 'Context', kind: 'section', required: true, value: 'Current context' },
+        { id: 'section-1', label: 'Consequences', kind: 'section', required: false, value: '' },
+      ],
+    },
+  });
+  harness.clearMessages();
+  return harness;
+}
+
+function createHarness(initialScreen: 'list' | 'form'): WebviewHarness {
+  const window = parseHtml('<!doctype html><html><body><main id="app"></main></body></html>');
+  const document = window.document;
+  const messages: PostedMessage[] = [];
+  let confirmResult = true;
+  let state: unknown;
+  let scrollY = 0;
+  let lastScroll = 0;
+  let timer = 0;
+  const windowRecord = window as unknown as Record<string, unknown>;
+  windowRecord.requestAnimationFrame = (callback: () => void): number => { callback(); return 1; };
+  windowRecord.scrollTo = (_left: number, top: number): void => { lastScroll = top; };
+  Object.defineProperty(window, 'scrollY', { configurable: true, get: () => scrollY });
+  Object.defineProperty(window.HTMLSelectElement.prototype, 'value', {
+    configurable: true,
+    get(this: HTMLSelectElement): string {
+      return this.getAttribute('data-test-value') ?? this.querySelector('option')?.value ?? '';
+    },
+    set(this: HTMLSelectElement, value: string) {
+      this.setAttribute('data-test-value', value);
+    },
+  });
+  Object.defineProperty(window.HTMLElement.prototype, 'reportValidity', {
+    configurable: true,
+    value(this: HTMLElement): boolean {
+      return [...this.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[required]')]
+        .every((control) => !control.required || control.value.trim().length > 0);
+    },
+  });
+  const vscode = {
+    getState: (): unknown => state,
+    setState: (value: unknown): void => { state = clone(value); },
+    postMessage: (message: PostedMessage): void => { messages.push(clone(message)); },
+  };
+  vm.runInNewContext(source, {
+    acquireVsCodeApi: () => vscode,
+    clearTimeout: () => undefined,
+    confirm: () => confirmResult,
+    document,
+    setTimeout: () => ++timer,
+    window,
+  });
+  dispatch({
+    type: 'initialize', trusted: true,
+    workspaces: [{ id: workspace, name: 'Workspace', directory: 'docs/adr' }],
+    initialWorkspace: workspace, initialCulture: 'en-US', initialInterfaceLanguage: 'en-US', initialScreen,
+    strings: { 'en-US': {}, 'pt-BR': {} },
+  });
+
+  return {
+    document, messages, window,
+    confirmWith: (value) => { confirmResult = value; },
+    dispatchHost: dispatch,
+    input: (id, value) => {
+      const control = requiredElement(id) as unknown as { value: string; dispatchEvent(event: unknown): void };
+      control.value = value;
+      control.dispatchEvent(new window.Event('input', { bubbles: true }));
+    },
+    click: (id) => { (requiredElement(id) as unknown as { click(): void }).click(); },
+    clickButton: (label) => {
+      const control = [...document.querySelectorAll('button')].find((candidate) => candidate.textContent === label);
+      assert.ok(control, `Missing button: ${label}`);
+      control.click();
+    },
+    submit: (id) => { requiredElement(id).dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })); },
+    clearMessages: () => { messages.splice(0); },
+    setScroll: (value) => { scrollY = value; },
+    get lastScroll() { return lastScroll; },
+  };
+
+  function dispatch(message: Record<string, unknown>): void {
+    const event = new window.Event('message');
+    Object.defineProperty(event, 'data', { value: message });
+    window.dispatchEvent(event);
+  }
+
+  function requiredElement(id: string) {
+    const element = document.getElementById(id);
+    assert.ok(element, `Missing element: ${id}`);
+    return element;
+  }
+}
+
+function listResult(state?: typeof listState): Record<string, unknown> {
+  return {
+    type: 'listResult', workspace, directory: 'docs/adr',
+    entries: [{ relativePath: '0001-api.md', id: '0001', title: 'Public API', status: 'Accepted', date: '2026-10-14' }],
+    ...(state === undefined ? {} : { state }),
+  };
+}
+
+function valueOf(harness: WebviewHarness, id: string): string {
+  const element = harness.document.getElementById(id) as unknown as { value?: string } | null;
+  assert.ok(element, `Missing element: ${id}`);
+  return element.value ?? '';
+}
+
+function disabledOf(harness: WebviewHarness, id: string): boolean {
+  const element = harness.document.getElementById(id) as unknown as { disabled?: boolean } | null;
+  assert.ok(element, `Missing element: ${id}`);
+  return element.disabled === true;
+}
+
+function assertNoMutationOrValidation(messages: readonly PostedMessage[]): void {
+  assert.equal(messages.some((message) => ['create', 'saveEdit', 'traditional', 'initializeRepository', 'check'].includes(message.type)), false);
+}
+
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
