@@ -14,6 +14,7 @@ O ADR Guard mantém o julgamento arquitetural com pessoas e automatiza verifica�
 | [CLI](./cli/) | Você precisa da superfície local completa | Executa localmente com argumentos e configuração explícitos |
 | [GitHub Action](./github-action/) | Pull requests devem validar ou revisar mudanças | Executa no GitHub Actions com permissões e entradas definidas |
 | [Extensão VS Code](./vscode-extension/) · [Guia visual](./vscode-visual-guide/) | Colaboradores querem criação/edição visual, explorer, comandos e diagnósticos | Executa no host do workspace; aceita apenas workspaces locais confiáveis; invoca uma CLI compatível existente |
+| [Servidor MCP](./mcp/) | Agentes compatíveis precisam de ferramentas estruturadas e somente leitura do ADR Guard | Build local do código-fonte; um repositório limitado por processo `stdio`; sem distribuição MCP oficial |
 | [Contêiner](./containers/) | Você quer runtime isolado e reproduzível | Monte apenas arquivos necessários e passe configuração conscientemente |
 | [Agent Skills](../skills/) | Você quer orientação de um agente para decisões e fluxos da CLI | Instruções portáteis; não incluem a CLI nem aprovam arquitetura |
 
@@ -42,6 +43,8 @@ Rascunho e revisão enviam contexto selecionado ao provedor configurado. A saíd
 
 ## Status do MCP
 
-O repositório não publica atualmente um servidor MCP independente do ADR Guard. Não configure nem dependa de um com base neste portal. As superfícies públicas suportadas são CLI, GitHub Action, contêiner e extensão VS Code documentadas aqui.
+O servidor independente `adr-guard-mcp` e o provider opcional do VS Code estão implementados e testados no código-fonte da branch `feat/mcp-server-integration`. Eles podem ser compilados localmente e expõem sete ferramentas somente leitura por `stdio`. Nenhum pacote NuGet, container, instalador, versão da extensão no Marketplace contendo o provider ou outra distribuição MCP oficial foi publicada. Não trate disponibilidade no código-fonte como disponibilidade em release.
+
+Consulte a [visão geral do MCP](./mcp/), o [guia de configuração](./mcp-configuration/), as [ferramentas disponíveis](./mcp-tools/) e o [modelo de segurança](./mcp-security/) para o contrato implementado e instruções de desenvolvimento local.
 
 Para detalhes de comandos, use a [referência da CLI](./cli/) e preserve a versão realmente instalada ao investigar problemas.

@@ -152,7 +152,7 @@ for (const sitemapFile of sitemapFiles) {
 for (const url of indexable.keys()) if (!sitemapUrls.has(url)) failures.push(`sitemap: missing indexable canonical ${url}`);
 for (const url of sitemapUrls) if (!indexable.has(url)) failures.push(`sitemap: contains non-indexable or missing page ${url}`);
 
-for (const route of ['product/architecture-impact/', 'product/architectural-drift/']) {
+for (const route of ['product/architecture-impact/', 'product/architectural-drift/', 'product/mcp/', 'product/mcp-configuration/', 'product/mcp-tools/', 'product/mcp-security/']) {
   for (const localizedRoute of [route, `pt-br/${route}`]) {
     const url = `${site}${basePath}${localizedRoute}`;
     if (!indexable.has(url)) failures.push(`required capability route is not indexable: ${url}`);

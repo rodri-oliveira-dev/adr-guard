@@ -6,6 +6,14 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
+### Added
+- Added the source-only `adr-guard-mcp` executable with seven bounded, read-only schema `1.0` tools over `stdio`: ADR listing/reading/search, declared relationships, validation, impact analysis, and architecture verification.
+- Added bilingual MCP overview, configuration, tool-contract, and security documentation plus synchronized portal routes.
+
+### Security and publication
+- MCP processes are scoped to one validated repository, bound by file/response/time limits, and do not expose write tools, execute workspace content, fetch Git refs, or run evidence producers.
+- No MCP NuGet package, container, installer, release, or other official distribution has been published; current use requires a local source build.
+
 ## [1.7.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.7.0) — Unreleased
 
 ### Added

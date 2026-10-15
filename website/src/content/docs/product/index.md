@@ -14,6 +14,7 @@ ADR Guard keeps architecture judgment with people while automating repeatable do
 | [CLI](./cli/) | You need the complete local command surface | Runs locally with explicit arguments and configuration |
 | [GitHub Action](./github-action/) | Pull requests should validate or review ADR changes | Runs in GitHub Actions with workflow permissions and pinned inputs |
 | [VS Code extension](./vscode-extension/) · [Visual guide](./vscode-visual-guide/) | Contributors want visual ADR creation/editing, explorer, commands, and diagnostics in the editor | Workspace-hosted; trusted local file workspaces only; invokes an existing compatible CLI |
+| [MCP server](./mcp/) | Compatible agents need structured, read-only ADR Guard tools | Local source build; one bounded repository per `stdio` process; no official MCP distribution yet |
 | [Container](./containers/) | You want an isolated, reproducible CLI runtime | Mount only required files and pass configuration deliberately |
 | [Agent Skills](../skills/) | You want a coding agent to guide ADR decisions and CLI workflows | Portable agent instructions; no bundled CLI or automatic architectural approval |
 
@@ -42,6 +43,8 @@ Drafting and review send selected context to the configured provider. Provider o
 
 ## MCP status
 
-The repository does not currently publish a standalone ADR Guard MCP server. Do not configure or depend on one based on this portal. The supported public surfaces are the CLI, GitHub Action, container, and VS Code extension documented here.
+The standalone `adr-guard-mcp` server and optional VS Code provider are implemented and tested in source on `feat/mcp-server-integration`. They can be built locally and expose seven read-only tools over `stdio`. No MCP NuGet package, container, installer, Marketplace extension release containing the provider, or other official MCP distribution has been published. Do not treat source availability as release availability.
+
+Use the [MCP overview](./mcp/), [configuration guide](./mcp-configuration/), [available tools](./mcp-tools/), and [security model](./mcp-security/) for the implemented contract and local-development instructions.
 
 For command-level details, use the [CLI reference](./cli/) and preserve the actual installed version when troubleshooting.

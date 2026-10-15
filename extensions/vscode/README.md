@@ -4,6 +4,8 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 
 > **Published extension:** [ADR Guard for VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) is available on the Visual Studio Marketplace as `rodrioliveira.adr-guard`. The VS Code extension and .NET CLI are distributed and versioned separately; the extension does not bundle the CLI.
 
+> **Development status:** the MCP provider and visual Impact, Drift, baseline, enriched catalog, AI Draft, and Technical Review workflows described below are implemented and tested on `feat/mcp-server-integration`. They are not part of a published extension version until the manual release process publishes them. MCP also requires a local source build because no MCP server distribution has been published.
+
 ## Features
 
 - Check that the CLI is discoverable in the workspace extension host.
@@ -17,6 +19,10 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 - Browse canonical and MADR 4.0 files in the native Explorer, including safe display-only status and relationship navigation.
 - Run Git-aware changed-file validation against an explicit local base ref, with no hidden fetch.
 - Classify diagnostics against an existing read-only baseline.
+- Explicitly run visual Architecture Impact and Architectural Drift reports through strict CLI JSON contracts.
+- Explicitly create or update diagnostic baselines and generate standard or enriched catalogs.
+- Preview AI-assisted drafts and run advisory technical reviews with selected providers and context.
+- Optionally register a separate, local read-only MCP server with compatible VS Code agents.
 - Use English UI by default and Brazilian Portuguese when VS Code uses `pt-BR`.
 
 ## Interface preview
@@ -123,6 +129,35 @@ The Validation section configures opt-in validation on save, its 200-5000 ms deb
 
 The CLI Integration section exposes the machine-scoped executable, timeout, and output limit. An empty executable uses secure discovery on the extension host `PATH`; configured values must be absolute local paths and continue through the existing executable validation. Timeout and output limits remain inside the collapsible advanced section. **Check installation** is always explicit, uses the last saved CLI settings, and reports the detected version or actionable failure without installing or updating anything.
 
+## Visual architecture, governance, and AI workflows
+
+The reusable ADR Guard panel exposes these source-branch workflows as internal Webview actions; they are not additional Command Palette commands:
+
+| Area | CLI invocation | Visual behavior and boundary |
+| --- | --- | --- |
+| Architecture Impact | `impact <repository> --base-ref <ref> --map <file> --format json` | Shows affected decisions, changed files, evidence, and unmapped/unknown changes. It never fetches Git or labels impact as a violation. |
+| Architectural Fitness | `drift <repository> --rules <file> [--evidence <file>] [--baseline <file>] --format json --policy advisory\|enforce` | Preserves `pass`, `violation`, `unknown`, `not-applicable`, confidence, and baseline state. It never runs evidence producers. |
+| Diagnostic Baselines | `baseline <directory> --output <file> [--update]` | Creation is explicit. Replacing an existing baseline requires confirmation before `--update`; navigation and cancellation never write. |
+| ADR Catalog | `index <directory> [--catalog enriched]` | Keeps the standard index and adds the CLI's enriched mode. Every write requires confirmation; no unsupported dry run is simulated. |
+| AI-Assisted ADR Draft | `draft ... --preview`, then an explicit creation invocation | Requires provider/model and selected context, displays a privacy confirmation, and renders returned Markdown as text. Creation may call the provider again and differ from preview; it never auto-accepts an ADR. |
+| AI-Assisted Technical Review | `review <ADR> ... --format json [--compare-ref <ref>]` | Presents eight dimensions, findings, evidence, uncertainty, recommendations, limitations, and comparison reference. It never edits or changes ADR status. |
+
+Every workflow checks capability through `<command> --help` before execution, so an older CLI receives no unsupported command. Requests use literal argument arrays with `shell: false`; paths are normalized and constrained to the selected workspace. Operations require an explicit action, prevent duplicate submissions, propagate cancellation where supported, and ignore stale responses. **Back** and **Cancel** never invoke the CLI or a provider. Dirty forms require confirmation before controlled navigation discards them.
+
+AI provider choices are `openai`, `anthropic`, `gemini`, and `openai-compatible`. The extension stores provider, model, and optional compatible endpoint preferences, but no credential. Authentication remains in the CLI's environment/secret boundary. Context files and existing ADR inclusion are opt-in for each request; confirmation identifies the provider, model, and selected context before external transmission.
+
+These visual workflows always use the CLI directly and work with MCP enabled, disabled, missing, or unavailable. See the existing [impact](../../docs/guides/architecture-impact-analysis.md), [drift](../../docs/guides/architectural-drift.md), [baseline](../../docs/incremental-validation.md), [draft](../../docs/draft-templates.md), and [review](../../docs/adr-review.md) guides for command contracts.
+
+## MCP integration
+
+The optional MCP provider is disabled by default. In a trusted local `file:` workspace, set the machine-scoped `adrGuard.mcp.path` to an absolute `adr-guard-mcp.dll` or platform app host outside every open workspace, then enable `adrGuard.mcp.enabled` for the intended folder. The settings screen distinguishes disabled, not configured, not found, invalid, available to start, and known-error states. Its explicit check validates configuration only; it never reports “connected” from a valid path.
+
+The provider ID is `adrGuard.mcpServers`. It returns one labeled `McpStdioServerDefinition` per enabled workspace folder, with an isolated repository root and ADR directory, and lets VS Code own process startup/shutdown. Activation, list/settings navigation, and unrelated preference changes start no process. Configuration changes refresh definitions. Disabling MCP removes the definition without affecting CLI commands.
+
+For a DLL, `dotnet` must be on the workspace extension host `PATH`. In WSL, Remote-SSH, or Dev Containers, configure a path that exists on that remote host. Workspace-scoped executable paths, symlinks, executables inside an open workspace, virtual workspaces, UNC paths on Windows, and shell execution are rejected. The extension does not download the server or write `.vscode/mcp.json`.
+
+See the source-only [MCP overview](../../docs/mcp.md), [configuration](../../docs/mcp-configuration.md), [tools](../../docs/mcp-tools.md), and [security model](../../docs/mcp-security.md). MCP and Agent Skills are complementary: MCP supplies structured tool results, while skills supply reusable agent instructions.
+
 ## ADR Explorer and formats
 
 The **Architecture Decision Records** view appears in the built-in Explorer. It scans the configured ADR directory, ignores its generated `README.md`, and displays a bounded subset of title, status, and recognized Markdown relationships. Those fields are navigation metadata only; the CLI remains authoritative for canonical and MADR 4.0 structure and governance.
@@ -135,7 +170,7 @@ Relationship targets must resolve to regular Markdown files within the selected 
 
 `adrGuard.validation.onSave` defaults to `false`. When enabled, only saved Markdown ADRs below the configured directory trigger validation; save bursts are debounced, older runs are cancelled, and stale results cannot replace newer diagnostics. Save validation never creates ADRs, generates an index, runs AI, fetches Git refs, or writes a baseline.
 
-Baseline validation uses the existing `adrGuard.validation.baseline` JSON file read-only. Creating or updating a baseline remains an explicit CLI workflow outside this MVP.
+Baseline validation uses the existing `adrGuard.validation.baseline` JSON file read-only. The visual Governance workflow separately exposes explicit baseline creation and confirmed update; it never changes a baseline merely to make validation pass.
 
 ## Workspace Trust, remote environments, and security
 
@@ -143,22 +178,47 @@ The extension declares untrusted and virtual workspaces unsupported. It does not
 
 In WSL, Remote-SSH, and Dev Containers the workspace extension runs remotely. Install the CLI and configure its path **inside that remote environment**, not only on the local UI machine. Pure VS Code Web and virtual workspaces without a Node workspace extension host and local filesystem are not supported.
 
-ADR Guard for VS Code does not collect telemetry, install software, access AI provider credentials, invoke AI automatically, modify ADRs on save, write baselines automatically, or run hidden network/Git fetch operations. Explicit `init`, `new`, and `index` commands can write files as described above.
+ADR Guard for VS Code does not collect telemetry, install software, expose AI credentials to the Webview, invoke AI automatically, modify ADRs on save, write baselines automatically, or run hidden network/Git fetch operations. Explicit `init`, `new`, `edit`, `baseline`, draft creation, and `index` operations can write only after the confirmations described above.
 
 ## Settings
 
-- `adrGuard.cli.path`: trusted absolute CLI path in user/machine settings.
-- `adrGuard.cli.timeoutMilliseconds`: process timeout, 1–120 seconds.
-- `adrGuard.cli.maxOutputBytes`: separate stdout/stderr capture limit.
-- `adrGuard.ui.language`: user-level ADR Guard Webview language (`auto`, `pt-BR`, or `en-US`).
-- `adrGuard.creation.documentLanguage`: workspace-folder default language for new ADRs.
-- `adrGuard.creation.defaultTemplate`: workspace-folder creation default (`configured`, `minimal`, or `extended`).
-- `adrGuard.validation.directory`: workspace-relative ADR directory.
-- `adrGuard.validation.adrFormat`: `canonical` or `madr-4`.
-- `adrGuard.validation.baseline`: workspace-relative baseline JSON path.
-- `adrGuard.validation.onSave`: opt-in save validation.
-- `adrGuard.validation.debounceMilliseconds`: save debounce interval.
-- `adrGuard.validation.baseReference`: workspace-folder default suggested by incremental validation (`main` by default).
+The manifest is authoritative. Resource values are saved per workspace folder by the visual settings screen; machine values belong to the local or remote extension host.
+
+| Setting | Type / default | Scope | Purpose and restrictions |
+| --- | --- | --- | --- |
+| `adrGuard.cli.path` | string / `""` | machine | Trusted absolute CLI path; empty uses bounded `PATH` discovery. |
+| `adrGuard.cli.timeoutMilliseconds` | number / `15000` | machine | Process timeout, `1000`–`120000`. |
+| `adrGuard.cli.maxOutputBytes` | number / `262144` | machine | Independent stdout/stderr ceiling, `1024`–`1048576`. |
+| `adrGuard.mcp.enabled` | boolean / `false` | resource | Offers an MCP definition for that trusted local folder. |
+| `adrGuard.mcp.path` | string / `""` | machine | Absolute local path to `adr-guard-mcp.dll` or its platform app host. |
+| `adrGuard.ui.language` | `auto`, `pt-BR`, `en-US` / `auto` | window | Webview language, independent from document language. |
+| `adrGuard.creation.documentLanguage` | `pt-BR`, `en-US` / `en-US` | resource | Default language for new ADRs. |
+| `adrGuard.creation.defaultTemplate` | `configured`, `minimal`, `extended` / `configured` | resource | Default creation template. |
+| `adrGuard.validation.directory` | string / `docs/adr` | resource | Safe workspace-relative ADR directory. |
+| `adrGuard.validation.adrFormat` | `canonical`, `madr-4` / `canonical` | resource | Validation/display format. |
+| `adrGuard.validation.baseline` | string / `.adrguard-baseline.json` | resource | Safe relative diagnostic baseline. |
+| `adrGuard.validation.onSave` | boolean / `false` | resource | Opt-in validation after applicable saves. |
+| `adrGuard.validation.debounceMilliseconds` | number / `750` | resource | Save batching interval, `200`–`5000`. |
+| `adrGuard.validation.baseReference` | string / `main` | resource | Local Git ref suggested for incremental validation and analysis. |
+| `adrGuard.analysis.impactManifest` | string / `.adrguard-impact.json` | resource | Safe relative impact mapping JSON path. |
+| `adrGuard.analysis.driftRules` | string / `.adrguard-fitness.json` | resource | Safe relative fitness rules JSON path. |
+| `adrGuard.analysis.driftBaseline` | string / `""` | resource | Optional safe relative existing drift baseline. |
+| `adrGuard.analysis.driftPolicy` | `advisory`, `enforce` / `advisory` | resource | Default drift policy; enforcement is never automatic. |
+| `adrGuard.governance.catalog` | `standard`, `enriched` / `standard` | resource | Default explicit index/catalog mode. |
+| `adrGuard.ai.provider` | provider enum / `""` | resource | Optional preference; empty requires selection. |
+| `adrGuard.ai.model` | string / `""` | resource | Model identifier; no implicit model default. |
+| `adrGuard.ai.endpoint` | string / `""` | machine | Optional compatible endpoint; never a credential. |
+
+## Compatibility
+
+| Surface | Requirement |
+| --- | --- |
+| VS Code | `1.101.0` or newer in the `1.x` line. |
+| Published extension | Extension and CLI releases are independent; verify Marketplace release notes before relying on source-branch features. |
+| Core CLI integration | Compatible `adr-guard` v1.3.0 or newer for the documented baseline commands. |
+| Visual create/edit | CLI 1.7.0 schema `1.0` form contracts. |
+| Impact, drift, baseline, enriched catalog, draft, review/compare | A CLI build whose `<command> --help` exposes the requested flags; the extension checks capabilities instead of assuming matching versions. |
+| MCP | Stable VS Code MCP provider API plus a separately built local `adr-guard-mcp`; no MCP distribution is currently published. |
 
 ## Troubleshooting
 
@@ -169,5 +229,7 @@ ADR Guard for VS Code does not collect telemetry, install software, access AI pr
 - **Timeout/output limit:** raise the bounded machine setting only when the repository legitimately requires it.
 - **No exact diagnostic line:** JSON schema `1.0` supplies a file but no source range; open the diagnostic and inspect the named ADR rule.
 - **Remote CLI mismatch:** install/configure the CLI on the remote extension host.
+- **Visual capability unavailable:** run the relevant CLI command with `--help` on the extension host and use a build that exposes the required contract.
+- **MCP unavailable:** confirm explicit enablement, workspace trust, the host-local absolute path, exact server filename, and `dotnet` availability for a DLL. A valid path means available to start, not connected.
 
 For reproducible bugs and support, use the [GitHub issue tracker](https://github.com/rodri-oliveira-dev/adr-guard/issues). Security reports follow the repository's [security policy](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/SECURITY.md), and contributions follow the [repository guidance](https://github.com/rodri-oliveira-dev/adr-guard). The extension is licensed under the [MIT License](LICENSE). Portuguese documentation is available in [README.pt-BR.md](README.pt-BR.md).

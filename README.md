@@ -33,7 +33,7 @@ New to the practice? Follow the progressive guide:
 - offers opt-in, advisory [architecture impact analysis](docs/guides/architecture-impact-analysis.md) from explicit ADR-to-code mappings;
 - verifies opt-in [architectural drift and fitness evidence](docs/guides/architectural-drift.md) without evaluating MSBuild or treating missing evidence as compliance;
 - offers opt-in, human-reviewed AI drafting and technical review with explicit providers and context;
-- integrates with GitHub Actions, VS Code, and versioned container images.
+- integrates with GitHub Actions, VS Code, versioned container images, and an optional source-built MCP server for compatible agents.
 
 Validation confirms deterministic documentation rules. It does **not** approve technical merit, authorize a decision, or turn AI output into an accepted architecture.
 
@@ -82,9 +82,11 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 | Integration | Use | Guide |
 | --- | --- | --- |
 | GitHub Action | Validate, index, or explicitly run AI review/architecture impact analysis on supported Linux runners | [Consumer guide](docs/github-action.md) |
-| VS Code | Commands, Problems diagnostics, and ADR Explorer through a compatible installed CLI | [Extension guide](extensions/vscode/README.md) |
+| VS Code | Visual ADR management, architecture/governance workflows, commands, Problems diagnostics, and ADR Explorer through a compatible installed CLI | [Extension guide](extensions/vscode/README.md) |
+| MCP server | Give compatible agents structured, read-only access to ADR discovery, validation, impact, and drift tools | [MCP overview](docs/mcp.md) |
 | Containers | Run the same versioned CLI from GHCR or Docker Hub | [Container and supply-chain guide](docs/container.md) |
 | CI reports | Produce text, JSON, or SARIF validation output | [Check reports](docs/check-reports.md) |
+| Agent Skills | Give agents portable instructions for human-controlled ADR and CLI workflows | [Skills guide](docs/skills/README.md) |
 
 The [published ADR Guard for VS Code extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) includes the visual ADR list plus guided creation, editing, and settings. These screens require the CLI 1.7.0 form contracts. Extension and CLI versions remain independent.
 
@@ -95,6 +97,8 @@ See the [extension source and installation guide](extensions/vscode/README.md) a
 Structured ADR creation and editing are implemented for trusted visual clients such as the VS Code extension. A compatible CLI from the 1.7.0 line exposes `new <directory> --form` and `edit <file> --form` as versioned JSON stdin/stdout contracts; they are not interactive terminal forms. The traditional `new --title` workflow remains the human-facing command-line path, including constrained custom templates. See the [creation guide](docs/creation.md), [CLI contract reference](docs/cli-reference.md), and [extension guide](extensions/vscode/README.md). Confirm that both the CLI and extension versions providing the visual forms have been published before relying on them.
 
 The [GitHub Marketplace Action](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) and [Visual Studio Marketplace extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) are published. The moving `@v1` tag is published and supports `check`, `index`, opt-in `review` since v1.1.6, and opt-in `impact` since v1.5.0. In v1.6.0, `drift` is provided through the CLI/direct-container workflow, alongside `new` and `draft`; it is not a composite Action mode. The extension does not bundle the CLI.
+
+The independent `adr-guard-mcp` server and the extension's optional MCP registration are implemented and tested in source on `feat/mcp-server-integration`; no MCP package, container, installer, or release has been published. A local build is required. The MCP server exposes structured tools while Agent Skills provide reusable instructions—these integrations are complementary, not interchangeable. See [local MCP configuration](docs/mcp-configuration.md), [available tools](docs/mcp-tools.md), [VS Code integration](extensions/vscode/README.md#mcp-integration), and [security and permissions](docs/mcp-security.md).
 
 ## Agent Skills (P0 + P1)
 
@@ -112,6 +116,8 @@ The eleven Agent Skills are available on the default branch. See [installation, 
 - **Learn:** [fundamentals](docs/index.md#learn-the-practice), [decision categories](docs/decision-design/decision-categories.md), [lifecycle](docs/fundamentals/lifecycle.md), and [anti-patterns](docs/decision-design/anti-patterns.md).
 - **Use:** [first ADR tutorial](docs/guides/getting-started.md), [team adoption](docs/guides/team-adoption.md), and [offline creation](docs/creation.md).
 - **Reference:** [CLI and configuration](docs/cli-reference.md), [compatibility matrix](docs/compatibility.md), [validation and governance](docs/relationship-governance.md), and [full technical index](docs/index.md#technical-reference).
+- **Architecture analysis:** [impact analysis](docs/guides/architecture-impact-analysis.md), [architectural drift](docs/guides/architectural-drift.md), [diagnostic baselines](docs/incremental-validation.md), and [AI review](docs/adr-review.md).
+- **MCP:** [overview](docs/mcp.md), [configuration](docs/mcp-configuration.md), [tool contracts](docs/mcp-tools.md), and [security](docs/mcp-security.md).
 - **AI boundaries:** CLI review has been published since v1.1.2 and runs explicitly as `adr-guard review`; deterministic policy enforcement may return exit code `4`. See the [AI review guide](docs/adr-review.md), [draft privacy](docs/draft-templates.md), and [review security](docs/adr-review-security.md).
 - **Project architecture:** [ADR Guard's own generated ADR index](docs/adr/README.md).
 

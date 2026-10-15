@@ -11,14 +11,14 @@ sidebar:
 ADR Guard for VS Code is a workspace-hosted interface over the .NET CLI. The extension provides navigation, forms, settings, and Problems diagnostics; the CLI remains authoritative for parsing, generation, editing, validation, policy, and exit codes.
 
 :::note[Release status]
-These screenshots document the visual interface available in the published extension **1.0.0**, using the released CLI **1.7.0** form contracts. This repository is preparing extension **1.0.1**, which is not published until the manual release workflow completes. The extension and CLI are released separately, so confirm both installed versions before depending on the visual creation or editing flows.
+These screenshots document the interface available in the published extension **1.0.0**, using the released CLI **1.7.0** form contracts. The architecture/governance/AI screens and MCP provider implemented on `feat/mcp-server-integration` are documented textually below because no new verified captures or published extension version exist yet. Extension, CLI, and MCP releases are independent.
 :::
 
 For command tables, settings keys, trust boundaries, and troubleshooting, use the [VS Code extension reference](../vscode-extension/). This guide focuses on the interface and common workflows.
 
 ## Before you start
 
-You need VS Code 1.100 or later, a trusted local `file:` workspace, and a compatible `adr-guard` executable in the workspace extension host. In WSL, Remote-SSH, or a Dev Container, install the CLI in that remote environment. The extension does not download or bundle it.
+You need VS Code 1.101 or later, a trusted local `file:` workspace, and a compatible `adr-guard` executable in the workspace extension host. In WSL, Remote-SSH, or a Dev Container, install the CLI in that remote environment. The extension does not download or bundle it.
 
 Open the interface from one of these entry points:
 
@@ -104,6 +104,12 @@ Leave the executable empty to use secure discovery on the extension host `PATH`,
 ![CLI integration settings with installation check, timeout, and output limit.](/adr-guard/images/vscode/adr-cli-settings.png)
 
 Settings are written at their documented user, machine, or workspace-folder scopes. If a grouped write fails, the extension attempts to roll back earlier writes and keeps the draft available instead of reporting partial success.
+
+### Development-branch analysis and integrations
+
+The source-branch panel adds Architecture Impact, Architectural Fitness, Diagnostic Baselines, ADR Catalog, AI-Assisted ADR Draft, and AI-Assisted Technical Review cards. Opening a card does not execute it. Results appear only after explicit execution and remain scoped to the selected workspace. Impact and drift preserve evidence and uncertainty; `unknown` is not shown as success. Baseline replacement, catalog generation, and draft creation require explicit confirmation. AI forms disclose provider, model, and selected context before transmission.
+
+The same settings screen adds Architecture Analysis, AI Providers, and MCP Integration sections. MCP is disabled by default and its check reports configuration availability, not a live connection. See the [extension reference](../vscode-extension/) and [MCP guide](../mcp/) for exact source-branch behavior and release status.
 
 ## Validate and inspect Problems
 

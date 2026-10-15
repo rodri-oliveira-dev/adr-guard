@@ -42,10 +42,10 @@ for (const [route, expectedHref] of [
 
 // Keep both capabilities discoverable from the localized home and product pages.
 for (const [route, expectedLinks] of [
-  ['index.html', ['/adr-guard/product/architecture-impact/', '/adr-guard/product/architectural-drift/']],
-  ['product/index.html', ['/adr-guard/product/architecture-impact/', '/adr-guard/product/architectural-drift/']],
-  ['pt-br/index.html', ['/adr-guard/pt-br/product/architecture-impact/', '/adr-guard/pt-br/product/architectural-drift/']],
-  ['pt-br/product/index.html', ['/adr-guard/pt-br/product/architecture-impact/', '/adr-guard/pt-br/product/architectural-drift/']]
+  ['index.html', ['/adr-guard/product/architecture-impact/', '/adr-guard/product/architectural-drift/', '/adr-guard/product/mcp/']],
+  ['product/index.html', ['/adr-guard/product/architecture-impact/', '/adr-guard/product/architectural-drift/', '/adr-guard/product/mcp/', '/adr-guard/product/mcp-configuration/', '/adr-guard/product/mcp-tools/', '/adr-guard/product/mcp-security/']],
+  ['pt-br/index.html', ['/adr-guard/pt-br/product/architecture-impact/', '/adr-guard/pt-br/product/architectural-drift/', '/adr-guard/pt-br/product/mcp/']],
+  ['pt-br/product/index.html', ['/adr-guard/pt-br/product/architecture-impact/', '/adr-guard/pt-br/product/architectural-drift/', '/adr-guard/pt-br/product/mcp/', '/adr-guard/pt-br/product/mcp-configuration/', '/adr-guard/pt-br/product/mcp-tools/', '/adr-guard/pt-br/product/mcp-security/']]
 ]) {
   const html = await readFile(resolve(dist, route), 'utf8');
   for (const expectedHref of expectedLinks) {
