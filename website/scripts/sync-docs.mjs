@@ -90,6 +90,16 @@ function rewriteMarkdown(markdown, sourcePath, destination, title) {
   let body = markdown.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
   body = body.replace(/^#\s+.+\r?\n/, '');
   body = body.replace(/^\[(?:Português|English|Versão em português|Read in English)[^\n]*\]\([^\n]+\)\s*\r?\n+/i, '');
+  body = body.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, target) => {
+    if (/^(?:https?:|data:|\/)/.test(target)) return match;
+    const absolute = resolve(dirname(sourcePath), target);
+    const publicRelative = relative(resolve(websiteRoot, 'public'), absolute).split(sep).join('/');
+    if (!publicRelative.startsWith('../') && publicRelative !== '..') {
+      return `![${alt}](/adr-guard/${publicRelative})`;
+    }
+    const githubPath = normalizeRepositoryPath(absolute);
+    return `![${alt}](https://raw.githubusercontent.com/rodri-oliveira-dev/adr-guard/main/${githubPath})`;
+  });
   body = body.replace(/\[([^\]]+)\]\(([^)]+\.md(?:#[^)]+)?)\)/g, (match, label, target) => {
     if (/^(?:https?:|mailto:)/.test(target)) return match;
     const [filePart, hash = ''] = target.split('#');

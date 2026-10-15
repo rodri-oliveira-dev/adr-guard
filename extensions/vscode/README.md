@@ -19,6 +19,28 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 - Classify diagnostics against an existing read-only baseline.
 - Use English UI by default and Brazilian Portuguese when VS Code uses `pt-BR`.
 
+## Interface preview (unreleased)
+
+The images below were captured from the real Extension Development Host with extension 0.9.0 and a CLI built from the same branch. They document development-branch behavior, not the currently published 0.1.1 Marketplace package. Visual creation and editing require the CLI 1.7.0 schema `1.0` form contracts.
+
+### Browse and search
+
+![Visual ADR list with status, search, sorting, edit, and Markdown actions](../../website/public/images/vscode/adr-list.png)
+
+### Create with a native template
+
+![Minimal ADR creation form with document setup and decision content](../../website/public/images/vscode/adr-create-minimal.png)
+
+### Edit a supported ADR
+
+![ADR edit form with title, status, and document sections](../../website/public/images/vscode/adr-edit.png)
+
+### Configure the extension
+
+![ADR Guard settings for language, repository directory, and ADR format](../../website/public/images/vscode/adr-settings.png)
+
+The portal's [VS Code Visual Guide](https://rodri-oliveira-dev.github.io/adr-guard/product/vscode-visual-guide/) covers the Explorer, filters, Minimal and Extended creation, Markdown preview, external-change-safe editing, validation settings, CLI integration, and Problems diagnostics.
+
 ## Requirements and installation
 
 - VS Code `1.100.0` or newer in the `1.x` line.

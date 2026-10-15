@@ -13,7 +13,7 @@ O ADR Guard mantém o julgamento arquitetural com pessoas e automatiza verifica�
 | --- | --- | --- |
 | [CLI](./cli/) | Você precisa da superfície local completa | Executa localmente com argumentos e configuração explícitos |
 | [GitHub Action](./github-action/) | Pull requests devem validar ou revisar mudanças | Executa no GitHub Actions com permissões e entradas definidas |
-| [Extensão VS Code](./vscode-extension/) | Colaboradores querem criação/edição visual, explorer, comandos e diagnósticos | Executa no host do workspace; aceita apenas workspaces locais confiáveis; invoca uma CLI compatível existente |
+| [Extensão VS Code](./vscode-extension/) · [Guia visual](./vscode-visual-guide/) | Colaboradores querem criação/edição visual, explorer, comandos e diagnósticos | Executa no host do workspace; aceita apenas workspaces locais confiáveis; invoca uma CLI compatível existente |
 | [Contêiner](./containers/) | Você quer runtime isolado e reproduzível | Monte apenas arquivos necessários e passe configuração conscientemente |
 | [Agent Skills](../skills/) | Você quer orientação de um agente para decisões e fluxos da CLI | Instruções portáteis; não incluem a CLI nem aprovam arquitetura |
 

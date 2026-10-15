@@ -29,6 +29,12 @@ npm run test:links
 
 Run all gates with `npm run validate`. Search is provided by Starlight’s Pagefind integration and must be tested after `npm run build`, not only in development mode.
 
+## VS Code interface captures
+
+`npm run capture:vscode` is an optional, manual documentation task. It builds the CLI and extension, creates a fictitious isolated workspace, opens the real Extension Development Host, drives the ADR Guard Webview through Electron's local debugging protocol, and writes optimized PNG files to `public/images/vscode/`. It is not called by development, build, validation, packaging, or publication scripts.
+
+The script does not download VS Code. It prefers the pinned host already prepared under `extensions/vscode/.vscode-test/` and otherwise uses an installed desktop VS Code. Set `ADR_GUARD_CAPTURE_VSCODE` to an explicit executable when needed. Set `ADR_GUARD_CAPTURE_TEMP` to a non-sensitive temporary root if diagnostics must be captured without exposing a user-profile path. Review every generated image before committing it.
+
 ## Content ownership
 
 There are two content classes:

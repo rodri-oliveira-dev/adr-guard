@@ -1,0 +1,120 @@
+---
+title: VS Code — Guia Visual
+description: Um passo a passo visual da interface da branch de desenvolvimento do ADR Guard para consultar, criar, editar, configurar e validar ADRs no VS Code.
+sidebar:
+  order: 2
+  badge:
+    text: Em desenvolvimento
+    variant: caution
+---
+
+O ADR Guard para VS Code é uma interface executada no host do workspace sobre a CLI .NET. A extensão oferece navegação, formulários, configurações e diagnósticos em Problems; a CLI continua sendo a autoridade para parsing, geração, edição, validação, políticas e códigos de saída.
+
+:::caution[Status de publicação]
+Estas capturas documentam a extensão **0.9.0 na branch de desenvolvimento atual**, com os contratos de formulário correspondentes da CLI **1.7.0**. A versão do Marketplace documentada no momento da captura é a **0.1.1** e ainda não inclui todas as telas visuais mostradas aqui. A extensão e a CLI são publicadas separadamente; confirme as duas versões publicadas antes de depender dos fluxos visuais de criação ou edição.
+:::
+
+Para tabelas de comandos, chaves de configuração, limites de confiança e solução de problemas, consulte a [referência da extensão VS Code](../vscode-extension/). Este guia se concentra na interface e nos fluxos mais comuns.
+
+## Antes de começar
+
+Você precisa do VS Code 1.100 ou superior, um workspace local `file:` confiável e um executável `adr-guard` compatível no host da extensão de workspace. Em WSL, Remote-SSH ou Dev Container, instale a CLI nesse ambiente remoto. A extensão não baixa nem inclui a CLI.
+
+Abra a interface por um destes pontos:
+
+- selecione o ícone do ADR Guard na Barra de Atividades;
+- execute **ADR Guard: Abrir ADR Guard** pela Paleta de Comandos;
+- use a ação de listagem no título do ADR Explorer;
+- execute **ADR Guard: Criar ADR com formulário** para ir diretamente ao cadastro.
+
+A extensão reutiliza um único painel, em vez de criar uma aba nova para cada ação.
+
+## ADR Explorer
+
+A view **Registros de Decisões de Arquitetura** lista as ADRs Markdown do diretório configurado. Ela mostra metadados limitados para navegação, como identificador, título, status e relacionamentos reconhecidos. Esses metadados não são um resultado de validação: a CLI continua responsável por determinar se o documento segue o contrato selecionado.
+
+![ADR Explorer na Barra de Atividades com três ADRs e a listagem visual aberta ao lado.](/adr-guard/images/vscode/adr-explorer.png)
+
+Use as ações do título para atualizar a árvore, revelar a ADR ativa, criar uma ADR ou abrir a listagem visual. Selecionar uma ADR abre seu arquivo Markdown. Destinos de relacionamentos só são abertos depois de verificações de workspace, caminho, tipo de arquivo e limite de symlink.
+
+## Listagem visual
+
+A tela inicial mostra o workspace e o diretório de ADRs selecionados, seguidos pelos metadados disponíveis de identificador, título, caminho, status e data. **Atualizar** recarrega o catálogo; **Verificar instalação** executa explicitamente a consulta de versão da CLI; **Inicializar repositório** fica disponível apenas quando a inicialização é aplicável; **Nova ADR** abre o formulário; e a engrenagem abre as configurações.
+
+![Listagem visual do ADR Guard com três ADRs de exemplo e ações para editar ou abrir o Markdown.](/adr-guard/images/vscode/adr-list.png)
+
+A busca encontra título, identificador e caminho relativo sem diferenciar maiúsculas e minúsculas. O filtro de status é formado pelos status encontrados no catálogo. A ordenação aceita número nas duas direções, título de A–Z e data mais recente. Esses controles atualizam apenas o catálogo somente leitura e não executam a validação completa.
+
+![Listagem filtrada pela palavra observability e pelo status Proposed, ordenada por título.](/adr-guard/images/vscode/adr-search-filter.png)
+
+Cada resultado oferece **Editar** e **Abrir Markdown**. Metadados ausentes ou incompletos permanecem visíveis como desconhecidos, sem inferência. Watchers de arquivos atualizam a lista e o Explorer em conjunto, enquanto requisições protegidas por geração impedem que uma resposta antiga de outro workspace substitua a pasta atual.
+
+## Criar uma ADR
+
+O formulário visual separa o idioma da interface do idioma do documento e inicializa o destino e o template a partir da pasta selecionada. Nenhum arquivo é gravado durante a descrição do template ou a renderização da prévia. A criação só ocorre depois do envio bem-sucedido de **Criar ADR**.
+
+### Template Minimal
+
+Minimal exige um título e as seções **Context**, **Decision** e **Consequences**. Ele é adequado quando essas três seções registram a decisão sem prompts estruturados adicionais.
+
+![Formulário Minimal com workspace, destino, template, idioma e campos da decisão.](/adr-guard/images/vscode/adr-create-minimal.png)
+
+### Template Extended
+
+Extended mantém os campos obrigatórios do Minimal e adiciona **Decision Drivers**, **Options Considered**, **Rationale**, **Positive Consequences**, **Negative Consequences**, **Risks** e **References** como opcionais. Seções opcionais vazias são omitidas do documento gerado.
+
+![Formulário Extended mostrando o contexto obrigatório e campos opcionais de direcionadores.](/adr-guard/images/vscode/adr-create-extended.png)
+
+A configuração `canonical` ou `madr-4` controla validação e metadados do Explorer; ela não seleciona o template de criação. Templates personalizados configurados não podem ser mapeados com segurança para campos visuais, por isso o formulário oferece **Usar criação tradicional** e preserva o template configurado na CLI.
+
+### Prévia Markdown e navegação
+
+A prévia usa o mesmo renderer da CLI utilizado na criação. Ela não reserva número, não atualiza o índice e não grava arquivo.
+
+![Prévia Markdown somente leitura de uma ADR Minimal antes da criação.](/adr-guard/images/vscode/adr-markdown-preview.png)
+
+**Voltar para a listagem** e **Cancelar** não salvam. Se a navegação controlada sair com dados alterados, o formulário pede confirmação antes de descartá-los. Fechar a própria aba da Webview é uma limitação do VS Code: a extensão não consegue garantir um prompt cancelável para alterações não salvas nessa ação.
+
+## Editar uma ADR existente
+
+Escolha **Editar** em um item para carregar um documento canônico ou MADR 4.0 compatível pelo contrato de edição schema `1.0` da CLI 1.7.0. O formulário apresenta título, status, metadados e seções de nível dois compatíveis, mantendo fixos o caminho e o identificador existentes.
+
+![Formulário visual de edição com título, status, contexto, decisão e ações de salvamento.](/adr-guard/images/vscode/adr-edit.png)
+
+Ao salvar, a CLI executa validação conforme o formato e atualiza apenas os valores compatíveis. Metadados, seções e espaçamento não alterados são preservados. Uma verificação de fingerprint rejeita o salvamento se o arquivo mudou depois do carregamento; recarregue o documento atual antes de tentar novamente. Voltar e Cancelar retornam sem salvar e pedem confirmação quando o formulário está alterado.
+
+## Configurações
+
+A engrenagem abre as preferências dentro do mesmo painel. **Idioma da interface** afeta os textos da Webview do ADR Guard; comandos nativos do VS Code mantêm o idioma do editor. **Idioma padrão dos novos documentos** e **Template padrão de criação** são configurações independentes por pasta do workspace.
+
+![Configurações do ADR Guard com controles de idioma, workspace, diretório e formato.](/adr-guard/images/vscode/adr-settings.png)
+
+A seção de repositório configura o diretório de ADRs relativo ao workspace e o formato de validação. Salvar configurações apenas atualiza preferências do VS Code: não cria, move, exclui, valida nem indexa ADRs. Pastas de um workspace multi-root podem ter valores diferentes nos escopos de recurso.
+
+### Configurações de validação
+
+A validação automática ao salvar é opcional. Quando habilitada, salvamentos Markdown aplicáveis são agrupados pelo intervalo configurado de 200 a 5000 ms. O baseline deve apontar para um JSON existente relativo ao workspace e só é lido pelo comando explícito de baseline. A referência Git é o padrão local da validação de arquivos alterados; a extensão nunca executa fetch automaticamente.
+
+![Configurações de validação ao salvar, intervalo, baseline e referência Git local.](/adr-guard/images/vscode/adr-validation-settings.png)
+
+### Integração com a CLI
+
+Deixe o executável vazio para usar a descoberta segura no `PATH` do host da extensão ou informe um caminho absoluto confiável no escopo de máquina. **Verificar instalação** é uma ação explícita e usa as últimas configurações salvas da CLI. Os controles avançados limitam o tempo da execução e o tamanho capturado de stdout/stderr.
+
+![Integração com a CLI contendo verificação de instalação, timeout e limite de saída.](/adr-guard/images/vscode/adr-cli-settings.png)
+
+As configurações são gravadas nos escopos documentados de usuário, máquina ou pasta do workspace. Se uma gravação agrupada falhar, a extensão tenta reverter as anteriores e mantém o rascunho disponível, em vez de informar sucesso parcial.
+
+## Validar e consultar Problems
+
+Use **ADR Guard: Validar ADRs** para validação completa, **Validar ADRs alteradas** com uma referência base local explícita ou **Validar ADRs com baseline** para classificar achados contra um baseline existente. Quando a validação ao salvar está habilitada, salvar uma ADR aplicável agenda o mesmo fluxo limitado de diagnósticos.
+
+![Painel Problems do VS Code mostrando um diagnóstico ADR005 real para uma seção Decision ausente.](/adr-guard/images/vscode/adr-problems.png)
+
+Relatórios schema `1.0` identificam o arquivo, mas não uma faixa exata no conteúdo. Por isso, os itens em Problems navegam para linha 1, coluna 1 sem afirmar que essa posição causou o problema. Saída malformada, schemas incompatíveis, caminhos inseguros, códigos de saída contraditórios e exits 2–4 são falhas operacionais, não validações limpas.
+
+A validação verifica regras determinísticas do documento. Ela não aprova a escolha arquitetural, não transforma o status de uma ADR em aprovação de governança e não substitui revisão humana.
+
+## Origem das capturas
+
+Todas as imagens desta página foram capturadas do Extension Development Host real com um workspace fictício e isolado, tema escuro do VS Code, extensão 0.9.0 e a CLI compilada da mesma branch. Nenhuma imagem gerada por IA ou mockup reconstruído foi usado. O script opcional `npm run capture:vscode` em `website/` recompila a extensão e a CLI, opera a Webview real pelo protocolo de depuração do Electron, grava PNGs otimizados e remove o workspace temporário. Ele não participa dos scripts de build, teste, empacotamento ou publicação.
