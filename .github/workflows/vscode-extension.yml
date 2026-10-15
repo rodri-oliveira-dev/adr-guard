@@ -63,7 +63,7 @@ jobs:
         run: npm run test:l10n
 
       - name: Validate Marketplace README images
-        run: npm run test:readme-images -- --remote
+        run: npm run test:readme-images
 
       - name: Extension-host integration tests
         run: xvfb-run -a npm run test:integration
