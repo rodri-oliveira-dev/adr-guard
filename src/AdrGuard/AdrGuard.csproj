@@ -31,6 +31,7 @@ Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="adr-guard-mcp" />
     <InternalsVisibleTo Include="AdrGuard.Tests" />
     <None Include="../../README.md" Pack="true" PackagePath="/" />
     <None Include="../../README.pt-BR.md" Pack="true" PackagePath="/" />

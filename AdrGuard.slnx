@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="src/AdrGuard/AdrGuard.csproj" />
+  <Project Path="src/AdrGuard.Mcp/AdrGuard.Mcp.csproj" />
   <Project Path="tests/AdrGuard.Tests/AdrGuard.Tests.csproj" />
+  <Project Path="tests/AdrGuard.Mcp.Tests/AdrGuard.Mcp.Tests.csproj" />
 </Solution>
