@@ -228,7 +228,7 @@ async function findVsCode() {
   const candidates = [
     configured,
     process.platform === 'win32'
-      ? resolve(extensionRoot, '.vscode-test/vscode-win32-x64-archive-1.100.0/Code.exe')
+      ? resolve(extensionRoot, '.vscode-test/vscode-win32-x64-archive-1.101.0/Code.exe')
       : undefined,
     process.platform === 'win32' && process.env.LOCALAPPDATA
       ? resolve(process.env.LOCALAPPDATA, 'Programs/Microsoft VS Code/Code.exe')

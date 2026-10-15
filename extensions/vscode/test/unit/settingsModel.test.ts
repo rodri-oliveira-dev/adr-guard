@@ -23,6 +23,9 @@ describe('visual settings model', () => {
     cliPath: process.platform === 'win32' ? 'C:\\tools\\adr-guard.exe' : '/opt/adr-guard',
     timeoutMilliseconds: 30000,
     maxOutputBytes: 524288,
+    mcpEnabled: true,
+    mcpPath: process.platform === 'win32' ? 'C:\\tools\\adr-guard-mcp.dll' : '/opt/adr-guard-mcp.dll',
+    mcpStatus: 'available' as const,
   };
 
   it('accepts the supported values and rejects unsafe paths or unknown options', () => {
@@ -43,6 +46,8 @@ describe('visual settings model', () => {
     assert.equal(parseVisualSettingsValues({ ...values, cliPath: 'workspace/tool' }), undefined);
     assert.equal(parseVisualSettingsValues({ ...values, timeoutMilliseconds: 999 }), undefined);
     assert.equal(parseVisualSettingsValues({ ...values, maxOutputBytes: 1048577 }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, mcpPath: 'workspace/adr-guard-mcp.dll' }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, mcpStatus: 'connected' }), undefined);
     assert.equal(parseVisualSettingsValues({ ...values, extra: true }), undefined);
   });
 
@@ -60,6 +65,8 @@ describe('visual settings model', () => {
       { section: 'adrGuard.cli', key: 'path', value: values.cliPath, target: 'global' },
       { section: 'adrGuard.cli', key: 'timeoutMilliseconds', value: 30000, target: 'global' },
       { section: 'adrGuard.cli', key: 'maxOutputBytes', value: 524288, target: 'global' },
+      { section: 'adrGuard.mcp', key: 'enabled', value: true, target: 'workspaceFolder' },
+      { section: 'adrGuard.mcp', key: 'path', value: values.mcpPath, target: 'global' },
     ]);
   });
 

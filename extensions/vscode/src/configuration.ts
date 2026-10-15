@@ -27,6 +27,12 @@ export interface UiConfiguration {
   readonly language: InterfaceLanguagePreference;
 }
 
+export interface McpConfiguration {
+  readonly enabled: boolean;
+  readonly serverPath?: string;
+  readonly ignoredWorkspaceServerPath: boolean;
+}
+
 export function readConfiguration(): AdrGuardConfiguration {
   const configuration = vscode.workspace.getConfiguration('adrGuard.cli');
   const pathInspection = configuration.inspect<string>('path');
@@ -81,6 +87,18 @@ export function readUiConfiguration(): UiConfiguration {
   const inspection = vscode.workspace.getConfiguration('adrGuard.ui').inspect<string>('language');
   const language = inspection?.globalValue ?? inspection?.defaultValue ?? 'auto';
   return { language: language === 'en-US' || language === 'pt-BR' ? language : 'auto' };
+}
+
+export function readMcpConfiguration(scope?: vscode.ConfigurationScope): McpConfiguration {
+  const configuration = vscode.workspace.getConfiguration('adrGuard.mcp', scope);
+  const pathInspection = configuration.inspect<string>('path');
+  const serverPath = pathInspection?.globalValue?.trim();
+  return {
+    enabled: configuration.get<boolean>('enabled', false),
+    ...(serverPath ? { serverPath } : {}),
+    ignoredWorkspaceServerPath:
+      pathInspection?.workspaceValue !== undefined || pathInspection?.workspaceFolderValue !== undefined,
+  };
 }
 
 function clampInteger(value: number, minimum: number, maximum: number): number {

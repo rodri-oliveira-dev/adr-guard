@@ -1,11 +1,14 @@
 import path from 'node:path';
 import { isSafeConfiguredExecutablePath } from '../cli/discovery';
+import { isSafeMcpServerPath } from '../mcp/discovery';
 import { isSafeGitBaseReference } from '../commands/arguments';
 
 export type InterfaceLanguagePreference = 'auto' | 'en-US' | 'pt-BR';
 export type DocumentLanguage = 'en-US' | 'pt-BR';
 export type DefaultTemplate = 'configured' | 'minimal' | 'extended';
 export type SettingsAdrFormat = 'canonical' | 'madr-4';
+export type McpSettingsStatus = 'disabled' | 'not-configured' | 'not-found'
+  | 'invalid-configuration' | 'available' | 'error';
 
 export interface VisualSettingsValues {
   readonly workspace: string;
@@ -21,13 +24,16 @@ export interface VisualSettingsValues {
   readonly cliPath: string;
   readonly timeoutMilliseconds: number;
   readonly maxOutputBytes: number;
+  readonly mcpEnabled: boolean;
+  readonly mcpPath: string;
+  readonly mcpStatus: McpSettingsStatus;
 }
 
 export interface ConfigurationWrite {
-  readonly section: 'adrGuard.ui' | 'adrGuard.creation' | 'adrGuard.validation' | 'adrGuard.cli';
+  readonly section: 'adrGuard.ui' | 'adrGuard.creation' | 'adrGuard.validation' | 'adrGuard.cli' | 'adrGuard.mcp';
   readonly key: 'language' | 'documentLanguage' | 'defaultTemplate' | 'directory' | 'adrFormat'
     | 'onSave' | 'debounceMilliseconds' | 'baseline' | 'baseReference'
-    | 'path' | 'timeoutMilliseconds' | 'maxOutputBytes';
+    | 'path' | 'timeoutMilliseconds' | 'maxOutputBytes' | 'enabled';
   readonly value: string | number | boolean;
   readonly target: 'global' | 'workspaceFolder';
 }
@@ -70,7 +76,7 @@ export function parseVisualSettingsValues(value: unknown): VisualSettingsValues 
   if (!isRecord(value) || Object.keys(value).some((key) => ![
     'workspace', 'uiLanguage', 'documentLanguage', 'directory', 'adrFormat', 'defaultTemplate',
     'onSave', 'debounceMilliseconds', 'baseline', 'baseReference', 'cliPath',
-    'timeoutMilliseconds', 'maxOutputBytes',
+    'timeoutMilliseconds', 'maxOutputBytes', 'mcpEnabled', 'mcpPath', 'mcpStatus',
   ].includes(key))) return undefined;
   if (!boundedString(value.workspace, 4096)
     || !['auto', 'en-US', 'pt-BR'].includes(String(value.uiLanguage))
@@ -85,7 +91,12 @@ export function parseVisualSettingsValues(value: unknown): VisualSettingsValues 
     || !boundedString(value.cliPath, 4096)
     || (value.cliPath.trim().length > 0 && !isSafeConfiguredExecutablePath(value.cliPath.trim()))
     || !integerInRange(value.timeoutMilliseconds, 1000, 120000)
-    || !integerInRange(value.maxOutputBytes, 1024, 1048576)) return undefined;
+    || !integerInRange(value.maxOutputBytes, 1024, 1048576)
+    || typeof value.mcpEnabled !== 'boolean'
+    || !boundedString(value.mcpPath, 4096)
+    || (value.mcpPath.trim().length > 0 && !isSafeMcpServerPath(value.mcpPath.trim()))
+    || !['disabled', 'not-configured', 'not-found', 'invalid-configuration', 'available', 'error']
+      .includes(String(value.mcpStatus))) return undefined;
   return value as unknown as VisualSettingsValues;
 }
 
@@ -103,6 +114,8 @@ export function configurationWrites(values: VisualSettingsValues): readonly Conf
     { section: 'adrGuard.cli', key: 'path', value: values.cliPath.trim(), target: 'global' },
     { section: 'adrGuard.cli', key: 'timeoutMilliseconds', value: values.timeoutMilliseconds, target: 'global' },
     { section: 'adrGuard.cli', key: 'maxOutputBytes', value: values.maxOutputBytes, target: 'global' },
+    { section: 'adrGuard.mcp', key: 'enabled', value: values.mcpEnabled, target: 'workspaceFolder' },
+    { section: 'adrGuard.mcp', key: 'path', value: values.mcpPath.trim(), target: 'global' },
   ];
 }
 

@@ -2,6 +2,7 @@ import path from 'node:path';
 import { editFormMaximumInputCharacters, editFormSchemaVersion } from '../contracts/editForm';
 import { newAdrFormMaximumInputCharacters, newAdrFormSchemaVersion } from '../contracts/newForm';
 import { parseVisualSettingsValues, type VisualSettingsValues } from './settingsModel';
+import { isSafeMcpServerPath } from '../mcp/discovery';
 
 export interface FormValues {
   readonly workspace: string;
@@ -16,13 +17,16 @@ export interface FormMessage {
   readonly type: 'ready' | 'describe' | 'preview' | 'create' | 'traditional' | 'cancel'
     | 'showList' | 'newAdr' | 'refreshList' | 'selectWorkspace' | 'openAdr' | 'revealCreated'
     | 'editAdr' | 'saveEdit' | 'initializeRepository' | 'checkInstallation'
-    | 'openSettings' | 'cancelSettings' | 'saveSettings' | 'checkSettingsInstallation';
+    | 'openSettings' | 'cancelSettings' | 'saveSettings' | 'checkSettingsInstallation'
+    | 'checkMcpConfiguration' | 'openMcpDocumentation';
   readonly values?: FormValues;
   readonly editValues?: EditValues;
   readonly workspace?: string;
   readonly relativePath?: string;
   readonly state?: ListState;
   readonly settings?: VisualSettingsValues;
+  readonly mcpEnabled?: boolean;
+  readonly mcpPath?: string;
 }
 
 export interface EditValues {
@@ -63,9 +67,17 @@ export function parseNewAdrFormMessage(value: unknown): FormMessage | undefined 
       || Object.keys(value).some((key) => !['type', 'settings', 'state'].includes(key))) return undefined;
     return { type: value.type, settings, ...(value.state === undefined ? {} : { state: value.state }) };
   }
+  if (value.type === 'checkMcpConfiguration') {
+    if (!isBoundedString(value.workspace, 4096) || typeof value.mcpEnabled !== 'boolean'
+      || !isBoundedString(value.mcpPath, 4096)
+      || (value.mcpPath.trim().length > 0 && !isSafeMcpServerPath(value.mcpPath.trim()))
+      || Object.keys(value).some((key) => !['type', 'workspace', 'mcpEnabled', 'mcpPath'].includes(key))) return undefined;
+    return { type: value.type, workspace: value.workspace, mcpEnabled: value.mcpEnabled, mcpPath: value.mcpPath };
+  }
   if (value.type === 'newAdr' || value.type === 'selectWorkspace' || value.type === 'showList'
     || value.type === 'openSettings' || value.type === 'cancelSettings'
     || value.type === 'checkSettingsInstallation'
+    || value.type === 'openMcpDocumentation'
     || value.type === 'refreshList' || value.type === 'initializeRepository' || value.type === 'checkInstallation') {
     if (!isWorkspaceMessage(value, true) || (value.state !== undefined && !isListState(value.state))) return undefined;
     return { type: value.type, workspace: value.workspace, ...(value.state === undefined ? {} : { state: value.state }) };

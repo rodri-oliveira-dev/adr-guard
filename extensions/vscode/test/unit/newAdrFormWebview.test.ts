@@ -376,9 +376,29 @@ describe('visual ADR form control events', () => {
     assert.equal(disabledOf(harness, 'check-settings-installation'), false);
   });
 
+  it('keeps MCP disabled by default and checks availability only on explicit request', () => {
+    const harness = settingsHarness();
+    assert.equal(checkedOf(harness, 'mcp-enabled'), false);
+    assert.match(harness.document.getElementById('mcp-status')?.textContent ?? '', /Disabled/u);
+    assert.equal(harness.messages.length, 0);
+
+    harness.click('check-mcp-configuration');
+    harness.click('check-mcp-configuration');
+    assert.deepEqual(harness.messages.map((message) => message.type), ['checkMcpConfiguration']);
+    assertNoMutationOrValidation(harness.messages);
+    assert.equal(disabledOf(harness, 'check-mcp-configuration'), true);
+
+    harness.dispatchHost({ type: 'mcpResult', status: 'available' });
+    harness.dispatchHost({ type: 'mcpCheckIdle' });
+    assert.match(harness.document.getElementById('mcp-status')?.textContent ?? '', /Available for startup/u);
+    assert.doesNotMatch(harness.document.getElementById('mcp-status')?.textContent ?? '', /connected|running/iu);
+    assert.equal(disabledOf(harness, 'check-mcp-configuration'), false);
+  });
+
   it('rejects unsafe baseline, Git reference, and executable values from real controls', () => {
     for (const [id, value] of [
       ['validation-baseline', '../outside.json'], ['validation-base-reference', '--all'], ['cli-path', 'workspace/tool'],
+      ['mcp-path', 'workspace/adr-guard-mcp.dll'],
     ] as const) {
       const harness = settingsHarness();
       harness.input(id, value);
@@ -394,6 +414,7 @@ function settingsValues(): Record<string, unknown> {
     adrFormat: 'canonical', defaultTemplate: 'configured',
     onSave: false, debounceMilliseconds: 750, baseline: '.adrguard-baseline.json', baseReference: 'main',
     cliPath: '', timeoutMilliseconds: 15000, maxOutputBytes: 262144,
+    mcpEnabled: false, mcpPath: '', mcpStatus: 'disabled',
   };
 }
 
@@ -568,6 +589,12 @@ function disabledOf(harness: WebviewHarness, id: string): boolean {
   const element = harness.document.getElementById(id) as unknown as { disabled?: boolean } | null;
   assert.ok(element, `Missing element: ${id}`);
   return element.disabled === true;
+}
+
+function checkedOf(harness: WebviewHarness, id: string): boolean {
+  const element = harness.document.getElementById(id) as unknown as { checked?: boolean } | null;
+  assert.ok(element, `Missing element: ${id}`);
+  return element.checked === true;
 }
 
 function assertNoMutationOrValidation(messages: readonly PostedMessage[]): void {

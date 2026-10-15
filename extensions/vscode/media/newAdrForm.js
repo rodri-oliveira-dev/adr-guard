@@ -28,6 +28,7 @@
   let settingsBusy = false;
   let installationCheckBusy = false;
   let installationCheckResult;
+  let mcpCheckBusy = false;
   const valuesByField = {};
   const restored = vscode.getState() || {};
   let listState = normalizeListState(restored.listState);
@@ -211,6 +212,9 @@
       cliPath: document.getElementById('cli-path').value,
       timeoutMilliseconds: Number(document.getElementById('cli-timeout').value),
       maxOutputBytes: Number(document.getElementById('cli-output-limit').value),
+      mcpEnabled: document.getElementById('mcp-enabled').checked,
+      mcpPath: document.getElementById('mcp-path').value,
+      mcpStatus: settingsDraft.mcpStatus,
     };
   }
   function updateSettingsDraft() {
@@ -233,7 +237,7 @@
   }
   function validInteger(value, minimum, maximum) { return Number.isInteger(value) && value >= minimum && value <= maximum; }
   function leaveSettings() {
-    if (settingsBusy || installationCheckBusy) return;
+    if (settingsBusy || installationCheckBusy || mcpCheckBusy) return;
     if (settingsDirty && !confirm(t('Discard the unsaved settings and return to the ADR list?'))) return;
     if (settingsBaseline) {
       interfacePreference = settingsBaseline.uiLanguage;
@@ -260,6 +264,18 @@
     const status = document.getElementById('installation-status');
     if (status && active) status.textContent = t('Checking installation…');
   }
+  function mcpStatusText(status) {
+    return t(({ disabled: 'Disabled', 'not-configured': 'Not configured', 'not-found': 'Executable not found',
+      'invalid-configuration': 'Invalid configuration', available: 'Available for startup', error: 'Known error' })[status] || 'Known error');
+  }
+  function setMcpCheckBusy(active) {
+    mcpCheckBusy = active;
+    const control = document.getElementById('check-mcp-configuration');
+    if (control) control.disabled = active || settingsBusy;
+    document.querySelectorAll('#save-settings, .settings-back').forEach((item) => { item.disabled = active || settingsBusy; });
+    const status = document.getElementById('mcp-status');
+    if (status && active) status.textContent = t('Checking MCP configuration...');
+  }
   function renderSettings(values) {
     if (values) {
       settingsBaseline = { ...values };
@@ -282,6 +298,7 @@
       { id: 'settings-languages', label: 'Languages' }, { id: 'settings-repository', label: 'Repository' },
       { id: 'settings-creation', label: 'Document creation' }, { id: 'settings-validation', label: 'Validation' },
       { id: 'settings-cli', label: 'CLI integration' },
+      { id: 'settings-mcp', label: 'MCP Integration' },
     ]);
     const status = element('div', { id: 'settings-status', role: 'status', 'aria-live': 'polite' });
     const error = element('div', { id: 'error', role: 'alert', className: 'error hidden' });
@@ -291,6 +308,7 @@
     const creation = element('fieldset', { id: 'settings-creation', className: 'form-section' }); creation.append(element('legend', {}, t('Document creation')));
     const validation = element('fieldset', { id: 'settings-validation', className: 'form-section' }); validation.append(element('legend', {}, t('Validation')));
     const cli = element('fieldset', { id: 'settings-cli', className: 'form-section' }); cli.append(element('legend', {}, t('CLI integration')));
+    const mcp = element('fieldset', { id: 'settings-mcp', className: 'form-section' }); mcp.append(element('legend', {}, t('MCP Integration')));
     const workspace = select('settings-workspace', workspaces.map((item) => ({ value: item.id, label: item.name }))); workspace.value = settingsDraft.workspace;
     const uiLanguage = select('ui-language', [
       { value: 'auto', label: t('Automatic (VS Code)') }, { value: 'pt-BR', label: 'Português (Brasil)' }, { value: 'en-US', label: 'English' },
@@ -311,6 +329,8 @@
     const cliPath = element('input', { id: 'cli-path', type: 'text', maxlength: '4096', autocomplete: 'off' }); cliPath.value = settingsDraft.cliPath;
     const timeout = element('input', { id: 'cli-timeout', type: 'number', min: '1000', max: '120000', step: '1', required: '' }); timeout.value = String(settingsDraft.timeoutMilliseconds);
     const outputLimit = element('input', { id: 'cli-output-limit', type: 'number', min: '1024', max: '1048576', step: '1', required: '' }); outputLimit.value = String(settingsDraft.maxOutputBytes);
+    const mcpEnabled = element('input', { id: 'mcp-enabled', type: 'checkbox' }); mcpEnabled.checked = settingsDraft.mcpEnabled;
+    const mcpPath = element('input', { id: 'mcp-path', type: 'text', maxlength: '4096', autocomplete: 'off' }); mcpPath.value = settingsDraft.mcpPath;
     appendField(languages, 'ui-language', t('Interface language'), uiLanguage, t('Native VS Code commands and controls continue to use the editor language.'));
     appendField(languages, 'document-language', t('Default language for new documents'), documentLanguage);
     appendField(repository, 'settings-workspace', t('Selected workspace'), workspace);
@@ -338,10 +358,28 @@
     appendField(advancedFields, 'cli-timeout', t('CLI timeout (milliseconds)'), timeout, t('Accepted range: 1000 to 120000 milliseconds.'));
     appendField(advancedFields, 'cli-output-limit', t('CLI output limit (bytes)'), outputLimit, t('Accepted range: 1024 to 1048576 bytes.'));
     advanced.append(advancedFields); cli.append(advanced);
+    appendField(mcp, 'mcp-enabled', t('Enable MCP integration'), mcpEnabled, t('Disabled by default. VS Code starts the server only when an agent requests it.'));
+    appendField(mcp, 'mcp-path', t('ADR Guard MCP server'), mcpPath, t('Configure adr-guard-mcp.dll or the native adr-guard-mcp executable on the extension host.'));
+    const mcpCheck = button(t('Check MCP configuration'), () => {
+      if (mcpCheckBusy || settingsBusy) return;
+      updateSettingsDraft();
+      setMcpCheckBusy(true);
+      vscode.postMessage({
+        type: 'checkMcpConfiguration',
+        workspace: selectedWorkspace,
+        mcpEnabled: settingsDraft.mcpEnabled,
+        mcpPath: settingsDraft.mcpPath,
+      });
+    }, true);
+    mcpCheck.id = 'check-mcp-configuration';
+    const mcpDocs = button(t('VS Code MCP guidance'), () => vscode.postMessage(listMessage('openMcpDocumentation')), true);
+    const mcpStatus = element('p', { id: 'mcp-status', className: 'help', role: 'status', 'aria-live': 'polite' }, mcpStatusText(settingsDraft.mcpStatus));
+    const mcpActions = element('div', { className: 'actions compact' }); mcpActions.append(mcpCheck, mcpDocs);
+    mcp.append(mcpActions, mcpStatus, element('p', { className: 'help' }, t('Availability does not mean that the server is connected or running.')));
     const actions = element('div', { className: 'actions form-actions' });
     const cancel = button(t('Cancel'), leaveSettings, true); cancel.id = 'settings-cancel';
     actions.append(element('button', { id: 'save-settings', type: 'submit' }, t('Save settings')), cancel);
-    form.append(languages, repository, creation, validation, cli, actions); app.append(header, navigation, status, error, form);
+    form.append(languages, repository, creation, validation, cli, mcp, actions); app.append(header, navigation, status, error, form);
     workspace.addEventListener('change', () => {
       const targetWorkspace = workspace.value;
       if (settingsDirty && !confirm(t('Discard the unsaved settings and switch workspace?'))) {
@@ -362,13 +400,13 @@
       renderSettings();
     });
     onSave.addEventListener('change', () => { debounce.disabled = !onSave.checked; updateSettingsDraft(); });
-    [documentLanguage, directoryInput, adrFormat, defaultTemplate, debounce, baseline, baseReference, cliPath, timeout, outputLimit].forEach((control) => {
+    [documentLanguage, directoryInput, adrFormat, defaultTemplate, debounce, baseline, baseReference, cliPath, timeout, outputLimit, mcpEnabled, mcpPath].forEach((control) => {
       control.addEventListener('input', updateSettingsDraft);
       control.addEventListener('change', updateSettingsDraft);
     });
     form.addEventListener('submit', (event) => {
       event.preventDefault();
-      if (settingsBusy || installationCheckBusy || !form.reportValidity()) return;
+      if (settingsBusy || installationCheckBusy || mcpCheckBusy || !form.reportValidity()) return;
       updateSettingsDraft();
       if (!validSettingsDirectory(settingsDraft.directory)) {
         error.textContent = t('Enter a safe relative directory inside the selected workspace.');
@@ -378,10 +416,11 @@
       }
       if (!validBaseline(settingsDraft.baseline) || !validGitReference(settingsDraft.baseReference)
         || !validCliPath(settingsDraft.cliPath)
+        || !validCliPath(settingsDraft.mcpPath)
         || !validInteger(settingsDraft.debounceMilliseconds, 200, 5000)
         || !validInteger(settingsDraft.timeoutMilliseconds, 1000, 120000)
         || !validInteger(settingsDraft.maxOutputBytes, 1024, 1048576)) {
-        error.textContent = t('Review the validation and CLI settings and enter values within the accepted limits.');
+        error.textContent = t('Review the validation, CLI, and MCP settings and enter values within the accepted limits.');
         error.classList.remove('hidden');
         return;
       }
@@ -391,6 +430,7 @@
     });
     setSettingsBusy(settingsBusy);
     setInstallationCheckBusy(installationCheckBusy);
+    setMcpCheckBusy(mcpCheckBusy);
   }
   function compareEntries(left, right) {
     const fallback = left.relativePath.localeCompare(right.relativePath, 'en', { sensitivity: 'case' });
@@ -592,11 +632,11 @@
     if (message.type === 'initialize') { strings = message.strings || strings; editorInterfaceLanguage = message.editorInterfaceLanguage === 'pt-BR' ? 'pt-BR' : 'en-US'; hostPlatform = message.hostPlatform === 'win32' ? 'win32' : 'posix'; interfacePreference = ['auto', 'en-US', 'pt-BR'].includes(message.initialInterfacePreference) ? message.initialInterfacePreference : 'auto'; interfaceLanguage = effectiveInterfaceLanguage(interfacePreference); workspaces = Array.isArray(message.workspaces) ? message.workspaces : []; trusted = message.trusted !== false; selectedWorkspace = restored.selectedWorkspace && workspaces.some((item) => item.id === restored.selectedWorkspace) ? restored.selectedWorkspace : message.initialWorkspace; if (!trusted) renderMessage(t('ADR Guard'), t('Trust this workspace to browse ADRs.')); else if (!workspaces.length) renderMessage(t('ADR Guard'), t('Open a local workspace folder to browse ADRs.')); else if (message.initialScreen === 'form') renderForm(); else renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'showForm') { if (message.workspace) selectedWorkspace = message.workspace; renderForm(); return; }
     if (message.type === 'showSettings') { renderSettings(message.settings); return; }
-    if (message.type === 'showList') { if (message.state) listState = message.state; clearCreationValues(); formDirty = false; editDocument = undefined; settingsBaseline = undefined; settingsDraft = undefined; settingsDirty = false; settingsBusy = false; installationCheckBusy = false; installationCheckResult = undefined; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
+    if (message.type === 'showList') { if (message.state) listState = message.state; clearCreationValues(); formDirty = false; editDocument = undefined; settingsBaseline = undefined; settingsDraft = undefined; settingsDirty = false; settingsBusy = false; installationCheckBusy = false; installationCheckResult = undefined; mcpCheckBusy = false; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'requestShowList') { if (document.getElementById('settings-form')) leaveSettings(); else backToList(); return; }
     if (message.type === 'requestShowForm') {
       if (document.getElementById('settings-form')) {
-        if (settingsBusy || installationCheckBusy || (settingsDirty && !confirm(t('Discard the unsaved settings and start a new ADR?')))) return;
+        if (settingsBusy || installationCheckBusy || mcpCheckBusy || (settingsDirty && !confirm(t('Discard the unsaved settings and start a new ADR?')))) return;
         if (settingsBaseline) { interfacePreference = settingsBaseline.uiLanguage; interfaceLanguage = effectiveInterfaceLanguage(interfacePreference); }
         settingsDirty = false;
         vscode.postMessage(listMessage('newAdr'));
@@ -635,6 +675,19 @@
     if (message.type === 'installationChecking') setInstallationCheckBusy(true);
     if (message.type === 'installationResult') { installationCheckResult = message.result?.available === true && message.result.version ? t('ADR Guard {0} is available ({1}).', message.result.version, message.result.source === 'configured' ? t('configured path') : 'PATH') : message.result?.message || t('Installation check failed.'); const status = document.getElementById('installation-status'); if (status) { status.textContent = installationCheckResult; status.classList.toggle('error-text', message.result?.available !== true); } }
     if (message.type === 'installationCheckIdle') setInstallationCheckBusy(false);
+    if (message.type === 'mcpChecking') setMcpCheckBusy(true);
+    if (message.type === 'mcpResult') {
+      if (settingsDraft) {
+        settingsDraft.mcpStatus = message.status;
+        if (settingsBaseline) settingsBaseline.mcpStatus = message.status;
+      }
+      const status = document.getElementById('mcp-status');
+      if (status) {
+        status.textContent = mcpStatusText(message.status);
+        status.classList.toggle('error-text', ['not-found', 'invalid-configuration', 'error'].includes(message.status));
+      }
+    }
+    if (message.type === 'mcpCheckIdle') setMcpCheckBusy(false);
   });
   renderMessage('', '');
   vscode.postMessage({ type: 'ready' });

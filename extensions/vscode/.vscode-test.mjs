@@ -30,7 +30,7 @@ export default defineConfig([
       'out/test/integration/explorer.test.js',
       'out/test/integration/installation.test.js',
     ],
-    version: '1.100.0',
+    version: '1.101.0',
     extensionDevelopmentPath: root,
     workspaceFolder: path.join(root, 'test', 'fixtures', 'workspace'),
     mocha: {
@@ -41,7 +41,7 @@ export default defineConfig([
   {
     label: 'trusted-multi-root',
     files: 'out/test/integration/multiRoot.test.js',
-    version: '1.100.0',
+    version: '1.101.0',
     extensionDevelopmentPath: root,
     workspaceFolder: path.join(root, 'test', 'fixtures', 'multi-root.code-workspace'),
     mocha: {

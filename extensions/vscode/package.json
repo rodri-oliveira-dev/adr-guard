@@ -17,7 +17,7 @@
     "directory": "extensions/vscode"
   },
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.101.0"
   },
   "categories": [
     "Linters",
@@ -61,6 +61,12 @@
     "onView:adrGuard.adrExplorer"
   ],
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "adrGuard.mcpServers",
+        "label": "%mcp.provider.label%"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {
@@ -214,6 +220,18 @@
           "scope": "machine",
           "description": "%configuration.cli.maxOutputBytes%"
         },
+        "adrGuard.mcp.enabled": {
+          "type": "boolean",
+          "default": false,
+          "scope": "resource",
+          "description": "%configuration.mcp.enabled%"
+        },
+        "adrGuard.mcp.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "%configuration.mcp.path%"
+        },
         "adrGuard.ui.language": {
           "type": "string",
           "enum": [
@@ -313,7 +331,7 @@
     "@eslint/js": "10.0.1",
     "@types/mocha": "10.0.10",
     "@types/node": "20.19.43",
-    "@types/vscode": "1.100.0",
+    "@types/vscode": "1.101.0",
     "@vscode/test-cli": "0.0.15",
     "@vscode/test-electron": "3.1.0",
     "@vscode/vsce": "4.0.0",

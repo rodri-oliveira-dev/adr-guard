@@ -43,7 +43,7 @@ The portal's [VS Code Visual Guide](https://rodri-oliveira-dev.github.io/adr-gua
 
 ## Requirements and installation
 
-- VS Code `1.100.0` or newer in the `1.x` line.
+- VS Code `1.101.0` or newer in the `1.x` line.
 - A trusted local `file:` workspace.
 - A compatible `adr-guard` executable installed in the environment where the **workspace extension host** runs.
 

@@ -31,8 +31,14 @@ suite('ADR Guard extension activation', () => {
     assert.equal(extension.packageJSON.capabilities.untrustedWorkspaces.supported, false);
     assert.equal(extension.packageJSON.capabilities.virtualWorkspaces.supported, false);
 
-    await extension.activate();
+    const api = await extension.activate() as {
+      mcpProvider: vscode.McpServerDefinitionProvider<vscode.McpStdioServerDefinition>;
+    };
     assert.equal(extension.isActive, true);
+    const cancellation = new vscode.CancellationTokenSource();
+    const definitions = await api.mcpProvider.provideMcpServerDefinitions(cancellation.token);
+    cancellation.dispose();
+    assert.deepEqual(definitions, []);
     const commands = await vscode.commands.getCommands(true);
     for (const command of [
       'adrGuard.checkInstallation',
@@ -65,6 +71,12 @@ suite('ADR Guard extension activation', () => {
     assert.equal(cli.get<string>('path'), '');
     assert.equal(cli.get<number>('timeoutMilliseconds'), 15000);
     assert.equal(cli.get<number>('maxOutputBytes'), 262144);
+    const mcp = vscode.workspace.getConfiguration('adrGuard.mcp');
+    assert.equal(mcp.get<boolean>('enabled'), false);
+    assert.equal(mcp.get<string>('path'), '');
+    assert.deepEqual(extension.packageJSON.contributes.mcpServerDefinitionProviders, [{
+      id: 'adrGuard.mcpServers', label: 'ADR Guard MCP servers',
+    }]);
     assert.deepEqual(extension.packageJSON.contributes.viewsContainers.activitybar, [{
       id: 'adrGuard', title: 'ADR Guard', icon: 'images/icon-activity.svg',
     }]);

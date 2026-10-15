@@ -43,7 +43,7 @@ O [Guia Visual do VS Code](https://rodri-oliveira-dev.github.io/adr-guard/pt-br/
 
 ## Requisitos e instalação
 
-- VS Code `1.100.0` ou superior na linha `1.x`.
+- VS Code `1.101.0` ou superior na linha `1.x`.
 - Workspace local `file:` e confiável.
 - Executável `adr-guard` compatível instalado no ambiente em que o **workspace extension host** é executado.
 

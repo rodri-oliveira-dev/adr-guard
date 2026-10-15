@@ -17,10 +17,15 @@ import { OperationalLog } from './logging';
 import { DiagnosticManager } from './validation/diagnostics';
 import { SaveValidationController } from './validation/onSave';
 import { NewAdrFormPanel } from './commands/newAdrForm';
+import { registerMcpProvider } from './mcp/provider';
 
 let activeRunner: CliRunner | undefined;
 
-export function activate(context: vscode.ExtensionContext): void {
+export interface AdrGuardExtensionApi {
+  readonly mcpProvider: vscode.McpServerDefinitionProvider<vscode.McpStdioServerDefinition>;
+}
+
+export function activate(context: vscode.ExtensionContext): AdrGuardExtensionApi {
   const runner = new CliRunner();
   const log = new OperationalLog();
   const discovery = new CliDiscovery();
@@ -30,6 +35,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const core = { executor, diagnostics, log };
   const installation = { discovery, runner, log };
   const explorer = new AdrExplorerController(log, () => { void openVisual('list'); });
+  const mcpProvider = registerMcpProvider(context, log);
   activeRunner = runner;
 
   async function openVisual(screen: 'list' | 'form'): Promise<void> {
@@ -41,6 +47,8 @@ export function activate(context: vscode.ExtensionContext): void {
       refreshExplorer: () => explorer.refresh(),
       initializeRepository: async (folder) => initializeRepository(core, folder),
       checkInstallation: async (folder, showNotification) => checkInstallation(installation, folder, showNotification),
+      checkMcpConfiguration: async (folder, enabled, serverPath, signal) =>
+        mcpProvider.inspect(folder, signal, { enabled, ...(serverPath ? { serverPath } : {}) }),
     }, screen);
   }
 
@@ -65,7 +73,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('adrGuard.openAdr', async (uri: unknown) => explorer.open(uri)),
     vscode.commands.registerCommand('adrGuard.revealCurrentAdr', async () => explorer.revealCurrent()),
   );
-  log.info('ADR Guard activated; no CLI process has been started.');
+  log.info('ADR Guard activated; no CLI or MCP process has been started.');
+  return { mcpProvider };
 }
 
 export function deactivate(): void {

@@ -15,7 +15,7 @@ const userDataDirectory = await mkdtemp(path.join(os.tmpdir(), 'adr-guard-vscode
 const extensionsDirectory = await mkdtemp(path.join(os.tmpdir(), 'adr-guard-vscode-untrusted-extensions-'));
 
 try {
-  const executable = await downloadAndUnzipVSCode({ version: '1.100.0' });
+  const executable = await downloadAndUnzipVSCode({ version: '1.101.0' });
   const testOptions = JSON.stringify({
     mochaOpts: { timeout: 20000 },
     colorDefault: true,

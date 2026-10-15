@@ -22,6 +22,7 @@ describe('visual ADR form host boundary', () => {
     directory: 'docs/adr', adrFormat: 'canonical' as const, defaultTemplate: 'extended' as const,
     onSave: false, debounceMilliseconds: 750, baseline: '.adrguard-baseline.json', baseReference: 'main',
     cliPath: '', timeoutMilliseconds: 15000, maxOutputBytes: 262144,
+    mcpEnabled: false, mcpPath: '', mcpStatus: 'disabled' as const,
   };
 
   it('accepts only bounded known message shapes', () => {
@@ -37,6 +38,13 @@ describe('visual ADR form host boundary', () => {
     assert.deepEqual(parseNewAdrFormMessage({ type: 'openAdr', workspace: 'file:///workspace', relativePath: 'nested/0001-safe.md' }), {
       type: 'openAdr', workspace: 'file:///workspace', relativePath: 'nested/0001-safe.md',
     });
+    const mcpPath = process.platform === 'win32' ? 'C:\\tools\\adr-guard-mcp.dll' : '/opt/adr-guard-mcp.dll';
+    assert.deepEqual(parseNewAdrFormMessage({
+      type: 'checkMcpConfiguration', workspace: 'file:///workspace', mcpEnabled: true, mcpPath,
+    }), { type: 'checkMcpConfiguration', workspace: 'file:///workspace', mcpEnabled: true, mcpPath });
+    assert.equal(parseNewAdrFormMessage({
+      type: 'checkMcpConfiguration', workspace: 'file:///workspace', mcpEnabled: true, mcpPath: 'workspace/server',
+    }), undefined);
     assert.deepEqual(parseNewAdrFormMessage({
       type: 'newAdr', workspace: 'file:///workspace',
       state: { search: 'api', status: 'Accepted', sort: 'number-desc', scrollTop: 42 },

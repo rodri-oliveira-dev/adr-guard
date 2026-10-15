@@ -6,7 +6,7 @@ import { CliDiscoveryError } from '../cli/discovery';
 import { CliExecutor, requireSuccessfulResult, safeErrorLine } from '../cli/executor';
 import { newAdrFormSchemaVersion, parseNewAdrFormResponse, type NewAdrFormOperation, type NewAdrFormResponse } from '../contracts/newForm';
 import { editFormSchemaVersion, parseEditFormResponse } from '../contracts/editForm';
-import { readConfiguration, readCreationConfiguration, readUiConfiguration, readValidationConfiguration } from '../configuration';
+import { readConfiguration, readCreationConfiguration, readMcpConfiguration, readUiConfiguration, readValidationConfiguration } from '../configuration';
 import type { InstallationCheckResult } from './checkInstallation';
 import type { AdrExplorerProvider } from '../explorer/provider';
 import { OperationalLog } from '../logging';
@@ -16,6 +16,8 @@ import { parseNewAdrFormMessage, type EditValues, type FormValues, type ListStat
 import { LatestListRequest } from '../webview/adrListModel';
 import { applyConfigurationWrites, configurationWrites, type ConfigurationWrite, type VisualSettingsValues } from '../webview/settingsModel';
 import { buildVisualEditArguments } from './editArguments';
+import type { McpDiscoveryResult } from '../mcp/discovery';
+import type { McpSettingsStatus } from '../webview/settingsModel';
 
 interface NewAdrFormDependencies {
   readonly executor: CliExecutor;
@@ -25,6 +27,12 @@ interface NewAdrFormDependencies {
   readonly refreshExplorer: () => void;
   readonly initializeRepository: (folder: vscode.WorkspaceFolder) => Promise<void>;
   readonly checkInstallation: (folder: vscode.WorkspaceFolder, showNotification?: boolean) => Promise<InstallationCheckResult | undefined>;
+  readonly checkMcpConfiguration: (
+    folder: vscode.WorkspaceFolder,
+    enabled: boolean,
+    serverPath: string,
+    signal?: AbortSignal,
+  ) => Promise<McpDiscoveryResult>;
 }
 
 type InitialScreen = 'list' | 'form';
@@ -41,6 +49,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
   private readonly listRequests = new LatestListRequest();
   private listActionActive = false;
   private settingsCheckActive = false;
+  private mcpCheckActive = false;
   private created: { readonly workspace: string; readonly relativePath: string; readonly filePath: string; readonly kind: 'created' | 'updated' } | undefined;
 
   private constructor(private readonly dependencies: NewAdrFormDependencies, private screen: VisualScreen) {
@@ -96,11 +105,11 @@ export class NewAdrFormPanel implements vscode.Disposable {
       if ((this.screen !== 'list' && this.screen !== 'settings') || this.submission.isActive || message.workspace === undefined) return;
       this.selectedWorkspace = message.workspace;
       this.screen = 'settings';
-      await this.post({ type: 'showSettings', settings: this.settingsFor(workspaceFolder(message.workspace)) });
+      await this.post({ type: 'showSettings', settings: await this.settingsFor(workspaceFolder(message.workspace)) });
       return;
     }
     if (message.type === 'cancelSettings') {
-      if (this.screen !== 'settings' || this.submission.isActive || this.settingsCheckActive) return;
+      if (this.screen !== 'settings' || this.submission.isActive || this.settingsCheckActive || this.mcpCheckActive) return;
       this.screen = 'list';
       if (message.workspace !== undefined) this.selectedWorkspace = message.workspace;
       await this.post({ type: 'showList', ...(message.state === undefined ? {} : { state: message.state }) });
@@ -115,6 +124,16 @@ export class NewAdrFormPanel implements vscode.Disposable {
     if (message.type === 'checkSettingsInstallation') {
       if (message.workspace === undefined || this.settingsCheckActive || this.screen !== 'settings') return;
       await this.checkSettingsInstallation(message.workspace);
+      return;
+    }
+    if (message.type === 'checkMcpConfiguration') {
+      if (message.workspace === undefined || this.mcpCheckActive || this.screen !== 'settings') return;
+      if (message.mcpEnabled === undefined || message.mcpPath === undefined) return;
+      await this.checkMcpConfiguration(message.workspace, message.mcpEnabled, message.mcpPath);
+      return;
+    }
+    if (message.type === 'openMcpDocumentation') {
+      await vscode.env.openExternal(vscode.Uri.parse('https://code.visualstudio.com/docs/copilot/chat/mcp-servers'));
       return;
     }
     if (message.type === 'newAdr') {
@@ -216,10 +235,12 @@ export class NewAdrFormPanel implements vscode.Disposable {
     }
   }
 
-  private settingsFor(folder: vscode.WorkspaceFolder): VisualSettingsValues {
+  private async settingsFor(folder: vscode.WorkspaceFolder): Promise<VisualSettingsValues> {
     const validation = readValidationConfiguration(folder.uri);
     const creation = readCreationConfiguration(folder.uri);
     const cli = readConfiguration();
+    const mcp = readMcpConfiguration(folder.uri);
+    const mcpStatus = await this.mcpStatus(folder, mcp.enabled);
     return {
       workspace: folder.uri.toString(), uiLanguage: readUiConfiguration().language,
       documentLanguage: creation.documentLanguage, directory: validation.directory,
@@ -228,6 +249,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       baseline: validation.baseline, baseReference: validation.baseReference,
       cliPath: cli.executablePath ?? '', timeoutMilliseconds: cli.timeoutMilliseconds,
       maxOutputBytes: cli.maxOutputBytes,
+      mcpEnabled: mcp.enabled, mcpPath: mcp.serverPath ?? '', mcpStatus,
     };
   }
 
@@ -240,6 +262,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
         ...values,
         directory: values.directory.trim(), baseline: values.baseline.trim(),
         baseReference: values.baseReference.trim(), cliPath: values.cliPath.trim(),
+        mcpPath: values.mcpPath.trim(),
       };
       const folder = workspaceFolder(values.workspace);
       const root = await resolveWorkspaceRoot(asLocation(folder));
@@ -302,6 +325,44 @@ export class NewAdrFormPanel implements vscode.Disposable {
     } finally {
       this.settingsCheckActive = false;
       if (!this.disposed) await this.post({ type: 'installationCheckIdle' });
+    }
+  }
+
+  private async checkMcpConfiguration(
+    workspace: string,
+    enabled: boolean,
+    serverPath: string,
+  ): Promise<void> {
+    this.mcpCheckActive = true;
+    const controller = new AbortController();
+    this.activeOperation = controller;
+    await this.post({ type: 'mcpChecking' });
+    try {
+      const result = await this.dependencies.checkMcpConfiguration(
+        workspaceFolder(workspace),
+        enabled,
+        serverPath.trim(),
+        controller.signal,
+      );
+      await this.post({ type: 'mcpResult', status: mapMcpStatus(result) });
+    } catch (error: unknown) {
+      this.dependencies.log.info(`MCP configuration check failed: ${safeLogError(error)}`);
+      await this.post({ type: 'mcpResult', status: 'error' });
+    } finally {
+      if (this.activeOperation === controller) this.activeOperation = undefined;
+      this.mcpCheckActive = false;
+      if (!this.disposed) await this.post({ type: 'mcpCheckIdle' });
+    }
+  }
+
+  private async mcpStatus(folder: vscode.WorkspaceFolder, enabled: boolean): Promise<McpSettingsStatus> {
+    if (!enabled) return 'disabled';
+    try {
+      const configuration = readMcpConfiguration(folder.uri);
+      return mapMcpStatus(await this.dependencies.checkMcpConfiguration(folder, enabled, configuration.serverPath ?? ''));
+    } catch (error: unknown) {
+      this.dependencies.log.info(`MCP availability could not be inspected: ${safeLogError(error)}`);
+      return 'error';
     }
   }
 
@@ -565,8 +626,16 @@ function webviewStrings(extensionUri: vscode.Uri): Record<'en-US' | 'pt-BR', Rec
     'Checking installation…', 'Installation check failed.', 'The check uses the saved CLI settings.',
     'Advanced settings', 'CLI timeout (milliseconds)', 'Accepted range: 1000 to 120000 milliseconds.',
     'CLI output limit (bytes)', 'Accepted range: 1024 to 1048576 bytes.',
-    'Review the validation and CLI settings and enter values within the accepted limits.',
+    'Review the validation, CLI, and MCP settings and enter values within the accepted limits.',
     'ADR Guard {0} is available ({1}).', 'configured path',
+    'MCP Integration', 'Enable MCP integration',
+    'Disabled by default. VS Code starts the server only when an agent requests it.',
+    'ADR Guard MCP server',
+    'Configure adr-guard-mcp.dll or the native adr-guard-mcp executable on the extension host.',
+    'Check MCP configuration', 'VS Code MCP guidance',
+    'Availability does not mean that the server is connected or running.',
+    'Checking MCP configuration...', 'Disabled', 'Not configured', 'Executable not found',
+    'Invalid configuration', 'Available for startup', 'Known error',
   );
   const english = Object.fromEntries(values.map((value) => [value, value]));
   const portugueseCatalog = readTranslationCatalog(vscode.Uri.joinPath(extensionUri, 'l10n', 'bundle.l10n.pt-br.json'));
@@ -587,3 +656,10 @@ function escapeHtml(value: string): string { return value.replaceAll('&', '&amp;
 function escapeAttribute(value: string): string { return escapeHtml(value).replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
 function samePath(left: string, right: string): boolean { const normalize = (value: string): string => process.platform === 'win32' ? path.resolve(value).toLowerCase() : path.resolve(value); return normalize(left) === normalize(right); }
 function isNodeError(error: unknown): error is NodeJS.ErrnoException { return error instanceof Error && 'code' in error; }
+function mapMcpStatus(result: McpDiscoveryResult): McpSettingsStatus {
+  if (result.code === 'available') return 'available';
+  if (result.code === 'not-configured') return result.detail === 'disabled' ? 'disabled' : 'not-configured';
+  if (result.code === 'not-found') return 'not-found';
+  if (result.code === 'invalid-configuration') return 'invalid-configuration';
+  return 'error';
+}

@@ -28,17 +28,17 @@ try {
   ];
   await runVSCodeCommand(
     [...profileArgs, '--install-extension', vsixPath, '--force'],
-    { version: '1.100.0' },
+    { version: '1.101.0' },
   );
   const installed = await runVSCodeCommand(
     [...profileArgs, '--list-extensions', '--show-versions'],
-    { version: '1.100.0' },
+    { version: '1.101.0' },
   );
   if (!installed.stdout.toLowerCase().includes(installedIdentifier)) {
     throw new Error(`Installed extension list does not contain ${installedIdentifier}: ${installed.stdout}`);
   }
 
-  const executable = await downloadAndUnzipVSCode({ version: '1.100.0' });
+  const executable = await downloadAndUnzipVSCode({ version: '1.101.0' });
   const testOptions = JSON.stringify({
     mochaOpts: { timeout: 20000 },
     colorDefault: true,

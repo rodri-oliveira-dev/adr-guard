@@ -232,6 +232,22 @@
   "CLI output limit (bytes)": "Limite de saída da CLI (bytes)",
   "Accepted range: 1024 to 1048576 bytes.": "Intervalo aceito: 1024 a 1048576 bytes.",
   "Review the validation and CLI settings and enter values within the accepted limits.": "Revise as configurações de validação e da CLI e informe valores dentro dos limites aceitos.",
+  "Review the validation, CLI, and MCP settings and enter values within the accepted limits.": "Revise as configurações de validação, CLI e MCP e informe valores dentro dos limites aceitos.",
   "The baseline must be a safe relative JSON file inside the selected workspace.": "O baseline deve ser um arquivo JSON relativo seguro dentro do workspace selecionado.",
-  "configured path": "caminho configurado"
+  "configured path": "caminho configurado",
+  "MCP Integration": "Integração MCP",
+  "Enable MCP integration": "Habilitar integração MCP",
+  "Disabled by default. VS Code starts the server only when an agent requests it.": "Desabilitada por padrão. O VS Code inicia o servidor somente quando um agente o solicita.",
+  "ADR Guard MCP server": "Servidor MCP do ADR Guard",
+  "Configure adr-guard-mcp.dll or the native adr-guard-mcp executable on the extension host.": "Configure adr-guard-mcp.dll ou o executável nativo adr-guard-mcp no host da extensão.",
+  "Check MCP configuration": "Verificar configuração MCP",
+  "VS Code MCP guidance": "Orientações de MCP do VS Code",
+  "Availability does not mean that the server is connected or running.": "Disponibilidade não significa que o servidor esteja conectado ou em execução.",
+  "Checking MCP configuration...": "Verificando a configuração MCP...",
+  "Disabled": "Desabilitado",
+  "Not configured": "Não configurado",
+  "Executable not found": "Executável não encontrado",
+  "Invalid configuration": "Configuração inválida",
+  "Available for startup": "Disponível para inicialização",
+  "Known error": "Erro conhecido"
 }
