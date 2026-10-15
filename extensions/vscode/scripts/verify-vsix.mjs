@@ -1,12 +1,15 @@
 import { spawn } from 'node:child_process';
-import { access, mkdtemp, rm } from 'node:fs/promises';
+import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { downloadAndUnzipVSCode, runVSCodeCommand } from '@vscode/test-electron';
 
 const root = path.resolve(import.meta.dirname, '..');
-const vsixPath = path.join(root, 'adr-guard-1.0.0.vsix');
+const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+const extensionIdentifier = `${manifest.publisher}.${manifest.name}`;
+const installedIdentifier = `${extensionIdentifier}@${manifest.version}`.toLowerCase();
+const vsixPath = path.join(root, `${manifest.name}-${manifest.version}.vsix`);
 const workspaceFolder = path.join(root, 'test', 'fixtures', 'workspace');
 const testHarness = path.join(root, 'test', 'fixtures', 'extension-test-harness');
 const testFile = path.join(root, 'out', 'test', 'integration', 'packagedActivation.test.js');
@@ -31,8 +34,8 @@ try {
     [...profileArgs, '--list-extensions', '--show-versions'],
     { version: '1.100.0' },
   );
-  if (!installed.stdout.toLowerCase().includes('adr-guard@1.0.0')) {
-    throw new Error(`Installed extension list does not contain ADR Guard 1.0.0: ${installed.stdout}`);
+  if (!installed.stdout.toLowerCase().includes(installedIdentifier)) {
+    throw new Error(`Installed extension list does not contain ${installedIdentifier}: ${installed.stdout}`);
   }
 
   const executable = await downloadAndUnzipVSCode({ version: '1.100.0' });
@@ -62,6 +65,7 @@ try {
         ...process.env,
         ELECTRON_RUN_AS_NODE: undefined,
         VSCODE_TEST_OPTIONS: testOptions,
+        ADR_GUARD_EXPECTED_EXTENSION_VERSION: manifest.version,
       },
     });
     child.once('error', reject);

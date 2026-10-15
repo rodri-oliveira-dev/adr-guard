@@ -2,7 +2,7 @@
 
 ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existente do ADR Guard dentro do editor. Ela oferece comandos nativos, diagnósticos no Problems e um contêiner próprio na Barra de Atividades com o ADR Explorer, mantendo parser, validação, políticas, geração e análise baseada em Git na CLI .NET.
 
-> **Publicado:** o [ADR Guard para VS Code 0.1.1](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) está disponível no Visual Studio Marketplace como `rodrioliveira.adr-guard`. Os contratos compatíveis da CLI ADR Guard foram publicados no NuGet **v1.3.0** (incluindo o antigo escopo de desenvolvimento v1.4). A extensão VS Code e a CLI .NET são distribuídas e versionadas separadamente; a extensão não inclui a CLI.
+> **Extensão publicada:** [ADR Guard para VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) está disponível no Visual Studio Marketplace como `rodrioliveira.adr-guard`. A extensão VS Code e a CLI .NET são distribuídas e versionadas separadamente; a extensão não inclui a CLI.
 
 ## Funcionalidades
 
@@ -19,25 +19,25 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 - Classificação contra um baseline existente e somente leitura.
 - Interface em inglês por padrão e português brasileiro quando o VS Code usa `pt-BR`.
 
-## Prévia da interface (não publicada)
+## Prévia da interface
 
-As imagens abaixo documentam a branch de desenvolvimento da extensão 1.0.0 em um Extension Development Host real, com uma CLI compilada da mesma branch. Elas documentam o comportamento da branch de desenvolvimento, não o pacote 0.1.1 publicado atualmente no Marketplace. A criação e a edição visuais exigem os contratos de formulário schema `1.0` da CLI 1.7.0.
+As imagens abaixo documentam a interface visual disponível na extensão 1.0.0 publicada e na candidata a release 1.0.1, capturada em um Extension Development Host real com uma CLI compatível. A criação e a edição visuais exigem os contratos de formulário schema `1.0` da CLI 1.7.0. A versão 1.0.1 não estará publicada até a conclusão do workflow manual de release.
 
 ### Consultar e buscar
 
-![Listagem visual com status, busca, ordenação e ações de edição e abertura do Markdown](../../website/public/images/vscode/adr-list.png)
+![Listagem visual com status, busca, ordenação e ações de edição e abertura do Markdown](https://raw.githubusercontent.com/rodri-oliveira-dev/adr-guard/main/website/public/images/vscode/adr-list.png)
 
 ### Criar com um template nativo
 
-![Formulário Minimal de criação com configuração do documento e conteúdo da decisão](../../website/public/images/vscode/adr-create-minimal.png)
+![Formulário Minimal de criação com configuração do documento e conteúdo da decisão](https://raw.githubusercontent.com/rodri-oliveira-dev/adr-guard/main/website/public/images/vscode/adr-create-minimal.png)
 
 ### Editar uma ADR compatível
 
-![Formulário de edição com título, status e seções do documento](../../website/public/images/vscode/adr-edit.png)
+![Formulário de edição com título, status e seções do documento](https://raw.githubusercontent.com/rodri-oliveira-dev/adr-guard/main/website/public/images/vscode/adr-edit.png)
 
 ### Configurar a extensão
 
-![Configurações do ADR Guard para idioma, diretório do repositório e formato de ADR](../../website/public/images/vscode/adr-settings.png)
+![Configurações do ADR Guard para idioma, diretório do repositório e formato de ADR](https://raw.githubusercontent.com/rodri-oliveira-dev/adr-guard/main/website/public/images/vscode/adr-settings.png)
 
 O [Guia Visual do VS Code](https://rodri-oliveira-dev.github.io/adr-guard/pt-br/product/vscode-visual-guide/) no portal cobre Explorer, filtros, criação Minimal e Extended, prévia Markdown, edição segura contra alterações externas, configurações de validação, integração com a CLI e diagnósticos em Problems.
 
@@ -62,7 +62,7 @@ Instale a extensão publicada pela aba **Extensões** do VS Code (pesquise **ADR
 code --install-extension rodrioliveira.adr-guard
 ```
 
-Para testar manualmente um VSIX gerado localmente, use **Extensions: Install from VSIX...** e selecione `adr-guard-1.0.0.vsix`. Esse processo é diferente da instalação pelo Marketplace.
+Para testar manualmente um VSIX gerado localmente, use **Extensions: Install from VSIX...** e selecione `adr-guard-1.0.1.vsix`. Esse processo é diferente da instalação pelo Marketplace.
 
 ## Comandos
 
@@ -85,7 +85,7 @@ Abra a Paleta de Comandos e escolha a ação sob **ADR Guard**:
 
 Workspaces com múltiplas raízes são suportados. Quando possível, os comandos usam a pasta do arquivo ativo; caso contrário, solicitam a pasta. Configurações de escopo de recurso podem variar por pasta.
 
-## Listagem visual de ADRs (não publicada)
+## Listagem visual de ADRs
 
 Execute **ADR Guard: Abrir ADR Guard** pela Paleta de Comandos ou pelo título do ADR Explorer. O painel visual reutilizável começa no diretório de ADRs configurado para a pasta selecionada e mostra os metadados disponíveis de identificador, título, status, data e caminho relativo. A busca ignora maiúsculas e minúsculas em título, identificador e caminho; filtros de status e ordenações determinísticas por número, título ou data são aplicados localmente, sem executar validação completa pela CLI. Metadados ausentes continuam visivelmente desconhecidos, e documentos sem número ficam depois das ADRs numeradas.
 
@@ -101,7 +101,7 @@ Voltar e Cancelar são ações exclusivamente de navegação no cadastro, na edi
 
 Cada item também oferece **Editar**. O mesmo painel visual carrega o documento canônico ou MADR 4.0 selecionado pelo contrato schema `1.0` `edit --form` da CLI, apresenta título, status, metadados e seções de nível dois suportados e retorna à listagem preservada após salvar ou cancelar. A CLI executa validação conforme o formato e substituições localizadas no Markdown, mantém caminho e identificador, preserva metadados/seções/espaçamento não alterados e rejeita o salvamento quando o fingerprint do arquivo mudou depois do carregamento. A extensão revalida os limites do workspace e do catálogo antes de cada leitura ou gravação.
 
-## Formulário visual de criação de ADR (não publicado)
+## Formulário visual de criação de ADR
 
 Execute **ADR Guard: Criar ADR com formulário** pela Paleta de Comandos ou use a ação de novo arquivo no título do ADR Explorer. O formulário separa a pasta do workspace e o idioma do documento do idioma da interface do VS Code, inicia o destino com `adrGuard.validation.directory`, usa o idioma e o template padrão da pasta e ainda permite alterações para um documento específico.
 
@@ -111,7 +111,7 @@ Templates personalizados configurados não podem ser mapeados com segurança par
 
 A criação visual requer a CLI 1.7.0 ou superior com o contrato schema `1.0` de `new --form`. Prévia e criação usam o mesmo renderer da CLI; a prévia não grava, reserva número nem atualiza o índice, enquanto a criação resolve a numeração definitiva de forma atômica e nunca sobrescreve arquivos. O estado permanece em memória enquanto o painel retido fica oculto. O VS Code não oferece um evento cancelável de fechamento de WebviewPanel; portanto, não é possível garantir uma confirmação de alterações não salvas ao fechar, e o estado em memória é descartado.
 
-## Configurações visuais (não publicadas)
+## Configurações visuais
 
 Use a engrenagem do cabeçalho da listagem para configurar o painel existente sem abrir outra aba. O idioma da interface é salvo nas configurações do usuário como Automático (VS Code), Português (Brasil) ou English. Automático acompanha a localização do editor somente nos textos da Webview do ADR Guard; comandos e controles nativos do VS Code mantêm o idioma do próprio editor. O idioma padrão dos documentos e o template de criação são configurações independentes por pasta do workspace, inclusive em workspaces com múltiplas raízes.
 

@@ -62,6 +62,9 @@ jobs:
       - name: Localization tests
         run: npm run test:l10n
 
+      - name: Validate Marketplace README images
+        run: npm run test:readme-images -- --remote
+
       - name: Extension-host integration tests
         run: xvfb-run -a npm run test:integration
 
@@ -75,7 +78,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          listing="$(unzip -Z1 adr-guard-1.0.0.vsix)"
+          package_version="$(node -p "require('./package.json').version")"
+          vsix="adr-guard-${package_version}.vsix"
+          listing="$(unzip -Z1 "${vsix}")"
           printf '%s\n' "${listing}"
           grep -Fxq 'extension/dist/extension.js' <<< "${listing}"
           grep -Fxq 'extension/package.json' <<< "${listing}"
@@ -96,7 +101,7 @@ jobs:
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: adr-guard-vscode-1.0.0
-          path: extensions/vscode/adr-guard-1.0.0.vsix
+          name: adr-guard-vscode-1.0.1
+          path: extensions/vscode/adr-guard-1.0.1.vsix
           if-no-files-found: error
           retention-days: 14

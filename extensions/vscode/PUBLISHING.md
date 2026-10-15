@@ -7,14 +7,14 @@ The VS Code extension is versioned independently from the ADR Guard CLI and GitH
 1. In the Visual Studio Marketplace publisher management portal, configure a trusted publishing policy for publisher `rodrioliveira`, repository `rodri-oliveira-dev/adr-guard` and workflow `.github/workflows/vscode-extension-release.yml`. Follow the Marketplace's current trusted-publisher setup instructions.
 2. Create a protected GitHub Actions environment named `vscode-marketplace`. Add required reviewers and, if appropriate, restrict deployment to the `main` branch. Merely referencing an environment in a workflow does **not** configure reviewer protection.
 3. Ensure a compatible ADR Guard .NET CLI version is publicly installable and its advanced contracts are available. The VSIX does not include the CLI or install it automatically.
-4. Review the English and Portuguese documentation and the changelog. This workflow preparation intentionally does not introduce an extension icon.
+4. Review the English and Portuguese documentation, Marketplace images, icon, and changelog.
 
-## First release
+## Manual release
 
-1. Confirm the combined CLI capabilities (previous v1.3 and v1.4 development scopes) have been released in NuGet v1.3.0; the VS Code extension and release automation are already integrated into `main`.
-2. Check `extensions/vscode/package.json` for publisher `rodrioliveira`, package name `adr-guard` and version `1.0.0`. Keep the VSIX output filename and smoke test aligned with the chosen version for future releases.
-3. Open GitHub Actions and select **VS Code Marketplace Release**. Choose the `main` branch, specify version `1.0.0` and enter exactly `publish-rodrioliveira.adr-guard` as confirmation.
-4. The package job verifies the manifest and reruns dependency auditing, lint, typecheck, build, unit, localization and VS Code host integration tests. It then creates and tests the VSIX.
+1. Confirm the CLI capabilities required by this extension are available in NuGet. Version 1.0.1 requires the released CLI 1.7.0 for its visual form contracts.
+2. Check `extensions/vscode/package.json` for publisher `rodrioliveira`, package name `adr-guard` and version `1.0.1`. Packaging, installation checks, and activation smoke tests derive the VSIX filename and expected version from this manifest.
+3. Open GitHub Actions and select **VS Code Marketplace Release**. Choose the `main` branch, specify version `1.0.1` and enter exactly `publish-rodrioliveira.adr-guard` as confirmation.
+4. The package job verifies the manifest and Marketplace image resources, then reruns dependency auditing, lint, typecheck, build, unit, localization, and VS Code host integration tests. It creates and tests `adr-guard-1.0.1.vsix`.
 5. After the protected `vscode-marketplace` environment approval, the separate publishing job downloads that validated VSIX and runs `vsce publish --oidc --packagePath`. No personal access tokens or GitHub repository secrets are needed for Marketplace authentication.
 6. Verify the listing at https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard and independently test installation from VS Code.
 

@@ -86,7 +86,7 @@ Consulte a [matriz de seleção](docs/decision-design/choosing-a-template.pt-BR.
 | Containers | Executar a mesma CLI versionada por GHCR ou Docker Hub | [Guia de container e cadeia de suprimentos](docs/container.pt-BR.md) |
 | Relatórios de CI | Produzir validação em texto, JSON ou SARIF | [Relatórios de check](docs/check-reports.pt-BR.md) |
 
-A branch de desenvolvimento atual adiciona listagem visual de ADRs, criação orientada, edição e configurações. Essas telas dependem do trabalho ainda não publicado da extensão 1.0.0 e dos contratos de formulário da CLI 1.7.0; elas não são apresentadas como capacidades da extensão 0.1.1 publicada no Marketplace.
+A [extensão ADR Guard para VS Code publicada](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) inclui listagem visual de ADRs, criação orientada, edição e configurações. Essas telas exigem os contratos de formulário da CLI 1.7.0. As versões da extensão e da CLI permanecem independentes.
 
 ![Listagem visual do ADR Guard no Extension Development Host do VS Code](website/public/images/vscode/adr-list.png)
 

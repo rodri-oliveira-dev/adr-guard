@@ -2,7 +2,7 @@
 
 ADR Guard for VS Code is a workspace extension that presents the existing ADR Guard CLI inside the editor. It provides native commands, Problems diagnostics, and a dedicated Activity Bar container with the ADR Explorer while leaving parsing, validation, policy, generation, and Git-aware analysis in the .NET CLI.
 
-> **Published:** [ADR Guard for VS Code 0.1.1](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) is available on the Visual Studio Marketplace as `rodrioliveira.adr-guard`. The compatible ADR Guard CLI contracts were published in NuGet **v1.3.0** (including the former v1.4 development scope). The VS Code extension and .NET CLI are distributed and versioned separately; the extension does not bundle the CLI.
+> **Published extension:** [ADR Guard for VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) is available on the Visual Studio Marketplace as `rodrioliveira.adr-guard`. The VS Code extension and .NET CLI are distributed and versioned separately; the extension does not bundle the CLI.
 
 ## Features
 
@@ -19,25 +19,25 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 - Classify diagnostics against an existing read-only baseline.
 - Use English UI by default and Brazilian Portuguese when VS Code uses `pt-BR`.
 
-## Interface preview (unreleased)
+## Interface preview
 
-The images below document the extension 1.0.0 development branch in a real Extension Development Host with a CLI built from the same branch. They document development-branch behavior, not the currently published 0.1.1 Marketplace package. Visual creation and editing require the CLI 1.7.0 schema `1.0` form contracts.
+The images below document the visual interface available in the published extension 1.0.0 and the 1.0.1 release candidate, captured in a real Extension Development Host with a compatible CLI. Visual creation and editing require the CLI 1.7.0 schema `1.0` form contracts. Version 1.0.1 is not published until the manual release workflow completes.
 
 ### Browse and search
 
-![Visual ADR list with status, search, sorting, edit, and Markdown actions](../../website/public/images/vscode/adr-list.png)
+![Visual ADR list with status, search, sorting, edit, and Markdown actions](https://raw.githubusercontent.com/rodri-oliveira-dev/adr-guard/main/website/public/images/vscode/adr-list.png)
 
 ### Create with a native template
 
-![Minimal ADR creation form with document setup and decision content](../../website/public/images/vscode/adr-create-minimal.png)
+![Minimal ADR creation form with document setup and decision content](https://raw.githubusercontent.com/rodri-oliveira-dev/adr-guard/main/website/public/images/vscode/adr-create-minimal.png)
 
 ### Edit a supported ADR
 
-![ADR edit form with title, status, and document sections](../../website/public/images/vscode/adr-edit.png)
+![ADR edit form with title, status, and document sections](https://raw.githubusercontent.com/rodri-oliveira-dev/adr-guard/main/website/public/images/vscode/adr-edit.png)
 
 ### Configure the extension
 
-![ADR Guard settings for language, repository directory, and ADR format](../../website/public/images/vscode/adr-settings.png)
+![ADR Guard settings for language, repository directory, and ADR format](https://raw.githubusercontent.com/rodri-oliveira-dev/adr-guard/main/website/public/images/vscode/adr-settings.png)
 
 The portal's [VS Code Visual Guide](https://rodri-oliveira-dev.github.io/adr-guard/product/vscode-visual-guide/) covers the Explorer, filters, Minimal and Extended creation, Markdown preview, external-change-safe editing, validation settings, CLI integration, and Problems diagnostics.
 
@@ -54,7 +54,7 @@ dotnet tool install --global RodriOliveira.AdrGuard
 adr-guard --version
 ```
 
-For development capabilities that are not released yet, build or install the CLI from the corresponding repository branch and set `adrGuard.cli.path` to its trusted absolute executable path. Otherwise the extension searches absolute directories on the extension host `PATH`. It never downloads or installs the CLI.
+For unreleased development capabilities, build the CLI from the corresponding repository branch and set `adrGuard.cli.path` to its trusted absolute executable path. Otherwise the extension searches absolute directories on the extension host `PATH`. It never downloads or installs the CLI.
 
 Install the published extension from the VS Code **Extensions** view (search **ADR Guard**) or run:
 
@@ -62,7 +62,7 @@ Install the published extension from the VS Code **Extensions** view (search **A
 code --install-extension rodrioliveira.adr-guard
 ```
 
-For manual testing of a locally generated VSIX, use **Extensions: Install from VSIX...** and select `adr-guard-1.0.0.vsix`. This is separate from installation through the Marketplace.
+For manual testing of a locally generated VSIX, use **Extensions: Install from VSIX...** and select `adr-guard-1.0.1.vsix`. This is separate from installation through the Marketplace.
 
 ## Commands
 
@@ -85,7 +85,7 @@ Open the Command Palette and choose the command under **ADR Guard**:
 
 Multi-root workspaces are supported. Commands use the active file's folder when possible and otherwise ask which folder to use. Settings with resource scope can differ by workspace folder.
 
-## Visual ADR list (unreleased)
+## Visual ADR list
 
 Run **ADR Guard: Open ADR Guard** from the Command Palette or the ADR Explorer title. The reusable visual panel starts on the selected workspace folder's configured ADR directory and shows available identifier, title, status, date, and relative path metadata. Search is case-insensitive across title, identifier, and path; status filters and deterministic number/title/date ordering run locally without invoking full CLI validation. Missing metadata remains visibly unknown and unnumbered records sort after numbered ADRs.
 
@@ -101,7 +101,7 @@ Back and Cancel are navigation-only actions in creation, editing, and settings. 
 
 Each list item also provides **Edit**. The same visual panel loads the selected canonical or MADR 4.0 document through the CLI's schema `1.0` `edit --form` contract, exposes its supported title, status, metadata, and level-two sections, and returns to the preserved list after saving or cancelling. The CLI performs format-aware validation and localized Markdown replacement, keeps the path and identifier unchanged, preserves untouched metadata/sections/spacing, and rejects a save when the file fingerprint changed after loading. The extension revalidates workspace and catalog boundaries before every load or save.
 
-## Visual ADR creation form (unreleased)
+## Visual ADR creation form
 
 Run **ADR Guard: Create ADR with Form** from the Command Palette or use the new-file action in the ADR Explorer title. The form keeps workspace folder and document language separate from the VS Code interface language, initializes the destination from `adrGuard.validation.directory`, uses the folder's default document language and creation template, and still permits per-document changes.
 
@@ -111,7 +111,7 @@ Configured custom templates cannot be mapped to fields safely. The form reports 
 
 Visual creation requires CLI 1.7.0 or newer with the schema `1.0` `new --form` contract. Preview and creation use the same CLI renderer; preview does not write, reserve a number, or update the index, while creation resolves the final number atomically and never overwrites an existing file. Form state remains in the retained panel while it is hidden. VS Code does not provide a cancellable WebviewPanel close event, so closing the panel cannot show a guaranteed unsaved-changes confirmation and discards its in-memory state.
 
-## Visual settings (unreleased)
+## Visual settings
 
 Use the list header's settings gear to configure the existing panel without opening another tab. Interface language is stored in user settings as Automatic (VS Code), Portuguese (Brazil), or English. Automatic follows the editor locale for ADR Guard Webview text only; native VS Code commands and controls keep the editor's own locale. Default document language and creation template are independent workspace-folder settings, so multi-root folders may differ.
 

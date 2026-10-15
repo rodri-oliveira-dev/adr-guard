@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version in extensions/vscode/package.json (for example 1.0.0)"
+        description: "Version in extensions/vscode/package.json (for example 1.0.1)"
         required: true
         type: string
       confirmation:
@@ -64,7 +64,10 @@ jobs:
         run: npm audit --audit-level=low
 
       - name: Lint and typecheck
-        run: npm run lint && npm run typecheck
+        run: |
+          npm run lint
+          npm run typecheck
+          npm run test:readme-images -- --remote
 
       - name: Build and test
         run: |
@@ -85,7 +88,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: vscode-marketplace-vsix
-          path: extensions/vscode/adr-guard-*.vsix
+          path: extensions/vscode/adr-guard-${{ inputs.version }}.vsix
           if-no-files-found: error
           retention-days: 14
 

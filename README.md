@@ -86,7 +86,7 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 | Containers | Run the same versioned CLI from GHCR or Docker Hub | [Container and supply-chain guide](docs/container.md) |
 | CI reports | Produce text, JSON, or SARIF validation output | [Check reports](docs/check-reports.md) |
 
-The current development branch adds a visual ADR list plus guided creation, editing, and settings. These screens require the unreleased extension 1.0.0 work and the CLI 1.7.0 form contracts; they are not presented as capabilities of the published 0.1.1 Marketplace extension.
+The [published ADR Guard for VS Code extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) includes the visual ADR list plus guided creation, editing, and settings. These screens require the CLI 1.7.0 form contracts. Extension and CLI versions remain independent.
 
 ![ADR Guard visual list in the VS Code Extension Development Host](website/public/images/vscode/adr-list.png)
 

@@ -2,7 +2,13 @@
 
 All notable changes to ADR Guard for VS Code are documented here. Extension versions are independent from ADR Guard CLI versions.
 
-## 1.0.0 — Unreleased
+## 1.0.1 — Unreleased
+
+- Fixed Marketplace screenshots by using stable HTTPS image URLs and added automated local/remote PNG validation.
+- Derived local VSIX packaging and smoke-test expectations from the extension manifest to reduce future release-version drift.
+- Updated the package, release workflow, documentation, and validation artifact names for the 1.0.1 candidate.
+
+## 1.0.0 — 2026-10-15
 
 - Hardened visual-flow integration with screen-scoped message handling, complete DOM coverage for Back/Cancel and successful returns, explicit save-validation/watcher integration checks, and rollback of earlier VS Code preference writes after a later persistence failure.
 
@@ -22,8 +28,6 @@ All notable changes to ADR Guard for VS Code are documented here. Extension vers
 - Added strict schema `1.0` CLI adaptation over bounded stdin, duplicate-submit protection, safe created-path verification, and explicit fallback to the unchanged traditional flow for missing/incompatible CLIs or custom templates.
 - Added English and Brazilian Portuguese UI, theme/high-contrast styling, keyboard-accessible labels and focus, restrictive CSP, nonce-protected local scripts, and text-only preview rendering.
 - Requires ADR Guard CLI 1.7.0 or newer with the `new --form` contract; the existing **Create ADR** command remains compatible with older CLIs.
-
-This functionality is unreleased until a later extension release is published.
 
 ## 0.1.1 — 2026-10-08
 
