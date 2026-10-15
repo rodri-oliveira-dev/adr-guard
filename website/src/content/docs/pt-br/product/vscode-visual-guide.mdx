@@ -4,14 +4,14 @@ description: Um passo a passo visual da interface da branch de desenvolvimento d
 sidebar:
   order: 2
   badge:
-    text: Em desenvolvimento
-    variant: caution
+    text: Novo conteúdo
+    variant: note
 ---
 
 O ADR Guard para VS Code é uma interface executada no host do workspace sobre a CLI .NET. A extensão oferece navegação, formulários, configurações e diagnósticos em Problems; a CLI continua sendo a autoridade para parsing, geração, edição, validação, políticas e códigos de saída.
 
-:::caution[Status de publicação]
-Estas capturas documentam a extensão **1.0.0 na branch de desenvolvimento atual**, com os contratos de formulário correspondentes da CLI **1.7.0**. A versão do Marketplace documentada no momento da captura é a **0.1.1** e ainda não inclui todas as telas visuais mostradas aqui. A extensão e a CLI são publicadas separadamente; confirme as duas versões publicadas antes de depender dos fluxos visuais de criação ou edição.
+:::note[Status de publicação]
+Estas capturas documentam a interface visual disponível na extensão **1.0.0 publicada**, com os contratos de formulário da CLI **1.7.0 publicada**. Este repositório prepara a extensão **1.0.1**, que não estará publicada até a conclusão do workflow manual de release. A extensão e a CLI são publicadas separadamente; confirme as duas versões instaladas antes de depender dos fluxos visuais de criação ou edição.
 :::
 
 Para tabelas de comandos, chaves de configuração, limites de confiança e solução de problemas, consulte a [referência da extensão VS Code](../vscode-extension/). Este guia se concentra na interface e nos fluxos mais comuns.
@@ -117,4 +117,4 @@ A validação verifica regras determinísticas do documento. Ela não aprova a e
 
 ## Origem das capturas
 
-Todas as imagens desta página documentam a branch de desenvolvimento da extensão 1.0.0 em um Extension Development Host real com um workspace fictício e isolado, tema escuro do VS Code e a CLI compilada da mesma branch. Nenhuma imagem gerada por IA ou mockup reconstruído foi usado. O script opcional `npm run capture:vscode` em `website/` recompila a extensão e a CLI, opera a Webview real pelo protocolo de depuração do Electron, grava PNGs otimizados e remove o workspace temporário. Ele não participa dos scripts de build, teste, empacotamento ou publicação.
+Todas as imagens desta página documentam a interface da extensão 1.0.0 em um Extension Development Host real com um workspace fictício e isolado, tema escuro do VS Code e uma build compatível da CLI 1.7.0. Nenhuma imagem gerada por IA ou mockup reconstruído foi usado. O script opcional `npm run capture:vscode` em `website/` recompila a extensão e a CLI, opera a Webview real pelo protocolo de depuração do Electron, grava PNGs otimizados e remove o workspace temporário. Ele não participa dos scripts de build, teste, empacotamento ou publicação.

@@ -4,14 +4,14 @@ description: A visual walkthrough of the ADR Guard development-branch interface 
 sidebar:
   order: 2
   badge:
-    text: Development
-    variant: caution
+    text: New content
+    variant: note
 ---
 
 ADR Guard for VS Code is a workspace-hosted interface over the .NET CLI. The extension provides navigation, forms, settings, and Problems diagnostics; the CLI remains authoritative for parsing, generation, editing, validation, policy, and exit codes.
 
-:::caution[Release status]
-These screenshots document extension **1.0.0 on the current development branch**, using the corresponding CLI **1.7.0** form contracts. The Marketplace release documented at the time of capture is **0.1.1** and does not yet include every visual screen shown here. The extension and CLI are released separately, so confirm both published versions before depending on the visual creation or editing flows.
+:::note[Release status]
+These screenshots document the visual interface available in the published extension **1.0.0**, using the released CLI **1.7.0** form contracts. This repository is preparing extension **1.0.1**, which is not published until the manual release workflow completes. The extension and CLI are released separately, so confirm both installed versions before depending on the visual creation or editing flows.
 :::
 
 For command tables, settings keys, trust boundaries, and troubleshooting, use the [VS Code extension reference](../vscode-extension/). This guide focuses on the interface and common workflows.
@@ -117,4 +117,4 @@ Validation checks deterministic document rules. It does not approve the architec
 
 ## Capture provenance
 
-All images on this page document the extension 1.0.0 development branch in a real Extension Development Host with a fictitious isolated workspace, the dark VS Code theme, and the CLI built from the same branch. No AI-generated images or reconstructed mockups are used. The optional `npm run capture:vscode` script in `website/` rebuilds the extension and CLI, drives the real Webview through the Electron debugging protocol, writes optimized PNG files, and removes its temporary workspace. It is not part of build, test, packaging, or publication scripts.
+All images on this page document the extension 1.0.0 interface in a real Extension Development Host with a fictitious isolated workspace, the dark VS Code theme, and a compatible CLI 1.7.0 build. No AI-generated images or reconstructed mockups are used. The optional `npm run capture:vscode` script in `website/` rebuilds the extension and CLI, drives the real Webview through the Electron debugging protocol, writes optimized PNG files, and removes its temporary workspace. It is not part of build, test, packaging, or publication scripts.
