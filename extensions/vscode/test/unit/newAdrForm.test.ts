@@ -23,6 +23,8 @@ describe('visual ADR form host boundary', () => {
     onSave: false, debounceMilliseconds: 750, baseline: '.adrguard-baseline.json', baseReference: 'main',
     cliPath: '', timeoutMilliseconds: 15000, maxOutputBytes: 262144,
     mcpEnabled: false, mcpPath: '', mcpStatus: 'disabled' as const,
+    impactManifest: '.adrguard-impact.json', driftRules: '.adrguard-fitness.json', driftBaseline: '',
+    driftPolicy: 'advisory' as const, catalog: 'standard' as const, aiProvider: '' as const, aiModel: '', aiEndpoint: '',
   };
 
   it('accepts only bounded known message shapes', () => {

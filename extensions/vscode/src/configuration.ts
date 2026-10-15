@@ -33,6 +33,17 @@ export interface McpConfiguration {
   readonly ignoredWorkspaceServerPath: boolean;
 }
 
+export interface FeatureConfiguration {
+  readonly impactManifest: string;
+  readonly driftRules: string;
+  readonly driftBaseline: string;
+  readonly driftPolicy: 'advisory' | 'enforce';
+  readonly catalog: 'standard' | 'enriched';
+  readonly provider: '' | 'openai' | 'anthropic' | 'gemini' | 'openai-compatible';
+  readonly model: string;
+  readonly endpoint: string;
+}
+
 export function readConfiguration(): AdrGuardConfiguration {
   const configuration = vscode.workspace.getConfiguration('adrGuard.cli');
   const pathInspection = configuration.inspect<string>('path');
@@ -98,6 +109,25 @@ export function readMcpConfiguration(scope?: vscode.ConfigurationScope): McpConf
     ...(serverPath ? { serverPath } : {}),
     ignoredWorkspaceServerPath:
       pathInspection?.workspaceValue !== undefined || pathInspection?.workspaceFolderValue !== undefined,
+  };
+}
+
+export function readFeatureConfiguration(scope?: vscode.ConfigurationScope): FeatureConfiguration {
+  const analysis = vscode.workspace.getConfiguration('adrGuard.analysis', scope);
+  const governance = vscode.workspace.getConfiguration('adrGuard.governance', scope);
+  const ai = vscode.workspace.getConfiguration('adrGuard.ai', scope);
+  const policy = analysis.get<string>('driftPolicy', 'advisory');
+  const catalog = governance.get<string>('catalog', 'standard');
+  const provider = ai.get<string>('provider', '');
+  return {
+    impactManifest: analysis.get<string>('impactManifest', '.adrguard-impact.json').trim(),
+    driftRules: analysis.get<string>('driftRules', '.adrguard-fitness.json').trim(),
+    driftBaseline: analysis.get<string>('driftBaseline', '').trim(),
+    driftPolicy: policy === 'enforce' ? 'enforce' : 'advisory',
+    catalog: catalog === 'enriched' ? 'enriched' : 'standard',
+    provider: ['openai', 'anthropic', 'gemini', 'openai-compatible'].includes(provider) ? provider as FeatureConfiguration['provider'] : '',
+    model: ai.get<string>('model', '').trim(),
+    endpoint: ai.get<string>('endpoint', '').trim(),
   };
 }
 

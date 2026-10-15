@@ -459,6 +459,35 @@ button:disabled {
   }
 }
 
+.feature-grid,
+.summary-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 20px;
+}
+
+.feature-card,
+.result-card,
+.summary-card {
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.feature-card h2,
+.result-card h3 { margin-top: 0; }
+.feature-result { display: grid; gap: 12px; margin-top: 20px; }
+.summary-card { display: flex; flex-direction: column; gap: 4px; }
+.summary-card strong { font-size: 1.8rem; }
+.status { border: 1px solid currentColor; border-radius: 999px; display: inline-block; font-weight: 600; padding: 2px 8px; }
+.status-violation { color: var(--vscode-errorForeground); }
+.status-unknown, .status-not-matched, .warning { color: var(--vscode-editorWarning-foreground); }
+.status-pass, .status-affected { color: var(--vscode-testing-iconPassed); }
+.privacy-note { border-left: 3px solid var(--vscode-focusBorder); padding-left: 12px; }
+.feature-result pre { background: var(--vscode-textCodeBlock-background); max-height: 480px; overflow: auto; padding: 14px; white-space: pre-wrap; }
+
 @media (max-width: 760px) {
   .list-header {
     grid-template-columns: 1fr;

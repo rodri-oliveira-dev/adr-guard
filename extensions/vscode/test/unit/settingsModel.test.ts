@@ -26,6 +26,14 @@ describe('visual settings model', () => {
     mcpEnabled: true,
     mcpPath: process.platform === 'win32' ? 'C:\\tools\\adr-guard-mcp.dll' : '/opt/adr-guard-mcp.dll',
     mcpStatus: 'available' as const,
+    impactManifest: '.adrguard-impact.json',
+    driftRules: '.adrguard-fitness.json',
+    driftBaseline: '.adrguard-drift-baseline.json',
+    driftPolicy: 'advisory' as const,
+    catalog: 'enriched' as const,
+    aiProvider: 'anthropic' as const,
+    aiModel: 'explicit-model',
+    aiEndpoint: '',
   };
 
   it('accepts the supported values and rejects unsafe paths or unknown options', () => {
@@ -48,6 +56,10 @@ describe('visual settings model', () => {
     assert.equal(parseVisualSettingsValues({ ...values, maxOutputBytes: 1048577 }), undefined);
     assert.equal(parseVisualSettingsValues({ ...values, mcpPath: 'workspace/adr-guard-mcp.dll' }), undefined);
     assert.equal(parseVisualSettingsValues({ ...values, mcpStatus: 'connected' }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, impactManifest: '../impact.json' }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, driftRules: 'rules.yml' }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, driftPolicy: 'automatic' }), undefined);
+    assert.equal(parseVisualSettingsValues({ ...values, aiEndpoint: 'http://insecure.example.test' }), undefined);
     assert.equal(parseVisualSettingsValues({ ...values, extra: true }), undefined);
   });
 
@@ -67,6 +79,14 @@ describe('visual settings model', () => {
       { section: 'adrGuard.cli', key: 'maxOutputBytes', value: 524288, target: 'global' },
       { section: 'adrGuard.mcp', key: 'enabled', value: true, target: 'workspaceFolder' },
       { section: 'adrGuard.mcp', key: 'path', value: values.mcpPath, target: 'global' },
+      { section: 'adrGuard.analysis', key: 'impactManifest', value: '.adrguard-impact.json', target: 'workspaceFolder' },
+      { section: 'adrGuard.analysis', key: 'driftRules', value: '.adrguard-fitness.json', target: 'workspaceFolder' },
+      { section: 'adrGuard.analysis', key: 'driftBaseline', value: '.adrguard-drift-baseline.json', target: 'workspaceFolder' },
+      { section: 'adrGuard.analysis', key: 'driftPolicy', value: 'advisory', target: 'workspaceFolder' },
+      { section: 'adrGuard.governance', key: 'catalog', value: 'enriched', target: 'workspaceFolder' },
+      { section: 'adrGuard.ai', key: 'provider', value: 'anthropic', target: 'workspaceFolder' },
+      { section: 'adrGuard.ai', key: 'model', value: 'explicit-model', target: 'workspaceFolder' },
+      { section: 'adrGuard.ai', key: 'endpoint', value: '', target: 'global' },
     ]);
   });
 

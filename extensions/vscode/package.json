@@ -307,6 +307,57 @@
           "maxLength": 256,
           "scope": "resource",
           "description": "%configuration.validation.baseReference%"
+        },
+        "adrGuard.analysis.impactManifest": {
+          "type": "string",
+          "default": ".adrguard-impact.json",
+          "scope": "resource",
+          "description": "%configuration.analysis.impactManifest%"
+        },
+        "adrGuard.analysis.driftRules": {
+          "type": "string",
+          "default": ".adrguard-fitness.json",
+          "scope": "resource",
+          "description": "%configuration.analysis.driftRules%"
+        },
+        "adrGuard.analysis.driftBaseline": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "%configuration.analysis.driftBaseline%"
+        },
+        "adrGuard.analysis.driftPolicy": {
+          "type": "string",
+          "enum": ["advisory", "enforce"],
+          "default": "advisory",
+          "scope": "resource",
+          "description": "%configuration.analysis.driftPolicy%"
+        },
+        "adrGuard.governance.catalog": {
+          "type": "string",
+          "enum": ["standard", "enriched"],
+          "default": "standard",
+          "scope": "resource",
+          "description": "%configuration.governance.catalog%"
+        },
+        "adrGuard.ai.provider": {
+          "type": "string",
+          "enum": ["", "openai", "anthropic", "gemini", "openai-compatible"],
+          "default": "",
+          "scope": "resource",
+          "description": "%configuration.ai.provider%"
+        },
+        "adrGuard.ai.model": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "description": "%configuration.ai.model%"
+        },
+        "adrGuard.ai.endpoint": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "%configuration.ai.endpoint%"
         }
       }
     }

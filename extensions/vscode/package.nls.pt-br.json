@@ -33,5 +33,13 @@
   "configuration.validation.baseline": "Caminho relativo ao workspace para o arquivo JSON de baseline de diagnósticos existente usado na validação com baseline.",
   "configuration.validation.onSave": "Valida ADRs após salvar um arquivo Markdown no diretório de ADRs configurado. Desabilitado por padrão.",
   "configuration.validation.debounceMilliseconds": "Atraso, em milissegundos, usado para agrupar validações após salvamentos.",
-  "configuration.validation.baseReference": "Referência Git local padrão sugerida para validação incremental. O comando continua editável e nunca executa fetch automaticamente."
+  "configuration.validation.baseReference": "Referência Git local padrão sugerida para validação incremental. O comando continua editável e nunca executa fetch automaticamente.",
+  "configuration.analysis.impactManifest": "Caminho relativo ao workspace do manifesto de impacto entre ADRs e código.",
+  "configuration.analysis.driftRules": "Caminho relativo ao workspace das regras de fitness arquitetural.",
+  "configuration.analysis.driftBaseline": "Caminho relativo opcional do baseline de desvio arquitetural.",
+  "configuration.analysis.driftPolicy": "Política padrão de desvio arquitetural. Advisory é o padrão seguro.",
+  "configuration.governance.catalog": "Modo padrão do catálogo do índice de ADRs.",
+  "configuration.ai.provider": "Provedor de IA preferido para operações de rascunho e revisão iniciadas explicitamente. Nenhum provedor é selecionado por padrão.",
+  "configuration.ai.model": "Identificador preferido do modelo do provedor. O ADR Guard não escolhe um modelo padrão.",
+  "configuration.ai.endpoint": "Endpoint HTTPS usado somente pelo provedor compatível com OpenAI. Credenciais nunca são armazenadas aqui."
 }

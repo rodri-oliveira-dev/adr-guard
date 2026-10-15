@@ -6,7 +6,7 @@ import { CliDiscoveryError } from '../cli/discovery';
 import { CliExecutor, requireSuccessfulResult, safeErrorLine } from '../cli/executor';
 import { newAdrFormSchemaVersion, parseNewAdrFormResponse, type NewAdrFormOperation, type NewAdrFormResponse } from '../contracts/newForm';
 import { editFormSchemaVersion, parseEditFormResponse } from '../contracts/editForm';
-import { readConfiguration, readCreationConfiguration, readMcpConfiguration, readUiConfiguration, readValidationConfiguration } from '../configuration';
+import { readConfiguration, readCreationConfiguration, readFeatureConfiguration, readMcpConfiguration, readUiConfiguration, readValidationConfiguration } from '../configuration';
 import type { InstallationCheckResult } from './checkInstallation';
 import type { AdrExplorerProvider } from '../explorer/provider';
 import { OperationalLog } from '../logging';
@@ -18,6 +18,8 @@ import { applyConfigurationWrites, configurationWrites, type ConfigurationWrite,
 import { buildVisualEditArguments } from './editArguments';
 import type { McpDiscoveryResult } from '../mcp/discovery';
 import type { McpSettingsStatus } from '../webview/settingsModel';
+import { parseFeatureMessage, type FeatureValues, type VisualFeature } from '../webview/featureMessages';
+import { VisualFeatureExecutor } from './visualFeatures';
 
 interface NewAdrFormDependencies {
   readonly executor: CliExecutor;
@@ -36,7 +38,7 @@ interface NewAdrFormDependencies {
 }
 
 type InitialScreen = 'list' | 'form';
-type VisualScreen = InitialScreen | 'edit' | 'settings';
+type VisualScreen = InitialScreen | 'edit' | 'settings' | 'features' | 'feature';
 
 export class NewAdrFormPanel implements vscode.Disposable {
   private static current: NewAdrFormPanel | undefined;
@@ -50,9 +52,12 @@ export class NewAdrFormPanel implements vscode.Disposable {
   private listActionActive = false;
   private settingsCheckActive = false;
   private mcpCheckActive = false;
+  private readonly featureExecutor: VisualFeatureExecutor;
+  private featurePromptActive = false;
   private created: { readonly workspace: string; readonly relativePath: string; readonly filePath: string; readonly kind: 'created' | 'updated' } | undefined;
 
   private constructor(private readonly dependencies: NewAdrFormDependencies, private screen: VisualScreen) {
+    this.featureExecutor = new VisualFeatureExecutor(dependencies.executor);
     this.panel = vscode.window.createWebviewPanel('adrGuard.visual', vscode.l10n.t('ADR Guard'), vscode.ViewColumn.Active, {
       enableScripts: true,
       retainContextWhenHidden: true,
@@ -88,6 +93,11 @@ export class NewAdrFormPanel implements vscode.Disposable {
   }
 
   private async receive(value: unknown): Promise<void> {
+    const featureMessage = parseFeatureMessage(value);
+    if (featureMessage !== undefined) {
+      await this.receiveFeature(featureMessage);
+      return;
+    }
     const inputLimit = visualFormInputLimit(value);
     if (inputLimit !== undefined) {
       await this.post({ type: 'error', message: inputLimit === 'edit'
@@ -196,6 +206,109 @@ export class NewAdrFormPanel implements vscode.Disposable {
     await this.run(message.type, message.values);
   }
 
+  private async receiveFeature(message: NonNullable<ReturnType<typeof parseFeatureMessage>>): Promise<void> {
+    if (this.disposed) return;
+    if (message.type === 'cancelFeatureOperation' && message.workspace === this.selectedWorkspace) {
+      this.activeOperation?.abort();
+      return;
+    }
+    if (this.submission.isActive) return;
+    if (message.type === 'openFeatures' && message.workspace !== undefined) {
+      this.selectedWorkspace = message.workspace;
+      this.screen = 'features';
+      await this.post({ type: 'showFeatures', workspace: message.workspace });
+      return;
+    }
+    if (message.type === 'showFeature' && message.workspace !== undefined && message.feature !== undefined) {
+      this.selectedWorkspace = message.workspace;
+      this.screen = 'feature';
+      await this.showFeature(message.workspace, message.feature, message.resource);
+      return;
+    }
+    if (message.type === 'cancelFeature' && message.workspace !== undefined) {
+      this.activeOperation?.abort();
+      this.screen = 'features';
+      await this.post({ type: 'showFeatures', workspace: message.workspace });
+      return;
+    }
+    if (message.type === 'openFeatureResource' && message.workspace !== undefined && message.resource !== undefined) {
+      await this.openFeatureResource(message.workspace, message.resource);
+      return;
+    }
+    if ((message.type === 'executeFeature' || message.type === 'createDraft') && message.values !== undefined) {
+      await this.executeFeature(message.values, message.type === 'createDraft');
+    }
+  }
+
+  private async showFeature(workspace: string, feature: VisualFeature, selectedAdr?: string): Promise<void> {
+    const folder = workspaceFolder(workspace);
+    const validation = readValidationConfiguration(folder.uri);
+    const configuration = readFeatureConfiguration(folder.uri);
+    let adrs: readonly { readonly relativePath: string; readonly title?: string; readonly id?: string }[] = [];
+    if (feature === 'review' || feature === 'drift') {
+      adrs = (await this.dependencies.explorer.catalogFor(folder)).map((entry) => ({
+        relativePath: path.posix.join(validation.directory.replaceAll('\\', '/'), entry.relativePath),
+        ...(entry.metadata.title ? { title: entry.metadata.title } : {}),
+        ...(entry.metadata.id ? { id: entry.metadata.id } : {}),
+      }));
+    }
+    await this.post({ type: 'showFeature', feature, workspace, defaults: { ...configuration, directory: validation.directory, baseReference: validation.baseReference }, adrs, ...(selectedAdr === undefined ? {} : { selectedAdr }) });
+  }
+
+  private async executeFeature(values: FeatureValues, createDraft: boolean): Promise<void> {
+    if (this.featurePromptActive) return;
+    this.featurePromptActive = true;
+    let confirmation: boolean;
+    try { confirmation = await this.confirmFeatureExecution(values, createDraft); }
+    finally { this.featurePromptActive = false; }
+    if (!confirmation) return;
+    if (!this.submission.begin()) return;
+    const controller = new AbortController();
+    this.activeOperation?.abort();
+    this.activeOperation = controller;
+    await this.post({ type: 'featureBusy', feature: values.feature });
+    try {
+      const result = await this.featureExecutor.run(workspaceFolder(values.workspace), values, controller.signal, createDraft);
+      if (values.feature === 'catalog' || values.feature === 'baseline' || (values.feature === 'draft' && createDraft)) this.dependencies.refreshExplorer();
+      await this.post({ type: 'featureResult', workspace: values.workspace, result });
+    } catch (error: unknown) {
+      if (controller.signal.aborted) return;
+      this.dependencies.log.info(`Visual feature '${values.feature}' failed: ${safeLogError(error)}`);
+      await this.post({ type: 'featureError', message: featureErrorMessage(error) });
+    } finally {
+      if (this.activeOperation === controller) this.activeOperation = undefined;
+      this.submission.end();
+      if (!this.disposed) await this.post({ type: 'featureIdle', feature: values.feature });
+    }
+  }
+
+  private async confirmFeatureExecution(values: FeatureValues, createDraft: boolean): Promise<boolean> {
+    if (values.feature === 'impact' || values.feature === 'drift') return true;
+    let message: string;
+    if (values.feature === 'catalog') message = vscode.l10n.t('ADR Guard will update the ADR directory README using the selected catalog. Continue?');
+    else if (values.feature === 'baseline') message = values.update
+      ? vscode.l10n.t('ADR Guard will replace the selected diagnostic baseline. Continue?')
+      : vscode.l10n.t('ADR Guard will create the selected diagnostic baseline. Continue?');
+    else if (values.feature === 'review') message = vscode.l10n.t('Send the selected ADR and explicitly selected context to {0} using model {1}? The provider is external and the review remains advisory.', values.provider ?? '', values.model ?? '');
+    else message = createDraft
+      ? vscode.l10n.t('Generate the ADR again with {0}/{1} and create a Proposed document? This is a new provider invocation and may differ from the preview.', values.provider ?? '', values.model ?? '')
+      : vscode.l10n.t('Send the entered context and explicitly selected files to {0} using model {1} for a draft preview?', values.provider ?? '', values.model ?? '');
+    const proceed = vscode.l10n.t('Continue');
+    return await vscode.window.showWarningMessage(message, { modal: true }, proceed) === proceed;
+  }
+
+  private async openFeatureResource(workspace: string, resource: string): Promise<void> {
+    try {
+      const folder = workspaceFolder(workspace);
+      const root = await resolveWorkspaceRoot(asLocation(folder));
+      const safePath = await ensureResourceWithinWorkspace(resolveWorkspaceRelativePath(root, resource), root);
+      await vscode.window.showTextDocument(vscode.Uri.file(safePath), { preview: true });
+    } catch (error: unknown) {
+      this.dependencies.log.info(`Feature resource navigation was blocked: ${safeLogError(error)}`);
+      await this.post({ type: 'featureError', message: vscode.l10n.t('The selected file could not be opened safely inside this workspace.') });
+    }
+  }
+
   private async initialize(): Promise<void> {
     const folders = localFolders();
     const activeFolder = vscode.window.activeTextEditor === undefined ? undefined : vscode.workspace.getWorkspaceFolder(vscode.window.activeTextEditor.document.uri);
@@ -240,6 +353,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
     const creation = readCreationConfiguration(folder.uri);
     const cli = readConfiguration();
     const mcp = readMcpConfiguration(folder.uri);
+    const features = readFeatureConfiguration(folder.uri);
     const mcpStatus = await this.mcpStatus(folder, mcp.enabled);
     return {
       workspace: folder.uri.toString(), uiLanguage: readUiConfiguration().language,
@@ -250,12 +364,15 @@ export class NewAdrFormPanel implements vscode.Disposable {
       cliPath: cli.executablePath ?? '', timeoutMilliseconds: cli.timeoutMilliseconds,
       maxOutputBytes: cli.maxOutputBytes,
       mcpEnabled: mcp.enabled, mcpPath: mcp.serverPath ?? '', mcpStatus,
+      impactManifest: features.impactManifest, driftRules: features.driftRules,
+      driftBaseline: features.driftBaseline, driftPolicy: features.driftPolicy, catalog: features.catalog,
+      aiProvider: features.provider, aiModel: features.model, aiEndpoint: features.endpoint,
     };
   }
 
   private async saveSettings(values: VisualSettingsValues, state?: ListState): Promise<void> {
     await this.post({ type: 'settingsBusy' });
-    let pathSetting: 'directory' | 'baseline' = 'directory';
+    let pathSetting: 'directory' | 'baseline' | 'analysis' = 'directory';
     try {
       if (!vscode.workspace.isTrusted) throw new WorkspacePolicyError('Workspace is not trusted.', 'missing');
       const normalized = {
@@ -263,12 +380,18 @@ export class NewAdrFormPanel implements vscode.Disposable {
         directory: values.directory.trim(), baseline: values.baseline.trim(),
         baseReference: values.baseReference.trim(), cliPath: values.cliPath.trim(),
         mcpPath: values.mcpPath.trim(),
+        impactManifest: values.impactManifest.trim(), driftRules: values.driftRules.trim(),
+        driftBaseline: values.driftBaseline.trim(), aiModel: values.aiModel.trim(), aiEndpoint: values.aiEndpoint.trim(),
       };
       const folder = workspaceFolder(values.workspace);
       const root = await resolveWorkspaceRoot(asLocation(folder));
       await ensurePotentialDirectoryWithinWorkspace(resolveWorkspaceRelativePath(root, normalized.directory), root);
       pathSetting = 'baseline';
       await ensurePotentialFileWithinWorkspace(resolveWorkspaceRelativePath(root, normalized.baseline), root);
+      pathSetting = 'analysis';
+      await ensurePotentialFileWithinWorkspace(resolveWorkspaceRelativePath(root, normalized.impactManifest), root);
+      await ensurePotentialFileWithinWorkspace(resolveWorkspaceRelativePath(root, normalized.driftRules), root);
+      if (normalized.driftBaseline) await ensurePotentialFileWithinWorkspace(resolveWorkspaceRelativePath(root, normalized.driftBaseline), root);
       await applyConfigurationWrites(
         configurationWrites(normalized),
         (write) => this.configurationValue(write, folder),
@@ -287,7 +410,9 @@ export class NewAdrFormPanel implements vscode.Disposable {
         message: error instanceof WorkspacePolicyError
           ? pathSetting === 'baseline'
             ? vscode.l10n.t('The baseline must be a safe relative JSON file inside the selected workspace.')
-            : vscode.l10n.t('The ADR directory must be a safe relative path inside the selected workspace.')
+            : pathSetting === 'analysis'
+              ? vscode.l10n.t('Architecture analysis files must be safe relative JSON paths inside the selected workspace.')
+              : vscode.l10n.t('The ADR directory must be a safe relative path inside the selected workspace.')
           : vscode.l10n.t('Settings could not be saved completely. Review the values and try again.'),
       });
     } finally {
@@ -636,6 +761,32 @@ function webviewStrings(extensionUri: vscode.Uri): Record<'en-US' | 'pt-BR', Rec
     'Availability does not mean that the server is connected or running.',
     'Checking MCP configuration...', 'Disabled', 'Not configured', 'Executable not found',
     'Invalid configuration', 'Available for startup', 'Known error',
+    'Architecture and Governance', 'Architecture Impact', 'Architectural Fitness',
+    'Diagnostic Baselines', 'ADR Catalog', 'AI-Assisted ADR Draft', 'AI-Assisted Technical Review',
+    'Correlate Git changes with explicit ADR-to-code mappings.',
+    'Evaluate ADR-backed architecture rules from bounded evidence.',
+    'Create or explicitly update a validation baseline.',
+    'Generate the standard index or enriched governance catalog.',
+    'Generate and review a Proposed ADR preview.', 'Request an advisory review of one existing ADR.',
+    'Open', 'Configuration', 'Git comparison reference', 'Impact manifest', 'Architecture rules file',
+    'Authorized evidence files (one per line)', 'Optional architecture baseline', 'Policy', 'Advisory', 'Enforce',
+    'Baseline destination', 'Replace an existing baseline after confirmation', 'Standard index', 'Enriched catalog',
+    'Catalog type', 'ADR to review', 'Optional Git comparison reference', 'Review policy',
+    'Optional review policy file', 'Select a provider', 'Provider', 'Model identifier',
+    'HTTPS endpoint (OpenAI-compatible only)', 'Explicit context files (one per line)',
+    'Include bounded existing ADR context',
+    'Only the selected material is sent to the external provider. Credentials stay in the CLI environment and are never shown here.',
+    'Generate preview', 'Execute', 'Discard the unsaved feature inputs?', 'Affected decisions', 'Unmapped changes',
+    'Unknown mappings', 'Open ADR', 'Pass', 'Violations', 'Unknown', 'Not applicable', 'Review outcome',
+    'Compared with Git reference', 'Limitations', 'Generated Markdown preview', 'Create Proposed ADR',
+    'Creation invokes the provider again; the created content may differ from this preview.', 'Operation completed.',
+    'Open file', 'Running ADR Guard…', 'advisory', 'affected', 'unknown', 'not-matched', 'pass', 'violation',
+    'not-applicable', 'no-finding',
+    'Architecture Analysis', 'AI Providers', 'Default drift policy', 'Default catalog type',
+    'Advisory remains the safe default; enforcement is never enabled automatically.',
+    'Preferred provider', 'No provider selected', 'No provider or model is selected automatically.',
+    'API keys remain in the CLI environment and are never stored by the extension.',
+    'Review ADR', 'View existing baseline', 'Cancel operation', 'Recommendation', 'Investigation priority',
   );
   const english = Object.fromEntries(values.map((value) => [value, value]));
   const portugueseCatalog = readTranslationCatalog(vscode.Uri.joinPath(extensionUri, 'l10n', 'bundle.l10n.pt-br.json'));
@@ -662,4 +813,10 @@ function mapMcpStatus(result: McpDiscoveryResult): McpSettingsStatus {
   if (result.code === 'not-found') return 'not-found';
   if (result.code === 'invalid-configuration') return 'invalid-configuration';
   return 'error';
+}
+
+function featureErrorMessage(error: unknown): string {
+  if (error instanceof WorkspacePolicyError) return vscode.l10n.t('All selected files must be safe resources inside the selected trusted local workspace.');
+  if (error instanceof CliDiscoveryError) return vscode.l10n.t('ADR Guard was not found. Configure adrGuard.cli.path or install it on the extension host PATH.');
+  return error instanceof Error ? error.message : vscode.l10n.t('ADR Guard failed for an unknown reason.');
 }

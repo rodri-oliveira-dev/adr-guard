@@ -27,13 +27,23 @@ export interface VisualSettingsValues {
   readonly mcpEnabled: boolean;
   readonly mcpPath: string;
   readonly mcpStatus: McpSettingsStatus;
+  readonly impactManifest: string;
+  readonly driftRules: string;
+  readonly driftBaseline: string;
+  readonly driftPolicy: 'advisory' | 'enforce';
+  readonly catalog: 'standard' | 'enriched';
+  readonly aiProvider: '' | 'openai' | 'anthropic' | 'gemini' | 'openai-compatible';
+  readonly aiModel: string;
+  readonly aiEndpoint: string;
 }
 
 export interface ConfigurationWrite {
-  readonly section: 'adrGuard.ui' | 'adrGuard.creation' | 'adrGuard.validation' | 'adrGuard.cli' | 'adrGuard.mcp';
+  readonly section: 'adrGuard.ui' | 'adrGuard.creation' | 'adrGuard.validation' | 'adrGuard.cli' | 'adrGuard.mcp'
+    | 'adrGuard.analysis' | 'adrGuard.governance' | 'adrGuard.ai';
   readonly key: 'language' | 'documentLanguage' | 'defaultTemplate' | 'directory' | 'adrFormat'
     | 'onSave' | 'debounceMilliseconds' | 'baseline' | 'baseReference'
-    | 'path' | 'timeoutMilliseconds' | 'maxOutputBytes' | 'enabled';
+    | 'path' | 'timeoutMilliseconds' | 'maxOutputBytes' | 'enabled' | 'impactManifest' | 'driftRules'
+    | 'driftBaseline' | 'driftPolicy' | 'catalog' | 'provider' | 'model' | 'endpoint';
   readonly value: string | number | boolean;
   readonly target: 'global' | 'workspaceFolder';
 }
@@ -77,6 +87,7 @@ export function parseVisualSettingsValues(value: unknown): VisualSettingsValues 
     'workspace', 'uiLanguage', 'documentLanguage', 'directory', 'adrFormat', 'defaultTemplate',
     'onSave', 'debounceMilliseconds', 'baseline', 'baseReference', 'cliPath',
     'timeoutMilliseconds', 'maxOutputBytes', 'mcpEnabled', 'mcpPath', 'mcpStatus',
+    'impactManifest', 'driftRules', 'driftBaseline', 'driftPolicy', 'catalog', 'aiProvider', 'aiModel', 'aiEndpoint',
   ].includes(key))) return undefined;
   if (!boundedString(value.workspace, 4096)
     || !['auto', 'en-US', 'pt-BR'].includes(String(value.uiLanguage))
@@ -96,7 +107,13 @@ export function parseVisualSettingsValues(value: unknown): VisualSettingsValues 
     || !boundedString(value.mcpPath, 4096)
     || (value.mcpPath.trim().length > 0 && !isSafeMcpServerPath(value.mcpPath.trim()))
     || !['disabled', 'not-configured', 'not-found', 'invalid-configuration', 'available', 'error']
-      .includes(String(value.mcpStatus))) return undefined;
+      .includes(String(value.mcpStatus))
+    || !isSafeRelativeJsonFile(value.impactManifest) || !isSafeRelativeJsonFile(value.driftRules)
+    || !(value.driftBaseline === '' || isSafeRelativeJsonFile(value.driftBaseline))
+    || !['advisory', 'enforce'].includes(String(value.driftPolicy))
+    || !['standard', 'enriched'].includes(String(value.catalog))
+    || !['', 'openai', 'anthropic', 'gemini', 'openai-compatible'].includes(String(value.aiProvider))
+    || !boundedString(value.aiModel, 256) || !validEndpoint(value.aiEndpoint)) return undefined;
   return value as unknown as VisualSettingsValues;
 }
 
@@ -116,6 +133,14 @@ export function configurationWrites(values: VisualSettingsValues): readonly Conf
     { section: 'adrGuard.cli', key: 'maxOutputBytes', value: values.maxOutputBytes, target: 'global' },
     { section: 'adrGuard.mcp', key: 'enabled', value: values.mcpEnabled, target: 'workspaceFolder' },
     { section: 'adrGuard.mcp', key: 'path', value: values.mcpPath.trim(), target: 'global' },
+    { section: 'adrGuard.analysis', key: 'impactManifest', value: values.impactManifest.trim(), target: 'workspaceFolder' },
+    { section: 'adrGuard.analysis', key: 'driftRules', value: values.driftRules.trim(), target: 'workspaceFolder' },
+    { section: 'adrGuard.analysis', key: 'driftBaseline', value: values.driftBaseline.trim(), target: 'workspaceFolder' },
+    { section: 'adrGuard.analysis', key: 'driftPolicy', value: values.driftPolicy, target: 'workspaceFolder' },
+    { section: 'adrGuard.governance', key: 'catalog', value: values.catalog, target: 'workspaceFolder' },
+    { section: 'adrGuard.ai', key: 'provider', value: values.aiProvider, target: 'workspaceFolder' },
+    { section: 'adrGuard.ai', key: 'model', value: values.aiModel.trim(), target: 'workspaceFolder' },
+    { section: 'adrGuard.ai', key: 'endpoint', value: values.aiEndpoint.trim(), target: 'global' },
   ];
 }
 
@@ -145,6 +170,12 @@ function integerInRange(value: unknown, minimum: number, maximum: number): value
 
 function boundedString(value: unknown, maximum: number): value is string {
   return typeof value === 'string' && value.length <= maximum && !value.includes('\0');
+}
+
+function validEndpoint(value: unknown): value is string {
+  if (!boundedString(value, 2048)) return false;
+  if (value.trim().length === 0) return true;
+  try { const url = new URL(value); return url.protocol === 'https:' && url.username === '' && url.password === ''; } catch { return false; }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

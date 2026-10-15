@@ -406,6 +406,45 @@ describe('visual ADR form control events', () => {
       assert.equal(harness.messages.some((message) => message.type === 'saveSettings'), false, id);
     }
   });
+
+  it('opens visual architecture features without executing work and makes Back and Cancel side-effect free', () => {
+    const harness = createHarness('list');
+    harness.dispatchHost(listResult());
+    harness.clearMessages();
+    harness.clickButton('Architecture and Governance');
+    assert.deepEqual(harness.messages.map((message) => message.type), ['openFeatures']);
+    assertNoMutationOrValidation(harness.messages);
+
+    harness.dispatchHost({ type: 'showFeature', feature: 'impact', workspace, defaults: { baseReference: 'main', impactManifest: '.adrguard-impact.json' }, adrs: [] });
+    harness.clearMessages();
+    harness.input('feature-base', 'origin/main');
+    harness.confirmWith(false);
+    harness.clickButton('← Architecture and Governance');
+    assert.equal(harness.messages.length, 0);
+    harness.confirmWith(true);
+    harness.clickButton('Cancel');
+    assert.deepEqual(harness.messages, [{ type: 'cancelFeature', workspace }]);
+    assertNoMutationOrValidation(harness.messages);
+  });
+
+  it('executes analysis only on submit and renders unknown separately from pass', () => {
+    const harness = createHarness('list');
+    harness.dispatchHost({ type: 'showFeature', feature: 'drift', workspace, defaults: { driftRules: '.adrguard-fitness.json', driftBaseline: '', driftPolicy: 'advisory' }, adrs: [] });
+    assert.equal(harness.messages.length, 1); // initial ready only
+    harness.clearMessages();
+    harness.submit('feature-form');
+    const execution = harness.messages[0];
+    assert.ok(execution);
+    assert.equal(execution.type, 'executeFeature');
+    assert.equal((execution.values as { policy?: string }).policy, 'advisory');
+    harness.dispatchHost({ type: 'featureBusy', feature: 'drift' });
+    harness.click('feature-cancel-operation');
+    assert.equal(harness.messages.at(-1)?.type, 'cancelFeatureOperation');
+    harness.dispatchHost({ type: 'featureResult', workspace, result: { feature: 'drift', exitCode: 3, diagnostic: 'inconclusive', report: { schemaVersion: '1.0', policy: 'advisory', repository: { rulesManifest: '.adrguard-fitness.json', commit: null }, coverage: { totalRules: 2, pass: 1, violations: 0, unknown: 1, notApplicable: 0 }, findings: [{ fingerprint: 'F', ruleId: 'external', adrStableId: 'ADR-1', outcome: 'unknown', checkType: 'external-test', confidence: 'reported-external', baselineState: 'current', explanation: 'Evidence missing.', evidence: [] }] } } });
+    assert.match(harness.document.getElementById('feature-result')?.textContent ?? '', /Pass1|1Pass/u);
+    assert.match(harness.document.getElementById('feature-result')?.textContent ?? '', /Unknown1|1Unknown/u);
+    assert.match(harness.document.getElementById('feature-result')?.textContent ?? '', /Evidence missing/u);
+  });
 });
 
 function settingsValues(): Record<string, unknown> {
@@ -415,6 +454,8 @@ function settingsValues(): Record<string, unknown> {
     onSave: false, debounceMilliseconds: 750, baseline: '.adrguard-baseline.json', baseReference: 'main',
     cliPath: '', timeoutMilliseconds: 15000, maxOutputBytes: 262144,
     mcpEnabled: false, mcpPath: '', mcpStatus: 'disabled',
+    impactManifest: '.adrguard-impact.json', driftRules: '.adrguard-fitness.json', driftBaseline: '',
+    driftPolicy: 'advisory', catalog: 'standard', aiProvider: '', aiModel: '', aiEndpoint: '',
   };
 }
 
@@ -508,6 +549,7 @@ function createHarness(
     document,
     setTimeout: (callback: () => void) => { timer += 1; timers.set(timer, callback); return timer; },
     window,
+    URL,
   });
   dispatch({
     type: 'initialize', trusted: true,

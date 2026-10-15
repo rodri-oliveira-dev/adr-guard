@@ -33,5 +33,13 @@
   "configuration.validation.baseline": "Workspace-relative path to the existing diagnostic baseline JSON file used by baseline validation.",
   "configuration.validation.onSave": "Validate ADRs after saving a Markdown file in the configured ADR directory. Disabled by default.",
   "configuration.validation.debounceMilliseconds": "Delay in milliseconds used to coalesce validation after saves.",
-  "configuration.validation.baseReference": "Default local Git reference suggested for incremental validation. The command remains editable and never fetches automatically."
+  "configuration.validation.baseReference": "Default local Git reference suggested for incremental validation. The command remains editable and never fetches automatically.",
+  "configuration.analysis.impactManifest": "Workspace-relative ADR-to-code impact manifest path.",
+  "configuration.analysis.driftRules": "Workspace-relative architecture fitness rules path.",
+  "configuration.analysis.driftBaseline": "Optional workspace-relative architectural drift baseline path.",
+  "configuration.analysis.driftPolicy": "Default architectural drift policy. Advisory is the safe default.",
+  "configuration.governance.catalog": "Default ADR index catalog mode.",
+  "configuration.ai.provider": "Preferred AI provider for explicitly initiated draft and review operations. No provider is selected by default.",
+  "configuration.ai.model": "Preferred provider model identifier. ADR Guard does not choose a default model.",
+  "configuration.ai.endpoint": "HTTPS endpoint used only by the openai-compatible provider. Credentials are never stored here."
 }

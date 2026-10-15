@@ -1,4 +1,4 @@
-/* global acquireVsCodeApi, confirm, document, window, clearTimeout, setTimeout */
+/* global acquireVsCodeApi, confirm, document, window, clearTimeout, setTimeout, URL */
 (function () {
   'use strict';
   const vscode = acquireVsCodeApi();
@@ -29,6 +29,9 @@
   let installationCheckBusy = false;
   let installationCheckResult;
   let mcpCheckBusy = false;
+  let featureBusy = false;
+  let featureDirty = false;
+  let activeFeatureAdrs = [];
   const valuesByField = {};
   const restored = vscode.getState() || {};
   let listState = normalizeListState(restored.listState);
@@ -77,6 +80,123 @@
     if (action) state.append(action);
     app.append(state);
   }
+
+  function featureMessage(type, extra) { return { type, workspace: selectedWorkspace, ...(extra || {}) }; }
+  function backFromFeature() {
+    if (featureBusy || (featureDirty && !confirm(t('Discard the unsaved feature inputs?')))) return;
+    featureDirty = false;
+    vscode.postMessage(featureMessage('cancelFeature'));
+  }
+  function featureField(parent, id, label, value, required, multiline) {
+    const control = element(multiline ? 'textarea' : 'input', multiline ? { id, rows: '5' } : { id, type: 'text', autocomplete: 'off' });
+    control.value = value || '';
+    if (required) control.required = true;
+    control.addEventListener('input', () => { featureDirty = true; });
+    appendField(parent, id, t(label), control, undefined, required);
+    return control;
+  }
+  function renderFeatures() {
+    featureDirty = false; app.replaceChildren();
+    const header = element('header', { className: 'form-header' });
+    header.append(button(`← ${t('Back to ADR list')}`, () => vscode.postMessage({ type: 'cancel', workspace: selectedWorkspace }), true), element('h1', {}, t('Architecture and Governance')));
+    const grid = element('section', { className: 'feature-grid', 'aria-label': t('Architecture and Governance') });
+    [
+      ['impact', 'Architecture Impact', 'Correlate Git changes with explicit ADR-to-code mappings.'],
+      ['drift', 'Architectural Fitness', 'Evaluate ADR-backed architecture rules from bounded evidence.'],
+      ['baseline', 'Diagnostic Baselines', 'Create or explicitly update a validation baseline.'],
+      ['catalog', 'ADR Catalog', 'Generate the standard index or enriched governance catalog.'],
+      ['draft', 'AI-Assisted ADR Draft', 'Generate and review a Proposed ADR preview.'],
+      ['review', 'AI-Assisted Technical Review', 'Request an advisory review of one existing ADR.'],
+    ].forEach(([feature, title, description]) => {
+      const card = element('article', { className: 'feature-card' });
+      card.append(element('h2', {}, t(title)), element('p', {}, t(description)), button(t('Open'), () => vscode.postMessage(featureMessage('showFeature', { feature }))));
+      grid.append(card);
+    });
+    app.append(header, grid);
+  }
+  function renderFeature(message) {
+    featureDirty = false; featureBusy = false; activeFeatureAdrs = message.adrs || []; app.replaceChildren();
+    const names = { impact: 'Architecture Impact', drift: 'Architectural Fitness', baseline: 'Diagnostic Baselines', catalog: 'ADR Catalog', draft: 'AI-Assisted ADR Draft', review: 'AI-Assisted Technical Review' };
+    const header = element('header', { className: 'form-header' });
+    header.append(button(`← ${t('Architecture and Governance')}`, backFromFeature, true), element('h1', {}, t(names[message.feature])));
+    const status = element('div', { id: 'feature-status', role: 'status', 'aria-live': 'polite' });
+    const error = element('div', { id: 'feature-error', role: 'alert', className: 'error hidden' });
+    const form = element('form', { id: 'feature-form' });
+    const fields = element('fieldset', { className: 'form-section' }); fields.append(element('legend', {}, t('Configuration')));
+    const d = message.defaults || {};
+    const controls = {};
+    if (message.feature !== 'impact' && message.feature !== 'drift' && message.feature !== 'review') controls.directory = featureField(fields, 'feature-directory', 'ADR directory', d.directory, true);
+    if (message.feature === 'impact') {
+      controls.baseReference = featureField(fields, 'feature-base', 'Git comparison reference', d.baseReference, true);
+      controls.manifest = featureField(fields, 'feature-manifest', 'Impact manifest', d.impactManifest, true);
+    } else if (message.feature === 'drift') {
+      controls.rules = featureField(fields, 'feature-rules', 'Architecture rules file', d.driftRules, true);
+      controls.evidence = featureField(fields, 'feature-evidence', 'Authorized evidence files (one per line)', '', false, true);
+      controls.baseline = featureField(fields, 'feature-baseline', 'Optional architecture baseline', d.driftBaseline, false);
+      controls.policy = select('feature-policy', [{ value: 'advisory', label: t('Advisory') }, { value: 'enforce', label: t('Enforce') }]); controls.policy.value = d.driftPolicy || 'advisory'; controls.policy.addEventListener('change', () => { featureDirty = true; }); appendField(fields, 'feature-policy', t('Policy'), controls.policy);
+    } else if (message.feature === 'baseline') {
+      controls.destination = featureField(fields, 'feature-destination', 'Baseline destination', '.adrguard-baseline.json', true);
+      controls.update = element('input', { id: 'feature-update', type: 'checkbox' }); controls.update.addEventListener('change', () => { featureDirty = true; }); const row = element('label', { className: 'checkbox-row', for: 'feature-update' }); row.append(controls.update, element('span', {}, t('Replace an existing baseline after confirmation'))); fields.append(row);
+    } else if (message.feature === 'catalog') {
+      controls.catalog = select('feature-catalog', [{ value: 'standard', label: t('Standard index') }, { value: 'enriched', label: t('Enriched catalog') }]); controls.catalog.value = d.catalog || 'standard'; controls.catalog.addEventListener('change', () => { featureDirty = true; }); appendField(fields, 'feature-catalog', t('Catalog type'), controls.catalog);
+    } else {
+      if (message.feature === 'draft') {
+        controls.title = featureField(fields, 'feature-title', 'Decision title', '', true);
+        controls.context = featureField(fields, 'feature-context', 'Context', '', true, true);
+        controls.culture = select('feature-culture', [{ value: 'en-US', label: 'English' }, { value: 'pt-BR', label: 'Português (Brasil)' }]); appendField(fields, 'feature-culture', t('Document language'), controls.culture);
+        controls.template = select('feature-template', [{ value: 'configured', label: t('Configured template') }, { value: 'minimal', label: t('Minimal') }, { value: 'extended', label: t('Extended') }]); appendField(fields, 'feature-template', t('Creation template'), controls.template);
+      } else {
+        controls.targetAdr = select('feature-target', (message.adrs || []).map((adr) => ({ value: adr.relativePath, label: `${adr.id || ''} ${adr.title || adr.relativePath}`.trim() }))); controls.targetAdr.value = message.selectedAdr || controls.targetAdr.value; controls.targetAdr.required = true; appendField(fields, 'feature-target', t('ADR to review'), controls.targetAdr, undefined, true);
+        controls.compareReference = featureField(fields, 'feature-compare', 'Optional Git comparison reference', '', false);
+        controls.policy = select('feature-policy', [{ value: 'advisory', label: t('Advisory') }, { value: 'enforce', label: t('Enforce') }]); appendField(fields, 'feature-policy', t('Review policy'), controls.policy);
+        controls.policyFile = featureField(fields, 'feature-policy-file', 'Optional review policy file', '', false);
+      }
+      controls.provider = select('feature-provider', [{ value: '', label: t('Select a provider') }, ...['openai', 'anthropic', 'gemini', 'openai-compatible'].map((value) => ({ value, label: value }))]); controls.provider.value = d.provider || ''; controls.provider.required = true; appendField(fields, 'feature-provider', t('Provider'), controls.provider, undefined, true);
+      controls.model = featureField(fields, 'feature-model', 'Model identifier', d.model, true);
+      controls.endpoint = featureField(fields, 'feature-endpoint', 'HTTPS endpoint (OpenAI-compatible only)', d.endpoint, false);
+      controls.contextFiles = featureField(fields, 'feature-context-files', 'Explicit context files (one per line)', '', false, true);
+      controls.includeExistingAdrs = element('input', { id: 'feature-existing', type: 'checkbox' }); const include = element('label', { className: 'checkbox-row', for: 'feature-existing' }); include.append(controls.includeExistingAdrs, element('span', {}, t('Include bounded existing ADR context'))); fields.append(include);
+      fields.append(element('p', { className: 'privacy-note' }, t('Only the selected material is sent to the external provider. Credentials stay in the CLI environment and are never shown here.')));
+      const updateEndpoint = () => { const compatible = controls.provider.value === 'openai-compatible'; controls.endpoint.disabled = !compatible; controls.endpoint.required = compatible; if (!compatible) controls.endpoint.value = ''; };
+      controls.provider.addEventListener('change', updateEndpoint); updateEndpoint();
+    }
+    Object.values(controls).forEach((control) => control.addEventListener?.('change', () => { featureDirty = true; }));
+    const actions = element('div', { className: 'actions form-actions' });
+    const execute = element('button', { id: 'feature-execute', type: 'submit' }, t(message.feature === 'draft' ? 'Generate preview' : 'Execute'));
+    actions.append(execute);
+    if (message.feature === 'baseline') actions.append(button(t('View existing baseline'), () => vscode.postMessage(featureMessage('openFeatureResource', { resource: controls.destination.value })), true));
+    const cancelOperation = button(t('Cancel operation'), () => vscode.postMessage(featureMessage('cancelFeatureOperation')), true); cancelOperation.id = 'feature-cancel-operation'; cancelOperation.disabled = true; actions.append(cancelOperation);
+    actions.append(button(t('Cancel'), backFromFeature, true));
+    form.append(fields, actions);
+    form.addEventListener('submit', (event) => { event.preventDefault(); if (featureBusy || !form.reportValidity()) return; vscode.postMessage({ type: 'executeFeature', values: collectFeatureValues(message.feature, controls) }); });
+    app.append(header, status, error, form, element('section', { id: 'feature-result', className: 'feature-result', 'aria-live': 'polite' }));
+  }
+  function lines(control) { return control?.value.split(/\r?\n/u).map((value) => value.trim()).filter(Boolean) || []; }
+  function collectFeatureValues(feature, controls) {
+    const value = { feature, workspace: selectedWorkspace };
+    Object.entries(controls).forEach(([key, control]) => { if (key === 'evidence' || key === 'contextFiles') value[key] = lines(control); else if (control.type === 'checkbox') value[key] = control.checked; else value[key] = control.value; });
+    return value;
+  }
+  function renderFeatureResult(result) {
+    const container = document.getElementById('feature-result'); if (!container) return; container.replaceChildren();
+    if (result.feature === 'impact') {
+      const report = result.report; container.append(summaryCards([[t('Affected decisions'), report.summary.affectedDecisions], [t('Unmapped changes'), report.coverage.notMatchedChanges], [t('Unknown mappings'), report.coverage.unknownChanges]]));
+      report.decisions.filter((item) => item.status !== 'not-matched').forEach((decision) => { const card = resultCard(`${decision.stableId} — ${decision.title || decision.path}`, decision.status, decision.uncertainty); decision.evidence.forEach((evidence) => card.append(resourceLine(evidence.path, `${evidence.scope}/${evidence.changeType}: ${evidence.reason}`))); card.append(button(t('Open ADR'), () => vscode.postMessage(featureMessage('openFeatureResource', { resource: decision.path })), true)); container.append(card); });
+      const unmapped = report.changedFiles.filter((item) => item.status === 'not-matched'); if (unmapped.length) { const card = resultCard(t('Unmapped changes'), 'not-matched'); unmapped.forEach((item) => card.append(resourceLine(item.newPath || item.oldPath, item.newPath || item.oldPath))); container.append(card); }
+    } else if (result.feature === 'drift') {
+      const c = result.report.coverage; container.append(summaryCards([[t('Pass'), c.pass], [t('Violations'), c.violations], [t('Unknown'), c.unknown], [t('Not applicable'), c.notApplicable]])); if (result.diagnostic) container.append(element('p', { className: 'warning' }, result.diagnostic)); result.report.findings.forEach((finding) => { const card = resultCard(`${finding.ruleId} · ${finding.adrStableId}`, finding.outcome, `${finding.confidence} · ${finding.baselineState}`); card.append(element('p', {}, finding.explanation)); finding.evidence.forEach((evidence) => card.append(resourceLine(evidence.source, `${evidence.kind}: ${evidence.detail}`))); const findingId = normalizeAdrId(finding.adrStableId); const adr = findingId && activeFeatureAdrs.find((item) => normalizeAdrId(item.id) === findingId); if (adr) card.append(button(t('Open ADR'), () => vscode.postMessage(featureMessage('openFeatureResource', { resource: adr.relativePath })), true)); container.append(card); });
+    } else if (result.feature === 'review') {
+      container.append(element('h2', {}, `${t('Review outcome')}: ${result.report.outcome}`)); if (result.compareReference) container.append(element('p', {}, `${t('Compared with Git reference')}: ${result.compareReference}`)); result.report.dimensions.forEach((dimension) => { const card = resultCard(dimension.name, dimension.assessments[0]?.classification || 'no-finding'); dimension.assessments.forEach((assessment) => { card.append(element('p', {}, assessment.explanation), element('p', {}, `${t('Recommendation')}: ${assessment.guidance}`)); if (assessment.followUpPriority) card.append(element('p', {}, `${t('Investigation priority')}: ${assessment.followUpPriority}`)); if (assessment.uncertainty) card.append(element('p', { className: 'warning' }, assessment.uncertainty)); assessment.evidence.forEach((evidence) => card.append(resourceLine(evidence.path, evidence.excerpt || evidence.path))); }); container.append(card); }); const limitations = resultCard(t('Limitations'), 'advisory'); result.report.limitations.forEach((item) => limitations.append(element('p', {}, item))); container.append(limitations);
+    } else if (result.feature === 'draft' && result.markdown) {
+      container.append(element('h2', {}, t('Generated Markdown preview')), element('pre', {}, result.markdown)); const create = button(t('Create Proposed ADR'), () => vscode.postMessage({ type: 'createDraft', values: collectFeatureValues('draft', featureControls()) })); create.id = 'feature-create-draft'; container.append(create, element('p', { className: 'warning' }, t('Creation invokes the provider again; the created content may differ from this preview.')));
+    } else container.append(element('pre', {}, result.output || t('Operation completed.')));
+  }
+  function featureControls() { return Object.fromEntries([...document.querySelectorAll('#feature-form input, #feature-form select, #feature-form textarea')].filter((control) => control.id.startsWith('feature-')).map((control) => [({ 'feature-directory': 'directory', 'feature-title': 'title', 'feature-context': 'context', 'feature-culture': 'culture', 'feature-template': 'template', 'feature-provider': 'provider', 'feature-model': 'model', 'feature-endpoint': 'endpoint', 'feature-context-files': 'contextFiles', 'feature-existing': 'includeExistingAdrs' })[control.id] || control.id.replace('feature-', ''), control])); }
+  function summaryCards(items) { const node = element('div', { className: 'summary-grid' }); items.forEach(([label, value]) => { const card = element('div', { className: 'summary-card' }); card.append(element('strong', {}, String(value)), element('span', {}, label)); node.append(card); }); return node; }
+  function resultCard(title, status, detail) { const card = element('article', { className: 'result-card' }); card.append(element('h3', {}, title), element('span', { className: `status status-${status}` }, t(status))); if (detail) card.append(element('p', {}, detail)); return card; }
+  function resourceLine(resource, detail) { const row = element('p', {}); row.append(element('span', {}, detail || resource)); if (resource) row.append(' ', button(t('Open file'), () => vscode.postMessage(featureMessage('openFeatureResource', { resource })), true)); return row; }
+  function normalizeAdrId(value) { return String(value || '').replace(/^ADR-/iu, '').replace(/^0+/u, ''); }
+  function setFeatureBusy(active) { featureBusy = active; document.querySelectorAll('#feature-form input, #feature-form select, #feature-form textarea, #feature-form button, #feature-create-draft').forEach((control) => { control.disabled = active; }); const provider = document.getElementById('feature-provider'); const endpoint = document.getElementById('feature-endpoint'); if (!active && provider && endpoint) endpoint.disabled = provider.value !== 'openai-compatible'; const cancel = document.getElementById('feature-cancel-operation'); if (cancel) cancel.disabled = !active; const status = document.getElementById('feature-status'); if (status) status.textContent = active ? t('Running ADR Guard…') : ''; }
   function persistListState() {
     listState.scrollTop = window.scrollY;
     persistState();
@@ -114,7 +234,7 @@
     settings.classList.add('icon-button');
     settings.setAttribute('aria-label', t('Settings'));
     settings.setAttribute('title', t('Settings'));
-    actions.append(refresh, check, initializeControl, button(t('New ADR'), () => { persistListState(); vscode.postMessage(listMessage('newAdr')); }), settings);
+    actions.append(refresh, check, initializeControl, button(t('Architecture and Governance'), () => { persistListState(); vscode.postMessage(featureMessage('openFeatures')); }, true), button(t('New ADR'), () => { persistListState(); vscode.postMessage(listMessage('newAdr')); }), settings);
     controls.append(actions);
     header.append(heading, controls);
     return header;
@@ -215,6 +335,14 @@
       mcpEnabled: document.getElementById('mcp-enabled').checked,
       mcpPath: document.getElementById('mcp-path').value,
       mcpStatus: settingsDraft.mcpStatus,
+      impactManifest: document.getElementById('impact-manifest').value,
+      driftRules: document.getElementById('drift-rules').value,
+      driftBaseline: document.getElementById('drift-baseline').value,
+      driftPolicy: document.getElementById('drift-policy').value,
+      catalog: document.getElementById('catalog-preference').value,
+      aiProvider: document.getElementById('ai-provider').value,
+      aiModel: document.getElementById('ai-model').value,
+      aiEndpoint: document.getElementById('ai-endpoint').value,
     };
   }
   function updateSettingsDraft() {
@@ -236,6 +364,7 @@
     return candidate.startsWith('/');
   }
   function validInteger(value, minimum, maximum) { return Number.isInteger(value) && value >= minimum && value <= maximum; }
+  function validHttpsEndpoint(value) { if (!value.trim()) return true; try { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password; } catch { return false; } }
   function leaveSettings() {
     if (settingsBusy || installationCheckBusy || mcpCheckBusy) return;
     if (settingsDirty && !confirm(t('Discard the unsaved settings and return to the ADR list?'))) return;
@@ -297,6 +426,7 @@
     const navigation = sectionNavigation([
       { id: 'settings-languages', label: 'Languages' }, { id: 'settings-repository', label: 'Repository' },
       { id: 'settings-creation', label: 'Document creation' }, { id: 'settings-validation', label: 'Validation' },
+      { id: 'settings-analysis', label: 'Architecture Analysis' }, { id: 'settings-ai', label: 'AI Providers' },
       { id: 'settings-cli', label: 'CLI integration' },
       { id: 'settings-mcp', label: 'MCP Integration' },
     ]);
@@ -307,6 +437,8 @@
     const repository = element('fieldset', { id: 'settings-repository', className: 'form-section' }); repository.append(element('legend', {}, t('Repository')));
     const creation = element('fieldset', { id: 'settings-creation', className: 'form-section' }); creation.append(element('legend', {}, t('Document creation')));
     const validation = element('fieldset', { id: 'settings-validation', className: 'form-section' }); validation.append(element('legend', {}, t('Validation')));
+    const analysis = element('fieldset', { id: 'settings-analysis', className: 'form-section' }); analysis.append(element('legend', {}, t('Architecture Analysis')));
+    const ai = element('fieldset', { id: 'settings-ai', className: 'form-section' }); ai.append(element('legend', {}, t('AI Providers')));
     const cli = element('fieldset', { id: 'settings-cli', className: 'form-section' }); cli.append(element('legend', {}, t('CLI integration')));
     const mcp = element('fieldset', { id: 'settings-mcp', className: 'form-section' }); mcp.append(element('legend', {}, t('MCP Integration')));
     const workspace = select('settings-workspace', workspaces.map((item) => ({ value: item.id, label: item.name }))); workspace.value = settingsDraft.workspace;
@@ -331,6 +463,14 @@
     const outputLimit = element('input', { id: 'cli-output-limit', type: 'number', min: '1024', max: '1048576', step: '1', required: '' }); outputLimit.value = String(settingsDraft.maxOutputBytes);
     const mcpEnabled = element('input', { id: 'mcp-enabled', type: 'checkbox' }); mcpEnabled.checked = settingsDraft.mcpEnabled;
     const mcpPath = element('input', { id: 'mcp-path', type: 'text', maxlength: '4096', autocomplete: 'off' }); mcpPath.value = settingsDraft.mcpPath;
+    const impactManifest = element('input', { id: 'impact-manifest', type: 'text', required: '', maxlength: '4096', autocomplete: 'off' }); impactManifest.value = settingsDraft.impactManifest;
+    const driftRules = element('input', { id: 'drift-rules', type: 'text', required: '', maxlength: '4096', autocomplete: 'off' }); driftRules.value = settingsDraft.driftRules;
+    const driftBaseline = element('input', { id: 'drift-baseline', type: 'text', maxlength: '4096', autocomplete: 'off' }); driftBaseline.value = settingsDraft.driftBaseline;
+    const driftPolicy = select('drift-policy', [{ value: 'advisory', label: t('Advisory') }, { value: 'enforce', label: t('Enforce') }]); driftPolicy.value = settingsDraft.driftPolicy;
+    const catalog = select('catalog-preference', [{ value: 'standard', label: t('Standard index') }, { value: 'enriched', label: t('Enriched catalog') }]); catalog.value = settingsDraft.catalog;
+    const aiProvider = select('ai-provider', [{ value: '', label: t('No provider selected') }, ...['openai', 'anthropic', 'gemini', 'openai-compatible'].map((value) => ({ value, label: value }))]); aiProvider.value = settingsDraft.aiProvider;
+    const aiModel = element('input', { id: 'ai-model', type: 'text', maxlength: '256', autocomplete: 'off' }); aiModel.value = settingsDraft.aiModel;
+    const aiEndpoint = element('input', { id: 'ai-endpoint', type: 'url', maxlength: '2048', autocomplete: 'off' }); aiEndpoint.value = settingsDraft.aiEndpoint;
     appendField(languages, 'ui-language', t('Interface language'), uiLanguage, t('Native VS Code commands and controls continue to use the editor language.'));
     appendField(languages, 'document-language', t('Default language for new documents'), documentLanguage);
     appendField(repository, 'settings-workspace', t('Selected workspace'), workspace);
@@ -341,6 +481,14 @@
     appendField(validation, 'validation-debounce', t('Validation interval (milliseconds)'), debounce, t('Accepted range: 200 to 5000 milliseconds.'));
     appendField(validation, 'validation-baseline', t('Baseline file'), baseline, t('ADR Guard only reads this existing JSON file during explicit baseline validation.'));
     appendField(validation, 'validation-base-reference', t('Default Git reference'), baseReference, t('Incremental validation lets you edit this value and never fetches automatically.'));
+    appendField(analysis, 'impact-manifest', t('Impact manifest'), impactManifest);
+    appendField(analysis, 'drift-rules', t('Architecture rules file'), driftRules);
+    appendField(analysis, 'drift-baseline', t('Optional architecture baseline'), driftBaseline);
+    appendField(analysis, 'drift-policy', t('Default drift policy'), driftPolicy, t('Advisory remains the safe default; enforcement is never enabled automatically.'));
+    appendField(analysis, 'catalog-preference', t('Default catalog type'), catalog);
+    appendField(ai, 'ai-provider', t('Preferred provider'), aiProvider, t('No provider or model is selected automatically.'));
+    appendField(ai, 'ai-model', t('Model identifier'), aiModel);
+    appendField(ai, 'ai-endpoint', t('HTTPS endpoint (OpenAI-compatible only)'), aiEndpoint, t('API keys remain in the CLI environment and are never stored by the extension.'));
     appendField(cli, 'cli-path', t('ADR Guard executable'), cliPath, t('Leave empty to discover ADR Guard on the extension host PATH.'));
     const checkInstallation = button(t('Check installation'), () => {
       if (installationCheckBusy || settingsBusy) return;
@@ -379,7 +527,7 @@
     const actions = element('div', { className: 'actions form-actions' });
     const cancel = button(t('Cancel'), leaveSettings, true); cancel.id = 'settings-cancel';
     actions.append(element('button', { id: 'save-settings', type: 'submit' }, t('Save settings')), cancel);
-    form.append(languages, repository, creation, validation, cli, mcp, actions); app.append(header, navigation, status, error, form);
+    form.append(languages, repository, creation, validation, analysis, ai, cli, mcp, actions); app.append(header, navigation, status, error, form);
     workspace.addEventListener('change', () => {
       const targetWorkspace = workspace.value;
       if (settingsDirty && !confirm(t('Discard the unsaved settings and switch workspace?'))) {
@@ -400,7 +548,7 @@
       renderSettings();
     });
     onSave.addEventListener('change', () => { debounce.disabled = !onSave.checked; updateSettingsDraft(); });
-    [documentLanguage, directoryInput, adrFormat, defaultTemplate, debounce, baseline, baseReference, cliPath, timeout, outputLimit, mcpEnabled, mcpPath].forEach((control) => {
+    [documentLanguage, directoryInput, adrFormat, defaultTemplate, debounce, baseline, baseReference, impactManifest, driftRules, driftBaseline, driftPolicy, catalog, aiProvider, aiModel, aiEndpoint, cliPath, timeout, outputLimit, mcpEnabled, mcpPath].forEach((control) => {
       control.addEventListener('input', updateSettingsDraft);
       control.addEventListener('change', updateSettingsDraft);
     });
@@ -415,6 +563,9 @@
         return;
       }
       if (!validBaseline(settingsDraft.baseline) || !validGitReference(settingsDraft.baseReference)
+        || !validBaseline(settingsDraft.impactManifest) || !validBaseline(settingsDraft.driftRules)
+        || (settingsDraft.driftBaseline && !validBaseline(settingsDraft.driftBaseline))
+        || !validHttpsEndpoint(settingsDraft.aiEndpoint)
         || !validCliPath(settingsDraft.cliPath)
         || !validCliPath(settingsDraft.mcpPath)
         || !validInteger(settingsDraft.debounceMilliseconds, 200, 5000)
@@ -455,7 +606,8 @@
       vscode.postMessage({ type: 'editAdr', workspace: selectedWorkspace, relativePath: entry.relativePath, state: listState });
     });
     const open = button(t('Open Markdown'), () => vscode.postMessage({ type: 'openAdr', workspace: selectedWorkspace, relativePath: entry.relativePath }), true);
-    rowActions.append(edit, open);
+    const review = button(t('Review ADR'), () => { const workspace = selectedWorkspaceItem(); vscode.postMessage(featureMessage('showFeature', { feature: 'review', resource: `${workspace.directory.replace(/\\/gu, '/')}/${entry.relativePath}` })); }, true);
+    rowActions.append(edit, review, open);
     row.append(identity, summary, metadata, rowActions);
     if (entry.warning || !entry.title) summary.append(element('span', { className: 'warning' }, t('This ADR has incomplete metadata.')));
     return row;
@@ -631,6 +783,8 @@
     const message = event.data; if (!message || typeof message.type !== 'string') return;
     if (message.type === 'initialize') { strings = message.strings || strings; editorInterfaceLanguage = message.editorInterfaceLanguage === 'pt-BR' ? 'pt-BR' : 'en-US'; hostPlatform = message.hostPlatform === 'win32' ? 'win32' : 'posix'; interfacePreference = ['auto', 'en-US', 'pt-BR'].includes(message.initialInterfacePreference) ? message.initialInterfacePreference : 'auto'; interfaceLanguage = effectiveInterfaceLanguage(interfacePreference); workspaces = Array.isArray(message.workspaces) ? message.workspaces : []; trusted = message.trusted !== false; selectedWorkspace = restored.selectedWorkspace && workspaces.some((item) => item.id === restored.selectedWorkspace) ? restored.selectedWorkspace : message.initialWorkspace; if (!trusted) renderMessage(t('ADR Guard'), t('Trust this workspace to browse ADRs.')); else if (!workspaces.length) renderMessage(t('ADR Guard'), t('Open a local workspace folder to browse ADRs.')); else if (message.initialScreen === 'form') renderForm(); else renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'showForm') { if (message.workspace) selectedWorkspace = message.workspace; renderForm(); return; }
+    if (message.type === 'showFeatures') { if (message.workspace) selectedWorkspace = message.workspace; renderFeatures(); return; }
+    if (message.type === 'showFeature') { if (message.workspace) selectedWorkspace = message.workspace; renderFeature(message); return; }
     if (message.type === 'showSettings') { renderSettings(message.settings); return; }
     if (message.type === 'showList') { if (message.state) listState = message.state; clearCreationValues(); formDirty = false; editDocument = undefined; settingsBaseline = undefined; settingsDraft = undefined; settingsDirty = false; settingsBusy = false; installationCheckBusy = false; installationCheckResult = undefined; mcpCheckBusy = false; renderMessage(t('Architecture Decision Records'), t('Loading ADRs…')); return; }
     if (message.type === 'requestShowList') { if (document.getElementById('settings-form')) leaveSettings(); else backToList(); return; }
@@ -688,6 +842,10 @@
       }
     }
     if (message.type === 'mcpCheckIdle') setMcpCheckBusy(false);
+    if (message.type === 'featureBusy') { setFeatureBusy(true); const error = document.getElementById('feature-error'); error?.classList.add('hidden'); }
+    if (message.type === 'featureIdle') setFeatureBusy(false);
+    if (message.type === 'featureResult') { if (message.workspace !== selectedWorkspace) return; featureDirty = false; renderFeatureResult(message.result); }
+    if (message.type === 'featureError') { const error = document.getElementById('feature-error'); if (error) { error.textContent = message.message || 'Error'; error.classList.remove('hidden'); } else window.alert(message.message || 'Error'); }
   });
   renderMessage('', '');
   vscode.postMessage({ type: 'ready' });
