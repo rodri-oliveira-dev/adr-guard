@@ -91,9 +91,12 @@ Use native MTP `--solution`/`--project` syntax for new local commands. xUnit v3 
 
 - Update README files and public docs when user-visible commands, behavior, configuration, setup, or guarantees change. Update schema/reference docs and examples with versioned contract changes.
 - Maintain the established bilingual strategy: public English documentation has a corresponding pt-BR version or portal route where the surrounding section is bilingual. Keep meaning and examples aligned rather than translating only headings.
+- Every public feature, behavior change, command, contract, configuration, or integration across the ADR Guard CLI, VS Code extension, MCP server, GitHub Action, containers, or Agent Skills must update the corresponding repository and portal documentation in English and Brazilian Portuguese in the same pull request. Documentation must match implemented behavior, keep both languages equivalent, explicitly distinguish development-only capabilities from officially published ones, and never claim release or distribution availability without verifying the actual publication channel.
 - Update `CHANGELOG.md`, package release notes, and `docs/releases` for release-visible changes; do not edit release/tag metadata for unreleased internal-only work without explicit scope.
 - In `website`, edit source documents and run `npm run sync:docs`; do not hand-edit generated `learn/`, generated `product/*.md`, or `reference/generated/` pages.
 - Add an ADR only for a durable architectural decision with meaningful alternatives and consequences. Routine implementation choices and process notes belong in code, tests, AGENTS.md, or focused documentation.
+
+Documentation is part of the pull request Definition of Done, not optional follow-up work. When applicable, the change must update the relevant README, technical reference, portal source and equivalent pt-BR page; review executable examples, compatibility requirements, internal links, changelog placement, and real publication status; regenerate synchronized portal content through the official script; and pass the repository's documentation, route, link, SEO, HTML, spelling, and build validations. Any required item that is missing remains an open pull request task.
 
 ## Git workflow
 
