@@ -6,6 +6,8 @@ O nome de arquivo padrão continua sendo `NNNN-kebab-case.md`. A configuração 
 
 > **Disponibilidade por versão:** `new` e o `draft` opcional com templates estão disponíveis nas releases publicadas da CLI/container desde a **v1.1.0**; ferramentas 1.0.x não os oferecem. Instale ou atualize a .NET Tool estável, ou use uma imagem de release publicada. A GitHub Action `@v1` publicada suporta `check`, `index` e `review` opt-in; `new` e `draft` assistido por IA continuam sendo fluxos de CLI/container direto.
 
+> A criação e a edição visuais estruturadas estão implementadas para a linha 1.7.0 da CLI e exigem uma versão compatível da extensão VS Code, versionada separadamente. Confirme a publicação dos dois artefatos antes de depender dos formulários visuais; a implementação nesta branch não os torna disponíveis no NuGet ou no Visual Studio Marketplace.
+
 ## Início rápido — sem IA, conta, chave de API ou rede
 
 Execute na raiz do repositório com o comando `adr-guard` publicado na **v1.1.0 ou superior** instalado ou disponível no `PATH`. O diretório de destino **precisa existir**. O modelo padrão é `minimal` e o idioma padrão das instruções é `en-US`.
@@ -63,13 +65,15 @@ Tokens desconhecidos/malformados, headings estruturais duplicados e tentativa de
 
 ## Contrato do adaptador de formulário visual
 
-`adr-guard new <diretório> --form` é um contrato limitado para adaptadores de interface confiáveis, disponível a partir da CLI 1.7.0. Ele lê um documento JSON schema `1.0` pelo stdin e grava uma resposta JSON schema `1.0` no stdout. As operações `describe`, `preview` e `create` oferecem apenas os templates nativos `minimal` e `extended`. A prévia usa o mesmo renderer da criação, mas nunca grava nem reserva ID; `create` realoca e persiste de forma atômica. Um `template-file` configurado é informado como incompatível para que o adaptador ofereça o fluxo tradicional sem trocar templates silenciosamente.
+`adr-guard new <diretório> --form` é um contrato limitado para adaptadores de interface confiáveis, implementado para a CLI 1.7.0. Ele não é um formulário interativo do terminal: lê um documento JSON schema `1.0` pelo stdin e grava uma resposta JSON schema `1.0` no stdout. As operações `describe`, `preview` e `create` oferecem apenas os templates nativos `minimal` e `extended`. A prévia usa o mesmo renderer da criação, mas nunca grava nem reserva ID; `create` realoca e persiste de forma atômica. Um `template-file` configurado é informado como incompatível para que o adaptador ofereça o fluxo tradicional sem trocar templates silenciosamente.
 
-As requisições contêm exatamente `schemaVersion`, `operation` e—exceto em `describe`—`title` mais o objeto `fields` de strings retornado pela descrição. As respostas contêm `schemaVersion`, `operation`, `template` (`name`, `compatible`, `reason` opcional e `fields` ordenados), `written` e `path`/`markdown` opcionais. Propriedades desconhecidas/duplicadas, IDs de campos não suportados, NULs, profundidade/tamanho excessivos, campos obrigatórios ausentes e versões diferentes de `1.0` falham de forma fechada. O conteúdo do formulário nunca é aceito em argumentos de linha de comando nem em logs operacionais.
+As requisições usam `schemaVersion` e `operation`; `preview` e `create` também exigem `title` mais o objeto `fields` de strings retornado pela descrição, enquanto `describe` não aceita conteúdo de formulário não nulo. As respostas contêm `schemaVersion`, `operation`, `template` (`name`, `compatible`, `reason` opcional e `fields` ordenados), `written` e `path`/`markdown` opcionais. Propriedades desconhecidas/duplicadas, IDs de campos não suportados, NULs, profundidade/tamanho excessivos, campos obrigatórios ausentes e versões diferentes de `1.0` falham de forma fechada. O conteúdo do formulário nunca é aceito em argumentos de linha de comando nem em logs operacionais.
 
 ```json
 {"schemaVersion":"1.0","operation":"preview","title":"Adotar uma fila","fields":{"context":"...","decision":"...","consequences":"..."}}
 ```
+
+A [extensão VS Code](../extensions/vscode/README.pt-BR.md), versionada separadamente, usa esse contrato na criação orientada. A edição estruturada usa `adr-guard edit <arquivo> --form` com `load` e `save`: aceita documentos canônicos e MADR 4.0, preserva o Markdown não alterado e rejeita salvamentos obsoletos comparando o fingerprint retornado por `load`. Consulte a [referência da CLI](cli-reference.pt-BR.md#criar-uma-adr-por-um-cliente-estruturado) para as mensagens exatas de criação e edição, campos de resposta, validação e códigos de saída. Use `new --title` tradicional para uso direto no terminal e para templates personalizados.
 
 ## Compatibilidade de renderização e quebras de linha
 

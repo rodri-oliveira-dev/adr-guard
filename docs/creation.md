@@ -6,6 +6,8 @@ The default filename remains `NNNN-kebab-case.md`. Repository configuration may 
 
 > **Version availability:** `new` and optional template-aware `draft` are available in published CLI/container releases starting with **v1.1.0**; older 1.0.x tools do not offer them. Install or update the stable .NET Tool, or use a published release image. The published GitHub Action `@v1` supports `check`, `index`, and opt-in `review`; `new` and AI-assisted `draft` remain CLI/direct-container workflows.
 
+> Structured visual creation and editing are implemented for the CLI 1.7.0 line and require a separately versioned compatible VS Code extension. Confirm publication of both artifacts before relying on the visual forms; implementation in this branch does not make them available in NuGet or the Visual Studio Marketplace.
+
 ## Quick start — no AI, account, API key, or network required
 
 Run from the repository root with **v1.1.0 or newer** of the published `adr-guard` command installed or on your `PATH`. The destination directory **must already exist**. The default template is `minimal` and the default guidance culture is `en-US`.
@@ -63,13 +65,15 @@ Unknown or malformed placeholder syntax, duplicate structural headings and attem
 
 ## Visual-form adapter contract
 
-`adr-guard new <directory> --form` is a bounded integration contract for trusted UI adapters, available starting in CLI 1.7.0. It reads one schema `1.0` JSON document from stdin and writes one schema `1.0` JSON response on stdout. Its `describe`, `preview`, and `create` operations support only the native `minimal` and `extended` templates. Preview uses the same renderer as creation but never writes or reserves an ID; create reallocates and persists atomically. A configured `template-file` is reported as incompatible so the adapter can offer the traditional flow without silently changing templates.
+`adr-guard new <directory> --form` is a bounded integration contract for trusted UI adapters, implemented for CLI 1.7.0. It is not an interactive terminal form: it reads one schema `1.0` JSON document from stdin and writes one schema `1.0` JSON response on stdout. Its `describe`, `preview`, and `create` operations support only the native `minimal` and `extended` templates. Preview uses the same renderer as creation but never writes or reserves an ID; create reallocates and persists atomically. A configured `template-file` is reported as incompatible so the adapter can offer the traditional flow without silently changing templates.
 
-Requests contain exactly `schemaVersion`, `operation`, and—except for `describe`—`title` plus the string-valued `fields` object returned by the description. Responses contain `schemaVersion`, `operation`, `template` (`name`, `compatible`, optional `reason`, and ordered `fields`), `written`, and optional `path`/`markdown`. Unknown/duplicate properties, unsupported field IDs, NULs, excessive depth/size, missing required fields, and schema versions other than `1.0` fail closed. Form content is never accepted in command-line arguments or operational logs.
+Requests use `schemaVersion` and `operation`; `preview` and `create` also require `title` plus the string-valued `fields` object returned by the description, while `describe` accepts no non-null form content. Responses contain `schemaVersion`, `operation`, `template` (`name`, `compatible`, optional `reason`, and ordered `fields`), `written`, and optional `path`/`markdown`. Unknown/duplicate properties, unsupported field IDs, NULs, excessive depth/size, missing required fields, and schema versions other than `1.0` fail closed. Form content is never accepted in command-line arguments or operational logs.
 
 ```json
 {"schemaVersion":"1.0","operation":"preview","title":"Adopt a queue","fields":{"context":"...","decision":"...","consequences":"..."}}
 ```
+
+The separately versioned [VS Code extension](../extensions/vscode/README.md) uses this contract for guided creation. Structured editing uses `adr-guard edit <file> --form` with `load` and `save`: it supports canonical and MADR 4.0 documents, preserves untouched Markdown, and rejects stale saves by comparing the fingerprint returned by `load`. See the [CLI reference](cli-reference.md#create-an-adr-through-a-structured-client) for the exact creation and editing messages, response fields, validation behavior, and exit codes. Use traditional `new --title` for direct terminal use and for custom templates.
 
 ## Rendering and newline compatibility
 

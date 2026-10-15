@@ -25,6 +25,8 @@ adr-guard new docs/adr --title "Adopt Redis for distributed caching" --template 
 
 `init` prepares the configured ADR directory. `new` allocates an identifier and writes a canonical record. Review the generated path before editing.
 
+Keep this traditional CLI flow as the default when working in a terminal. The VS Code extension can also create and edit ADRs through visual forms backed by the CLI's structured contracts. Those forms require a compatible CLI from the 1.7.0 line and a corresponding extension version; confirm publication of both separately. See the [extension guide](/adr-guard/product/vscode-extension/), [creation guide](/adr-guard/product/creation/), and [CLI reference](/adr-guard/product/cli/).
+
 ## 4. Write context, decision, and consequences
 
 Describe the current pressure and constraints in **Context**. In **Decision**, state the choice precisely enough to guide implementation. In **Consequences**, record benefits and costs—including operational work, failure modes, and what remains unknown.

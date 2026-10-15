@@ -13,13 +13,13 @@ ADR Guard keeps architecture judgment with people while automating repeatable do
 | --- | --- | --- |
 | [CLI](./cli/) | You need the complete local command surface | Runs locally with explicit arguments and configuration |
 | [GitHub Action](./github-action/) | Pull requests should validate or review ADR changes | Runs in GitHub Actions with workflow permissions and pinned inputs |
-| [VS Code extension](./vscode-extension/) | Contributors want explorer, commands, and diagnostics in the editor | Workspace-hosted; trusted local file workspaces only; invokes an existing CLI |
+| [VS Code extension](./vscode-extension/) | Contributors want visual ADR creation/editing, explorer, commands, and diagnostics in the editor | Workspace-hosted; trusted local file workspaces only; invokes an existing compatible CLI |
 | [Container](./containers/) | You want an isolated, reproducible CLI runtime | Mount only required files and pass configuration deliberately |
 | [Agent Skills](../skills/) | You want a coding agent to guide ADR decisions and CLI workflows | Portable agent instructions; no bundled CLI or automatic architectural approval |
 
 ## Core workflows
 
-- [Create canonical ADRs](./creation/) with Minimal, Extended, or constrained custom templates.
+- [Create canonical ADRs](./creation/) with Minimal, Extended, or constrained custom templates. Compatible VS Code forms use the CLI 1.7.0 structured creation and editing contracts when those separately versioned artifacts are published.
 - [Validate relationships](./relationships/), changed files, and [diagnostic baselines](./incremental-validation/).
 - Use [Architecture Impact Analysis](./architecture-impact/) to identify decisions that explicit ADR-to-code mappings associate with changed files. The result is a review prompt, not an architecture violation.
 - Use [Architectural Drift](./architectural-drift/) to verify explicit ADR-backed fitness rules from bounded evidence. Results distinguish conformance, violation, and insufficient evidence; opt-in enforcement applies only within the implemented deterministic limits.

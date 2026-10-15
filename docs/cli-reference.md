@@ -4,6 +4,8 @@
 
 > Architecture impact analysis was introduced in v1.5.0. Architectural drift is part of the v1.6.0 code and release scope. Confirm the coordinated v1.6.0 package or container publication in [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) before installing or pinning those artifacts; the implementation branch does not publish them by itself.
 
+> The schema `1.0` visual-form contracts are implemented for the CLI 1.7.0 line. They require a compatible CLI and, when used visually, a separately versioned compatible VS Code extension. This repository state does not establish that either artifact has been published; confirm availability in [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases), NuGet, and the extension guide before installation.
+
 ## Initialize a repository
 
 ```text
@@ -44,17 +46,62 @@ Precedence is:
 
 Configured ADR directories apply when the positional directory is omitted from `check`, `index`, `new`, and `draft`. Configured templates apply only when `new`/`draft` do not receive an explicit template option. `review` continues to require an explicit target.
 
+## Create an ADR through a structured client
+
+```text
+adr-guard new <directory> --form
+  [--template minimal|extended | --template-file <path>]
+  [--culture en-US|pt-BR] [--filename-policy <policy>]
+```
+
+`new --form` is a bounded JSON contract for trusted clients such as the VS Code extension, not an interactive terminal form. It reads one schema `1.0` request from stdin and writes one schema `1.0` response to stdout. The traditional `new --title` command remains the direct human-facing flow and supports both built-in and constrained custom templates.
+
+The supported operations are:
+
+- `describe`: returns the selected template name, compatibility, and ordered field IDs with their required state. The native `minimal` template exposes required `context`, `decision`, and `consequences` fields. `extended` adds optional `decisionDrivers`, `optionsConsidered`, `rationale`, `positiveConsequences`, `negativeConsequences`, `risks`, and `references`.
+- `preview`: requires `title` and the described string-valued `fields`; it validates and returns the prospective `path` and exact `markdown` with `written: false`, without writing, updating the index, or reserving an ID.
+- `create`: accepts the same content, reallocates the final ID under the creation lock, validates, and persists atomically. Its response returns the final `path` and `written: true`; it does not return the Markdown body.
+
+Only the native `minimal` and `extended` canonical templates can be mapped to structured fields. When `--template-file` is selected, `describe` returns `compatible: false` with reason `custom-template-field-mapping-unavailable`; `preview` and `create` reject that combination. Use the traditional creation flow for custom templates. `--culture` accepts `en-US` or `pt-BR` guidance, and filename policies remain the same as for traditional `new`.
+
+```json
+{"schemaVersion":"1.0","operation":"describe"}
+```
+
+```json
+{"schemaVersion":"1.0","operation":"preview","title":"Adopt a queue","fields":{"context":"Orders need asynchronous processing.","decision":"Use the managed queue.","consequences":"We must operate retries and dead-letter handling."}}
+```
+
+Responses contain `schemaVersion`, `operation`, `template` (`name`, `compatible`, optional `reason`, and ordered `fields`), `written`, and the operation-specific `path`/`markdown`. Unknown or duplicate JSON properties, unsupported field IDs, invalid or missing required values, unsupported schema versions, and excessive input size/depth fail closed. Contract/usage errors return `2`, ADR validation findings return `1`, and filesystem, cancellation, or other operational failures return `3`. See the [creation guide](creation.md) for renderer, template, preview, and concurrency behavior.
+
 ## Edit an ADR through a structured client
 
 ```text
-adr-guard edit <adr-file> --form [--adr-format canonical|madr-4]
+adr-guard edit <adr-file> --form [--adr-directory <directory>]
+  [--adr-format canonical|madr-4]
   [--lifecycle-statuses <mapping>] [--conventional-supersession]
   [--filename-policy <policy>] [--placeholder-policy off|warn|error]
   [--validate-metadata]
   [--validation-profile <profile>]
 ```
 
-`edit --form` is a bounded schema `1.0` stdin/stdout contract for trusted clients such as the VS Code extension. A `load` request returns the editable title, status, scalar front matter, and level-two sections plus a SHA-256 fingerprint. A `save` request must return that fingerprint and the exact described field set. ADR Guard patches only changed value spans, preserves unknown and untouched Markdown, keeps the filename/identifier, validates the selected format and lifecycle policy, and atomically replaces the single target. The response sets `written` to `true` only when bytes were actually persisted. The fingerprint is checked before replacement, but a non-cooperating writer can still change the target in the unavoidable interval between that check and the atomic rename. Invalid fields or contracts return `2`; ADR validation findings return `1`.
+`edit --form` uses the same bounded schema `1.0` stdin/stdout boundary and is likewise not an interactive terminal editor. It supports both `canonical` and opt-in `madr-4`; `--adr-directory` supplies the validation set and must contain the target.
+
+`load` accepts exactly `schemaVersion` and `operation`. It validates the current ADR and returns `format`, normalized `path`, a 64-character SHA-256 `fingerprint`, `title`, `written: false`, and an ordered `fields` array. Each field contains `id`, `label`, `kind`, `required`, and `value`; status fields also include their permitted `options`. Depending on the selected format, editable fields cover supported scalar front matter, canonical status, and parsed level-two sections.
+
+```json
+{"schemaVersion":"1.0","operation":"load"}
+```
+
+`save` accepts exactly `schemaVersion`, `operation`, `fingerprint`, `title`, and `fields`. `fields` is an object whose keys are the field IDs returned by `load`, with every loaded field present exactly once. A successful response has the same document shape as `load`, a fingerprint for the current bytes, and `written: true` only if content changed.
+
+```json
+{"schemaVersion":"1.0","operation":"save","fingerprint":"<64-character SHA-256 from load>","title":"Adopt a durable queue","fields":{"section-0":"Proposed","section-1":"Updated context.","section-2":"Updated decision.","section-3":"Updated consequences."}}
+```
+
+Field IDs are opaque per-load identifiers; clients must not infer or hard-code the example IDs. Saving patches only the changed title or field value spans. It preserves the filename and ADR identifier, UTF-8 BOM when present, line-ending style for replaced sections, nested content, unknown sections, comments, metadata, and all other untouched Markdown. It validates the updated target against the selected format and repository context before atomically replacing that file. No changes produce `written: false` and leave the file bytes intact.
+
+`save` requires the fingerprint returned by `load`. If the file has changed externally, it returns operational error `3` and leaves those external bytes untouched; the client must reload before retrying. Unknown or duplicate JSON properties, the wrong property set, invalid fingerprints, missing/extra field IDs, unsafe field values, unsupported versions, and excessive input size/depth return `2`. ADR validation findings return `1`; invalid paths, non-Markdown/symbolic-link targets, invalid UTF-8, oversized files, I/O, and cancellation return `3`. The fingerprint check prevents ordinary stale-form writes, although a non-cooperating writer can still change the target in the unavoidable interval between the check and atomic rename.
 
 ## Check output
 

@@ -86,6 +86,8 @@ Consulte a [matriz de seleção](docs/decision-design/choosing-a-template.pt-BR.
 | Containers | Executar a mesma CLI versionada por GHCR ou Docker Hub | [Guia de container e cadeia de suprimentos](docs/container.pt-BR.md) |
 | Relatórios de CI | Produzir validação em texto, JSON ou SARIF | [Relatórios de check](docs/check-reports.pt-BR.md) |
 
+A criação e a edição estruturadas de ADRs estão implementadas para clientes visuais confiáveis, como a extensão VS Code. Uma CLI compatível da linha 1.7.0 expõe `new <diretório> --form` e `edit <arquivo> --form` como contratos JSON versionados por stdin/stdout; eles não são formulários interativos do terminal. O fluxo tradicional `new --title` continua sendo o caminho voltado a pessoas na linha de comando, inclusive para templates personalizados com restrições. Consulte o [guia de criação](docs/creation.pt-BR.md), a [referência dos contratos da CLI](docs/cli-reference.pt-BR.md) e o [guia da extensão](extensions/vscode/README.pt-BR.md). Confirme que as versões da CLI e da extensão que oferecem os formulários visuais foram publicadas antes de depender delas.
+
 A [Action no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) e a [extensão no Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) estão publicadas. A tag móvel `@v1` está publicada e suporta `check`, `index`, `review` opcional desde a v1.1.6 e `impact` opcional desde a v1.5.0. Na v1.6.0, `drift` é disponibilizado por meio da CLI/container direto, assim como `new` e `draft`; não é um modo da Action composta. A extensão não inclui a CLI.
 
 ## Agent Skills (P0 + P1)

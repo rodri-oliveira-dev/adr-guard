@@ -13,13 +13,13 @@ O ADR Guard mantém o julgamento arquitetural com pessoas e automatiza verifica�
 | --- | --- | --- |
 | [CLI](./cli/) | Você precisa da superfície local completa | Executa localmente com argumentos e configuração explícitos |
 | [GitHub Action](./github-action/) | Pull requests devem validar ou revisar mudanças | Executa no GitHub Actions com permissões e entradas definidas |
-| [Extensão VS Code](./vscode-extension/) | Colaboradores querem explorer, comandos e diagnósticos | Executa no host do workspace; aceita apenas workspaces locais confiáveis; invoca CLI existente |
+| [Extensão VS Code](./vscode-extension/) | Colaboradores querem criação/edição visual, explorer, comandos e diagnósticos | Executa no host do workspace; aceita apenas workspaces locais confiáveis; invoca uma CLI compatível existente |
 | [Contêiner](./containers/) | Você quer runtime isolado e reproduzível | Monte apenas arquivos necessários e passe configuração conscientemente |
 | [Agent Skills](../skills/) | Você quer orientação de um agente para decisões e fluxos da CLI | Instruções portáteis; não incluem a CLI nem aprovam arquitetura |
 
 ## Fluxos principais
 
-- [Crie ADRs canônicos](./creation/) Minimal, Extended ou com templates customizados restritos.
+- [Crie ADRs canônicos](./creation/) Minimal, Extended ou com templates customizados restritos. Formulários compatíveis do VS Code usam os contratos estruturados de criação e edição da CLI 1.7.0 quando esses artefatos, versionados separadamente, forem publicados.
 - [Valide relações](./relationships/), arquivos alterados e [baselines de diagnósticos](./incremental-validation/).
 - Use a [Análise de Impacto Arquitetural](./architecture-impact/) para identificar decisões associadas a arquivos alterados por mapeamentos ADR-código explícitos. O resultado convida à revisão; não representa uma violação arquitetural.
 - Use o [Drift Arquitetural](./architectural-drift/) para verificar regras de fitness explícitas e ligadas a ADRs com evidências limitadas. Os resultados diferenciam conformidade, violação e evidência insuficiente; o enforcement opcional atua somente dentro dos limites determinísticos implementados.

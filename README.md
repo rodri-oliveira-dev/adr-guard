@@ -86,6 +86,8 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 | Containers | Run the same versioned CLI from GHCR or Docker Hub | [Container and supply-chain guide](docs/container.md) |
 | CI reports | Produce text, JSON, or SARIF validation output | [Check reports](docs/check-reports.md) |
 
+Structured ADR creation and editing are implemented for trusted visual clients such as the VS Code extension. A compatible CLI from the 1.7.0 line exposes `new <directory> --form` and `edit <file> --form` as versioned JSON stdin/stdout contracts; they are not interactive terminal forms. The traditional `new --title` workflow remains the human-facing command-line path, including constrained custom templates. See the [creation guide](docs/creation.md), [CLI contract reference](docs/cli-reference.md), and [extension guide](extensions/vscode/README.md). Confirm that both the CLI and extension versions providing the visual forms have been published before relying on them.
+
 The [GitHub Marketplace Action](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) and [Visual Studio Marketplace extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) are published. The moving `@v1` tag is published and supports `check`, `index`, opt-in `review` since v1.1.6, and opt-in `impact` since v1.5.0. In v1.6.0, `drift` is provided through the CLI/direct-container workflow, alongside `new` and `draft`; it is not a composite Action mode. The extension does not bundle the CLI.
 
 ## Agent Skills (P0 + P1)

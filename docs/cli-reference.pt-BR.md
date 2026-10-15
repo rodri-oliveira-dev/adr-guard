@@ -4,6 +4,8 @@
 
 > A análise de impacto arquitetural foi introduzida na v1.5.0. O drift arquitetural faz parte do código e do escopo de release da v1.6.0. Confirme a publicação coordenada do pacote ou contêiner v1.6.0 nas [Releases do GitHub](https://github.com/rodri-oliveira-dev/adr-guard/releases) antes de instalar ou fixar esses artefatos; a branch de implementação não os publica sozinha.
 
+> Os contratos de formulário visual no schema `1.0` estão implementados para a linha 1.7.0 da CLI. Eles exigem uma CLI compatível e, no uso visual, uma versão compatível da extensão VS Code, versionada separadamente. O estado deste repositório não comprova que algum desses artefatos foi publicado; confirme a disponibilidade nas [Releases do GitHub](https://github.com/rodri-oliveira-dev/adr-guard/releases), no NuGet e no guia da extensão antes da instalação.
+
 ## Inicializar um repositório
 
 ```text
@@ -44,17 +46,62 @@ A precedência é:
 
 O diretório configurado é aplicado quando o argumento posicional é omitido em `check`, `index`, `new` e `draft`. O template configurado é aplicado somente quando `new`/`draft` não recebem opção explícita. `review` continua exigindo target explícito.
 
+## Criar uma ADR por um cliente estruturado
+
+```text
+adr-guard new <diretório> --form
+  [--template minimal|extended | --template-file <caminho>]
+  [--culture en-US|pt-BR] [--filename-policy <política>]
+```
+
+`new --form` é um contrato JSON limitado para clientes confiáveis, como a extensão VS Code, e não um formulário interativo do terminal. Ele lê uma requisição no schema `1.0` pelo stdin e grava uma resposta no schema `1.0` no stdout. O comando tradicional `new --title` continua sendo o fluxo direto voltado a pessoas e aceita templates nativos ou personalizados com restrições.
+
+As operações aceitas são:
+
+- `describe`: retorna nome, compatibilidade e IDs ordenados dos campos do template, indicando os obrigatórios. O template nativo `minimal` expõe `context`, `decision` e `consequences` obrigatórios. `extended` acrescenta `decisionDrivers`, `optionsConsidered`, `rationale`, `positiveConsequences`, `negativeConsequences`, `risks` e `references` opcionais.
+- `preview`: exige `title` e os `fields` de strings descritos; valida e retorna `path` provável, `markdown` exato e `written: false`, sem gravar, atualizar o índice ou reservar ID.
+- `create`: recebe o mesmo conteúdo, realoca o ID definitivo sob o lock de criação, valida e persiste atomicamente. A resposta retorna o `path` final e `written: true`, sem devolver o corpo Markdown.
+
+Somente os templates canônicos nativos `minimal` e `extended` podem ser mapeados para campos estruturados. Com `--template-file`, `describe` retorna `compatible: false` e o motivo `custom-template-field-mapping-unavailable`; `preview` e `create` rejeitam essa combinação. Use a criação tradicional para templates personalizados. `--culture` aceita instruções `en-US` ou `pt-BR`, e as políticas de nome permanecem iguais às de `new` tradicional.
+
+```json
+{"schemaVersion":"1.0","operation":"describe"}
+```
+
+```json
+{"schemaVersion":"1.0","operation":"preview","title":"Adotar uma fila","fields":{"context":"Pedidos precisam de processamento assíncrono.","decision":"Usar a fila gerenciada.","consequences":"Precisamos operar retentativas e mensagens mortas."}}
+```
+
+As respostas contêm `schemaVersion`, `operation`, `template` (`name`, `compatible`, `reason` opcional e `fields` ordenados), `written` e `path`/`markdown` conforme a operação. Propriedades JSON desconhecidas ou duplicadas, IDs de campo não suportados, valores obrigatórios ausentes ou inválidos, versões incompatíveis e excesso de tamanho/profundidade falham de forma fechada. Erros de contrato/uso retornam `2`, achados de validação da ADR retornam `1`, e falhas de filesystem, cancelamento ou outras operações retornam `3`. Consulte o [guia de criação](creation.pt-BR.md) para detalhes do renderer, templates, prévia e concorrência.
+
 ## Editar uma ADR por um cliente estruturado
 
 ```text
-adr-guard edit <arquivo-adr> --form [--adr-format canonical|madr-4]
+adr-guard edit <arquivo-adr> --form [--adr-directory <diretório>]
+  [--adr-format canonical|madr-4]
   [--lifecycle-statuses <mapeamento>] [--conventional-supersession]
   [--filename-policy <política>] [--placeholder-policy off|warn|error]
   [--validate-metadata]
   [--validation-profile <perfil>]
 ```
 
-`edit --form` é um contrato limitado de stdin/stdout com schema `1.0` para clientes confiáveis, como a extensão VS Code. Uma requisição `load` retorna título, status, front matter escalar e seções de nível dois editáveis, além de um fingerprint SHA-256. Uma requisição `save` precisa devolver esse fingerprint e o conjunto exato de campos descritos. O ADR Guard altera somente os intervalos de valores modificados, preserva Markdown desconhecido e não alterado, mantém nome/identificador, valida o formato e a política de ciclo de vida selecionados e substitui atomicamente apenas o arquivo alvo. A resposta define `written` como `true` somente quando os bytes foram efetivamente persistidos. O fingerprint é conferido antes da substituição, mas um escritor não cooperante ainda pode alterar o alvo no intervalo inevitável entre essa conferência e o rename atômico. Campos ou contratos inválidos retornam `2`; achados de validação da ADR retornam `1`.
+`edit --form` usa o mesmo limite stdin/stdout com schema `1.0` e também não é um editor interativo do terminal. Ele aceita `canonical` e `madr-4` opcional; `--adr-directory` informa o conjunto de validação e deve conter o alvo.
+
+`load` aceita exatamente `schemaVersion` e `operation`. Ele valida a ADR atual e retorna `format`, `path` normalizado, `fingerprint` SHA-256 de 64 caracteres, `title`, `written: false` e um array `fields` ordenado. Cada campo contém `id`, `label`, `kind`, `required` e `value`; campos de status também incluem as `options` permitidas. Conforme o formato selecionado, os campos editáveis cobrem front matter escalar suportado, status canônico e seções de nível dois interpretadas.
+
+```json
+{"schemaVersion":"1.0","operation":"load"}
+```
+
+`save` aceita exatamente `schemaVersion`, `operation`, `fingerprint`, `title` e `fields`. `fields` é um objeto cujas chaves são os IDs retornados por `load`, com todos os campos carregados presentes uma única vez. Uma resposta bem-sucedida tem o mesmo formato de documento de `load`, um fingerprint dos bytes atuais e `written: true` somente quando o conteúdo mudou.
+
+```json
+{"schemaVersion":"1.0","operation":"save","fingerprint":"<SHA-256 de 64 caracteres retornado por load>","title":"Adotar uma fila durável","fields":{"section-0":"Proposed","section-1":"Contexto atualizado.","section-2":"Decisão atualizada.","section-3":"Consequências atualizadas."}}
+```
+
+IDs de campo são identificadores opacos de cada carregamento; clientes não devem inferir nem fixar os IDs do exemplo. O salvamento altera somente os intervalos do título ou dos campos modificados. Ele preserva nome e identificador da ADR, BOM UTF-8 quando presente, estilo de quebra de linha das seções substituídas, conteúdo aninhado, seções desconhecidas, comentários, metadados e todo o restante do Markdown não alterado. Antes de substituir atomicamente apenas esse arquivo, valida o alvo atualizado no formato e no contexto do repositório selecionados. Sem mudanças, retorna `written: false` e mantém os bytes intactos.
+
+`save` exige o fingerprint devolvido por `load`. Se o arquivo foi alterado externamente, retorna erro operacional `3`, preserva esses bytes externos e exige novo carregamento antes da tentativa seguinte. Propriedades JSON desconhecidas/duplicadas, conjunto de propriedades incorreto, fingerprint inválido, IDs de campos ausentes/extras, valores inseguros, versões incompatíveis e excesso de tamanho/profundidade retornam `2`. Achados de validação da ADR retornam `1`; caminhos inválidos, alvos que não sejam Markdown ou sejam links simbólicos, UTF-8 inválido, arquivos grandes demais, I/O e cancelamento retornam `3`. A verificação do fingerprint impede gravações obsoletas comuns, embora um escritor não cooperante ainda possa alterar o alvo no intervalo inevitável entre a conferência e o rename atômico.
 
 ## Saída do check
 
