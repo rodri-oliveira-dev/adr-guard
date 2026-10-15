@@ -373,6 +373,62 @@ public sealed class EditFormCommandIntegrationTests
     }
 
     [Fact]
+    public void SaveWithoutChangesStillValidatesTheExplicitAdrDirectory()
+    {
+        var root = CreateDirectory();
+        var adrDirectory = Path.Combine(root, "adrs");
+        var outsidePath = Path.Combine(root, "0004-outside.md");
+        try
+        {
+            Directory.CreateDirectory(adrDirectory);
+            File.WriteAllText(outsidePath, Canonical);
+            var load = Run(outsidePath, LoadRequest(), "canonical");
+
+            var save = Run(
+                outsidePath,
+                SaveRequest(load.Output, "Choice", _ => { }),
+                "canonical",
+                adrDirectory);
+
+            Assert.Equal(ExitCodes.OperationalError, save.Code);
+            Assert.Contains("inside the ADR directory", save.Error, StringComparison.Ordinal);
+            Assert.Equal(Canonical, File.ReadAllText(outsidePath));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void SaveReturnsABoundedAcknowledgementAfterPersistingLargeFields()
+    {
+        var root = CreateDirectory();
+        var path = Path.Combine(root, "0004-bounded-save.md");
+        try
+        {
+            File.WriteAllText(path, Canonical);
+            var load = Run(path, LoadRequest(), "canonical");
+            var expandedContext = new string('x', 20 * 1024);
+            var request = SaveRequest(load.Output, "Choice", values =>
+                values[FieldId(load.Output, "Context")] = expandedContext);
+
+            var save = Run(path, request, "canonical");
+
+            Assert.Equal(ExitCodes.Success, save.Code);
+            Assert.True(Encoding.UTF8.GetByteCount(save.Output) < 1024);
+            var response = JsonNode.Parse(save.Output)!.AsObject();
+            Assert.Equal(["schemaVersion", "operation", "fingerprint", "written"], response.Select(property => property.Key));
+            Assert.True(response["written"]!.GetValue<bool>());
+            Assert.Contains(expandedContext, File.ReadAllText(path), StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
     public void MadrLoadIgnoresFrontMatterCommentsAndIndentedMarkdownHeadings()
     {
         var root = CreateDirectory();

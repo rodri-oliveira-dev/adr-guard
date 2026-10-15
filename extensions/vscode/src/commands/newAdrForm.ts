@@ -93,7 +93,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
     }
     if (message.type === 'ready') return this.initialize();
     if (message.type === 'openSettings') {
-      if (this.screen !== 'list' || this.submission.isActive || message.workspace === undefined) return;
+      if ((this.screen !== 'list' && this.screen !== 'settings') || this.submission.isActive || message.workspace === undefined) return;
       this.selectedWorkspace = message.workspace;
       this.screen = 'settings';
       await this.post({ type: 'showSettings', settings: this.settingsFor(workspaceFolder(message.workspace)) });
@@ -430,7 +430,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       );
       requireSuccessfulResult(execution.result);
       const response = parseEditFormResponse(execution.result.stdout.trim());
-      if (response.operation !== 'save' || !samePath(response.path, target.filePath)) {
+      if (response.operation !== 'save') {
         throw new Error(vscode.l10n.t('The CLI did not confirm the updated ADR.'));
       }
       this.created = { workspace: values.workspace, relativePath: values.relativePath, filePath: target.filePath, kind: 'updated' };

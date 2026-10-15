@@ -34,10 +34,11 @@ describe('ADR edit form contracts', () => {
 
   it('accepts bounded dynamic fields for supported ADR formats', () => {
     const response = parseEditFormResponse(JSON.stringify(valid));
+    if (response.operation !== 'load') assert.fail('Expected a load response.');
     assert.equal(response.fields[0]?.kind, 'status');
     assert.equal(response.fingerprint, 'A'.repeat(64));
-    assert.equal(parseEditFormResponse(JSON.stringify({ ...valid, operation: 'save' })).written, false);
-    assert.equal(parseEditFormResponse(JSON.stringify({ ...valid, operation: 'save', written: true })).written, true);
+    const acknowledgement = { schemaVersion: '1.0', operation: 'save', fingerprint: 'B'.repeat(64), written: true };
+    assert.equal(parseEditFormResponse(JSON.stringify(acknowledgement)).written, true);
   });
 
   it('rejects incompatible, duplicated, and inconsistent edit responses', () => {
@@ -47,6 +48,7 @@ describe('ADR edit form contracts', () => {
       { ...valid, fields: [...valid.fields, valid.fields[0]] },
       { ...valid, fields: [{ ...valid.fields[0], id: '../outside' }] },
       { ...valid, unexpected: true },
+      { schemaVersion: '1.0', operation: 'save', fingerprint: 'A'.repeat(64), written: true, fields: [] },
     ]) assert.throws(() => parseEditFormResponse(JSON.stringify(response)));
   });
 });

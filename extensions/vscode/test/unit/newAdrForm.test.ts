@@ -236,6 +236,7 @@ describe('visual ADR form host boundary', () => {
     const settingsRoutes = host.slice(host.indexOf("if (message.type === 'openSettings'"), host.indexOf("if (message.type === 'newAdr'"));
     const saveSettings = host.slice(host.indexOf('private async saveSettings('), host.indexOf('private async loadList('));
 
+    assert.match(settingsRoutes, /this\.screen !== 'list' && this\.screen !== 'settings'/u);
     assert.match(settingsRoutes, /settingsFor\(workspaceFolder\(message\.workspace\)\)/u);
     assert.match(settingsRoutes, /message\.type === 'cancelSettings'/u);
     assert.match(settingsRoutes, /message\.type === 'checkSettingsInstallation'/u);

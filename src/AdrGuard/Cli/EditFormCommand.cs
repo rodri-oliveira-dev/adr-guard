@@ -72,16 +72,27 @@ internal static class EditFormCommand
             var document = request.Operation == "load"
                 ? AdrEditService.Load(parsed.FilePath, parsed.AdrDirectory, options, cancellationToken)
                 : AdrEditService.Save(parsed.FilePath, request.Fingerprint!, request.Title!, request.Fields!, parsed.AdrDirectory, options, cancellationToken);
-            WriteResponse(output, new EditFormResponse(
-                SchemaVersion,
-                request.Operation,
-                parsed.Format == AdrFormat.Madr4 ? "madr-4" : "canonical",
-                document.FilePath,
-                document.Fingerprint,
-                document.Title,
-                document.Fields.Select(field => new EditFieldResponse(
-                    field.Id, field.Label, field.Kind, field.Required, field.Value, field.Options)).ToArray(),
-                Written: document.Written));
+            if (request.Operation == "save")
+            {
+                WriteResponse(output, new EditSaveResponse(
+                    SchemaVersion,
+                    request.Operation,
+                    document.Fingerprint,
+                    Written: document.Written));
+            }
+            else
+            {
+                WriteResponse(output, new EditLoadResponse(
+                    SchemaVersion,
+                    request.Operation,
+                    parsed.Format == AdrFormat.Madr4 ? "madr-4" : "canonical",
+                    document.FilePath,
+                    document.Fingerprint,
+                    document.Title,
+                    document.Fields.Select(field => new EditFieldResponse(
+                        field.Id, field.Label, field.Kind, field.Required, field.Value, field.Options)).ToArray(),
+                    Written: document.Written));
+            }
             return ExitCodes.Success;
         }
         catch (AdrEditValidationException exception)
@@ -217,12 +228,13 @@ internal static class EditFormCommand
         return ExitCodes.UsageError;
     }
 
-    private static void WriteResponse(TextWriter output, EditFormResponse response) =>
+    private static void WriteResponse<TResponse>(TextWriter output, TResponse response) =>
         output.WriteLine(JsonSerializer.Serialize(response, JsonOptions));
 
     private sealed record EditFormRequest(string? SchemaVersion, string? Operation, string? Fingerprint, string? Title, Dictionary<string, string>? Fields);
     private sealed record ParsedEditFormRequest(EditFormRequest Request, HashSet<string> Properties);
-    private sealed record EditFormResponse(string SchemaVersion, string Operation, string Format, string Path, string Fingerprint, string Title, IReadOnlyList<EditFieldResponse> Fields, bool Written);
+    private sealed record EditLoadResponse(string SchemaVersion, string Operation, string Format, string Path, string Fingerprint, string Title, IReadOnlyList<EditFieldResponse> Fields, bool Written);
+    private sealed record EditSaveResponse(string SchemaVersion, string Operation, string Fingerprint, bool Written);
     private sealed record EditFieldResponse(string Id, string Label, string Kind, bool Required, string Value, IReadOnlyList<string>? Options);
     private sealed record EditArguments(string FilePath, string? AdrDirectory, AdrFormat Format, string? LifecycleStatuses, bool ConventionalSupersession, string? FilenamePolicy, string? PlaceholderPolicy, bool ValidateMetadata, string? ValidationProfile)
     {

@@ -93,10 +93,14 @@ adr-guard edit <adr-file> --form [--adr-directory <directory>]
 {"schemaVersion":"1.0","operation":"load"}
 ```
 
-`save` accepts exactly `schemaVersion`, `operation`, `fingerprint`, `title`, and `fields`. `fields` is an object whose keys are the field IDs returned by `load`, with every loaded field present exactly once. A successful response has the same document shape as `load`, a fingerprint for the current bytes, and `written: true` only if content changed.
+`save` accepts exactly `schemaVersion`, `operation`, `fingerprint`, `title`, and `fields`. `fields` is an object whose keys are the field IDs returned by `load`, with every loaded field present exactly once. Its successful acknowledgement is deliberately bounded: it returns only the schema version, operation, fingerprint for the current bytes, and `written`, which is `true` only if content changed.
 
 ```json
 {"schemaVersion":"1.0","operation":"save","fingerprint":"<64-character SHA-256 from load>","title":"Adopt a durable queue","fields":{"section-0":"Proposed","section-1":"Updated context.","section-2":"Updated decision.","section-3":"Updated consequences."}}
+```
+
+```json
+{"schemaVersion":"1.0","operation":"save","fingerprint":"<64-character SHA-256 for the current bytes>","written":true}
 ```
 
 Field IDs are opaque per-load identifiers; clients must not infer or hard-code the example IDs. Saving patches only the changed title or field value spans. It preserves the filename and ADR identifier, UTF-8 BOM when present, line-ending style for replaced sections, nested content, unknown sections, comments, metadata, and all other untouched Markdown. It validates the updated target against the selected format and repository context before atomically replacing that file. No changes produce `written: false` and leave the file bytes intact.

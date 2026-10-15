@@ -93,10 +93,14 @@ adr-guard edit <arquivo-adr> --form [--adr-directory <diretório>]
 {"schemaVersion":"1.0","operation":"load"}
 ```
 
-`save` aceita exatamente `schemaVersion`, `operation`, `fingerprint`, `title` e `fields`. `fields` é um objeto cujas chaves são os IDs retornados por `load`, com todos os campos carregados presentes uma única vez. Uma resposta bem-sucedida tem o mesmo formato de documento de `load`, um fingerprint dos bytes atuais e `written: true` somente quando o conteúdo mudou.
+`save` aceita exatamente `schemaVersion`, `operation`, `fingerprint`, `title` e `fields`. `fields` é um objeto cujas chaves são os IDs retornados por `load`, com todos os campos carregados presentes uma única vez. Seu acknowledgement de sucesso é deliberadamente limitado: retorna apenas a versão do schema, a operação, o fingerprint dos bytes atuais e `written`, que é `true` somente quando o conteúdo mudou.
 
 ```json
 {"schemaVersion":"1.0","operation":"save","fingerprint":"<SHA-256 de 64 caracteres retornado por load>","title":"Adotar uma fila durável","fields":{"section-0":"Proposed","section-1":"Contexto atualizado.","section-2":"Decisão atualizada.","section-3":"Consequências atualizadas."}}
+```
+
+```json
+{"schemaVersion":"1.0","operation":"save","fingerprint":"<SHA-256 de 64 caracteres dos bytes atuais>","written":true}
 ```
 
 IDs de campo são identificadores opacos de cada carregamento; clientes não devem inferir nem fixar os IDs do exemplo. O salvamento altera somente os intervalos do título ou dos campos modificados. Ele preserva nome e identificador da ADR, BOM UTF-8 quando presente, estilo de quebra de linha das seções substituídas, conteúdo aninhado, seções desconhecidas, comentários, metadados e todo o restante do Markdown não alterado. Antes de substituir atomicamente apenas esse arquivo, valida o alvo atualizado no formato e no contexto do repositório selecionados. Sem mudanças, retorna `written: false` e mantém os bytes intactos.

@@ -10,9 +10,9 @@ export interface EditFormField {
   readonly options?: readonly string[];
 }
 
-export interface EditFormResponse {
+export interface EditFormLoadResponse {
   readonly schemaVersion: typeof editFormSchemaVersion;
-  readonly operation: 'load' | 'save';
+  readonly operation: 'load';
   readonly format: 'canonical' | 'madr-4';
   readonly path: string;
   readonly fingerprint: string;
@@ -21,20 +21,36 @@ export interface EditFormResponse {
   readonly written: boolean;
 }
 
+export interface EditFormSaveResponse {
+  readonly schemaVersion: typeof editFormSchemaVersion;
+  readonly operation: 'save';
+  readonly fingerprint: string;
+  readonly written: boolean;
+}
+
+export type EditFormResponse = EditFormLoadResponse | EditFormSaveResponse;
+
 export function parseEditFormResponse(value: string): EditFormResponse {
   const parsed: unknown = JSON.parse(value);
-  if (!isRecord(parsed) || !hasOnly(parsed, [
-    'schemaVersion', 'operation', 'format', 'path', 'fingerprint', 'title', 'fields', 'written',
-  ]) || parsed.schemaVersion !== editFormSchemaVersion
+  if (!isRecord(parsed) || parsed.schemaVersion !== editFormSchemaVersion
     || (parsed.operation !== 'load' && parsed.operation !== 'save')
-    || (parsed.format !== 'canonical' && parsed.format !== 'madr-4')
-    || !boundedString(parsed.path, 4096) || !/^[A-F0-9]{64}$/u.test(String(parsed.fingerprint))
-    || !boundedString(parsed.title, 512) || !Array.isArray(parsed.fields) || parsed.fields.length > 64
+    || !/^[A-F0-9]{64}$/u.test(String(parsed.fingerprint))
     || typeof parsed.written !== 'boolean') throw new Error('ADR Guard returned an invalid edit form response.');
+  if (parsed.operation === 'save') {
+    if (!hasOnly(parsed, ['schemaVersion', 'operation', 'fingerprint', 'written'])) {
+      throw new Error('ADR Guard returned an invalid edit form response.');
+    }
+    return parsed as unknown as EditFormSaveResponse;
+  }
+  if (!hasOnly(parsed, [
+    'schemaVersion', 'operation', 'format', 'path', 'fingerprint', 'title', 'fields', 'written',
+  ]) || (parsed.format !== 'canonical' && parsed.format !== 'madr-4')
+    || !boundedString(parsed.path, 4096)
+    || !boundedString(parsed.title, 512) || !Array.isArray(parsed.fields) || parsed.fields.length > 64
+    || parsed.written) throw new Error('ADR Guard returned an invalid edit form response.');
   const fields = parsed.fields.map(parseField);
-  if (new Set(fields.map((field) => field.id)).size !== fields.length
-    || (parsed.operation === 'load' && parsed.written)) throw new Error('ADR Guard returned an inconsistent edit form response.');
-  return { ...parsed, fields } as unknown as EditFormResponse;
+  if (new Set(fields.map((field) => field.id)).size !== fields.length) throw new Error('ADR Guard returned an inconsistent edit form response.');
+  return { ...parsed, fields } as unknown as EditFormLoadResponse;
 }
 
 function parseField(value: unknown): EditFormField {

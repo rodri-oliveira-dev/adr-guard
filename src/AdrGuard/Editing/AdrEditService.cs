@@ -90,7 +90,11 @@ internal static class AdrEditService
             replacements.Add(new TextReplacement(field.Start, field.Length, replacement));
         }
 
-        if (replacements.Count == 0) return layout.ToDocument(filePath, source.Fingerprint);
+        if (replacements.Count == 0)
+        {
+            ResolveAdrDirectory(filePath, adrDirectory);
+            return layout.ToDocument(filePath, source.Fingerprint);
+        }
         var updated = Apply(source.Text, replacements);
         ValidateUpdate(filePath, adrDirectory, source.Text, updated, options, cancellationToken);
         Persist(filePath, source, updated, cancellationToken);
