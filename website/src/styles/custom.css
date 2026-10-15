@@ -16,7 +16,9 @@ body { letter-spacing: -.005em; overflow-x: clip; }
 .main-pane main:has(.landing-shell) footer { margin-top: 0; color: var(--adg-dark-text-muted); background: var(--adg-dark-bg); }
 .main-pane main:has(.landing-shell) footer .meta { color: var(--adg-dark-text-muted); }
 .main-pane main:has(.landing-shell) footer .pagination-links a { border-color: var(--adg-dark-border); color: var(--adg-dark-text); background: var(--adg-dark-bg); }
+.main-pane main:has(.landing-shell) footer .pagination-links .link-title { color: var(--adg-dark-text); }
 .main-pane main:has(.landing-shell) footer .pagination-links a:hover { border-color: var(--adg-dark-link); color: var(--adg-dark-link); }
+.main-pane main:has(.landing-shell) footer .pagination-links a:hover .link-title { color: var(--adg-dark-link); }
 .landing-shell {
   width: 100%;
   max-width: 100%;
