@@ -21,7 +21,7 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 
 ## Interface preview (unreleased)
 
-The images below were captured from the real Extension Development Host with extension 0.9.0 and a CLI built from the same branch. They document development-branch behavior, not the currently published 0.1.1 Marketplace package. Visual creation and editing require the CLI 1.7.0 schema `1.0` form contracts.
+The images below document the extension 1.0.0 development branch in a real Extension Development Host with a CLI built from the same branch. They document development-branch behavior, not the currently published 0.1.1 Marketplace package. Visual creation and editing require the CLI 1.7.0 schema `1.0` form contracts.
 
 ### Browse and search
 
@@ -62,7 +62,7 @@ Install the published extension from the VS Code **Extensions** view (search **A
 code --install-extension rodrioliveira.adr-guard
 ```
 
-For manual testing of a locally generated VSIX, use **Extensions: Install from VSIX...** and select `adr-guard-0.9.0.vsix`. This is separate from installation through the Marketplace.
+For manual testing of a locally generated VSIX, use **Extensions: Install from VSIX...** and select `adr-guard-1.0.0.vsix`. This is separate from installation through the Marketplace.
 
 ## Commands
 

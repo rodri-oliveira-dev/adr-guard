@@ -2,7 +2,7 @@
 
 All notable changes to ADR Guard for VS Code are documented here. Extension versions are independent from ADR Guard CLI versions.
 
-## 0.9.0 — Unreleased
+## 1.0.0 — Unreleased
 
 - Hardened visual-flow integration with screen-scoped message handling, complete DOM coverage for Back/Cancel and successful returns, explicit save-validation/watcher integration checks, and rollback of earlier VS Code preference writes after a later persistence failure.
 
