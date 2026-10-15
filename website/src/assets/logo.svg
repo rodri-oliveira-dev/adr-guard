@@ -6,5 +6,5 @@
     <path d="M27 11v9h8" fill="none" stroke="#76e6d2" stroke-width="3"/>
     <path d="m17 27 4 4 9-10" fill="none" stroke="#183b8f" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
   </g>
-  <text x="58" y="32" fill="currentColor" font-family="Inter, ui-sans-serif, system-ui" font-size="25" font-weight="750" letter-spacing="-.8">ADR Guard</text>
+  <text x="58" y="32" fill="#13213d" font-family="Inter, ui-sans-serif, system-ui" font-size="25" font-weight="750" letter-spacing="-.8">ADR Guard</text>
 </svg>

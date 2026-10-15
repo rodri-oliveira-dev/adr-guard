@@ -16,7 +16,12 @@ export default defineConfig({
     starlight({
       title: 'ADR Guard',
       description: 'Document, validate, review, and evolve architecture decisions with confidence.',
-      logo: { src: './src/assets/logo.svg', replacesTitle: true },
+      logo: {
+        light: './src/assets/logo.svg',
+        dark: './src/assets/logo-dark.svg',
+        alt: 'ADR Guard',
+        replacesTitle: true
+      },
       favicon: '/favicon.svg',
       social: [{ icon: 'github', label: 'GitHub', href: repository }],
       editLink: { baseUrl: `${repository}/edit/main/website/` },
