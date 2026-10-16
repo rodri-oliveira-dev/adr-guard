@@ -29,7 +29,7 @@ describe('synchronized documentation', () => {
   });
 
   it('generates the complete bilingual MCP page set without claiming publication', async () => {
-    const routes = ['mcp', 'mcp-configuration', 'mcp-tools', 'mcp-security'];
+    const routes = ['mcp', 'mcp-configuration', 'mcp-tools', 'mcp-security', 'mcp-release'];
     for (const route of routes) {
       const [english, portuguese] = await Promise.all([
         readFile(new URL(`product/${route}.md`, generatedRoot), 'utf8'),
@@ -43,7 +43,7 @@ describe('synchronized documentation', () => {
     }
 
     const overview = await readFile(new URL('product/mcp.md', generatedRoot), 'utf8');
-    expect(overview).toContain('No ADR Guard MCP NuGet package, container, installer, or other official distribution has been published');
+    expect(overview).toContain('No ADR Guard MCP package, GitHub Release, or Registry entry has been published');
     const tools = await readFile(new URL('product/mcp-tools.md', generatedRoot), 'utf8');
     expect(tools).toContain('list_adrs');
     expect(tools).toContain('verify_architecture');

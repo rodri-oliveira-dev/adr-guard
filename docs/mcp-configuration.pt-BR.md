@@ -2,9 +2,20 @@
 
 [English](mcp-configuration.md) · [Visão geral](mcp.pt-BR.md) · [Ferramentas](mcp-tools.pt-BR.md) · [Segurança](mcp-security.pt-BR.md)
 
-O servidor MCP ainda não possui distribuição binária oficial. Estas instruções configuram um build local do código-fonte e não instalam nem publicam artefatos.
+O servidor MCP está preparado como .NET Tool com versionamento independente, mas nenhum pacote oficial ou entrada no Registry foi publicado. Os comandos abaixo distinguem a futura instalação pelo NuGet do build de código-fonte utilizável agora.
 
-## Pré-requisitos e build
+## Instalação após a primeira publicação verificada
+
+O pacote exige o runtime .NET 10 e instala `adr-guard-mcp` independentemente da CLI tradicional `adr-guard`:
+
+```shell
+dotnet tool install --global RodriOliveira.AdrGuard.Mcp
+adr-guard-mcp --repository /caminho/absoluto/do/repositorio --adr-directory docs/adr
+```
+
+Para um manifesto local de ferramentas, use `dotnet tool install --local RodriOliveira.AdrGuard.Mcp` e `dotnet tool run adr-guard-mcp -- --repository ...`. Confirme primeiro o pacote NuGet e a entrada no Registry; a existência do workflow não significa publicação.
+
+## Pré-requisitos e build do código-fonte
 
 - SDK .NET `10.0.402`, fixado em `global.json`.
 - Checkout local contendo `src/AdrGuard.Mcp`.

@@ -150,6 +150,8 @@ Esses fluxos usam sempre a CLI diretamente e funcionam com MCP habilitado, desab
 
 ## Integração MCP
 
+Depois que o pacote NuGet for efetivamente publicado, `dotnet tool install --global RodriOliveira.AdrGuard.Mcp` normalmente cria o host em `$HOME/.dotnet/tools/adr-guard-mcp` no Unix ou `%USERPROFILE%\.dotnet\tools\adr-guard-mcp.exe` no Windows. Resolva o caminho absoluto no host com `command -v adr-guard-mcp` ou `(Get-Command adr-guard-mcp).Source` e salve esse valor em `adrGuard.mcp.path`. A extensão não presume que o host herdou o `PATH` do shell interativo. O empacotamento e a automação de release estão preparados, mas continuam não publicados até a verificação da release manual.
+
 O provider MCP opcional começa desabilitado. Em workspace local `file:` e confiável, defina `adrGuard.mcp.path` no escopo de máquina para uma `adr-guard-mcp.dll` absoluta ou app host da plataforma fora de todos os workspaces e habilite `adrGuard.mcp.enabled` na pasta desejada. A tela distingue desabilitado, não configurado, não encontrado, inválido, disponível para iniciar e erro conhecido. A verificação explícita valida a configuração; nunca informa “conectado” apenas por um caminho válido.
 
 O ID do provider é `adrGuard.mcpServers`. Ele retorna uma `McpStdioServerDefinition` identificável por pasta habilitada, com raiz e diretório de ADRs isolados, e deixa o VS Code controlar início/encerramento. Ativação, navegação e alterações não relacionadas não iniciam processos. Mudanças de configuração atualizam definições. Desabilitar remove a definição sem afetar comandos da CLI.

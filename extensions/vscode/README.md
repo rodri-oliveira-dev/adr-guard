@@ -150,6 +150,8 @@ These visual workflows always use the CLI directly and work with MCP enabled, di
 
 ## MCP integration
 
+After the NuGet package is actually published, `dotnet tool install --global RodriOliveira.AdrGuard.Mcp` normally creates a host under `$HOME/.dotnet/tools/adr-guard-mcp` on Unix or `%USERPROFILE%\.dotnet\tools\adr-guard-mcp.exe` on Windows. Resolve the host-local absolute path with `command -v adr-guard-mcp` or `(Get-Command adr-guard-mcp).Source` and store that value in `adrGuard.mcp.path`. The extension intentionally does not assume that the extension host inherited the interactive shell `PATH`. Packaging and release automation are prepared but remain unpublished until the manual release is verified.
+
 The optional MCP provider is disabled by default. In a trusted local `file:` workspace, set the machine-scoped `adrGuard.mcp.path` to an absolute `adr-guard-mcp.dll` or platform app host outside every open workspace, then enable `adrGuard.mcp.enabled` for the intended folder. The settings screen distinguishes disabled, not configured, not found, invalid, available to start, and known-error states. Its explicit check validates configuration only; it never reports “connected” from a valid path.
 
 The provider ID is `adrGuard.mcpServers`. It returns one labeled `McpStdioServerDefinition` per enabled workspace folder, with an isolated repository root and ADR directory, and lets VS Code own process startup/shutdown. Activation, list/settings navigation, and unrelated preference changes start no process. Configuration changes refresh definitions. Disabling MCP removes the definition without affecting CLI commands.
@@ -218,7 +220,7 @@ The manifest is authoritative. Resource values are saved per workspace folder by
 | Core CLI integration | Compatible `adr-guard` v1.3.0 or newer for the documented baseline commands. |
 | Visual create/edit | CLI 1.7.0 schema `1.0` form contracts. |
 | Impact, drift, baseline, enriched catalog, draft, review/compare | A CLI build whose `<command> --help` exposes the requested flags; the extension checks capabilities instead of assuming matching versions. |
-| MCP | Stable VS Code MCP provider API plus a separately built local `adr-guard-mcp`; no MCP distribution is currently published. |
+| MCP | Stable VS Code MCP provider API plus a separately installed or source-built `adr-guard-mcp`; the `0.1.0` distribution pipeline is prepared but not yet published. |
 
 ## Troubleshooting
 

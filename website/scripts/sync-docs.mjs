@@ -30,6 +30,7 @@ const product = [
   ['docs/mcp-configuration.md', 'product/mcp-configuration.md'],
   ['docs/mcp-tools.md', 'product/mcp-tools.md'],
   ['docs/mcp-security.md', 'product/mcp-security.md'],
+  ['docs/mcp-release.md', 'product/mcp-release.md'],
   ['docs/container.md', 'product/containers.md'],
   ['docs/draft-templates.md', 'product/ai-drafting.md'],
   ['docs/adr-review.md', 'product/ai-review.md'],

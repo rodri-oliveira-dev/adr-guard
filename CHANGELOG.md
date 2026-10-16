@@ -9,10 +9,13 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 ### Added
 - Added the source-only `adr-guard-mcp` executable with seven bounded, read-only schema `1.0` tools over `stdio`: ADR listing/reading/search, declared relationships, validation, impact analysis, and architecture verification.
 - Added bilingual MCP overview, configuration, tool-contract, and security documentation plus synchronized portal routes.
+- Prepared the independently versioned `RodriOliveira.AdrGuard.Mcp` .NET Tool, MCP Registry manifest, isolated package smoke tests, and manual `MCP Release` workflow for NuGet.org, GitHub Releases, and the official Registry.
 
 ### Security and publication
 - MCP processes are scoped to one validated repository, bound by file/response/time limits, and do not expose write tools, execute workspace content, fetch Git refs, or run evidence producers.
+- Git adapters now close subprocess standard input so MCP `stdio` protocol messages can never be consumed by a child Git process during impact or drift operations.
 - No MCP NuGet package, container, installer, release, or other official distribution has been published; current use requires a local source build.
+- Publication remains manual and main-only. NuGet and Registry publishing use scoped OIDC jobs; the prepared `0.1.0` artifacts are not public until the workflow completes and its public verification gates pass.
 
 ## [1.7.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.7.0) — Unreleased
 

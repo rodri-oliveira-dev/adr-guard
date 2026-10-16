@@ -4,7 +4,9 @@
 
 The ADR Guard MCP server is a local, read-only adapter that exposes ADR Guard domain capabilities to Model Context Protocol clients. It lets a compatible agent list, read, search, relate, validate, and analyze ADRs without replacing the CLI or embedding an AI model in ADR Guard.
 
-> **Availability:** the server is implemented and tested in source on `feat/mcp-server-integration`. No ADR Guard MCP NuGet package, container, installer, or other official distribution has been published. Build it locally before configuring a client. This source status does not make the capability part of a published CLI or VS Code release.
+> **Availability:** the server and its independent `0.1.0` NuGet/Registry release pipeline are prepared and tested in source on `feat/mcp-server-integration`. No ADR Guard MCP package, GitHub Release, or Registry entry has been published. Build it locally until the first manual `MCP Release` run completes and its public verification gates pass.
+
+The prepared Registry name is `io.github.rodri-oliveira-dev/adr-guard`, backed by the NuGet package `RodriOliveira.AdrGuard.Mcp`. The Registry is discovery metadata for compatible clients; it does not guarantee client-side automatic installation. The only transport is local `stdio`.
 
 ## Architecture
 

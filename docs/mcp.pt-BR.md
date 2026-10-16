@@ -4,7 +4,9 @@
 
 O servidor MCP do ADR Guard é um adaptador local e somente leitura que expõe capacidades de domínio do ADR Guard a clientes do Model Context Protocol. Ele permite que um agente compatível liste, leia, pesquise, relacione, valide e analise ADRs sem substituir a CLI nem incorporar um modelo de IA ao ADR Guard.
 
-> **Disponibilidade:** o servidor está implementado e testado no código-fonte da branch `feat/mcp-server-integration`. Nenhum pacote NuGet, container, instalador ou outra distribuição oficial do MCP do ADR Guard foi publicado. Compile-o localmente antes de configurar um cliente. Esse estado no código-fonte não torna a capacidade parte de uma versão publicada da CLI ou da extensão VS Code.
+> **Disponibilidade:** o servidor e seu pipeline independente de release NuGet/Registry `0.1.0` estão preparados e testados no código-fonte da branch `feat/mcp-server-integration`. Nenhum pacote MCP, GitHub Release ou entrada no Registry foi publicado. Compile-o localmente até que a primeira execução manual de `MCP Release` conclua e passe pelas verificações públicas.
+
+O nome preparado no Registry é `io.github.rodri-oliveira-dev/adr-guard`, associado ao pacote NuGet `RodriOliveira.AdrGuard.Mcp`. O Registry fornece metadados de descoberta para clientes compatíveis; ele não garante instalação automática pelo cliente. O único transporte é `stdio` local.
 
 ## Arquitetura
 

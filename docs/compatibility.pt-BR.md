@@ -17,7 +17,7 @@ Use `adr-format: canonical` ou `madr-4` independentemente de `validation-profile
 | --- | --- |
 | CLI publicada | Consulte `adr-guard --version` instalado e o `--help` do comando; versões da extensão, MCP e CLI não são equivalentes. |
 | Extensão VS Code | Exige VS Code `1.101.0` ou superior. Formulários visuais exigem contratos da CLI 1.7.0; fluxos de análise da branch consultam cada comando antes do uso. |
-| Servidor MCP | Atualmente disponível apenas no código-fonte e compilado para .NET 10. Schemas das ferramentas são `1.0`; não existe pacote MCP versionado nem distribuição oficial publicada. |
+| Servidor MCP | Preparado como a .NET Tool dependente do framework .NET 10 e versionada de forma independente `RodriOliveira.AdrGuard.Mcp` (baseline `0.1.0`). Os schemas das ferramentas são `1.0`; pacote e entrada no Registry continuam não publicados até o workflow manual concluí-los e verificá-los. |
 
 Implementação no código-fonte, incorporação à branch padrão e publicação em um canal de distribuição são estados separados. Documentação de uma branch de desenvolvimento não estabelece disponibilidade em release.
 
