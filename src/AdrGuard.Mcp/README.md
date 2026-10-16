@@ -4,18 +4,24 @@
 
 ADR Guard MCP is a local, read-only adapter that gives compatible Model Context Protocol clients structured access to ADR discovery, validation, impact analysis, and architectural drift verification. It reuses the authoritative ADR Guard domain implementation; it does not approve architectural decisions or turn advisory evidence into compliance.
 
-> **Publication status:** package and release automation is prepared in source, but `RodriOliveira.AdrGuard.Mcp` and the Registry entry must not be treated as public until the first manual release is completed and verified.
+> **Publication status:** version `1.0.0` and its release automation are prepared, but `RodriOliveira.AdrGuard.Mcp` and the Registry entry must not be treated as public until the first manual release is completed and verified.
 
 ## Install and run
 
 After publication, install the framework-dependent .NET 10 tool from NuGet.org:
 
 ```shell
-dotnet tool install --global RodriOliveira.AdrGuard.Mcp
+dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0
 adr-guard-mcp --repository /absolute/path/to/repository --adr-directory docs/adr
 ```
 
-For a repository-local tool manifest, omit `--global`, add `--local`, and invoke it with `dotnet tool run adr-guard-mcp -- ...`. A source checkout can still run the built DLL directly:
+For a repository-local tool manifest after publication:
+
+```shell
+dotnet new tool-manifest
+dotnet tool install --local RodriOliveira.AdrGuard.Mcp --version 1.0.0
+dotnet tool run adr-guard-mcp -- --repository /absolute/path/to/repository --adr-directory docs/adr
+```
 
 For local development after a Release build, configure an MCP client to run:
 

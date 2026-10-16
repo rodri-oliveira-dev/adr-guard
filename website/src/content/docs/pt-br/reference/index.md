@@ -7,6 +7,7 @@ sidebar:
 
 Páginas de referência descrevem contratos e limites operacionais, não o percurso de aprendizagem.
 
+- [Rastreabilidade entre implementação e documentação](./generated/documentation-audit/)
 - [Política de revisão por IA v1](./generated/review-policy-v1/)
 - [Segurança da GitHub Action](./generated/github-action-security/)
 - [Modo de revisão da GitHub Action](./generated/github-action-review/)

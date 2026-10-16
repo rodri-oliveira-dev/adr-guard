@@ -49,6 +49,7 @@ Architecture Decision Records (ADRs) preserve the context, choice, and consequen
 | Reports | [check reports](check-reports.md), [review report schema](adr-review-report-v1.md), [review policy](adr-review-policy-v1.md) |
 | AI-assisted workflows | [draft templates and privacy](draft-templates.md), [ADR review](adr-review.md), [comparative review](comparative-review.md), [review security](adr-review-security.md) |
 | Integrations | [GitHub Action](github-action.md), [VS Code](../extensions/vscode/README.md), [MCP server](mcp.md), [MCP distribution](mcp-release.md), [container images](container.md) |
+| Audit evidence | [Implementation-to-documentation traceability](documentation-audit.md), [compatibility matrix](compatibility.md) |
 | Release and supply chain | [Action release policy](github-action-release.md), [Action security](github-action-security.md), [public release audit](public-release-audit.md) |
 | Project architecture | [ADR Guard's own ADR index](adr/README.md) |
 

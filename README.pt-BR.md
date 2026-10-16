@@ -33,7 +33,7 @@ Está começando? Siga o guia progressivo:
 - oferece [análise consultiva de impacto arquitetural](docs/guides/architecture-impact-analysis.pt-BR.md), opcional e baseada em mapeamentos ADR-código explícitos;
 - verifica [drift arquitetural e evidências de fitness](docs/guides/architectural-drift.pt-BR.md) de forma opcional, sem avaliar MSBuild nem tratar evidência ausente como conformidade;
 - oferece escrita e revisão técnica opcionais com IA, revisão humana, providers e contexto explícitos;
-- integra-se a GitHub Actions, VS Code, imagens versionadas de container e um servidor MCP opcional compilado do código-fonte para agentes compatíveis.
+- integra-se a GitHub Actions, VS Code, imagens versionadas de container e um servidor MCP opcional empacotado de forma independente para agentes compatíveis.
 
 A validação confirma regras determinísticas da documentação. Ela **não** aprova mérito técnico, autoriza uma decisão nem transforma saída de IA em arquitetura aceita.
 
@@ -88,6 +88,8 @@ Consulte a [matriz de seleção](docs/decision-design/choosing-a-template.pt-BR.
 | Relatórios de CI | Produzir validação em texto, JSON ou SARIF | [Relatórios de check](docs/check-reports.pt-BR.md) |
 | Agent Skills | Oferecer instruções portáveis a agentes para fluxos de ADR e CLI controlados por pessoas | [Guia de Skills](docs/skills/README.pt-BR.md) |
 
+O conjunto de releases preparado é CLI `1.8.0`, VS Code `1.1.0` e MCP `1.0.0`. Essas versões são independentes, e nenhuma dessas candidatas se torna pública por meio desta branch ou PR. A baseline pública verificada é CLI `1.7.0` e VS Code `1.0.0`; não há pacote ADR Guard MCP nem entrada no Registry publicados. Consulte a [matriz de compatibilidade](docs/compatibility.pt-BR.md) para contratos mínimos da CLI, requisitos de .NET/VS Code, dependências opcionais e operação sem MCP.
+
 A [extensão ADR Guard para VS Code publicada](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) inclui listagem visual de ADRs, criação orientada, edição e configurações. Essas telas exigem os contratos de formulário da CLI 1.7.0. As versões da extensão e da CLI permanecem independentes.
 
 ![Listagem visual do ADR Guard no Extension Development Host do VS Code](website/public/images/vscode/adr-list.png)
@@ -98,7 +100,7 @@ A criação e a edição estruturadas de ADRs estão implementadas para clientes
 
 A [Action no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) e a [extensão no Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) estão publicadas. A tag móvel `@v1` está publicada e suporta `check`, `index`, `review` opcional desde a v1.1.6 e `impact` opcional desde a v1.5.0. Na v1.6.0, `drift` é disponibilizado por meio da CLI/container direto, assim como `new` e `draft`; não é um modo da Action composta. A extensão não inclui a CLI.
 
-O servidor independente `adr-guard-mcp`, o empacotamento da .NET Tool `RodriOliveira.AdrGuard.Mcp`, o manifesto do Registry e o pipeline manual de release estão implementados e testados no código-fonte da branch `feat/mcp-server-integration`. Eles continuam não publicados até que a primeira execução autorizada de `MCP Release` conclua e verifique NuGet.org, GitHub Releases e Registry; use um build local enquanto isso. Consulte a [configuração do MCP](docs/mcp-configuration.pt-BR.md), as [ferramentas disponíveis](docs/mcp-tools.pt-BR.md), a [integração com VS Code](extensions/vscode/README.pt-BR.md#integração-mcp) e [segurança e permissões](docs/mcp-security.pt-BR.md).
+A candidata MCP `1.0.0` independente, o empacotamento da .NET Tool `RodriOliveira.AdrGuard.Mcp`, o manifesto do Registry e o pipeline manual de release estão implementados e testados no código-fonte. Eles continuam não publicados até que a primeira execução autorizada de `MCP Release` conclua e verifique NuGet.org, GitHub Releases e Registry; use um pacote local ou build do código-fonte enquanto isso. Consulte a [configuração do MCP](docs/mcp-configuration.pt-BR.md), as [ferramentas disponíveis](docs/mcp-tools.pt-BR.md), a [integração com VS Code](extensions/vscode/README.pt-BR.md#integração-mcp) e [segurança e permissões](docs/mcp-security.pt-BR.md).
 
 ## Agent Skills (P0 + P1)
 

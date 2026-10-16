@@ -2,18 +2,18 @@
 
 [Português (Brasil)](mcp-configuration.pt-BR.md) · [Overview](mcp.md) · [Tools](mcp-tools.md) · [Security](mcp-security.md)
 
-The MCP server is prepared as an independently versioned .NET Tool, but no official package or Registry entry has been published yet. The commands below distinguish the future NuGet installation from the currently usable source build.
+MCP 1.0.0 is prepared as an independently versioned .NET Tool, but no official package or Registry entry has been published yet. The commands below distinguish the future NuGet installation from a currently usable local package or source build.
 
 ## Install after the first verified publication
 
 The package requires the .NET 10 runtime and installs `adr-guard-mcp` independently from the traditional `adr-guard` CLI:
 
 ```shell
-dotnet tool install --global RodriOliveira.AdrGuard.Mcp
+dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0
 adr-guard-mcp --repository /absolute/path/to/repository --adr-directory docs/adr
 ```
 
-For a local tool manifest, use `dotnet tool install --local RodriOliveira.AdrGuard.Mcp` and `dotnet tool run adr-guard-mcp -- --repository ...`. Verify the NuGet package and Registry entry first; a checked-in workflow alone is not publication.
+For a local tool manifest, use `dotnet tool install --local RodriOliveira.AdrGuard.Mcp --version 1.0.0` and `dotnet tool run adr-guard-mcp -- --repository ...`. Verify the NuGet package and Registry entry first; a checked-in workflow alone is not publication.
 
 ## Prerequisites and source build
 
@@ -57,7 +57,7 @@ Unknown, missing, or malformed arguments return exit code `2`. Startup I/O and a
 
 ## VS Code extension integration
 
-The integration implemented on `feat/mcp-server-integration` uses the stable VS Code MCP provider API and is disabled by default:
+The integration prepared for VS Code extension 1.1.0 uses the stable VS Code MCP provider API and is disabled by default:
 
 1. Build the server in the environment that hosts the workspace extension.
 2. Open a trusted local `file:` workspace.

@@ -33,7 +33,7 @@ New to the practice? Follow the progressive guide:
 - offers opt-in, advisory [architecture impact analysis](docs/guides/architecture-impact-analysis.md) from explicit ADR-to-code mappings;
 - verifies opt-in [architectural drift and fitness evidence](docs/guides/architectural-drift.md) without evaluating MSBuild or treating missing evidence as compliance;
 - offers opt-in, human-reviewed AI drafting and technical review with explicit providers and context;
-- integrates with GitHub Actions, VS Code, versioned container images, and an optional source-built MCP server for compatible agents.
+- integrates with GitHub Actions, VS Code, versioned container images, and an optional independently packaged MCP server for compatible agents.
 
 Validation confirms deterministic documentation rules. It does **not** approve technical merit, authorize a decision, or turn AI output into an accepted architecture.
 
@@ -88,6 +88,8 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 | CI reports | Produce text, JSON, or SARIF validation output | [Check reports](docs/check-reports.md) |
 | Agent Skills | Give agents portable instructions for human-controlled ADR and CLI workflows | [Skills guide](docs/skills/README.md) |
 
+The prepared release set is CLI `1.8.0`, VS Code `1.1.0`, and MCP `1.0.0`. These are independent versions, and none of those candidates is made public by this branch or PR. The verified public baseline is CLI `1.7.0` and VS Code `1.0.0`; no ADR Guard MCP package or Registry entry is public. See the [compatibility matrix](docs/compatibility.md) for minimum CLI contracts, .NET/VS Code requirements, optional dependencies, and operation without MCP.
+
 The [published ADR Guard for VS Code extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) includes the visual ADR list plus guided creation, editing, and settings. These screens require the CLI 1.7.0 form contracts. Extension and CLI versions remain independent.
 
 ![ADR Guard visual list in the VS Code Extension Development Host](website/public/images/vscode/adr-list.png)
@@ -98,7 +100,7 @@ Structured ADR creation and editing are implemented for trusted visual clients s
 
 The [GitHub Marketplace Action](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) and [Visual Studio Marketplace extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) are published. The moving `@v1` tag is published and supports `check`, `index`, opt-in `review` since v1.1.6, and opt-in `impact` since v1.5.0. In v1.6.0, `drift` is provided through the CLI/direct-container workflow, alongside `new` and `draft`; it is not a composite Action mode. The extension does not bundle the CLI.
 
-The independent `adr-guard-mcp` server, `RodriOliveira.AdrGuard.Mcp` .NET Tool packaging, Registry manifest, and manual release pipeline are implemented and tested in source on `feat/mcp-server-integration`. They remain unpublished until the first authorized `MCP Release` run completes and verifies NuGet.org, GitHub Releases, and the Registry; use a local build meanwhile. See [MCP configuration](docs/mcp-configuration.md), [available tools](docs/mcp-tools.md), [VS Code integration](extensions/vscode/README.md#mcp-integration), and [security and permissions](docs/mcp-security.md).
+The independent MCP `1.0.0` candidate, `RodriOliveira.AdrGuard.Mcp` packaging, Registry manifest, and manual release pipeline are implemented and tested in source. They remain unpublished until the first authorized `MCP Release` run completes and verifies NuGet.org, GitHub Releases, and the Registry; use a local package or source build meanwhile. See [MCP configuration](docs/mcp-configuration.md), [available tools](docs/mcp-tools.md), [VS Code integration](extensions/vscode/README.md#mcp-integration), and [security and permissions](docs/mcp-security.md).
 
 ## Agent Skills (P0 + P1)
 

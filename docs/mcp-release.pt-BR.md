@@ -4,6 +4,8 @@
 
 O workflow `MCP Release` (`.github/workflows/mcp-release.yml`) é independente da release da CLI. Ele recebe um único SemVer estável, executa apenas por acionamento manual na `main`, exige CI bem-sucedido para o commit escolhido e deriva desse valor as versões do pacote, manifesto, tag, GitHub Release e Registry. Não o acione antes de concluir a configuração abaixo.
 
+O repositório está preparado para a candidata `1.0.0`, mas essa versão não está publicada. Trate o contrato como operacionalmente estável somente após o workflow protegido concluir a verificação do pacote, a instalação pública, a publicação no Registry e as verificações pós-publicação.
+
 ## Administração única obrigatória
 
 1. No NuGet.org, confirme que `rodri-oliveira-dev` possui ou pode criar `RodriOliveira.AdrGuard.Mcp`.

@@ -21,6 +21,7 @@ const concepts = [
 
 const product = [
   ['docs/cli-reference.md', 'product/cli.md'],
+  ['docs/compatibility.md', 'product/compatibility.md'],
   ['docs/creation.md', 'product/creation.md'],
   ['docs/custom-templates.md', 'product/custom-templates.md'],
   ['docs/madr-4.md', 'product/madr-4.md'],
@@ -45,6 +46,7 @@ const product = [
 ];
 
 const references = [
+  ['docs/documentation-audit.md', 'reference/generated/documentation-audit.md'],
   ['docs/adr-review-policy-v1.md', 'reference/generated/review-policy-v1.md'],
   ['docs/github-action-security.md', 'reference/generated/github-action-security.md'],
   ['docs/github-action-review.md', 'reference/generated/github-action-review.md'],

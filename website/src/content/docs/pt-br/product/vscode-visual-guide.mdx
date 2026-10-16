@@ -1,6 +1,6 @@
 ---
 title: VS Code — Guia Visual
-description: Um passo a passo visual da interface da branch de desenvolvimento do ADR Guard para consultar, criar, editar, configurar e validar ADRs no VS Code.
+description: Um passo a passo visual da interface candidata a release 1.1.0 do ADR Guard para consultar, criar, editar, configurar e validar ADRs no VS Code.
 sidebar:
   order: 2
   badge:
@@ -11,7 +11,7 @@ sidebar:
 O ADR Guard para VS Code é uma interface executada no host do workspace sobre a CLI .NET. A extensão oferece navegação, formulários, configurações e diagnósticos em Problems; a CLI continua sendo a autoridade para parsing, geração, edição, validação, políticas e códigos de saída.
 
 :::note[Status de publicação]
-Estas capturas documentam a interface disponível na extensão **1.0.0 publicada**, com os contratos de formulário da CLI **1.7.0 publicada**. As telas de arquitetura/governança/IA e o provider MCP implementados em `feat/mcp-server-integration` estão documentados em texto abaixo porque ainda não há novas capturas verificadas nem versão publicada da extensão. Releases da extensão, CLI e MCP são independentes.
+Estas capturas documentam a interface disponível na extensão **1.0.0 publicada**, com os contratos de formulário da CLI **1.7.0 publicada**. As telas de arquitetura/governança/IA e o provider MCP preparados para a extensão **1.1.0** estão documentados em texto abaixo porque ainda não há novas capturas verificadas nem versão publicada da extensão. Releases da extensão, CLI e MCP são independentes.
 :::
 
 Para tabelas de comandos, chaves de configuração, limites de confiança e solução de problemas, consulte a [referência da extensão VS Code](../vscode-extension/). Este guia se concentra na interface e nos fluxos mais comuns.
@@ -105,11 +105,11 @@ Deixe o executável vazio para usar a descoberta segura no `PATH` do host da ext
 
 As configurações são gravadas nos escopos documentados de usuário, máquina ou pasta do workspace. Se uma gravação agrupada falhar, a extensão tenta reverter as anteriores e mantém o rascunho disponível, em vez de informar sucesso parcial.
 
-### Análises e integrações da branch de desenvolvimento
+### Análises e integrações da candidata a release 1.1.0
 
-O painel da branch adiciona cards de Impacto Arquitetural, Fitness Arquitetural, Baselines de Diagnóstico, Catálogo de ADRs, Rascunho de ADR por IA e Review Técnico por IA. Abrir um card não executa a operação. Resultados aparecem somente após execução explícita e ficam limitados ao workspace selecionado. Impacto e drift preservam evidência e incerteza; `unknown` não é apresentado como sucesso. Substituição de baseline, geração de catálogo e criação por draft exigem confirmação explícita. Formulários de IA informam provider, modelo e contexto selecionado antes da transmissão.
+O painel da candidata 1.1.0 adiciona cards de Impacto Arquitetural, Fitness Arquitetural, Baselines de Diagnóstico, Catálogo de ADRs, Rascunho de ADR por IA e Review Técnico por IA. Abrir um card não executa a operação. Resultados aparecem somente após execução explícita e ficam limitados ao workspace selecionado. Impacto e drift preservam evidência e incerteza; `unknown` não é apresentado como sucesso. Substituição de baseline, geração de catálogo e criação por draft exigem confirmação explícita. Formulários de IA informam provider, modelo e contexto selecionado antes da transmissão.
 
-A mesma tela de configurações adiciona seções de Análise de Arquitetura, Providers de IA e Integração MCP. MCP começa desabilitado e sua verificação informa disponibilidade da configuração, não conexão ativa. Consulte a [referência da extensão](../vscode-extension/) e o [guia do MCP](../mcp/) para comportamento exato na branch e status de publicação.
+A mesma tela de configurações adiciona seções de Análise de Arquitetura, Providers de IA e Integração MCP. MCP começa desabilitado e sua verificação informa disponibilidade da configuração, não conexão ativa. Consulte a [referência da extensão](../vscode-extension/) e o [guia do MCP](../mcp/) para comportamento exato e status de publicação.
 
 ## Validar e consultar Problems
 

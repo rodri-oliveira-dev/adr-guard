@@ -2,18 +2,18 @@
 
 [English](mcp-configuration.md) · [Visão geral](mcp.pt-BR.md) · [Ferramentas](mcp-tools.pt-BR.md) · [Segurança](mcp-security.pt-BR.md)
 
-O servidor MCP está preparado como .NET Tool com versionamento independente, mas nenhum pacote oficial ou entrada no Registry foi publicado. Os comandos abaixo distinguem a futura instalação pelo NuGet do build de código-fonte utilizável agora.
+O MCP 1.0.0 está preparado como .NET Tool com versionamento independente, mas nenhum pacote oficial ou entrada no Registry foi publicado. Os comandos abaixo distinguem a futura instalação pelo NuGet de um pacote local ou build do código-fonte utilizável agora.
 
 ## Instalação após a primeira publicação verificada
 
 O pacote exige o runtime .NET 10 e instala `adr-guard-mcp` independentemente da CLI tradicional `adr-guard`:
 
 ```shell
-dotnet tool install --global RodriOliveira.AdrGuard.Mcp
+dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0
 adr-guard-mcp --repository /caminho/absoluto/do/repositorio --adr-directory docs/adr
 ```
 
-Para um manifesto local de ferramentas, use `dotnet tool install --local RodriOliveira.AdrGuard.Mcp` e `dotnet tool run adr-guard-mcp -- --repository ...`. Confirme primeiro o pacote NuGet e a entrada no Registry; a existência do workflow não significa publicação.
+Para um manifesto local de ferramentas, use `dotnet tool install --local RodriOliveira.AdrGuard.Mcp --version 1.0.0` e `dotnet tool run adr-guard-mcp -- --repository ...`. Confirme primeiro o pacote NuGet e a entrada no Registry; a existência do workflow não significa publicação.
 
 ## Pré-requisitos e build do código-fonte
 
@@ -57,7 +57,7 @@ Argumentos desconhecidos, ausentes ou malformados retornam exit code `2`. Falhas
 
 ## Integração com a extensão VS Code
 
-A integração implementada em `feat/mcp-server-integration` usa a API estável de provider MCP do VS Code e começa desabilitada:
+A integração preparada para a extensão VS Code 1.1.0 usa a API estável de provider MCP do VS Code e começa desabilitada:
 
 1. Compile o servidor no ambiente que hospeda a extensão de workspace.
 2. Abra um workspace local `file:` e confiável.

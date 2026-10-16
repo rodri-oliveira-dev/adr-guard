@@ -4,7 +4,7 @@
 
 O servidor MCP do ADR Guard é um adaptador local e somente leitura que expõe capacidades de domínio do ADR Guard a clientes do Model Context Protocol. Ele permite que um agente compatível liste, leia, pesquise, relacione, valide e analise ADRs sem substituir a CLI nem incorporar um modelo de IA ao ADR Guard.
 
-> **Disponibilidade:** o servidor e seu pipeline independente de release NuGet/Registry `0.1.0` estão preparados e testados no código-fonte da branch `feat/mcp-server-integration`. Nenhum pacote MCP, GitHub Release ou entrada no Registry foi publicado. Compile-o localmente até que a primeira execução manual de `MCP Release` conclua e passe pelas verificações públicas.
+> **Disponibilidade:** o MCP `1.0.0` e seu pipeline independente de release NuGet/Registry estão preparados e testados no código-fonte. Nenhum pacote MCP, GitHub Release ou entrada no Registry foi publicado. Use um pacote local ou build do código-fonte até que a primeira execução manual de `MCP Release` conclua e passe pelas verificações públicas.
 
 O nome preparado no Registry é `io.github.rodri-oliveira-dev/adr-guard`, associado ao pacote NuGet `RodriOliveira.AdrGuard.Mcp`. O Registry fornece metadados de descoberta para clientes compatíveis; ele não garante instalação automática pelo cliente. O único transporte é `stdio` local.
 
@@ -48,5 +48,5 @@ As capacidades determinísticas relacionadas continuam documentadas em [Análise
 
 - Esta implementação não possui transporte de rede, serviço remoto hospedado, ferramenta de escrita, resource, prompt ou agente autônomo.
 - O servidor não instala a si próprio, não busca refs Git, não executa builds/testes/scripts, não gera baselines, não cria ADRs nem atualiza índices.
-- É necessário um build do código-fonte até que uma distribuição MCP oficial seja publicada.
+- É necessário um pacote local ou build do código-fonte até que o MCP 1.0.0 seja publicado e verificado de forma independente.
 - A compatibilidade com clientes é documentada apenas onde há integração concreta no repositório: a API estável de MCP para extensões do VS Code. Outros clientes podem funcionar com um comando `stdio` padrão, mas não são apresentados aqui como testados.

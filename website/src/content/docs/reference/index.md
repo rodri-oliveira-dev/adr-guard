@@ -7,6 +7,7 @@ sidebar:
 
 Reference pages describe contracts and operational boundaries rather than the learning path.
 
+- [Implementation-to-documentation traceability](./generated/documentation-audit/)
 - [AI review policy v1](./generated/review-policy-v1/)
 - [GitHub Action security](./generated/github-action-security/)
 - [GitHub Action review mode](./generated/github-action-review/)

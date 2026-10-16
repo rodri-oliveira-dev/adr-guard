@@ -2,9 +2,28 @@
 
 > Availability: `init`, `.adrguard.yml`, and structured `check` output were published in ADR Guard v1.2.0. MADR 4.0 format selection was published in v1.3.0. See [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) for exact artifacts.
 
-> Architecture impact analysis was introduced in v1.5.0. Architectural drift is part of the v1.6.0 code and release scope. Confirm the coordinated v1.6.0 package or container publication in [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) before installing or pinning those artifacts; the implementation branch does not publish them by itself.
+> Architecture impact analysis was introduced in v1.5.0, architectural drift in v1.6.0, and visual form contracts in v1.7.0. CLI 1.8.0 is prepared but not published; confirm exact availability in [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) and NuGet.org.
 
-> The schema `1.0` visual-form contracts are implemented for the CLI 1.7.0 line. They require a compatible CLI and, when used visually, a separately versioned compatible VS Code extension. This repository state does not establish that either artifact has been published; confirm availability in [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases), NuGet, and the extension guide before installation.
+> The schema `1.0` visual-form contracts require CLI 1.7.0 or newer and a separately versioned compatible VS Code extension when used visually. CLI, extension, and MCP versions are independent.
+
+## Command inventory
+
+This table mirrors the command dispatcher and built-in `--help`. Specialized guides provide the detailed contracts and security limits.
+
+| Command | Required inputs and principal options | Writes / external effects | Exit contract |
+| --- | --- | --- | --- |
+| `init [repository]` | Optional ADR directory, template, workflow generation, `--dry-run`, `--overwrite` | Writes configuration/template/workflow only when explicitly requested; dry run does not write | `0`, `2`, `3` |
+| `check [directory]` | Text/JSON/SARIF, ADR format, lifecycle/supersession, filename/placeholder/metadata/profile policy, optional changed/base ref and diagnostic baseline | Read-only; local Git read for `--changed` | `0` valid, `1` findings, `2`, `3` |
+| `baseline [directory] --output <file>` | Validation policy options; `--update` required to replace | Creates or explicitly replaces one versioned baseline | `0`, `2`, `3` |
+| `index [directory]` | Optional output, validation policy, `--catalog enriched` | Writes deterministic standard index or enriched catalog only after validation | `0`, `1`, `2`, `3` |
+| `new [directory]` | Human flow requires `--title`; structured flow requires `--form`; template/culture/filename options | Preview is read-only; create writes one `Proposed` ADR atomically | `0`, `1`, `2`, `3` |
+| `edit <adr-file> --form` | Schema `1.0` stdin request plus format/policy options and optional ADR directory | `load` is read-only; fingerprint-checked `save` atomically updates only the selected ADR | `0`, `1`, `2`, `3` |
+| `draft [directory]` | Title, context, provider, model; optional endpoint/files/existing ADRs/template/culture/preview | Calls the selected provider; preview does not write, create writes one `Proposed` ADR | `0`, `1`, `2`, `3` |
+| `review <adr-file>` | Provider/model; optional compare ref, context, deterministic policy, text/JSON/output | Provider call; ADR remains read-only; report file only with explicit `--output` | `0`, `1`, `2`, `3`, `4` |
+| `impact [repository] --base-ref <ref> --map <file>` | Text or JSON | Read-only local Git analysis; never fetches | `0`, `2`, `3` |
+| `drift [repository] --rules <file>` | Optional evidence, baseline, baseline write/update, format, advisory/enforce policy | Reads bounded evidence; baseline write only when explicit; never runs producers | `0`, `2`, `3`, `4` |
+
+Global `-h`/`--help` prints help and `--version` prints the assembly version. Exit `2` is invalid usage, `3` is operational or inconclusive failure, and `4` is a deterministic policy failure; AI findings alone never produce approval or policy compliance.
 
 ## Initialize a repository
 

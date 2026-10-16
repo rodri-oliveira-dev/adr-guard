@@ -4,6 +4,8 @@
 
 The `MCP Release` workflow (`.github/workflows/mcp-release.yml`) is independent from the CLI release. It accepts one stable SemVer, runs only when manually dispatched from `main`, requires successful CI for the selected commit, and resolves package, manifest, tag, GitHub Release, and Registry versions from that single input. Do not dispatch it before the setup below is complete.
 
+The repository is prepared for the `1.0.0` candidate, but that version is not published. Treat the contract as operationally stable only after the protected workflow completes package verification, public installation, Registry publication, and post-publication checks.
+
 ## Required one-time administration
 
 1. On NuGet.org, ensure `rodri-oliveira-dev` owns or can create `RodriOliveira.AdrGuard.Mcp`.

@@ -2,9 +2,28 @@
 
 > Disponibilidade: `init`, `.adrguard.yml` e a saída estruturada de `check` foram publicados no ADR Guard v1.2.0. A seleção do formato MADR 4.0 foi publicada na v1.3.0. Consulte as [Releases do GitHub](https://github.com/rodri-oliveira-dev/adr-guard/releases) para os artefatos exatos.
 
-> A análise de impacto arquitetural foi introduzida na v1.5.0. O drift arquitetural faz parte do código e do escopo de release da v1.6.0. Confirme a publicação coordenada do pacote ou contêiner v1.6.0 nas [Releases do GitHub](https://github.com/rodri-oliveira-dev/adr-guard/releases) antes de instalar ou fixar esses artefatos; a branch de implementação não os publica sozinha.
+> A análise de impacto arquitetural foi introduzida na v1.5.0, o drift arquitetural na v1.6.0 e os contratos de formulário visual na v1.7.0. A CLI 1.8.0 está preparada, mas não publicada; confirme a disponibilidade exata nas [Releases do GitHub](https://github.com/rodri-oliveira-dev/adr-guard/releases) e no NuGet.org.
 
-> Os contratos de formulário visual no schema `1.0` estão implementados para a linha 1.7.0 da CLI. Eles exigem uma CLI compatível e, no uso visual, uma versão compatível da extensão VS Code, versionada separadamente. O estado deste repositório não comprova que algum desses artefatos foi publicado; confirme a disponibilidade nas [Releases do GitHub](https://github.com/rodri-oliveira-dev/adr-guard/releases), no NuGet e no guia da extensão antes da instalação.
+> Os contratos de formulário visual no schema `1.0` exigem CLI 1.7.0 ou superior e, no uso visual, uma extensão VS Code compatível e versionada separadamente. Versões da CLI, extensão e MCP são independentes.
+
+## Inventário de comandos
+
+Esta tabela espelha o dispatcher e o `--help` embutido. Os guias especializados detalham contratos e limites de segurança.
+
+| Comando | Entradas obrigatórias e opções principais | Escritas / efeitos externos | Contrato de saída |
+| --- | --- | --- | --- |
+| `init [repositório]` | Diretório de ADR, template, geração de workflow, `--dry-run` e `--overwrite` opcionais | Grava configuração/template/workflow somente quando solicitado; dry run não grava | `0`, `2`, `3` |
+| `check [diretório]` | Texto/JSON/SARIF, formato, lifecycle/supersession, políticas de nome/placeholder/metadados/perfil, changed/base ref e baseline opcionais | Somente leitura; lê Git local com `--changed` | `0` válido, `1` achados, `2`, `3` |
+| `baseline [diretório] --output <arquivo>` | Opções de política; `--update` obrigatório para substituir | Cria ou substitui explicitamente um baseline versionado | `0`, `2`, `3` |
+| `index [diretório]` | Saída e política opcionais; `--catalog enriched` | Grava índice padrão determinístico ou catálogo enriquecido somente após validação | `0`, `1`, `2`, `3` |
+| `new [diretório]` | Fluxo humano exige `--title`; fluxo estruturado exige `--form`; opções de template/cultura/nome | Prévia não grava; criação persiste uma ADR `Proposed` atomicamente | `0`, `1`, `2`, `3` |
+| `edit <arquivo-adr> --form` | Requisição stdin schema `1.0`, opções de formato/política e diretório ADR opcional | `load` é somente leitura; `save` com fingerprint atualiza atomicamente apenas a ADR selecionada | `0`, `1`, `2`, `3` |
+| `draft [diretório]` | Título, contexto, provider e modelo; endpoint/arquivos/ADRs/template/cultura/prévia opcionais | Chama o provider; prévia não grava; criação persiste uma ADR `Proposed` | `0`, `1`, `2`, `3` |
+| `review <arquivo-adr>` | Provider/modelo; ref comparativa, contexto, política determinística, texto/JSON/saída opcionais | Chama o provider; ADR permanece somente leitura; relatório em arquivo apenas com `--output` | `0`, `1`, `2`, `3`, `4` |
+| `impact [repositório] --base-ref <ref> --map <arquivo>` | Texto ou JSON | Análise somente leitura do Git local; nunca faz fetch | `0`, `2`, `3` |
+| `drift [repositório] --rules <arquivo>` | Evidências, baseline, escrita/atualização de baseline, formato e política opcionais | Lê evidência limitada; grava baseline somente quando explícito; nunca executa produtores | `0`, `2`, `3`, `4` |
+
+`-h`/`--help` global mostra a ajuda, e `--version` mostra a versão do assembly. Exit `2` significa uso inválido, `3` falha operacional ou resultado inconclusivo e `4` falha determinística de política; achados de IA isolados nunca representam aprovação nem conformidade.
 
 ## Inicializar um repositório
 
