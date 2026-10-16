@@ -76,8 +76,8 @@ jobs:
           cmp CHANGELOG.md <(unzip -p "${package_file}" CHANGELOG.md)
           nuspec="$(unzip -p "${package_file}" RodriOliveira.AdrGuard.nuspec)"
           grep -Fq '<releaseNotes>' <<< "${nuspec}"
-          grep -Fq 'Versioned form contracts for trusted visual ADR creation and editing adapters' <<< "${nuspec}"
-          grep -Fq 'conflict-safe in-place updates' <<< "${nuspec}"
+          grep -Fq 'Coordinates the documented CLI contracts used by ADR Guard for VS Code 1.1.0 and ADR Guard MCP 1.0.0' <<< "${nuspec}"
+          grep -Fq 'Keeps validation, form, JSON/SARIF, impact, drift, review, catalog and exit-code contracts backward compatible' <<< "${nuspec}"
           grep -Fq "releases/tag/v${ADR_GUARD_VERSION}" <<< "${nuspec}"
           test "$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:PackageVersion | tr -d '\r' | tail -n 1)" = "${ADR_GUARD_VERSION}"
 
