@@ -16,6 +16,7 @@ internal static class GitCommandRunner
         var startInfo = new ProcessStartInfo("git")
         {
             WorkingDirectory = workingDirectory,
+            RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -30,6 +31,7 @@ internal static class GitCommandRunner
         {
             using var process = Process.Start(startInfo)
                 ?? throw new GitOperationException("Unable to start Git.");
+            process.StandardInput.Close();
             string output;
             string error;
             try
@@ -95,6 +97,7 @@ internal static class GitCommandRunner
         var startInfo = new ProcessStartInfo("git")
         {
             WorkingDirectory = workingDirectory,
+            RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
@@ -109,6 +112,7 @@ internal static class GitCommandRunner
         {
             using var process = Process.Start(startInfo)
                 ?? throw new GitOperationException("Unable to start Git.");
+            process.StandardInput.Close();
             using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeoutSource.CancelAfter(timeout);
 

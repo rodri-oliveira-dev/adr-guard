@@ -40,6 +40,9 @@ jobs:
           version="$(dotnet msbuild src/AdrGuard/AdrGuard.csproj -nologo -getProperty:VersionPrefix | tr -d '\r' | tail -n 1)"
           [[ "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           echo "ADR_GUARD_VERSION=${version}" >> "${GITHUB_ENV}"
+          mcp_version="$(dotnet msbuild src/AdrGuard.Mcp/AdrGuard.Mcp.csproj -nologo -getProperty:VersionPrefix | tr -d '\r' | tail -n 1)"
+          [[ "${mcp_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "ADR_GUARD_MCP_VERSION=${mcp_version}" >> "${GITHUB_ENV}"
 
       - name: Restore
         run: dotnet restore AdrGuard.slnx
@@ -48,14 +51,13 @@ jobs:
         run: dotnet build AdrGuard.slnx --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test AdrGuard.slnx --configuration Release --no-build
+        run: dotnet test --solution AdrGuard.slnx --configuration Release --no-build
 
       - name: Deterministic ADR review regression matrix
         run: >-
-          dotnet test tests/AdrGuard.Tests/AdrGuard.Tests.csproj
+          dotnet test --project tests/AdrGuard.Tests/AdrGuard.Tests.csproj
           --configuration Release
           --no-build
-          --
           --filter-class AdrGuard.Tests.Review.AdrReviewRegressionFixtureTests
 
       - name: Pack .NET Tool
@@ -96,6 +98,48 @@ jobs:
 
       - name: Dogfood ADR validation
         run: ./.tools/adr-guard check docs/adr
+
+      - name: Pack and inspect MCP .NET Tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet pack src/AdrGuard.Mcp/AdrGuard.Mcp.csproj --configuration Release --no-build --output artifacts/mcp-package
+          package="artifacts/mcp-package/RodriOliveira.AdrGuard.Mcp.${ADR_GUARD_MCP_VERSION}.nupkg"
+          test -s "${package}"
+          unzip -Z1 "${package}" | grep -Fxq 'README.md'
+          unzip -Z1 "${package}" | grep -Fxq 'LICENSE'
+          unzip -Z1 "${package}" | grep -Fxq 'tools/net10.0/any/adr-guard.dll'
+          unzip -Z1 "${package}" | grep -Fxq 'tools/net10.0/any/adr-guard-mcp.deps.json'
+          unzip -p "${package}" README.md | grep -Fq '<!-- mcp-name: io.github.rodri-oliveira-dev/adr-guard -->'
+
+      - name: Install MCP package from isolated local source
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet new nugetconfig --output artifacts/mcp-source --force
+          dotnet nuget remove source nuget --configfile artifacts/mcp-source/nuget.config
+          dotnet nuget add source "${GITHUB_WORKSPACE}/artifacts/mcp-package" --name mcp-local --configfile artifacts/mcp-source/nuget.config
+          dotnet tool install --tool-path artifacts/mcp-tools RodriOliveira.AdrGuard.Mcp --version "${ADR_GUARD_MCP_VERSION}" --configfile artifacts/mcp-source/nuget.config
+
+      - name: Smoke test installed MCP package
+        env:
+          ADR_GUARD_MCP_TEST_COMMAND: ${{ github.workspace }}/artifacts/mcp-tools/adr-guard-mcp
+          ADR_GUARD_MCP_PACKAGE: ${{ github.workspace }}/artifacts/mcp-package/RodriOliveira.AdrGuard.Mcp.${{ env.ADR_GUARD_MCP_VERSION }}.nupkg
+        run: >-
+          dotnet test --project tests/AdrGuard.Mcp.Tests/AdrGuard.Mcp.Tests.csproj
+          --configuration Release
+          --no-build
+
+      - name: Validate MCP Registry manifest with pinned publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          publisher_archive="${RUNNER_TEMP}/mcp-publisher.tar.gz"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --output "${publisher_archive}" \
+            https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz
+          echo 'a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc  '"${publisher_archive}" | sha256sum --check --status
+          tar -xzf "${publisher_archive}" -C "${RUNNER_TEMP}" mcp-publisher
+          "${RUNNER_TEMP}/mcp-publisher" validate .mcp/server.json
 
       - name: Verify generated ADR index
         run: |

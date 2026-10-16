@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.rodri-oliveira-dev/adr-guard",
+  "title": "ADR Guard",
+  "description": "Read, search, validate, and analyze Architecture Decision Records.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/rodri-oliveira-dev/adr-guard",
+    "source": "github",
+    "subfolder": "src/AdrGuard.Mcp"
+  },
+  "packages": [
+    {
+      "registryType": "nuget",
+      "registryBaseUrl": "https://api.nuget.org/v3/index.json",
+      "identifier": "RodriOliveira.AdrGuard.Mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

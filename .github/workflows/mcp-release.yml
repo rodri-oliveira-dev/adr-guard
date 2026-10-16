@@ -1,0 +1,426 @@
+name: MCP Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact stable MCP SemVer (MAJOR.MINOR.PATCH, without v)"
+        type: string
+        required: true
+
+concurrency:
+  group: mcp-release
+  cancel-in-progress: false
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "true"
+  NUGET_XMLDOC_MODE: skip
+  MCP_PACKAGE_ID: RodriOliveira.AdrGuard.Mcp
+  MCP_SERVER_NAME: io.github.rodri-oliveira-dev/adr-guard
+  MCP_PUBLISHER_VERSION: 1.8.1
+  MCP_PUBLISHER_SHA256: a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc
+
+jobs:
+  validate-release:
+    name: Validate release request
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      tag: ${{ steps.release.outputs.tag }}
+      reservation-tag: ${{ steps.release.outputs.reservation_tag }}
+      sha: ${{ steps.release.outputs.sha }}
+      package-exists: ${{ steps.release.outputs.package_exists }}
+    steps:
+      - name: Verify successful CI for selected main commit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          run_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$VALIDATED_SHA&event=push&status=completed&per_page=100" --jq '.workflow_runs[] | select(.conclusion == "success") | .id' | head -n 1)"
+          test -n "$run_id" || { echo "::error::Commit $VALIDATED_SHA has no successful completed CI push run."; exit 1; }
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Resolve release identity
+        id: release
+        shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          VALIDATED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          version="$REQUESTED_VERSION"
+          [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || { echo "::error::MCP version must be stable SemVer."; exit 1; }
+          baseline="$(dotnet msbuild src/AdrGuard.Mcp/AdrGuard.Mcp.csproj -nologo -getProperty:VersionPrefix | tr -d '\r' | tail -n 1)"
+          [[ "$(printf '%s\n%s\n' "$baseline" "$version" | sort -V | tail -n 1)" == "$version" ]] || { echo "::error::Version is below $baseline."; exit 1; }
+          tag="mcp/v$version"
+          reservation_tag="mcp-release-reservation/v$version"
+          git fetch --tags --force
+          for candidate in "$tag" "$reservation_tag"; do
+            if git show-ref --verify --quiet "refs/tags/$candidate"; then
+              existing_sha="$(git rev-list -n 1 "$candidate")"
+              [[ "$existing_sha" == "$VALIDATED_SHA" ]] || { echo "::error::$candidate belongs to $existing_sha."; exit 1; }
+            fi
+          done
+          lower_id="$(echo "$MCP_PACKAGE_ID" | tr '[:upper:]' '[:lower:]')"
+          package_exists=false
+          curl --proto '=https' --tlsv1.2 --fail --silent "https://api.nuget.org/v3-flatcontainer/$lower_id/$version/$lower_id.$version.nupkg" --output /dev/null && package_exists=true
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "reservation_tag=$reservation_tag" >> "$GITHUB_OUTPUT"
+          echo "sha=$VALIDATED_SHA" >> "$GITHUB_OUTPUT"
+          echo "package_exists=$package_exists" >> "$GITHUB_OUTPUT"
+
+  build-test-pack:
+    name: Build, security, test, and pack MCP
+    needs: validate-release
+    runs-on: ubuntu-26.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate-release.outputs.sha }}
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Restore, audit, build, and test
+        run: |
+          dotnet restore AdrGuard.slnx
+          dotnet list AdrGuard.slnx package --vulnerable --include-transitive
+          dotnet build AdrGuard.slnx --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
+          dotnet test --solution AdrGuard.slnx --configuration Release --no-build
+      - name: Resolve manifest version structurally
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          jq --arg version "$VERSION" '.version = $version | .packages = (.packages | map(.version = $version))' .mcp/server.json > .mcp/server.tmp.json
+          mv .mcp/server.tmp.json .mcp/server.json
+          test "$(jq -r '.version' .mcp/server.json)" = "$VERSION"
+          test "$(jq -r '.packages[0].version' .mcp/server.json)" = "$VERSION"
+      - name: Install pinned MCP publisher and validate
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/mcp-publisher.tar.gz"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --output "$archive" "https://github.com/modelcontextprotocol/registry/releases/download/v$MCP_PUBLISHER_VERSION/mcp-publisher_linux_amd64.tar.gz"
+          echo "$MCP_PUBLISHER_SHA256  $archive" | sha256sum --check --status
+          tar -xzf "$archive" -C "$RUNNER_TEMP" mcp-publisher
+          "$RUNNER_TEMP/mcp-publisher" validate .mcp/server.json
+      - name: Pack and verify MCP .NET Tool
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+          VALIDATED_SHA: ${{ needs.validate-release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          dotnet pack src/AdrGuard.Mcp/AdrGuard.Mcp.csproj --configuration Release --no-build --output artifacts/mcp -p:Version="$VERSION" -p:PackageVersion="$VERSION" -p:RepositoryCommit="$VALIDATED_SHA" -p:ContinuousIntegrationBuild=true
+          package="artifacts/mcp/$MCP_PACKAGE_ID.$VERSION.nupkg"
+          test -s "$package"
+          for entry in README.md LICENSE tools/net10.0/any/adr-guard-mcp.dll tools/net10.0/any/adr-guard.dll tools/net10.0/any/adr-guard-mcp.deps.json tools/net10.0/any/DotnetToolSettings.xml; do
+            unzip -Z1 "$package" | grep -Fxq "$entry"
+          done
+          unzip -p "$package" README.md | grep -Fq "<!-- mcp-name: $MCP_SERVER_NAME -->"
+          sha256sum "$package" .mcp/server.json > artifacts/mcp/SHA256SUMS
+          cp .mcp/server.json artifacts/mcp/server.json
+          notes="docs/releases/mcp-v$VERSION.md"
+          test -s "$notes" || { echo "::error::Missing MCP release notes $notes."; exit 1; }
+          cp "$notes" artifacts/mcp/RELEASE_NOTES.md
+      - name: Upload immutable release candidates
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mcp-release-${{ needs.validate-release.outputs.version }}-${{ needs.validate-release.outputs.sha }}
+          path: artifacts/mcp/*
+          if-no-files-found: error
+          retention-days: 30
+
+  install-smoke:
+    name: Install and smoke test (${{ matrix.os }})
+    needs: [validate-release, build-test-pack]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-26.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate-release.outputs.sha }}
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: mcp-release-${{ needs.validate-release.outputs.version }}-${{ needs.validate-release.outputs.sha }}
+          path: artifacts/mcp
+      - name: Build test harness and install isolated package
+        shell: pwsh
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+        run: |
+          dotnet restore AdrGuard.slnx
+          dotnet build AdrGuard.slnx --configuration Release --no-restore
+          dotnet new nugetconfig --output artifacts/mcp-source --force
+          dotnet nuget remove source nuget --configfile artifacts/mcp-source/nuget.config
+          dotnet nuget add source "$env:GITHUB_WORKSPACE/artifacts/mcp" --name mcp-local --configfile artifacts/mcp-source/nuget.config
+          dotnet tool install --tool-path artifacts/mcp-tools $env:MCP_PACKAGE_ID --version $env:VERSION --configfile artifacts/mcp-source/nuget.config
+          $command = Join-Path $env:GITHUB_WORKSPACE "artifacts/mcp-tools/adr-guard-mcp"
+          if ($IsWindows) { $command += ".exe" }
+          "ADR_GUARD_MCP_TEST_COMMAND=$command" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "ADR_GUARD_MCP_PACKAGE=$env:GITHUB_WORKSPACE/artifacts/mcp/$env:MCP_PACKAGE_ID.$env:VERSION.nupkg" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Handshake, seven tools, operations, paths, and shutdown
+        run: dotnet test --project tests/AdrGuard.Mcp.Tests/AdrGuard.Mcp.Tests.csproj --configuration Release --no-build
+
+  reserve-version:
+    name: Reserve MCP version
+    needs: [validate-release, build-test-pack, install-smoke]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Create or verify immutable reservation
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESERVATION_TAG: ${{ needs.validate-release.outputs.reservation-tag }}
+          VALIDATED_SHA: ${{ needs.validate-release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          existing="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RESERVATION_TAG" --jq '.object.sha' 2>/dev/null || true)"
+          if [[ -n "$existing" ]]; then
+            [[ "$existing" == "$VALIDATED_SHA" ]] || { echo "::error::Reservation belongs to $existing."; exit 1; }
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$RESERVATION_TAG" -f sha="$VALIDATED_SHA" >/dev/null
+          fi
+
+  publish-nuget:
+    name: Publish MCP package to NuGet.org
+    needs: [validate-release, build-test-pack, reserve-version]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    environment: mcp-release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: mcp-release-${{ needs.validate-release.outputs.version }}-${{ needs.validate-release.outputs.sha }}
+          path: artifacts/mcp
+      - name: Recheck public package and verify provenance
+        id: nuget-state
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+          VALIDATED_SHA: ${{ needs.validate-release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          lower_id="$(echo "$MCP_PACKAGE_ID" | tr '[:upper:]' '[:lower:]')"
+          url="https://api.nuget.org/v3-flatcontainer/$lower_id/$VERSION/$lower_id.$VERSION.nupkg"
+          status="$(curl --proto '=https' --tlsv1.2 --silent --location --output "$RUNNER_TEMP/public.nupkg" --write-out '%{http_code}' "$url")"
+          if [[ "$status" == 404 ]]; then echo "exists=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          [[ "$status" == 200 ]] || { echo "::error::NuGet lookup returned HTTP $status."; exit 1; }
+          unzip -p "$RUNNER_TEMP/public.nupkg" '*.nuspec' | grep -Fq "commit=\"$VALIDATED_SHA\"" || { echo "::error::Existing package provenance differs."; exit 1; }
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+      - name: NuGet login with OIDC
+        if: steps.nuget-state.outputs.exists != 'true'
+        id: nuget-login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: rodri-oliveira-dev
+      - name: Publish only the MCP package
+        if: steps.nuget-state.outputs.exists != 'true'
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+          VERSION: ${{ needs.validate-release.outputs.version }}
+        run: dotnet nuget push "artifacts/mcp/$MCP_PACKAGE_ID.$VERSION.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY"
+
+  verify-public-package:
+    name: Verify public NuGet package
+    needs: [validate-release, publish-nuget]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate-release.outputs.sha }}
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Verify metadata, install, and smoke test
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+          VALIDATED_SHA: ${{ needs.validate-release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          lower_id="$(echo "$MCP_PACKAGE_ID" | tr '[:upper:]' '[:lower:]')"
+          url="https://api.nuget.org/v3-flatcontainer/$lower_id/$VERSION/$lower_id.$VERSION.nupkg"
+          for attempt in {1..12}; do
+            curl --proto '=https' --tlsv1.2 --fail --location --output "$RUNNER_TEMP/public.nupkg" "$url" && break
+            [[ "$attempt" != 12 ]] || { echo "::error::Package unavailable."; exit 1; }
+            sleep 10
+          done
+          nuspec="$(unzip -p "$RUNNER_TEMP/public.nupkg" '*.nuspec')"
+          grep -Fq "<id>$MCP_PACKAGE_ID</id>" <<< "$nuspec"
+          grep -Fq "<version>$VERSION</version>" <<< "$nuspec"
+          grep -Fq "commit=\"$VALIDATED_SHA\"" <<< "$nuspec"
+          dotnet tool install --tool-path artifacts/public-mcp "$MCP_PACKAGE_ID" --version "$VERSION" --source https://api.nuget.org/v3/index.json
+          dotnet restore AdrGuard.slnx
+          dotnet build AdrGuard.slnx --configuration Release --no-restore
+          ADR_GUARD_MCP_TEST_COMMAND="$GITHUB_WORKSPACE/artifacts/public-mcp/adr-guard-mcp" dotnet test --project tests/AdrGuard.Mcp.Tests/AdrGuard.Mcp.Tests.csproj --configuration Release --no-build --filter-class AdrGuard.Mcp.Tests.McpServerIntegrationTests
+
+  github-release:
+    name: Publish MCP GitHub Release
+    needs: [validate-release, build-test-pack, verify-public-package]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: mcp-release-${{ needs.validate-release.outputs.version }}-${{ needs.validate-release.outputs.sha }}
+          path: artifacts/mcp
+      - name: Create or resume immutable MCP release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
+          VALIDATED_SHA: ${{ needs.validate-release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            tag_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object.sha')"
+            [[ "$tag_sha" == "$VALIDATED_SHA" ]] || { echo "::error::Release tag belongs to $tag_sha."; exit 1; }
+            existing="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+            mkdir -p "$RUNNER_TEMP/existing-release"
+            for asset in artifacts/mcp/*; do
+              asset_name="$(basename "$asset")"
+              if grep -Fxq "$asset_name" <<< "$existing"; then
+                gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "$asset_name" --dir "$RUNNER_TEMP/existing-release"
+                cmp "$asset" "$RUNNER_TEMP/existing-release/$asset_name" || { echo "::error::Existing release asset $asset_name differs."; exit 1; }
+              else
+                gh release upload "$RELEASE_TAG" "$asset" --repo "$GITHUB_REPOSITORY"
+              fi
+            done
+          else
+            gh release create "$RELEASE_TAG" artifacts/mcp/* --repo "$GITHUB_REPOSITORY" --target "$VALIDATED_SHA" --title "ADR Guard MCP v${{ needs.validate-release.outputs.version }}" --notes-file artifacts/mcp/RELEASE_NOTES.md
+          fi
+
+  publish-registry:
+    name: Publish MCP Registry entry
+    needs: [validate-release, build-test-pack, github-release]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    environment: mcp-release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download validated manifest
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: mcp-release-${{ needs.validate-release.outputs.version }}-${{ needs.validate-release.outputs.sha }}
+          path: artifacts/mcp
+      - name: Install pinned MCP publisher
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/mcp-publisher.tar.gz"
+          curl --proto '=https' --tlsv1.2 --fail --location --retry 3 --output "$archive" "https://github.com/modelcontextprotocol/registry/releases/download/v$MCP_PUBLISHER_VERSION/mcp-publisher_linux_amd64.tar.gz"
+          echo "$MCP_PUBLISHER_SHA256  $archive" | sha256sum --check --status
+          tar -xzf "$archive" -C "$RUNNER_TEMP" mcp-publisher
+      - name: Validate and determine Registry state
+        id: registry
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p .mcp
+          cp artifacts/mcp/server.json .mcp/server.json
+          "$RUNNER_TEMP/mcp-publisher" validate .mcp/server.json
+          encoded_name="$(echo "$MCP_SERVER_NAME" | sed 's|/|%2F|g')"
+          status="$(curl --proto '=https' --tlsv1.2 --silent --output "$RUNNER_TEMP/registry.json" --write-out '%{http_code}' "https://registry.modelcontextprotocol.io/v0.1/servers/$encoded_name/versions/$VERSION")"
+          if [[ "$status" == 404 ]]; then echo "exists=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          [[ "$status" == 200 ]] || { echo "::error::Registry returned HTTP $status."; exit 1; }
+          jq -e --arg name "$MCP_SERVER_NAME" --arg version "$VERSION" --arg package "$MCP_PACKAGE_ID" '.server.name == $name and .server.version == $version and .server.packages[0].identifier == $package and .server.packages[0].version == $version and .server.packages[0].transport.type == "stdio"' "$RUNNER_TEMP/registry.json" >/dev/null || { echo "::error::Existing Registry metadata conflicts."; exit 1; }
+          echo "exists=true" >> "$GITHUB_OUTPUT"
+      - name: Authenticate with GitHub OIDC
+        if: steps.registry.outputs.exists != 'true'
+        run: ${{ runner.temp }}/mcp-publisher login github-oidc
+      - name: Publish Registry entry with bounded retry
+        if: steps.registry.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            timeout 120 "$RUNNER_TEMP/mcp-publisher" publish .mcp/server.json && exit 0
+            [[ "$attempt" != 3 ]] || { echo "::error::Registry publication failed after three attempts."; exit 1; }
+            sleep $((attempt * 10))
+          done
+      - name: Verify published Registry metadata
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+        run: |
+          set -euo pipefail
+          encoded_name="$(echo "$MCP_SERVER_NAME" | sed 's|/|%2F|g')"
+          for attempt in {1..6}; do
+            curl --proto '=https' --tlsv1.2 --fail --silent "https://registry.modelcontextprotocol.io/v0.1/servers/$encoded_name/versions/$VERSION" | jq -e --arg name "$MCP_SERVER_NAME" --arg version "$VERSION" '.server.name == $name and .server.version == $version' >/dev/null && exit 0
+            [[ "$attempt" != 6 ]] || { echo "::error::Registry verification failed."; exit 1; }
+            sleep 10
+          done
+
+  release-summary:
+    name: MCP release summary
+    needs: [validate-release, publish-nuget, verify-public-package, github-release, publish-registry]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Write verified release summary
+        shell: bash
+        run: |
+          echo "## ADR Guard MCP v${{ needs.validate-release.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: ${{ needs.validate-release.outputs.sha }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- NuGet: $MCP_PACKAGE_ID" >> "$GITHUB_STEP_SUMMARY"
+          echo "- GitHub tag: ${{ needs.validate-release.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Registry: $MCP_SERVER_NAME" >> "$GITHUB_STEP_SUMMARY"

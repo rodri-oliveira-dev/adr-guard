@@ -378,9 +378,16 @@ public sealed class AdrReviewReportTests
             File.WriteAllText(
                 realTarget,
                 original);
-            File.CreateSymbolicLink(
-                aliasTarget,
-                realTarget);
+            try
+            {
+                File.CreateSymbolicLink(
+                    aliasTarget,
+                    realTarget);
+            }
+            catch (Exception linkException) when (linkException is UnauthorizedAccessException or IOException or PlatformNotSupportedException)
+            {
+                return;
+            }
 
             var exception = Assert.Throws<InvalidOperationException>(
                 () => AdrReviewReportFileWriter.ValidateDestination(
