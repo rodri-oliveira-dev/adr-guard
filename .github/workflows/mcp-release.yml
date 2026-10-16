@@ -377,7 +377,7 @@ jobs:
           mkdir -p .mcp
           cp artifacts/mcp/server.json .mcp/server.json
           "$RUNNER_TEMP/mcp-publisher" validate .mcp/server.json
-          encoded_name="$(echo "$MCP_SERVER_NAME" | sed 's|/|%2F|g')"
+          encoded_name="${MCP_SERVER_NAME//\//%2F}"
           status="$(curl --proto '=https' --tlsv1.2 --silent --output "$RUNNER_TEMP/registry.json" --write-out '%{http_code}' "https://registry.modelcontextprotocol.io/v0.1/servers/$encoded_name/versions/$VERSION")"
           if [[ "$status" == 404 ]]; then echo "exists=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           [[ "$status" == 200 ]] || { echo "::error::Registry returned HTTP $status."; exit 1; }
@@ -402,7 +402,7 @@ jobs:
           VERSION: ${{ needs.validate-release.outputs.version }}
         run: |
           set -euo pipefail
-          encoded_name="$(echo "$MCP_SERVER_NAME" | sed 's|/|%2F|g')"
+          encoded_name="${MCP_SERVER_NAME//\//%2F}"
           for attempt in {1..6}; do
             curl --proto '=https' --tlsv1.2 --fail --silent "https://registry.modelcontextprotocol.io/v0.1/servers/$encoded_name/versions/$VERSION" | jq -e --arg name "$MCP_SERVER_NAME" --arg version "$VERSION" '.server.name == $name and .server.version == $version' >/dev/null && exit 0
             [[ "$attempt" != 6 ]] || { echo "::error::Registry verification failed."; exit 1; }
