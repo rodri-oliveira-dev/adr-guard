@@ -9,7 +9,7 @@ public sealed class McpDistributionContractTests
 {
     private const string ExpectedName = "io.github.rodri-oliveira-dev/adr-guard";
     private const string ExpectedPackage = "RodriOliveira.AdrGuard.Mcp";
-    private const string ExpectedVersion = "0.1.0";
+    private const string ExpectedVersion = "1.0.0";
     private const string ExpectedSchema = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 
     [Fact]
@@ -75,6 +75,7 @@ public sealed class McpDistributionContractTests
         using var archive = ZipFile.OpenRead(packagePath);
         var names = archive.Entries.Select(entry => entry.FullName).ToHashSet(StringComparer.Ordinal);
         Assert.Contains("README.md", names);
+        Assert.Contains("CHANGELOG.md", names);
         Assert.Contains("LICENSE", names);
         Assert.Contains("tools/net10.0/any/adr-guard-mcp.dll", names);
         Assert.Contains("tools/net10.0/any/adr-guard.dll", names);

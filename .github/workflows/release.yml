@@ -189,6 +189,14 @@ jobs:
           test -s docs/releases/v1.6.0.md
           test -s docs/releases/v1.6.0.pt-BR.md
 
+      - name: Verify v1.8.0 release notes before packaging
+        if: inputs.version == '1.8.0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s docs/releases/v1.8.0.md
+          test -s docs/releases/v1.8.0.pt-BR.md
+
       - name: Validate resolved MSBuild version
         shell: bash
         env:
@@ -678,6 +686,13 @@ jobs:
             fi
 
             release_notes=(--notes-file docs/releases/v1.6.0.md)
+          elif [[ "${RELEASE_TAG}" == v1.8.0 ]]; then
+            if [[ ! -s docs/releases/v1.8.0.md ]]; then
+              echo "::error::Curated v1.8.0 release notes are missing from the validated commit."
+              exit 1
+            fi
+
+            release_notes=(--notes-file docs/releases/v1.8.0.md)
           fi
 
           gh release create "${RELEASE_TAG}" \

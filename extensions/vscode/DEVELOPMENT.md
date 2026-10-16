@@ -1,6 +1,6 @@
 # ADR Guard for VS Code development
 
-This extension is versioned independently from the .NET CLI. Version `1.0.1` targets VS Code `^1.101.0` and its Node workspace extension host. Development and tests use Node.js 22 or newer because the pinned official VS Code test tooling requires it; the runtime bundle targets Node.js 20-compatible JavaScript. VS Code 1.101 is the minimum release with the stable MCP server definition provider API used by the optional integration.
+This extension is versioned independently from the .NET CLI. Version `1.1.0` targets VS Code `^1.101.0` and its Node workspace extension host. Development and tests use Node.js 22 or newer because the pinned official VS Code test tooling requires it; the runtime bundle targets Node.js 20-compatible JavaScript. VS Code 1.101 is the minimum release with the stable MCP server definition provider API used by the optional integration.
 
 Use the lockfile from this directory:
 

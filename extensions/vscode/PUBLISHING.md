@@ -11,10 +11,10 @@ The VS Code extension is versioned independently from the ADR Guard CLI and GitH
 
 ## Manual release
 
-1. Confirm the CLI capabilities required by this extension are available in NuGet. Version 1.0.1 requires the released CLI 1.7.0 for its visual form contracts.
-2. Check `extensions/vscode/package.json` for publisher `rodrioliveira`, package name `adr-guard` and version `1.0.1`. Packaging, installation checks, and activation smoke tests derive the VSIX filename and expected version from this manifest.
-3. Open GitHub Actions and select **VS Code Marketplace Release**. Choose the `main` branch, specify version `1.0.1` and enter exactly `publish-rodrioliveira.adr-guard` as confirmation.
-4. The package job verifies the manifest and Marketplace image resources, then reruns dependency auditing, lint, typecheck, build, unit, localization, and VS Code host integration tests. It creates and tests `adr-guard-1.0.1.vsix`.
+1. Confirm the CLI capabilities required by this extension are available in NuGet. Version 1.1.0 requires CLI 1.7.0 or newer for visual forms; CLI 1.8.0 is the recommended coordinated release for all architecture, governance, and AI workflows. MCP is optional and separately versioned.
+2. Check `extensions/vscode/package.json` for publisher `rodrioliveira`, package name `adr-guard` and version `1.1.0`. Packaging, installation checks, and activation smoke tests derive the VSIX filename and expected version from this manifest.
+3. Open GitHub Actions and select **VS Code Marketplace Release**. Choose the `main` branch, specify version `1.1.0` and enter exactly `publish-rodrioliveira.adr-guard` as confirmation.
+4. The package job verifies the manifest and Marketplace image resources, then reruns dependency auditing, lint, typecheck, build, unit, localization, and VS Code host integration tests. It creates and tests `adr-guard-1.1.0.vsix`.
 5. After the protected `vscode-marketplace` environment approval, the separate publishing job downloads that validated VSIX and runs `vsce publish --oidc --packagePath`. No personal access tokens or GitHub repository secrets are needed for Marketplace authentication.
 6. Verify the listing at https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard and independently test installation from VS Code.
 
