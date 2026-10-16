@@ -52,6 +52,14 @@ internal sealed record AdrReference(
         AdrDocument document,
         params string[] headings)
     {
+        return FindInSections(document, headings, repositoryRoot: null);
+    }
+
+    internal static IReadOnlyList<AdrReference> FindInSections(
+        AdrDocument document,
+        IReadOnlyList<string> headings,
+        string? repositoryRoot)
+    {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(headings);
         var references = new List<AdrReference>();
@@ -59,7 +67,7 @@ internal sealed record AdrReference(
                      section.Level == 2
                      && headings.Contains(section.Heading, StringComparer.OrdinalIgnoreCase)))
         {
-            ExtractReferences(document, section.Content, references, AdrReferenceKind.Relationship, null);
+            ExtractReferences(document, section.Content, references, AdrReferenceKind.Relationship, repositoryRoot);
         }
 
         return references;

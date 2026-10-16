@@ -421,7 +421,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
             context,
             source,
             type,
-            AdrReference.FindInSections(source, headings),
+            AdrReference.FindInSections(source, headings, serverOptions.RepositoryRoot),
             byPath,
             output);
 

@@ -2,9 +2,9 @@ import * as vscode from 'vscode';
 import { CliExecutor, requireSuccessfulResult, safeErrorLine } from '../cli/executor';
 import { parseDriftReport, parseImpactReport, parseReviewReport, type DriftReport, type ImpactReport, type ReviewReport } from '../contracts/architecture';
 import { asLocation } from '../workspace';
-import { ensurePotentialFileWithinWorkspace, ensureResourceWithinWorkspace, resolveWorkspaceRelativePath, resolveWorkspaceRoot } from '../workspacePolicy';
+import { resolveWorkspaceRoot } from '../workspacePolicy';
 import type { FeatureValues, VisualFeature } from '../webview/featureMessages';
-import { baselineArguments, catalogArguments, draftArguments, driftArguments, impactArguments, reviewArguments } from './featureArguments';
+import { featureExecutionArguments } from './featureExecutionArguments';
 
 export type FeatureResult =
   | { readonly feature: 'impact'; readonly report: ImpactReport }
@@ -48,36 +48,8 @@ export class VisualFeatureExecutor {
   }
 
   private async arguments(values: FeatureValues, root: string, createDraft: boolean): Promise<string[]> {
-    const directory = await existingDirectory(root, values.directory ?? 'docs/adr');
-    switch (values.feature) {
-      case 'impact':
-        return impactArguments(root, required(values.baseReference, 'base reference'), await existingFile(root, required(values.manifest, 'impact manifest')));
-      case 'drift': {
-        const evidence: string[] = [];
-        for (const item of values.evidence ?? []) evidence.push(await existingFile(root, item));
-        return driftArguments(root, await existingFile(root, required(values.rules, 'fitness rules')), evidence,
-          values.baseline ? await existingFile(root, values.baseline) : undefined, values.policy ?? 'advisory');
-      }
-      case 'baseline':
-        return baselineArguments(directory, await potentialFile(root, required(values.destination, 'baseline destination')), values.update === true);
-      case 'catalog':
-        return catalogArguments(directory, values.catalog ?? 'standard');
-      case 'draft': {
-        const contextFiles: string[] = [];
-        for (const item of values.contextFiles ?? []) contextFiles.push(await existingFile(root, item));
-        return draftArguments(directory, required(values.title, 'title'), required(values.context, 'context'), values.culture ?? 'en-US', values.template ?? 'configured', {
-          provider: required(values.provider, 'provider'), model: required(values.model, 'model'), ...(values.endpoint ? { endpoint: values.endpoint } : {}), contextFiles, includeExistingAdrs: values.includeExistingAdrs === true,
-        }, !createDraft);
-      }
-      case 'review': {
-        const contextFiles: string[] = [];
-        for (const item of values.contextFiles ?? []) contextFiles.push(await existingFile(root, item));
-        return reviewArguments(await existingFile(root, required(values.targetAdr, 'ADR')), values.policy ?? 'advisory',
-          values.policyFile ? await existingFile(root, values.policyFile) : undefined, values.compareReference, {
-            provider: required(values.provider, 'provider'), model: required(values.model, 'model'), ...(values.endpoint ? { endpoint: values.endpoint } : {}), contextFiles, includeExistingAdrs: values.includeExistingAdrs === true,
-          });
-      }
-    }
+    return featureExecutionArguments(values, root, createDraft, (label) =>
+      new Error(vscode.l10n.t('Enter a valid {0}.', label)));
   }
 }
 
@@ -87,10 +59,6 @@ function capabilityFlag(feature: VisualFeature, args: readonly string[]): string
   if (feature === 'review' && args.includes('--compare-ref')) return '--compare-ref';
   return `adr-guard ${feature}`;
 }
-function required<T extends string>(value: T | undefined, label: string): T { if (value === undefined || value.trim().length === 0) throw new Error(vscode.l10n.t('Enter a valid {0}.', label)); return value; }
-async function existingDirectory(root: string, relative: string): Promise<string> { return ensureResourceWithinWorkspace(resolveWorkspaceRelativePath(root, relative), root); }
-async function existingFile(root: string, relative: string): Promise<string> { return ensureResourceWithinWorkspace(resolveWorkspaceRelativePath(root, relative), root); }
-async function potentialFile(root: string, relative: string): Promise<string> { return ensurePotentialFileWithinWorkspace(resolveWorkspaceRelativePath(root, relative), root); }
 export function extractDraftMarkdown(output: string): string {
   const marker = /ADR draft preview path:[^\r\n]*\r?\n\r?\n/u.exec(output);
   if (marker?.index === undefined) throw new Error(vscode.l10n.t('ADR Guard returned an invalid draft preview.'));

@@ -62,6 +62,22 @@ public sealed class McpWorkspaceTests
     }
 
     [Fact]
+    public void RelationshipsResolveNestedLinksWithinRepositoryRoot()
+    {
+        using var repository = TemporaryMcpRepository.Create();
+        repository.Write("docs/adr/nested/0001-safe-boundary.md", AcceptedAdr + "\n## Depends on\n\n[Cache](../shared/0002-cache.md).\n");
+        repository.Write("docs/adr/shared/0002-cache.md", AcceptedAdr.Replace("safe boundary", "cache", StringComparison.Ordinal));
+
+        var result = CreateWorkspace(repository).GetRelationships("ADR-1", TestContext.Current.CancellationToken);
+
+        var relationship = Assert.Single(result.Relationships);
+        Assert.Equal("valid", relationship.Resolution);
+        Assert.Equal("ADR-2", relationship.TargetIdentifier);
+        Assert.Equal("docs/adr/shared/0002-cache.md", relationship.TargetPath);
+        Assert.DoesNotContain(result.Issues, item => item.Code == "ADR007");
+    }
+
+    [Fact]
     public void ValidationDiagnosticsAreSuccessfulDomainResults()
     {
         using var repository = TemporaryMcpRepository.Create();
