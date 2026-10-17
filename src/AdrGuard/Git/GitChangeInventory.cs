@@ -62,7 +62,10 @@ internal static class GitChangeInventoryReader
             throw new GitOperationException("Git did not return a repository root.");
         }
 
-        repositoryRoot = Path.GetFullPath(repositoryRoot);
+        // Git can return a physical root such as /private/var while the
+        // caller supplied its /var alias. Compare the same physical identity.
+        workingDirectory = GitDirectoryIdentity.Resolve(workingDirectory);
+        repositoryRoot = GitDirectoryIdentity.Resolve(repositoryRoot);
         EnsureContained(repositoryRoot, workingDirectory);
 
         var verifiedBase = Run(
