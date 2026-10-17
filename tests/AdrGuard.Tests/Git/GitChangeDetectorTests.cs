@@ -65,18 +65,9 @@ public sealed class GitChangeDetectorTests
         var alias = Path.Combine(parent, $"adr-git-parent-alias-{Guid.NewGuid():N}");
         try
         {
-            try
-            {
-                Directory.CreateSymbolicLink(alias, parent);
-            }
-            catch (Exception exception) when (exception is IOException
-                                              or UnauthorizedAccessException
-                                              or PlatformNotSupportedException)
-            {
-                return;
-            }
+            Directory.CreateSymbolicLink(alias, parent);
 
-            File.AppendAllText(Path.Combine(root, "docs", "adr", "0001-first.md"), "\\nChanged.\\n");
+            File.AppendAllText(Path.Combine(root, "docs", "adr", "0001-first.md"), "\nChanged.\n");
             var changes = GitChangeDetector.Detect(
                 Path.Combine(alias, Path.GetFileName(root), "docs", "adr"),
                 "main",
