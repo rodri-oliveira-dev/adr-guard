@@ -14,6 +14,8 @@ ADR Guard for VS Code is a workspace-hosted interface over the .NET CLI. The ext
 These screenshots document the interface available in the published extension **1.0.0**, using the released CLI **1.7.0** form contracts. The architecture/governance/AI screens and MCP provider prepared for extension **1.1.0** are documented textually below because no new verified captures or published extension version exist yet. Extension, CLI, and MCP releases are independent.
 :::
 
+For the unreleased 1.1.0 candidate, the [VS Code VSIX Package GitHub Actions workflow](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/vscode-extension-release.yml) builds and validates a versioned `.vsix` downloadable from the successful run's **Artifacts** section for **21 days** (subject to repository retention limits). This is an artifact-only installation option; **the workflow does not publish to the Marketplace**. See the [candidate release notes](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/releases/vscode-v1.1.0.md) for the download and manual installation procedure.
+
 For command tables, settings keys, trust boundaries, and troubleshooting, use the [VS Code extension reference](../vscode-extension/). This guide focuses on the interface and common workflows.
 
 ## Before you start
