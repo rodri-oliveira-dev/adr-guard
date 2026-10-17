@@ -27,9 +27,9 @@ internal static class GitChangeDetector
 
         // Resolve aliases in existing directories before computing the Git
         // relative path; a macOS /var path may refer to /private/var.
-        workingDirectory = GitDirectoryIdentity.Resolve(workingDirectory);
+        var physicalWorkingDirectory = GitDirectoryIdentity.Resolve(workingDirectory);
         repositoryRoot = GitDirectoryIdentity.Resolve(repositoryRoot);
-        EnsureContained(repositoryRoot, workingDirectory);
+        EnsureContained(repositoryRoot, physicalWorkingDirectory);
 
         var verifiedBase = GitCommandRunner.Run(
             repositoryRoot,
@@ -45,7 +45,7 @@ internal static class GitChangeDetector
                 $"No merge base is available for '{baseReference}'. Fetch sufficient history and retry.");
         }
 
-        var directoryRelative = Path.GetRelativePath(repositoryRoot, workingDirectory)
+        var directoryRelative = Path.GetRelativePath(repositoryRoot, physicalWorkingDirectory)
             .Replace(Path.DirectorySeparatorChar, '/');
         if (directoryRelative == ".")
         {
@@ -64,6 +64,7 @@ internal static class GitChangeDetector
                 cancellationToken),
             repositoryRoot,
             workingDirectory,
+            physicalWorkingDirectory,
             current,
             removed);
         AddDiff(
@@ -75,6 +76,7 @@ internal static class GitChangeDetector
                 cancellationToken),
             repositoryRoot,
             workingDirectory,
+            physicalWorkingDirectory,
             current,
             removed);
 
@@ -87,9 +89,9 @@ internal static class GitChangeDetector
         foreach (var path in SplitNull(untracked))
         {
             var fullPath = ResolveGitPath(repositoryRoot, path);
-            if (IsAdrPath(workingDirectory, fullPath))
+            if (IsAdrPath(physicalWorkingDirectory, fullPath))
             {
-                current.Add(fullPath);
+                current.Add(ToCallerPath(physicalWorkingDirectory, workingDirectory, fullPath));
             }
         }
 
@@ -110,6 +112,7 @@ internal static class GitChangeDetector
         string output,
         string repositoryRoot,
         string checkedDirectory,
+        string physicalCheckedDirectory,
         HashSet<string> current,
         HashSet<string> removed)
     {
@@ -131,32 +134,32 @@ internal static class GitChangeDetector
 
                 var oldPath = ResolveGitPath(repositoryRoot, tokens[index++]);
                 var newPath = ResolveGitPath(repositoryRoot, tokens[index++]);
-                if (IsAdrPath(checkedDirectory, oldPath))
+                if (IsAdrPath(physicalCheckedDirectory, oldPath))
                 {
-                    removed.Add(oldPath);
+                    removed.Add(ToCallerPath(physicalCheckedDirectory, checkedDirectory, oldPath));
                 }
 
-                if (IsAdrPath(checkedDirectory, newPath))
+                if (IsAdrPath(physicalCheckedDirectory, newPath))
                 {
-                    current.Add(newPath);
+                    current.Add(ToCallerPath(physicalCheckedDirectory, checkedDirectory, newPath));
                 }
 
                 continue;
             }
 
             var path = ResolveGitPath(repositoryRoot, tokens[index++]);
-            if (!IsAdrPath(checkedDirectory, path))
+            if (!IsAdrPath(physicalCheckedDirectory, path))
             {
                 continue;
             }
 
             if (status[0] == 'D')
             {
-                removed.Add(path);
+                removed.Add(ToCallerPath(physicalCheckedDirectory, checkedDirectory, path));
             }
             else
             {
-                current.Add(path);
+                current.Add(ToCallerPath(physicalCheckedDirectory, checkedDirectory, path));
             }
         }
     }
@@ -174,6 +177,18 @@ internal static class GitChangeDetector
         var fullPath = Path.GetFullPath(path, repositoryRoot);
         EnsureContained(repositoryRoot, fullPath);
         return fullPath;
+    }
+
+    // Keep validation issue paths in the caller's lexical directory identity.
+    // Physical identities are used only to prove containment; the ADR loader
+    // uses the caller path (e.g. /var rather than /private/var on macOS).
+    private static string ToCallerPath(
+        string physicalCheckedDirectory,
+        string checkedDirectory,
+        string physicalPath)
+    {
+        EnsureContained(physicalCheckedDirectory, physicalPath);
+        return Path.GetFullPath(Path.GetRelativePath(physicalCheckedDirectory, physicalPath), checkedDirectory);
     }
 
     private static bool IsAdrPath(string checkedDirectory, string path)
