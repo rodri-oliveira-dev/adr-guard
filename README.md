@@ -46,7 +46,7 @@ dotnet tool install --global RodriOliveira.AdrGuard
 adr-guard --version
 ```
 
-Update an existing installation with `dotnet tool update --global RodriOliveira.AdrGuard`. GitHub Packages is also available as an authenticated secondary registry. See [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) or the NuGet badge for the current published version.
+Update an existing installation with `dotnet tool update --global RodriOliveira.AdrGuard`. GitHub Packages is also available as an authenticated secondary registry for the CLI. The independent [MCP 1.0.0 package](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0) is available on NuGet.org; see [MCP release distribution](docs/mcp-release.md) for the optional GitHub Packages channel and safe backfill of the existing release. See [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) or the NuGet badge for the current CLI version.
 
 ## Quick start
 
