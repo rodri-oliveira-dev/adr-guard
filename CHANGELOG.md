@@ -9,10 +9,10 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 ### Fixed
 - Resolve physical Git directory identities before repository containment checks so macOS `/var` and `/private/var` aliases no longer break MCP impact analysis or incremental ADR detection. Physical containment and symlink protections remain enforced.
 
-## [1.8.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.8.0) — Unreleased
+## [1.8.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.8.0) — 2026-10-17
 
 ### Added
-- Prepared CLI 1.8.0 as the compatible release for the independently versioned VS Code 1.1.0 and MCP 1.0.0 candidates without changing established CLI commands, flags, defaults, schemas, or exit codes.
+- Released CLI 1.8.0 with the compatible domain contracts for independently versioned VS Code 1.1.0 and MCP 1.0.0 source candidates, without changing established CLI commands, flags, defaults, schemas, or exit codes.
 - Added the source-only `adr-guard-mcp` executable with seven bounded, read-only schema `1.0` tools over `stdio`: ADR listing/reading/search, declared relationships, validation, impact analysis, and architecture verification.
 - Added bilingual MCP overview, configuration, tool-contract, and security documentation plus synchronized portal routes.
 - Prepared the independently versioned `RodriOliveira.AdrGuard.Mcp` .NET Tool, MCP Registry manifest, isolated package smoke tests, and manual `MCP Release` workflow for NuGet.org, GitHub Releases, and the official Registry.
@@ -21,9 +21,9 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 ### Security and publication
 - MCP processes are scoped to one validated repository, bound by file/response/time limits, and do not expose write tools, execute workspace content, fetch Git refs, or run evidence producers.
 - Git adapters now close subprocess standard input so MCP `stdio` protocol messages can never be consumed by a child Git process during impact or drift operations.
-- No MCP NuGet package, container, installer, release, or other official distribution has been published; current use requires a local source build.
-- Publication remains manual and main-only. NuGet and Registry publishing use scoped OIDC jobs; the prepared MCP `1.0.0` artifacts are not public until the workflow completes and its public verification gates pass.
-- Full prepared notes: [English](docs/releases/v1.8.0.md) · [Português](docs/releases/v1.8.0.pt-BR.md).
+- At the time of the CLI 1.8.0 GitHub Release, MCP 1.0.0 remained an independently versioned source candidate without an official MCP package, installer, container or Registry entry; a local source build was required.
+- CLI 1.8.0 was published on [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.8.0) on 2026-10-17 with the `RodriOliveira.AdrGuard.1.8.0.nupkg` asset; NuGet.org availability is verified independently. MCP publication uses its separate manual main-only OIDC workflow and must be verified against its own NuGet and MCP Registry channels.
+- Full release notes: [English](docs/releases/v1.8.0.md) · [Português](docs/releases/v1.8.0.pt-BR.md).
 
 ## [1.7.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.7.0) — 2026-10-15
 
