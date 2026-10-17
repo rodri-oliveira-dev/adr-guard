@@ -13,8 +13,33 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate-main-ci:
+    name: Verify successful CI on selected main commit
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Require a successful completed CI push run for exact SHA
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALIDATED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          run_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$VALIDATED_SHA&event=push&status=completed&per_page=100" \
+            --jq '.workflow_runs[] | select(.head_sha == env.VALIDATED_SHA and .head_branch == "main" and .conclusion == "success") | .id' | head -n 1)"
+          [[ -n "$run_id" ]] || {
+            echo "::error::Selected main commit $VALIDATED_SHA has no successful completed CI push run."
+            exit 1
+          }
+          echo "Selected main commit $VALIDATED_SHA passed CI in run $run_id."
+
   backfill-github-packages:
     name: Backfill verified MCP package
+    needs: validate-main-ci
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-26.04
     timeout-minutes: 15
@@ -28,9 +53,10 @@ jobs:
       VERSION: ${{ inputs.version }}
       GITHUB_PACKAGE_SOURCE: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
     steps:
-      - name: Checkout the current main branch
+      - name: Checkout validated main commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Setup .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -83,16 +109,12 @@ jobs:
           grep -Fq "commit=\"$VALIDATED_SHA\"" <<< "$nuspec"
           # NuGet.org may repository-sign a package; therefore compare its
           # signed metadata to the immutable release, not raw nupkg bytes.
-      - name: Publish original MCP nupkg to GitHub Packages
+      - name: Publish or verify original MCP nupkg on GitHub Packages
         shell: bash
         env:
-          GITHUB_PACKAGE_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          dotnet nuget push "artifacts/mcp/$MCP_PACKAGE_ID.$VERSION.nupkg" \
-            --source "$GITHUB_PACKAGE_SOURCE" \
-            --api-key "$GITHUB_PACKAGE_TOKEN" \
-            --skip-duplicate
+          NUGET_API_KEY: ${{ github.token }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: bash scripts/publish-mcp-github-package.sh
       - name: Backfill summary
         shell: bash
         run: |
