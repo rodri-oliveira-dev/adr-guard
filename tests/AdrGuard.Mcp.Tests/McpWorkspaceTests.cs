@@ -165,6 +165,17 @@ public sealed class McpWorkspaceTests
         var after = repository.Snapshot();
         Assert.NotEqual(before[".git/config"], after[".git/config"]);
         Assert.Equal(before[".git/index"], after[".git/index"]);
+
+        using (var indexStream = new FileStream(
+                   Path.Combine(repository.Root, ".git", "index"),
+                   FileMode.Append,
+                   FileAccess.Write,
+                   FileShare.None))
+        {
+            indexStream.WriteByte(0);
+        }
+
+        Assert.NotEqual(after[".git/index"], repository.Snapshot()[".git/index"]);
     }
 
     [Fact]
