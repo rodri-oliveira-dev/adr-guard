@@ -25,7 +25,10 @@ internal static class GitChangeDetector
             throw new GitOperationException("Git did not return a repository root.");
         }
 
-        repositoryRoot = Path.GetFullPath(repositoryRoot);
+        // Resolve aliases in existing directories before computing the Git
+        // relative path; a macOS /var path may refer to /private/var.
+        workingDirectory = GitDirectoryIdentity.Resolve(workingDirectory);
+        repositoryRoot = GitDirectoryIdentity.Resolve(repositoryRoot);
         EnsureContained(repositoryRoot, workingDirectory);
 
         var verifiedBase = GitCommandRunner.Run(
