@@ -19,6 +19,6 @@ No PAT or persistent MCP/NuGet publishing token is required. NuGet and the MCP R
 
 The workflow builds one framework-dependent `.nupkg`, validates its embedded README marker and runtime dependencies, generates SHA-256 checksums, and installs it from an isolated source on Windows, Linux, and macOS. It reserves the version, publishes with NuGet OIDC, verifies and installs the public package, creates `mcp/v<version>` and the GitHub Release, then authenticates to the official Registry with GitHub OIDC.
 
-Reruns preserve the original version and SHA. Existing reservation/release tags must point to that SHA. Existing NuGet and Registry versions must prove matching metadata or the workflow fails closed. Missing later stages can resume; immutable artifacts and tags are never overwritten or moved.
+Reruns preserve the original version and SHA. The reservation step distinguishes HTTP `404` (create a new tag) from HTTP `200` (verify the existing tag's exact commit) and fails closed on authorization, transport, or server errors. Existing reservation/release tags must point to that SHA. Existing NuGet and Registry versions must prove matching metadata or the workflow fails closed. Missing later stages can resume; immutable artifacts and tags are never overwritten or moved.
 
 Release assets are the MCP `.nupkg`, `SHA256SUMS`, validated `server.json`, and MCP-specific notes. The package is not a self-contained native binary. Registry preview availability and schema changes remain external risks, and PR/push workflows never publish.
