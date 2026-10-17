@@ -255,6 +255,9 @@ jobs:
       - name: Verify release SemVer and version baseline policy
         run: bash scripts/release-version-policy-test.sh
 
+      - name: Verify MCP reservation HTTP-status and safety policy
+        run: bash scripts/mcp-release-reservation-test.sh
+
   github-action-contract:
     name: GitHub Action contract
     runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
