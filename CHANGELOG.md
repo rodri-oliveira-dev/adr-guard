@@ -7,6 +7,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 ## Unreleased
 
 ### Fixed
+- Fix the independent MCP release version-reservation step to distinguish HTTP 404 (create) from HTTP 200 (verify) and fail closed on API errors; add offline regression tests before any package publication.
 - Resolve physical Git directory identities before repository containment checks so macOS `/var` and `/private/var` aliases no longer break MCP impact analysis or incremental ADR detection. Physical containment and symlink protections remain enforced.
 
 ## [1.8.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.8.0) — Unreleased
