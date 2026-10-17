@@ -258,6 +258,9 @@ jobs:
       - name: Verify MCP reservation HTTP-status and safety policy
         run: bash scripts/mcp-release-reservation-test.sh
 
+      - name: Verify MCP GitHub Packages publication and backfill policy
+        run: bash scripts/mcp-github-packages-policy-test.sh
+
   github-action-contract:
     name: GitHub Action contract
     runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
