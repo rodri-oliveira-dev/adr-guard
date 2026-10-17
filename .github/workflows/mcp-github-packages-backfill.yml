@@ -29,8 +29,11 @@ jobs:
           VALIDATED_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          run_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$VALIDATED_SHA&event=push&status=completed&per_page=100" \
-            --jq '.workflow_runs[] | select(.head_sha == env.VALIDATED_SHA and .head_branch == "main" and .conclusion == "success") | .id' | head -n 1)"
+          run_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?head_sha=$VALIDATED_SHA&event=push&status=completed&per_page=100" | \
+            jq -er --arg sha "$VALIDATED_SHA" '[.workflow_runs[] | select(.head_sha == $sha and .head_branch == "main" and .event == "push" and .status == "completed" and .conclusion == "success") | .id][0]' 2>/dev/null)" || {
+            echo "::error::Selected main commit $VALIDATED_SHA has no successful completed CI push run."
+            exit 1
+          }
           [[ -n "$run_id" ]] || {
             echo "::error::Selected main commit $VALIDATED_SHA has no successful completed CI push run."
             exit 1
