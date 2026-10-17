@@ -98,10 +98,16 @@ jobs:
       - name: Smoke-test VSIX installation and activation
         run: xvfb-run -a npm run test:vsix
 
+      - name: Resolve packaged extension version
+        id: extension
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: adr-guard-vscode-1.1.0
-          path: extensions/vscode/adr-guard-1.1.0.vsix
+          name: adr-guard-vscode-${{ steps.extension.outputs.version }}
+          path: extensions/vscode/adr-guard-${{ steps.extension.outputs.version }}.vsix
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 21
