@@ -1,29 +1,25 @@
-# Publishing ADR Guard for VS Code
+# Packaging and downloading ADR Guard for VS Code
 
-The VS Code extension is versioned independently from the ADR Guard CLI and GitHub Action. The Marketplace extension identifier is `rodrioliveira.adr-guard`.
+The VS Code extension is versioned independently from the ADR Guard CLI and GitHub Action. The extension identifier is `rodrioliveira.adr-guard`, and the VSIX version is read from `extensions/vscode/package.json`.
 
-## One-time owner prerequisites
+## Build a validated VSIX (no Marketplace publication)
 
-1. In the Visual Studio Marketplace publisher management portal, configure a trusted publishing policy for publisher `rodrioliveira`, repository `rodri-oliveira-dev/adr-guard` and workflow `.github/workflows/vscode-extension-release.yml`. Follow the Marketplace's current trusted-publisher setup instructions.
-2. Create a protected GitHub Actions environment named `vscode-marketplace`. Add required reviewers and, if appropriate, restrict deployment to the `main` branch. Merely referencing an environment in a workflow does **not** configure reviewer protection.
-3. Ensure a compatible ADR Guard .NET CLI version is publicly installable and its advanced contracts are available. The VSIX does not include the CLI or install it automatically.
-4. Review the English and Portuguese documentation, Marketplace images, icon, and changelog.
+1. Confirm the required ADR Guard CLI capabilities are available for the extension version being tested. The VSIX does not bundle or install the CLI.
+2. Open [GitHub Actions — VS Code VSIX Package](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/vscode-extension-release.yml).
+3. Select **Run workflow**, choose the `main` branch, and start the run. No version input or publishing confirmation is required: the version is taken from the extension manifest.
+4. The workflow installs dependencies, audits, lints, typechecks, builds, and runs unit, localization, extension-host integration, README image, and VSIX installation/activation tests.
+5. When the run succeeds, open its **Summary → Artifacts** section and download `adr-guard-vscode-<version>` (a ZIP archive containing `adr-guard-<version>.vsix`). The package is retained for **21 days** from the workflow run, subject to the repository's maximum artifact retention setting.
+6. Extract the ZIP and install the `.vsix` in VS Code using **Extensions: Install from VSIX...**, or run `code --install-extension adr-guard-<version>.vsix`.
 
-## Manual release
+The [VS Code Extension CI](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/vscode-extension.yml) also uploads a VSIX artifact with a version derived from the manifest and a 21-day retention period whenever its checks run. For the most recently packaged version, select the latest **successful** run for the intended branch and verify the version displayed in the artifact name.
 
-1. Confirm the CLI capabilities required by this extension are available in NuGet. Version 1.1.0 requires CLI 1.7.0 or newer for visual forms; CLI 1.8.0 is the recommended coordinated release for all architecture, governance, and AI workflows. MCP is optional and separately versioned.
-2. Check `extensions/vscode/package.json` for publisher `rodrioliveira`, package name `adr-guard` and version `1.1.0`. Packaging, installation checks, and activation smoke tests derive the VSIX filename and expected version from this manifest.
-3. Open GitHub Actions and select **VS Code Marketplace Release**. Choose the `main` branch, specify version `1.1.0` and enter exactly `publish-rodrioliveira.adr-guard` as confirmation.
-4. The package job verifies the manifest and Marketplace image resources, then reruns dependency auditing, lint, typecheck, build, unit, localization, and VS Code host integration tests. It creates and tests `adr-guard-1.1.0.vsix`.
-5. After the protected `vscode-marketplace` environment approval, the separate publishing job downloads that validated VSIX and runs `vsce publish --oidc --packagePath`. No personal access tokens or GitHub repository secrets are needed for Marketplace authentication.
-6. Verify the listing at https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard and independently test installation from VS Code.
+## Distribution and safety controls
 
-## Release controls
+- The dedicated packaging workflow is **manual only** and its packaging job executes only on `main`. Pull requests do not trigger this workflow.
+- The workflow **does not publish to the Visual Studio Marketplace**, request an OIDC publishing token, or create a deployment to the `vscode-marketplace` environment. A Marketplace listing published previously is unaffected.
+- No publishing credentials, protected environment approval, or Marketplace trusted-publisher configuration is needed to create and download the VSIX.
+- Every successful workflow run stores its own artifact for 21 days. Artifacts from earlier runs expire independently; GitHub Actions does not automatically delete earlier artifacts when a newer version is packaged.
+- Download files from the workflow run's **Artifacts** section, not from the historic [Marketplace deployments](https://github.com/rodri-oliveira-dev/adr-guard/deployments/vscode-marketplace) page.
+- The extension version must be stable `MAJOR.MINOR.PATCH` and the manifest must identify publisher `rodrioliveira` and package `adr-guard`.
 
-- The release workflow is **manual only**, does not publish on a PR, push, or tag, and only executes on `main` with an exact confirmation string.
-- Restricting the publishing job to a reviewed GitHub environment is a recommended owner-side configuration. Until it is protected, manually invoking the workflow can still reach the publish job if trusted publishing is configured.
-- The OIDC token permission is scoped to the publishing job, not the build job.
-- Marketplace trusted publishing must be configured before attempting the first release. An OIDC error is a configuration failure; do not work around it by committing a long-lived PAT.
-- If publishing fails, review logs and re-run the manual workflow after fixing the problem. Do not silently retry or overwrite a public version.
-
-References: https://github.com/microsoft/vscode-vsce#trusted-publishing and https://code.visualstudio.com/api/working-with-extensions/publishing-extension
+To publish on the Marketplace in the future, a **separate, explicitly approved publishing workflow** and Marketplace authentication would need to be introduced. VSIX packaging alone never updates the Marketplace.
