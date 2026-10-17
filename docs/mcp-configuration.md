@@ -2,9 +2,9 @@
 
 [Português (Brasil)](mcp-configuration.pt-BR.md) · [Overview](mcp.md) · [Tools](mcp-tools.md) · [Security](mcp-security.md)
 
-MCP 1.0.0 is prepared as an independently versioned .NET Tool, but no official package or Registry entry has been published yet. The commands below distinguish the future NuGet installation from a currently usable local package or source build.
+MCP 1.0.0 is a [published .NET Tool on NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0) with a [dedicated GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0) and official Registry entry. NuGet.org is the recommended installation channel; GitHub Packages is an optional authenticated secondary feed that requires a one-time backfill for version 1.0.0.
 
-## Install after the first verified publication
+## Install the published package
 
 The package requires the .NET 10 runtime and installs `adr-guard-mcp` independently from the traditional `adr-guard` CLI:
 
