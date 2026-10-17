@@ -25,7 +25,8 @@ for expected in \
   'contents: read' \
   'ref: ${{ needs.validate-release.outputs.sha }}' \
   'bash scripts/verify-mcp-github-package.sh' \
-  '--skip-duplicate'
+  'bash scripts/publish-mcp-github-package.sh' \
+  'NUGET_API_KEY: ${{ github.token }}'
 do
   grep -Fq -- "$expected" <<< "$future" || {
     echo "Missing MCP package distribution policy: $expected" >&2
@@ -45,7 +46,24 @@ grep -Fq 'packages: write' "$BACKFILL"
 grep -Fq 'gh release download "$RELEASE_TAG"' "$BACKFILL"
 grep -Fq 'scripts/verify-mcp-github-package.sh' "$BACKFILL"
 grep -Fq 'https://api.nuget.org/v3-flatcontainer/' "$BACKFILL"
-grep -Fq -- '--skip-duplicate' "$BACKFILL"
+grep -Fq 'NUGET_API_KEY: ${{ github.token }}' "$BACKFILL"
+grep -Fq 'scripts/publish-mcp-github-package.sh' "$BACKFILL"
+grep -Fq '  validate-main-ci:' "$BACKFILL"
+grep -Fq 'needs: validate-main-ci' "$BACKFILL"
+grep -Fq 'actions: read' "$BACKFILL"
+grep -Fq 'github.sha' "$BACKFILL"
+grep -Fq 'head_sha=$VALIDATED_SHA&event=push&status=completed' "$BACKFILL"
+grep -Fq 'select(.head_sha == env.VALIDATED_SHA' "$BACKFILL"
+grep -Fq 'if: ${{ always() }}' <<< "$summary"
+grep -Fq 'needs.publish-github-packages.result' <<< "$summary"
+if grep -Fq -- '--skip-duplicate' "$BACKFILL" || grep -Fq -- '--skip-duplicate' <<< "$future"; then
+  echo 'GitHub Packages publication must never silently skip an unverified conflict.' >&2
+  exit 1
+fi
+if grep -Fq -- '--api-key' "$BACKFILL" || grep -Fq -- '--api-key' <<< "$future"; then
+  echo 'GitHub Packages token must not appear in dotnet argv.' >&2
+  exit 1
+fi
 if grep -Eq '^  (push|pull_request|workflow_run):' "$BACKFILL"; then
   echo 'Backfill must not publish automatically.' >&2
   exit 1
@@ -53,6 +71,7 @@ fi
 grep -Fq 'bash scripts/mcp-github-packages-policy-test.sh' "$CI"
 
 bash -n "$VERIFY"
+bash -n "$ROOT_DIR/scripts/publish-mcp-github-package.sh"
 bash -n "$0"
 
 tmp="$(mktemp -d)"
@@ -100,5 +119,7 @@ verify_case failure "$commit"
 create_package "$commit"
 sed -i 's/^[0-9a-f]\{64\}/0000000000000000000000000000000000000000000000000000000000000000/' "$tmp/work/artifacts/mcp/SHA256SUMS"
 verify_case failure "$commit"
+
+bash "$ROOT_DIR/scripts/mcp-github-packages-publish-test.sh"
 
 echo 'MCP GitHub Packages workflow and package provenance tests passed.'
