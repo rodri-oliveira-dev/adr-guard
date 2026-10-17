@@ -20,82 +20,139 @@ mkdir -p "$fixture/bin"
 cat > "$fixture/bin/curl" <<'MOCK_CURL'
 #!/usr/bin/env bash
 set -euo pipefail
-output=""
+output="" method="" max_bytes="" config_stdin=false request_body=""
 while (( $# > 0 )); do
-  if [[ "$1" == '--output' ]]; then output="$2"; shift 2; continue; fi
-  shift
+  case "$1" in
+    --output|--request|--max-filesize|--config|--data-raw)
+      option="$1" value="$2"
+      case "$option" in
+        --output) output="$value" ;;
+        --request) method="$value" ;;
+        --max-filesize) max_bytes="$value" ;;
+        --config) [[ "$value" == - ]] && config_stdin=true ;;
+        --data-raw) request_body="$value" ;;
+      esac
+      shift 2
+      ;;
+    *)
+      if [[ "$1" == *"$GH_TOKEN"* ]]; then
+        echo 'Sensitive token appeared in curl argv!' >&2
+        exit 90
+      fi
+      shift
+      ;;
+  esac
 done
-[[ -n "$output" ]]
-if [[ "${MOCK_TRANSPORT_FAIL:-false}" == true ]]; then exit 7; fi
-printf '%s' "${MOCK_GET_BODY:-}" > "$output"
-printf '%s' "$MOCK_GET_STATUS"
+[[ -n "$output" && "$config_stdin" == true && "$max_bytes" == 65536 ]]
+header="$(cat)"
+[[ "$header" == "header = \"Authorization: Bearer $GH_TOKEN\"" ]] || {
+  echo 'Credential must arrive over curl stdin config, not process arguments.' >&2
+  exit 91
+}
+printf '%s\n' "$method" >> "$MOCK_CURL_CALLS"
+if [[ "$MOCK_TRANSPORT_FAIL" == true ]]; then exit 7; fi
+if [[ "$method" == GET ]]; then
+  status="$MOCK_GET_STATUS"
+  body="$MOCK_GET_BODY"
+elif [[ "$method" == POST ]]; then
+  jq -e --arg ref "refs/tags/$RESERVATION_TAG" --arg sha "$VALIDATED_SHA" \
+    '.ref == $ref and .sha == $sha' <<< "$request_body" > /dev/null
+  status="$MOCK_POST_STATUS"
+  body="$MOCK_POST_BODY"
+  if [[ "$MOCK_POST_FAIL" == true ]]; then exit 7; fi
+else
+  exit 92
+fi
+# An oversized body with no Content-Length must still be rejected.
+if (( ${#body} > max_bytes )); then exit 63; fi
+printf '%s' "$body" > "$output"
+printf '%s' "$status"
 MOCK_CURL
-cat > "$fixture/bin/gh" <<'MOCK_GH'
-#!/usr/bin/env bash
-set -euo pipefail
-[[ "$1" == api && "$2" == --method && "$3" == POST ]]
-printf '%s\n' "$@" >> "$MOCK_GH_CALLS"
-if [[ "${MOCK_POST_FAIL:-false}" == true ]]; then exit 1; fi
-printf '{"ref":"refs/tags/mcp-release-reservation/v1.0.0","object":{"type":"commit","sha":"%s"}}\n' "${MOCK_CREATED_SHA:-$VALIDATED_SHA}"
-MOCK_GH
-chmod +x "$fixture/bin/curl" "$fixture/bin/gh"
+chmod +x "$fixture/bin/curl"
 
 export PATH="$fixture/bin:$PATH"
 export GH_TOKEN='placeholder-test-token'
 export GITHUB_REPOSITORY='rodri-oliveira-dev/adr-guard'
 export RESERVATION_TAG='mcp-release-reservation/v1.0.0'
 export VALIDATED_SHA='941e05dfb739f52a64e87d990b91e3e399fd0041'
-export MOCK_GH_CALLS="$fixture/gh-calls"
+export MOCK_CURL_CALLS="$fixture/curl-calls"
+export MOCK_GET_STATUS=404 MOCK_GET_BODY='{"message":"Not Found","status":"404"}'
+export MOCK_POST_STATUS=201 MOCK_POST_FAIL=false MOCK_TRANSPORT_FAIL=false
+export MOCK_POST_BODY="{\"ref\":\"refs/tags/$RESERVATION_TAG\",\"object\":{\"type\":\"commit\",\"sha\":\"$VALIDATED_SHA\"}}"
 
 run_case() {
-  local label="$1" expected="$2"
-  : > "$MOCK_GH_CALLS"
+  local label="$1" expected="$2" expected_calls="$3"
+  : > "$MOCK_CURL_CALLS"
   if bash "$RESERVE" > "$fixture/out" 2>&1; then
-    [[ "$expected" == success ]] || { echo "Unexpected success: $label" >&2; cat "$fixture/out" >&2; exit 1; }
+    [[ "$expected" == success ]] || {
+      echo "Unexpected success: $label" >&2
+      cat "$fixture/out" >&2
+      exit 1
+    }
   else
-    [[ "$expected" == failure ]] || { echo "Unexpected failure: $label" >&2; cat "$fixture/out" >&2; exit 1; }
+    [[ "$expected" == failure ]] || {
+      echo "Unexpected failure: $label" >&2
+      cat "$fixture/out" >&2
+      exit 1
+    }
   fi
+  [[ "$(wc -l < "$MOCK_CURL_CALLS" | tr -d ' ')" == "$expected_calls" ]] || {
+    echo "Unexpected HTTP call count for $label" >&2
+    cat "$fixture/out" >&2
+    exit 1
+  }
 }
 
-export MOCK_GET_STATUS=404 MOCK_GET_BODY='{"message":"Not Found","status":"404"}'
-run_case 'missing reservation creates tag' success
-grep -Fq "sha=${VALIDATED_SHA}" "$MOCK_GH_CALLS"
-grep -Fq "ref=refs/tags/${RESERVATION_TAG}" "$MOCK_GH_CALLS"
+run_case 'missing reservation creates tag' success 2
+grep -Fxq GET "$MOCK_CURL_CALLS"
+grep -Fxq POST "$MOCK_CURL_CALLS"
 
 export MOCK_GET_STATUS=200
-export MOCK_GET_BODY="{\"object\":{\"type\":\"commit\",\"sha\":\"${VALIDATED_SHA}\"}}"
-run_case 'same commit is idempotent' success
-test ! -s "$MOCK_GH_CALLS"
+export MOCK_GET_BODY="{\"object\":{\"type\":\"commit\",\"sha\":\"$VALIDATED_SHA\"}}"
+run_case 'same commit is idempotent' success 1
 
 export MOCK_GET_BODY='{"object":{"type":"commit","sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}'
-run_case 'different commit is rejected' failure
-test ! -s "$MOCK_GH_CALLS"
+run_case 'different commit is rejected' failure 1
 
 export MOCK_GET_BODY='{"message":"Not Found","status":"404"}'
-run_case 'error JSON with HTTP 200 is not a SHA' failure
-test ! -s "$MOCK_GH_CALLS"
+run_case 'error JSON with HTTP 200 is not a SHA' failure 1
 
-export MOCK_GET_BODY="{\"object\":{\"type\":\"tag\",\"sha\":\"${VALIDATED_SHA}\"}}"
-run_case 'annotated tag cannot impersonate lightweight reservation' failure
-test ! -s "$MOCK_GH_CALLS"
+export MOCK_GET_BODY="{\"object\":{\"type\":\"tag\",\"sha\":\"$VALIDATED_SHA\"}}"
+run_case 'annotated tag cannot impersonate lightweight reservation' failure 1
 
 for status in 401 403 429 500 503; do
   export MOCK_GET_STATUS="$status"
-  run_case "HTTP $status fails closed" failure
-  test ! -s "$MOCK_GH_CALLS"
+  run_case "HTTP $status fails closed" failure 1
 done
 
 export MOCK_GET_STATUS=404 MOCK_GET_BODY='{"message":"Not Found"}'
+export MOCK_POST_STATUS=403
+run_case 'failed POST authorization is rejected' failure 2
+export MOCK_POST_STATUS=201
+
 export MOCK_POST_FAIL=true
-run_case 'failed reservation creation is rejected' failure
-unset MOCK_POST_FAIL
+run_case 'failed POST transport is rejected' failure 2
+export MOCK_POST_FAIL=false
 
-export MOCK_CREATED_SHA='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-run_case 'inconsistent tag creation response is rejected' failure
-unset MOCK_CREATED_SHA
+export MOCK_POST_BODY='{"ref":"refs/tags/mcp-release-reservation/v1.0.0","object":{"type":"commit","sha":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}'
+run_case 'inconsistent tag creation response is rejected' failure 2
 
+export MOCK_POST_BODY="{\"ref\":\"refs/tags/$RESERVATION_TAG\",\"object\":{\"type\":\"commit\",\"sha\":\"$VALIDATED_SHA\"}}"
 export MOCK_TRANSPORT_FAIL=true
-run_case 'GitHub transport failure is rejected' failure
-unset MOCK_TRANSPORT_FAIL
+run_case 'GitHub GET transport failure is rejected' failure 1
+export MOCK_TRANSPORT_FAIL=false
 
-echo 'MCP reservation HTTP-status and immutability regression tests passed.'
+# Enforce byte limits for responses without Content-Length, both methods.
+export MOCK_GET_STATUS=200
+export MOCK_GET_BODY="$(printf '%065537d' 0)"
+run_case 'oversized GET response is rejected' failure 1
+
+export MOCK_GET_STATUS=404 MOCK_GET_BODY='{"message":"Not Found"}'
+export MOCK_POST_BODY="$(printf '%065537d' 0)"
+run_case 'oversized POST response is rejected' failure 2
+
+# Reject untrusted token characters before they become curl config syntax.
+export GH_TOKEN=$'bad-token\nheader = "X-Injected: true"'
+run_case 'untrusted token characters are rejected' failure 0
+
+echo 'MCP reservation security and HTTP-status regression tests passed.'
