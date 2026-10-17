@@ -23,11 +23,12 @@ public sealed class GitChangeDetectorTests
                 "main",
                 TestContext.Current.CancellationToken);
 
-            Assert.Contains(Path.Combine(adr, "0001-first.md"), changes.CurrentPaths);
-            Assert.Contains(Path.Combine(adr, "0005-renamed.md"), changes.CurrentPaths);
-            Assert.Contains(Path.Combine(adr, "0004-untracked.md"), changes.CurrentPaths);
-            Assert.Contains(Path.Combine(adr, "0002-second.md"), changes.RemovedPaths);
-            Assert.Contains(Path.Combine(adr, "0003-third.md"), changes.RemovedPaths);
+            var physicalAdrDirectory = Path.Combine(GitDirectoryIdentity.Resolve(root), "docs", "adr");
+            Assert.Contains(Path.Combine(physicalAdrDirectory, "0001-first.md"), changes.CurrentPaths);
+            Assert.Contains(Path.Combine(physicalAdrDirectory, "0005-renamed.md"), changes.CurrentPaths);
+            Assert.Contains(Path.Combine(physicalAdrDirectory, "0004-untracked.md"), changes.CurrentPaths);
+            Assert.Contains(Path.Combine(physicalAdrDirectory, "0002-second.md"), changes.RemovedPaths);
+            Assert.Contains(Path.Combine(physicalAdrDirectory, "0003-third.md"), changes.RemovedPaths);
         }
         finally
         {
@@ -48,6 +49,52 @@ public sealed class GitChangeDetectorTests
                 TestContext.Current.CancellationToken));
 
         Assert.Contains("unsafe", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+
+    [Fact]
+    public void ScopedAdrChangesResolveLinkedAncestorsWithoutEscapingPhysicalRepository()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var root = CreateRepository();
+        var parent = Path.GetDirectoryName(root)!;
+        var alias = Path.Combine(parent, $"adr-git-parent-alias-{Guid.NewGuid():N}");
+        try
+        {
+            try
+            {
+                Directory.CreateSymbolicLink(alias, parent);
+            }
+            catch (Exception exception) when (exception is IOException
+                                              or UnauthorizedAccessException
+                                              or PlatformNotSupportedException)
+            {
+                return;
+            }
+
+            File.AppendAllText(Path.Combine(root, "docs", "adr", "0001-first.md"), "\\nChanged.\\n");
+            var changes = GitChangeDetector.Detect(
+                Path.Combine(alias, Path.GetFileName(root), "docs", "adr"),
+                "main",
+                TestContext.Current.CancellationToken);
+
+            Assert.Contains(
+                Path.Combine(GitDirectoryIdentity.Resolve(root), "docs", "adr", "0001-first.md"),
+                changes.CurrentPaths);
+        }
+        finally
+        {
+            if (Directory.Exists(alias))
+            {
+                Directory.Delete(alias);
+            }
+
+            DeleteRepository(root);
+        }
     }
 
     private static string CreateRepository()
