@@ -9,6 +9,8 @@ adr-guard impact . --base-ref origin/main --map .adrguard-impact.json --format j
 
 The base reference and mapping file are always explicit. The command does not fetch, checkout, modify files, or change Git state. It inventories committed changes since the merge base plus staged, unstaged, and untracked paths. A successful analysis returns `0` even when ADRs are affected or changes are not mapped; invalid arguments return `2`, and repository, Git, manifest, bounds, or cancellation failures return `3`.
 
+The reader resolves existing Git working directories to their physical filesystem identity before comparing them with Git's repository root. This also handles macOS aliases such as `/var` and `/private/var` without relaxing repository containment or allowing paths outside the physical working tree.
+
 ## Contracts and compatibility
 
 The mapping contract is [`adr-impact-map-v1.schema.json`](../schemas/adr-impact-map-v1.schema.json). Paths use repository-relative forward slashes and patterns support literals, `*` within one segment, and a complete `**` segment. ADR identity is resolved from the declared stable ID and path; unresolved, inactive, renamed, or lifecycle-ambiguous mappings are reported as `unknown` rather than silently treated as current governance.
