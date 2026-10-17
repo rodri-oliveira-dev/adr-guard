@@ -8,7 +8,9 @@ All notable changes to ADR Guard for VS Code are documented here. Extension vers
 - Added visual, explicitly invoked CLI workflows for Architecture Impact, Architectural Drift, diagnostic baseline creation/update, standard/enriched catalogs, AI-assisted ADR drafting, and advisory Technical Review with `--compare-ref`.
 - Added workspace-scoped architecture/governance/AI settings, MCP availability states, bilingual accessible UI, cancellation/stale-response protection, privacy confirmations, and strict versioned JSON parsing.
 - Fixed visual impact and drift execution to preserve repository-relative file operands required by the CLI, and stopped unrelated analysis/review workflows from requiring the configured ADR directory to exist.
-- Documented that these release-candidate capabilities are not published until the manual extension release process completes; MCP 1.0.0 remains a separately installed, independently published optional dependency.
+- Updated 1.1.0 candidate distribution: the manual **VS Code VSIX Package** GitHub Actions workflow validates and builds `adr-guard-<version>.vsix` from the extension manifest and exposes it as the `adr-guard-vscode-<version>` downloadable workflow artifact, retained for 21 days (subject to repository retention limits). The VS Code Extension CI workflow also retains its validated, versioned VSIX artifacts for 21 days.
+- **No Marketplace publication occurs in either workflow.** Version 1.1.0 remains unpublished on the Marketplace; downloading a VSIX is a separate, manual installation path and does not represent a public Marketplace release. A distinct, explicitly approved publishing workflow would be required to publish new versions to the Marketplace. MCP 1.0.0 remains an independent, optional dependency whose publication must be checked separately.
+- See [VSIX packaging and installation](PUBLISHING.md) and the [VS Code 1.1.0 candidate release notes](../../docs/releases/vscode-v1.1.0.md) ([pt-BR](../../docs/releases/vscode-v1.1.0.pt-BR.md)).
 
 ## 1.0.1 — Release candidate (not published as of 2026-10-16)
 
