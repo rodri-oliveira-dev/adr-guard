@@ -303,6 +303,49 @@ jobs:
           dotnet build AdrGuard.slnx --configuration Release --no-restore
           ADR_GUARD_MCP_TEST_COMMAND="$GITHUB_WORKSPACE/artifacts/public-mcp/adr-guard-mcp" dotnet test --project tests/AdrGuard.Mcp.Tests/AdrGuard.Mcp.Tests.csproj --configuration Release --no-build --filter-class AdrGuard.Mcp.Tests.McpServerIntegrationTests
 
+  publish-github-packages:
+    name: Publish MCP to GitHub Packages
+    needs: [validate-release, build-test-pack, reserve-version, verify-public-package]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    environment: mcp-release
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate-release.outputs.sha }}
+          persist-credentials: false
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Download immutable MCP candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.0
+        with:
+          name: mcp-release-${{ needs.validate-release.outputs.version }}-${{ needs.validate-release.outputs.sha }}
+          path: artifacts/mcp
+      - name: Verify checksum and release commit
+        shell: bash
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+          VALIDATED_SHA: ${{ needs.validate-release.outputs.sha }}
+        run: bash scripts/verify-mcp-github-package.sh
+      - name: Publish verified MCP package to GitHub Packages
+        shell: bash
+        env:
+          GITHUB_PACKAGE_TOKEN: ${{ github.token }}
+          PACKAGE_VERSION: ${{ needs.validate-release.outputs.version }}
+          GITHUB_PACKAGE_SOURCE: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+        run: |
+          set -euo pipefail
+          dotnet nuget push "artifacts/mcp/$MCP_PACKAGE_ID.$PACKAGE_VERSION.nupkg" \
+            --source "$GITHUB_PACKAGE_SOURCE" \
+            --api-key "$GITHUB_PACKAGE_TOKEN" \
+            --skip-duplicate
+
   github-release:
     name: Publish MCP GitHub Release
     needs: [validate-release, build-test-pack, verify-public-package]
@@ -409,7 +452,7 @@ jobs:
 
   release-summary:
     name: MCP release summary
-    needs: [validate-release, publish-nuget, verify-public-package, github-release, publish-registry]
+    needs: [validate-release, publish-nuget, verify-public-package, publish-github-packages, github-release, publish-registry]
     runs-on: ubuntu-26.04
     timeout-minutes: 2
     permissions: {}
@@ -420,5 +463,6 @@ jobs:
           echo "## ADR Guard MCP v${{ needs.validate-release.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Commit: ${{ needs.validate-release.outputs.sha }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- NuGet: $MCP_PACKAGE_ID" >> "$GITHUB_STEP_SUMMARY"
+          echo "- GitHub Packages: $MCP_PACKAGE_ID" >> "$GITHUB_STEP_SUMMARY"
           echo "- GitHub tag: ${{ needs.validate-release.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- Registry: $MCP_SERVER_NAME" >> "$GITHUB_STEP_SUMMARY"
