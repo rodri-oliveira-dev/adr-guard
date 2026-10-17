@@ -207,20 +207,18 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout validated commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.validate-release.outputs.sha }}
+          persist-credentials: false
       - name: Create or verify immutable reservation
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           RESERVATION_TAG: ${{ needs.validate-release.outputs.reservation-tag }}
           VALIDATED_SHA: ${{ needs.validate-release.outputs.sha }}
-        run: |
-          set -euo pipefail
-          existing="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RESERVATION_TAG" --jq '.object.sha' 2>/dev/null || true)"
-          if [[ -n "$existing" ]]; then
-            [[ "$existing" == "$VALIDATED_SHA" ]] || { echo "::error::Reservation belongs to $existing."; exit 1; }
-          else
-            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$RESERVATION_TAG" -f sha="$VALIDATED_SHA" >/dev/null
-          fi
+        run: bash scripts/reserve-mcp-release-version.sh
 
   publish-nuget:
     name: Publish MCP package to NuGet.org
