@@ -8,7 +8,8 @@ set -euo pipefail
 
 # The shared package verification checks the original checksum, Package ID,
 # release version and commit before any registry operation.
-bash scripts/verify-mcp-github-package.sh
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+bash "$script_dir/verify-mcp-github-package.sh"
 
 [[ "$GITHUB_REPOSITORY_OWNER" =~ ^[A-Za-z0-9_.-]+$ ]] || exit 1
 [[ "$GITHUB_ACTOR" =~ ^[A-Za-z0-9_.-]+$ ]] || exit 1
