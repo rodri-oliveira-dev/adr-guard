@@ -266,18 +266,9 @@ public sealed class GitChangeInventoryTests
         var alias = Path.Combine(parent, $"adr-impact-parent-alias-{Guid.NewGuid():N}");
         try
         {
-            try
-            {
-                Directory.CreateSymbolicLink(alias, parent);
-            }
-            catch (Exception exception) when (exception is IOException
-                                              or UnauthorizedAccessException
-                                              or PlatformNotSupportedException)
-            {
-                return;
-            }
+            Directory.CreateSymbolicLink(alias, parent);
 
-            repository.Write("src/aliased.txt", "untracked\\n");
+            repository.Write("src/aliased.txt", "untracked\n");
             var inventory = GitChangeInventoryReader.Read(
                 Path.Combine(alias, Path.GetFileName(repository.Root)),
                 "main",
