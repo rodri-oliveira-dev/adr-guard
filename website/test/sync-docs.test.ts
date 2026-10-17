@@ -28,7 +28,7 @@ describe('synchronized documentation', () => {
     }
   });
 
-  it('generates the complete bilingual MCP page set without claiming publication', async () => {
+  it('generates bilingual MCP pages with verified publication and GitHub Packages backfill status', async () => {
     const routes = ['mcp', 'mcp-configuration', 'mcp-tools', 'mcp-security', 'mcp-release'];
     for (const route of routes) {
       const [english, portuguese] = await Promise.all([
@@ -42,8 +42,18 @@ describe('synchronized documentation', () => {
       expect(portuguese).toContain('Fonte sincronizada');
     }
 
-    const overview = await readFile(new URL('product/mcp.md', generatedRoot), 'utf8');
-    expect(overview).toContain('No ADR Guard MCP package, GitHub Release, or Registry entry has been published');
+    const [overview, overviewPt, release, releasePt] = await Promise.all([
+      readFile(new URL('product/mcp.md', generatedRoot), 'utf8'),
+      readFile(new URL('pt-br/product/mcp.md', generatedRoot), 'utf8'),
+      readFile(new URL('product/mcp-release.md', generatedRoot), 'utf8'),
+      readFile(new URL('pt-br/product/mcp-release.md', generatedRoot), 'utf8'),
+    ]);
+    expect(overview).toContain('MCP `1.0.0` is published on');
+    expect(overviewPt).toContain('MCP `1.0.0` está publicado no');
+    expect(overview).toContain('GitHub Packages is an authenticated secondary feed');
+    expect(overviewPt).toContain('GitHub Packages é um feed secundário autenticado');
+    expect(release).toContain('MCP GitHub Packages Backfill');
+    expect(releasePt).toContain('MCP GitHub Packages Backfill');
     const tools = await readFile(new URL('product/mcp-tools.md', generatedRoot), 'utf8');
     expect(tools).toContain('list_adrs');
     expect(tools).toContain('verify_architecture');
