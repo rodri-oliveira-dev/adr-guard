@@ -6,6 +6,9 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
+### Added
+- Prepare an authenticated GitHub Packages distribution channel for future MCP versions and a separate manual backfill of the existing, immutable MCP 1.0.0 release. Package hash and commit provenance are validated before upload; NuGet.org and MCP Registry remain the primary publication channels.
+
 ### Fixed
 - Fix the independent MCP release version-reservation step to distinguish HTTP 404 (create) from HTTP 200 (verify), cap GET/POST API responses to 64 KiB, and keep authorization tokens out of process arguments; add offline regression tests before any package publication.
 - Resolve physical Git directory identities before repository containment checks so macOS `/var` and `/private/var` aliases no longer break MCP impact analysis or incremental ADR detection. Physical containment and symlink protections remain enforced.
