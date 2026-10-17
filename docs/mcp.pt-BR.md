@@ -4,7 +4,7 @@
 
 O servidor MCP do ADR Guard é um adaptador local e somente leitura que expõe capacidades de domínio do ADR Guard a clientes do Model Context Protocol. Ele permite que um agente compatível liste, leia, pesquise, relacione, valide e analise ADRs sem substituir a CLI nem incorporar um modelo de IA ao ADR Guard.
 
-> **Disponibilidade:** o MCP `1.0.0` e seu pipeline independente de release NuGet/Registry estão preparados e testados no código-fonte. Nenhum pacote MCP, GitHub Release ou entrada no Registry foi publicado. Use um pacote local ou build do código-fonte até que a primeira execução manual de `MCP Release` conclua e passe pelas verificações públicas.
+> **Disponibilidade:** o MCP `1.0.0` está publicado no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), em [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0) e no MCP Registry oficial. GitHub Packages é um feed secundário autenticado, com backfill independente para a versão 1.0.0 já publicada. Veja [distribuição do MCP](mcp-release.pt-BR.md).
 
 O nome preparado no Registry é `io.github.rodri-oliveira-dev/adr-guard`, associado ao pacote NuGet `RodriOliveira.AdrGuard.Mcp`. O Registry fornece metadados de descoberta para clientes compatíveis; ele não garante instalação automática pelo cliente. O único transporte é `stdio` local.
 
@@ -48,5 +48,5 @@ As capacidades determinísticas relacionadas continuam documentadas em [Análise
 
 - Esta implementação não possui transporte de rede, serviço remoto hospedado, ferramenta de escrita, resource, prompt ou agente autônomo.
 - O servidor não instala a si próprio, não busca refs Git, não executa builds/testes/scripts, não gera baselines, não cria ADRs nem atualiza índices.
-- É necessário um pacote local ou build do código-fonte até que o MCP 1.0.0 seja publicado e verificado de forma independente.
+- A .NET Tool MCP pública para .NET 10 pode ser instalada pelo NuGet.org com `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0`; o GitHub Packages exige autenticação após a conclusão do backfill. A compilação pelo código-fonte permanece disponível.
 - A compatibilidade com clientes é documentada apenas onde há integração concreta no repositório: a API estável de MCP para extensões do VS Code. Outros clientes podem funcionar com um comando `stdio` padrão, mas não são apresentados aqui como testados.
