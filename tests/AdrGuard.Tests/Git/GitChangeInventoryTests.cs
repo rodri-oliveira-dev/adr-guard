@@ -224,6 +224,13 @@ public sealed class GitChangeInventoryTests
 
         repository.Write("src/Case.txt", "upper\n");
         repository.Write("src/case.txt", "lower\n");
+        // Default macOS volumes are case-insensitive; distinct case-only
+        // names can be asserted only when the filesystem stores both files.
+        if (File.ReadAllText(Path.Combine(repository.Root, "src", "Case.txt")) != "upper\n")
+        {
+            return;
+        }
+
         var inventory = GitChangeInventoryReader.Read(
             repository.Root,
             "main",
@@ -248,8 +255,9 @@ public sealed class GitChangeInventoryTests
             "main",
             TestContext.Current.CancellationToken);
 
-        Assert.Contains(Path.Combine(repository.Root, "docs", "adr", "0001-one.md"), changes.CurrentPaths);
-        Assert.DoesNotContain(Path.Combine(repository.Root, "src", "not-an-adr.md"), changes.CurrentPaths);
+        var physicalRoot = GitDirectoryIdentity.Resolve(repository.Root);
+        Assert.Contains(Path.Combine(physicalRoot, "docs", "adr", "0001-one.md"), changes.CurrentPaths);
+        Assert.DoesNotContain(Path.Combine(physicalRoot, "src", "not-an-adr.md"), changes.CurrentPaths);
     }
 
 
