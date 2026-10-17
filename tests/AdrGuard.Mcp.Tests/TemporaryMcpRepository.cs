@@ -32,6 +32,12 @@ internal sealed class TemporaryMcpRepository : IDisposable
 
     internal IReadOnlyDictionary<string, string> Snapshot() =>
         Directory.EnumerateFiles(Root, "*", SearchOption.AllDirectories)
+            // The test verifies read-only ADR operations, not Git's internal
+            // housekeeping. Git may create and remove maintenance.lock while
+            // the repository is being inspected by a separate process.
+            .Where(path => !Path.GetRelativePath(Root, path).StartsWith(
+                $".git{Path.DirectorySeparatorChar}",
+                StringComparison.Ordinal))
             .Order(StringComparer.Ordinal)
             .ToDictionary(
                 path => Path.GetRelativePath(Root, path).Replace(Path.DirectorySeparatorChar, '/'),
