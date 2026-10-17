@@ -333,18 +333,15 @@ jobs:
           VERSION: ${{ needs.validate-release.outputs.version }}
           VALIDATED_SHA: ${{ needs.validate-release.outputs.sha }}
         run: bash scripts/verify-mcp-github-package.sh
-      - name: Publish verified MCP package to GitHub Packages
+      - name: Publish or verify immutable MCP package on GitHub Packages
         shell: bash
         env:
-          GITHUB_PACKAGE_TOKEN: ${{ github.token }}
-          PACKAGE_VERSION: ${{ needs.validate-release.outputs.version }}
+          NUGET_API_KEY: ${{ github.token }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          VERSION: ${{ needs.validate-release.outputs.version }}
+          VALIDATED_SHA: ${{ needs.validate-release.outputs.sha }}
           GITHUB_PACKAGE_SOURCE: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
-        run: |
-          set -euo pipefail
-          dotnet nuget push "artifacts/mcp/$MCP_PACKAGE_ID.$PACKAGE_VERSION.nupkg" \
-            --source "$GITHUB_PACKAGE_SOURCE" \
-            --api-key "$GITHUB_PACKAGE_TOKEN" \
-            --skip-duplicate
+        run: bash scripts/publish-mcp-github-package.sh
 
   github-release:
     name: Publish MCP GitHub Release
@@ -453,16 +450,28 @@ jobs:
   release-summary:
     name: MCP release summary
     needs: [validate-release, publish-nuget, verify-public-package, publish-github-packages, github-release, publish-registry]
+    if: ${{ always() }}
     runs-on: ubuntu-26.04
     timeout-minutes: 2
     permissions: {}
     steps:
-      - name: Write verified release summary
+      - name: Write release distribution status
         shell: bash
+        env:
+          VERSION: ${{ needs.validate-release.outputs.version }}
+          VALIDATED_SHA: ${{ needs.validate-release.outputs.sha }}
+          NUGET_RESULT: ${{ needs.publish-nuget.result }}
+          VERIFY_RESULT: ${{ needs.verify-public-package.result }}
+          PACKAGES_RESULT: ${{ needs.publish-github-packages.result }}
+          RELEASE_RESULT: ${{ needs.github-release.result }}
+          REGISTRY_RESULT: ${{ needs.publish-registry.result }}
         run: |
-          echo "## ADR Guard MCP v${{ needs.validate-release.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Commit: ${{ needs.validate-release.outputs.sha }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- NuGet: $MCP_PACKAGE_ID" >> "$GITHUB_STEP_SUMMARY"
-          echo "- GitHub Packages: $MCP_PACKAGE_ID" >> "$GITHUB_STEP_SUMMARY"
-          echo "- GitHub tag: ${{ needs.validate-release.outputs.tag }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Registry: $MCP_SERVER_NAME" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## ADR Guard MCP v${VERSION:-unknown}"
+            echo "- Commit: ${VALIDATED_SHA:-unavailable}"
+            echo "- NuGet.org publication: $NUGET_RESULT"
+            echo "- Public NuGet verification: $VERIFY_RESULT"
+            echo "- GitHub Packages publication and checksum verification: $PACKAGES_RESULT"
+            echo "- GitHub Release: $RELEASE_RESULT"
+            echo "- MCP Registry: $REGISTRY_RESULT"
+          } >> "$GITHUB_STEP_SUMMARY"
