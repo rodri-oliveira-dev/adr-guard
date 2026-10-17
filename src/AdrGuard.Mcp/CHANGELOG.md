@@ -2,7 +2,11 @@
 
 ADR Guard MCP is versioned independently from the ADR Guard CLI and VS Code extension. Prepared versions are not public until the manual release workflow completes and the NuGet package, GitHub Release, and Registry entry are independently verified.
 
-## 1.0.0 — Unreleased
+## Unreleased
+
+- Prepare authenticated GitHub Packages distribution for future MCP versions and a separate, provenance-verified backfill for published 1.0.0; no automatic republishing of existing versions.
+
+## 1.0.0 — 2026-10-17
 
 - Prepared the first stable public contract for seven bounded, read-only schema `1.0` tools over local `stdio`.
 - Stabilized Package ID `RodriOliveira.AdrGuard.Mcp`, command `adr-guard-mcp`, and Registry name `io.github.rodri-oliveira-dev/adr-guard`.
