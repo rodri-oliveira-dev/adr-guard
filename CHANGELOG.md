@@ -4,6 +4,11 @@ Notable changes to **ADR Guard** (`RodriOliveira.AdrGuard`, the .NET CLI/Tool an
 
 Version links below point to GitHub Releases. Dates and previously shipped highlights follow the published release history. Prepared versions are explicitly marked as unpublished release candidates.
 
+## Unreleased
+
+### Fixed
+- Resolve physical Git directory identities before repository containment checks so macOS `/var` and `/private/var` aliases no longer break MCP impact analysis or incremental ADR detection. Physical containment and symlink protections remain enforced.
+
 ## [1.8.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.8.0) — Unreleased
 
 ### Added
