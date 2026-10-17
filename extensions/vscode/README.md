@@ -68,7 +68,7 @@ Install the published extension from the VS Code **Extensions** view (search **A
 code --install-extension rodrioliveira.adr-guard
 ```
 
-For manual testing of a locally generated VSIX, use **Extensions: Install from VSIX...** and select `adr-guard-1.1.0.vsix`. This is separate from installation through the Marketplace.
+For manual testing, download the latest validated VSIX from [VS Code VSIX Package workflow artifacts](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/vscode-extension-release.yml), extract the archive, and use **Extensions: Install from VSIX...** to select `adr-guard-<version>.vsix`. Artifacts are kept for **21 days**. This workflow does **not** publish to the Marketplace; see [packaging instructions](PUBLISHING.md).
 
 ## Commands
 
