@@ -53,7 +53,7 @@ grep -Fq 'needs: validate-main-ci' "$BACKFILL"
 grep -Fq 'actions: read' "$BACKFILL"
 grep -Fq 'github.sha' "$BACKFILL"
 grep -Fq 'head_sha=$VALIDATED_SHA&event=push&status=completed' "$BACKFILL"
-grep -Fq 'select(.head_sha == env.VALIDATED_SHA' "$BACKFILL"
+grep -Fq 'select(.head_sha == $sha and .head_branch == "main" and .event == "push"' "$BACKFILL"
 grep -Fq 'if: ${{ always() }}' <<< "$summary"
 grep -Fq 'needs.publish-github-packages.result' <<< "$summary"
 if grep -Fq -- '--skip-duplicate' "$BACKFILL" || grep -Fq -- '--skip-duplicate' <<< "$future"; then
