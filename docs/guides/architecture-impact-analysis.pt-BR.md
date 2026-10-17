@@ -9,6 +9,8 @@ adr-guard impact . --base-ref origin/main --map .adrguard-impact.json --format j
 
 A referência base e o arquivo de mapeamento são sempre explícitos. O comando não executa fetch ou checkout, não modifica arquivos nem altera o estado do Git. Ele inclui somente alterações observadas, commitadas desde o merge base, além de paths staged, unstaged e untracked. Uma análise completa retorna `0` mesmo com ADRs afetados ou alterações não mapeadas; argumentos inválidos retornam `2`, e falhas de repositório, Git, manifesto, limites ou cancelamento retornam `3`.
 
+O leitor resolve os diretórios de trabalho Git existentes para sua identidade física no sistema de arquivos antes de compará-los com a raiz do repositório. Isso também contempla aliases do macOS como `/var` e `/private/var`, sem enfraquecer a verificação de pertencimento ao repositório nem permitir caminhos fora da árvore de trabalho física.
+
 ## Contratos e compatibilidade
 
 O contrato de mapeamento é [`adr-impact-map-v1.schema.json`](../schemas/adr-impact-map-v1.schema.json). Paths usam barras normais relativas ao repositório, e padrões suportam literais, `*` dentro de um segmento e `**` como segmento completo. A identidade do ADR é resolvida pelo ID estável e path declarados; mapeamentos não resolvidos, inativos, renomeados ou ambíguos no ciclo de vida são `unknown`, sem serem tratados silenciosamente como governança vigente.
