@@ -1,6 +1,6 @@
 using AdrGuard.Git;
 using AdrGuard.Cli;
-using AdrGuard.Parsing;
+using AdrGuard.Validation;
 using Xunit;
 
 namespace AdrGuard.Tests.Git;
