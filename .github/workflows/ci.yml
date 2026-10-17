@@ -153,6 +153,41 @@ jobs:
           path: artifacts/package/*.nupkg
           if-no-files-found: error
 
+  mcp-macos-git-path-regression:
+    name: MCP macOS Git path regression
+    runs-on: macos-15
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore and build
+        run: |
+          dotnet restore AdrGuard.slnx
+          dotnet build AdrGuard.slnx --configuration Release --no-restore
+
+      - name: Run MCP impact and drift tests
+        run: dotnet test --project tests/AdrGuard.Mcp.Tests/AdrGuard.Mcp.Tests.csproj --configuration Release --no-build
+
+      - name: Run Git impact path regression tests
+        run: dotnet test --project tests/AdrGuard.Tests/AdrGuard.Tests.csproj --configuration Release --no-build --filter-class AdrGuard.Tests.Git.GitChangeInventoryTests
+
+      - name: Run Git incremental path regression tests
+        run: dotnet test --project tests/AdrGuard.Tests/AdrGuard.Tests.csproj --configuration Release --no-build --filter-class AdrGuard.Tests.Git.GitChangeDetectorTests
+
   dockerfile-lint:
     name: Lint Dockerfile
     runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
