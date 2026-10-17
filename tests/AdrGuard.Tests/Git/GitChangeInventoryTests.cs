@@ -255,9 +255,8 @@ public sealed class GitChangeInventoryTests
             "main",
             TestContext.Current.CancellationToken);
 
-        var physicalRoot = GitDirectoryIdentity.Resolve(repository.Root);
-        Assert.Contains(Path.Combine(physicalRoot, "docs", "adr", "0001-one.md"), changes.CurrentPaths);
-        Assert.DoesNotContain(Path.Combine(physicalRoot, "src", "not-an-adr.md"), changes.CurrentPaths);
+        Assert.Contains(Path.Combine(repository.Root, "docs", "adr", "0001-one.md"), changes.CurrentPaths);
+        Assert.DoesNotContain(Path.Combine(repository.Root, "src", "not-an-adr.md"), changes.CurrentPaths);
     }
 
 
