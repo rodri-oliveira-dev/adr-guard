@@ -144,6 +144,30 @@ public sealed class McpWorkspaceTests
     }
 
     [Fact]
+    public void SnapshotIncludesPersistentGitMetadataButIgnoresTransientLockFiles()
+    {
+        using var repository = TemporaryMcpRepository.Create();
+        repository.Write("docs/adr/0001-safe-boundary.md", AcceptedAdr);
+        repository.InitializeGit();
+
+        var before = repository.Snapshot();
+        Assert.Contains(".git/config", before.Keys);
+        Assert.Contains(".git/index", before.Keys);
+
+        var lockPath = Path.Combine(repository.Root, ".git", "objects", "maintenance.lock");
+        File.WriteAllText(lockPath, "transient");
+        var withLock = repository.Snapshot();
+        Assert.Equal(before.Count, withLock.Count);
+        Assert.Equal(before[".git/config"], withLock[".git/config"]);
+        File.Delete(lockPath);
+
+        File.AppendAllText(Path.Combine(repository.Root, ".git", "config"), "\n# changed\n");
+        var after = repository.Snapshot();
+        Assert.NotEqual(before[".git/config"], after[".git/config"]);
+        Assert.Equal(before[".git/index"], after[".git/index"]);
+    }
+
+    [Fact]
     public void ImpactAndDriftReuseExistingReadOnlyEnginesWithoutWriting()
     {
         using var repository = TemporaryMcpRepository.Create();
