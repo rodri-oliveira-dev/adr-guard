@@ -28,7 +28,7 @@ public sealed class GitChangeInventoryTests
             "main",
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(repository.Root, inventory.RepositoryRoot);
+        Assert.Equal(GitDirectoryIdentity.Resolve(repository.Root), inventory.RepositoryRoot);
         Assert.False(string.IsNullOrWhiteSpace(inventory.MergeBase));
         Assert.Contains(inventory.Changes, change =>
             change.Scope == GitChangeScope.Committed
@@ -250,6 +250,50 @@ public sealed class GitChangeInventoryTests
 
         Assert.Contains(Path.Combine(repository.Root, "docs", "adr", "0001-one.md"), changes.CurrentPaths);
         Assert.DoesNotContain(Path.Combine(repository.Root, "src", "not-an-adr.md"), changes.CurrentPaths);
+    }
+
+
+    [Fact]
+    public void PhysicalGitRootMatchesAWorkingDirectoryReachedThroughLinkedAncestor()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var repository = TemporaryGitRepository.Create();
+        var parent = Path.GetDirectoryName(repository.Root)!;
+        var alias = Path.Combine(parent, $"adr-impact-parent-alias-{Guid.NewGuid():N}");
+        try
+        {
+            try
+            {
+                Directory.CreateSymbolicLink(alias, parent);
+            }
+            catch (Exception exception) when (exception is IOException
+                                              or UnauthorizedAccessException
+                                              or PlatformNotSupportedException)
+            {
+                return;
+            }
+
+            repository.Write("src/aliased.txt", "untracked\\n");
+            var inventory = GitChangeInventoryReader.Read(
+                Path.Combine(alias, Path.GetFileName(repository.Root)),
+                "main",
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(GitDirectoryIdentity.Resolve(repository.Root), inventory.RepositoryRoot);
+            Assert.Contains(inventory.Changes, change =>
+                change.Scope == GitChangeScope.Untracked && change.NewPath == "src/aliased.txt");
+        }
+        finally
+        {
+            if (Directory.Exists(alias))
+            {
+                Directory.Delete(alias);
+            }
+        }
     }
 
     private sealed class TemporaryGitRepository : IDisposable
