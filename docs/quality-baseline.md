@@ -64,15 +64,15 @@ Committed measurements are environment-specific observations, not SLAs or CI thr
 
 ### Observed Windows baseline — 2026-10-18
 
-The complete machine-readable report is [`benchmarks/results/windows-x64-2026-10-18.json`](../benchmarks/results/windows-x64-2026-10-18.json). It measured source and CLI SHA `9c2a27069f4a5035f5b19c5082b1bcf6e63d89a0` on Windows x64, .NET 10.0.13, 8 logical processors, and approximately 31.4 GiB available memory. The worktree-dirty marker is true because the checkout contained a pre-existing unrelated `.gitignore` edit; the report records the exact CLI informational version and dataset hashes so this limitation is explicit.
+The complete machine-readable report is [`benchmarks/results/windows-x64-2026-10-18.json`](../benchmarks/results/windows-x64-2026-10-18.json). It measured source and CLI SHA `f32b81956037b4935fc3da2cd64bd763e8b7491c` on Windows x64, .NET 10.0.13, 8 logical processors, and approximately 31.4 GiB available memory. The worktree-dirty marker is true because the checkout contained a pre-existing unrelated `.gitignore` edit; the report records the exact CLI informational version and dataset hashes so this limitation is explicit.
 
 | ADRs | Operation | Preparation | First run | Subsequent median (min–max; spread) | Median peak working set |
 | ---: | --- | ---: | ---: | ---: | ---: |
-| 100 | invalid `check` | 86.348 ms | 1160.496 ms | 249.938 ms (245.875–443.897; 198.022 ms) | 30.7 MiB |
-| 100 | valid `index` | 86.348 ms | 264.249 ms | 288.936 ms (237.275–334.579; 97.304 ms) | 30.8 MiB |
-| 500 | invalid `check` | 276.916 ms | 343.386 ms | 323.914 ms (307.121–396.411; 89.290 ms) | 35.5 MiB |
-| 500 | valid `index` | 276.916 ms | 297.796 ms | 304.722 ms (301.316–334.843; 33.527 ms) | 35.7 MiB |
-| 900 | invalid `check` | 488.876 ms | 372.419 ms | 360.756 ms (353.914–399.050; 45.135 ms) | 36.4 MiB |
-| 900 | valid `index` | 488.876 ms | 410.112 ms | 357.520 ms (344.182–380.462; 36.279 ms) | 36.9 MiB |
+| 100 | invalid `check` | 65.182 ms | 1068.201 ms | 255.384 ms (243.517–331.316; 87.799 ms) | 30.5 MiB |
+| 100 | valid `index` | 65.182 ms | 247.975 ms | 242.322 ms (236.766–274.834; 38.068 ms) | 30.6 MiB |
+| 500 | invalid `check` | 288.848 ms | 334.655 ms | 417.161 ms (310.669–451.435; 140.766 ms) | 35.5 MiB |
+| 500 | valid `index` | 288.848 ms | 377.254 ms | 304.760 ms (296.728–324.549; 27.821 ms) | 35.6 MiB |
+| 900 | invalid `check` | 472.707 ms | 370.342 ms | 368.928 ms (362.144–406.005; 43.860 ms) | 36.5 MiB |
+| 900 | valid `index` | 472.707 ms | 482.886 ms | 367.128 ms (358.665–380.474; 21.809 ms) | 36.3 MiB |
 
 Two complete local generations produced identical hashes for all six valid/invalid datasets. Temporary scenario directories were absent after each run. The first 100-ADR check shows substantial cold-start/noise cost, reinforcing why no threshold or optimization conclusion is attached to this baseline. No macOS or Linux performance numbers were measured in this checkpoint.
