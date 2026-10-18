@@ -150,15 +150,18 @@ internal static class AdrValidator
     {
         foreach (var sectionName in sectionNames)
         {
-            var count = document.Sections.Count(section =>
+            var duplicates = document.Sections.Where(section =>
                 section.Level == 2
-                && string.Equals(section.Heading, sectionName, StringComparison.OrdinalIgnoreCase));
-            if (count > 1)
+                && string.Equals(section.Heading, sectionName, StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (duplicates.Length > 1)
             {
+                var duplicate = duplicates[1];
                 issues.Add(new ValidationIssue(
                     ValidationCodes.DuplicateCanonicalSection,
                     document.FilePath,
-                    $"ADR must define exactly one level-two '{sectionName}' section; found {count}."));
+                    $"ADR must define exactly one level-two '{sectionName}' section; found {duplicates.Length}.",
+                    Line: duplicate.Line,
+                    Column: duplicate.Column));
             }
         }
     }
@@ -236,22 +239,25 @@ internal static class AdrValidator
     {
         foreach (var canonicalSection in CanonicalSections)
         {
-            var count = document.Sections.Count(section =>
+            var duplicates = document.Sections.Where(section =>
                 section.Level == 2
                 && string.Equals(
                     section.Heading,
                     canonicalSection,
-                    StringComparison.OrdinalIgnoreCase));
+                    StringComparison.OrdinalIgnoreCase)).ToArray();
 
-            if (count <= 1)
+            if (duplicates.Length <= 1)
             {
                 continue;
             }
 
+            var duplicate = duplicates[1];
             issues.Add(new ValidationIssue(
                 ValidationCodes.DuplicateCanonicalSection,
                 document.FilePath,
-                $"ADR must define exactly one level-two '{canonicalSection}' section; found {count}."));
+                $"ADR must define exactly one level-two '{canonicalSection}' section; found {duplicates.Length}.",
+                Line: duplicate.Line,
+                Column: duplicate.Column));
         }
     }
 
@@ -280,7 +286,9 @@ internal static class AdrValidator
             issues.Add(new ValidationIssue(
                 ValidationCodes.MissingStatus,
                 document.FilePath,
-                "ADR must define a non-empty level-two 'Status' section."));
+                "ADR must define a non-empty level-two 'Status' section.",
+                Line: statusSection?.Line,
+                Column: statusSection?.Column));
             return;
         }
 
@@ -294,7 +302,9 @@ internal static class AdrValidator
         issues.Add(new ValidationIssue(
             ValidationCodes.InvalidStatus,
             document.FilePath,
-            $"Status '{status}' is invalid. Allowed values: {string.Join(", ", options.EffectiveLifecycle.StatusNames)}."));
+            $"Status '{status}' is invalid. Allowed values: {string.Join(", ", options.EffectiveLifecycle.StatusNames)}.",
+            Line: statusSection?.Line,
+            Column: statusSection?.Column));
     }
 
     private static void ValidateRequiredSections(
@@ -319,7 +329,9 @@ internal static class AdrValidator
             issues.Add(new ValidationIssue(
                 ValidationCodes.MissingSection,
                 document.FilePath,
-                $"ADR must define a non-empty '{requiredSection}' section."));
+                $"ADR must define a non-empty '{requiredSection}' section.",
+                Line: section?.Line,
+                Column: section?.Column));
         }
     }
 
@@ -401,7 +413,9 @@ internal static class AdrValidator
                 ValidationCodes.UnresolvedPlaceholder,
                 document.FilePath,
                 $"Section '{section.Heading}' contains unresolved authoring placeholder '{token ?? "{{...}}"}'.",
-                policy == PlaceholderPolicy.Warn ? ValidationSeverity.Warning : ValidationSeverity.Error));
+                policy == PlaceholderPolicy.Warn ? ValidationSeverity.Warning : ValidationSeverity.Error,
+                section.Line,
+                section.Column));
         }
     }
 
@@ -468,7 +482,9 @@ internal static class AdrValidator
                     ? $"Reference '{reference.Target}' is unsafe: {reference.InvalidReason}"
                     : reference.Kind == AdrReferenceKind.Relationship
                         ? $"ADR relationship '{reference.Target}' does not resolve to an ADR in the validated set."
-                        : $"Document link '{reference.Target}' does not resolve to an existing repository file."));
+                        : $"Document link '{reference.Target}' does not resolve to an existing repository file.",
+                Line: reference.Line,
+                Column: reference.Column));
         }
     }
 

@@ -15,7 +15,9 @@ internal sealed record AdrReference(
     string Target,
     string ResolvedPath,
     AdrReferenceKind Kind,
-    string? InvalidReason = null)
+    string? InvalidReason = null,
+    int? Line = null,
+    int? Column = null)
 {
     private static readonly Regex MarkdownLink = new(
         "\\[[^\\]]*\\]\\(\\s*(?:<(?<angle>[^>]+)>|(?<plain>[^\\s\\)]+))(?:\\s+(?:\"[^\"]*\"|'[^']*'|\\([^\\)]*\\)))?\\s*\\)",
@@ -42,7 +44,14 @@ internal sealed record AdrReference(
                 && RelationshipHeadings.Contains(section.Heading, StringComparer.OrdinalIgnoreCase)
                     ? AdrReferenceKind.Relationship
                     : AdrReferenceKind.Document;
-            ExtractReferences(document, section.Content, references, kind, repositoryRoot);
+            ExtractReferences(
+                document,
+                section.Content,
+                references,
+                kind,
+                repositoryRoot,
+                section.Line,
+                section.Column);
         }
 
         return references;
@@ -67,7 +76,14 @@ internal sealed record AdrReference(
                      section.Level == 2
                      && headings.Contains(section.Heading, StringComparer.OrdinalIgnoreCase)))
         {
-            ExtractReferences(document, section.Content, references, AdrReferenceKind.Relationship, repositoryRoot);
+            ExtractReferences(
+                document,
+                section.Content,
+                references,
+                AdrReferenceKind.Relationship,
+                repositoryRoot,
+                section.Line,
+                section.Column);
         }
 
         return references;
@@ -81,7 +97,17 @@ internal sealed record AdrReference(
         var status = document.Status?.Trim() ?? string.Empty;
         if (status.StartsWith("Superseded by ", StringComparison.OrdinalIgnoreCase))
         {
-            ExtractReferences(document, status, references, AdrReferenceKind.Relationship, repositoryRoot);
+            var statusSection = document.Sections.FirstOrDefault(section =>
+                section.Level == 2
+                && string.Equals(section.Heading, "Status", StringComparison.OrdinalIgnoreCase));
+            ExtractReferences(
+                document,
+                status,
+                references,
+                AdrReferenceKind.Relationship,
+                repositoryRoot,
+                statusSection?.Line,
+                statusSection?.Column);
         }
 
         return references;
@@ -92,7 +118,9 @@ internal sealed record AdrReference(
         string content,
         List<AdrReference> references,
         AdrReferenceKind kind,
-        string? repositoryRoot)
+        string? repositoryRoot,
+        int? line,
+        int? column)
     {
         foreach (Match match in MarkdownLink.Matches(RemoveFencedCode(content)))
         {
@@ -116,11 +144,24 @@ internal sealed record AdrReference(
                 var candidate = Path.GetFullPath(normalizedTarget, sourceDirectory);
                 var relative = Path.GetRelativePath(root, candidate);
                 var resolvedPath = RepositoryPath.ResolveContained(root, relative);
-                references.Add(new AdrReference(document, target, resolvedPath, kind));
+                references.Add(new AdrReference(
+                    document,
+                    target,
+                    resolvedPath,
+                    kind,
+                    Line: line,
+                    Column: column));
             }
             catch (Exception exception) when (exception is ArgumentException or IOException)
             {
-                references.Add(new AdrReference(document, target, string.Empty, kind, exception.Message));
+                references.Add(new AdrReference(
+                    document,
+                    target,
+                    string.Empty,
+                    kind,
+                    exception.Message,
+                    line,
+                    column));
             }
         }
     }

@@ -53,6 +53,9 @@ describe('ADR command arguments', () => {
       'check', '/repo/docs/adr', '--format', 'json',
     ]);
     assert.deepEqual(buildCheckArguments({
+      directory: '/repo/docs/adr', adrFormat: 'canonical', diagnosticLocations: true,
+    }), ['check', '/repo/docs/adr', '--format', 'json', '--diagnostic-locations']);
+    assert.deepEqual(buildCheckArguments({
       directory: '/repo/docs/adr',
       adrFormat: 'madr-4',
       changed: true,

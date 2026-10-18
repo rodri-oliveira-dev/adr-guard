@@ -41,7 +41,13 @@
           "code": { "type": "string", "pattern": "^ADR[0-9]{3}$" },
           "message": { "type": "string", "minLength": 1 },
           "file": { "type": "string", "minLength": 1 },
+          "line": { "type": "integer", "minimum": 1 },
+          "column": { "type": "integer", "minimum": 1 },
           "baselineState": { "enum": ["new", "existing"] }
+        },
+        "dependentRequired": {
+          "line": ["column"],
+          "column": ["line"]
         }
       }
     }

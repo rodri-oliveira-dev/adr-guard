@@ -15,6 +15,8 @@ export interface AdrCheckDiagnostic {
   readonly code: string;
   readonly message: string;
   readonly file: string;
+  readonly line?: number;
+  readonly column?: number;
   readonly baselineState?: 'new' | 'existing';
 }
 
@@ -90,7 +92,7 @@ export function parseCheckReport(output: string): AdrCheckReport {
 }
 
 function parseDiagnostic(value: unknown, index: number): AdrCheckDiagnostic {
-  const item = objectWithKeys(value, ['code', 'message', 'file'], ['baselineState'], `diagnostics[${index}]`);
+  const item = objectWithKeys(value, ['code', 'message', 'file'], ['line', 'column', 'baselineState'], `diagnostics[${index}]`);
   if (typeof item.code !== 'string' || !diagnosticCode.test(item.code)) {
     throw new CheckReportError(`diagnostics[${index}].code is invalid`);
   }
@@ -100,10 +102,17 @@ function parseDiagnostic(value: unknown, index: number): AdrCheckDiagnostic {
   if (item.baselineState !== undefined && item.baselineState !== 'new' && item.baselineState !== 'existing') {
     throw new CheckReportError(`diagnostics[${index}].baselineState is invalid`);
   }
+  if ((item.line === undefined) !== (item.column === undefined)) {
+    throw new CheckReportError(`diagnostics[${index}] requires line and column together`);
+  }
+  if (item.line !== undefined && (!positiveInteger(item.line) || !positiveInteger(item.column))) {
+    throw new CheckReportError(`diagnostics[${index}].line and column must be positive integers`);
+  }
   return {
     code: item.code,
     message: item.message,
     file: item.file,
+    ...(item.line === undefined ? {} : { line: item.line, column: item.column as number }),
     ...(item.baselineState === undefined ? {} : { baselineState: item.baselineState }),
   };
 }
@@ -139,6 +148,10 @@ function nonNegativeInteger(value: unknown, name: string): number {
     throw new CheckReportError(`${name} must be a non-negative integer`);
   }
   return value;
+}
+
+function positiveInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
 function nonEmptyString(value: unknown): value is string {

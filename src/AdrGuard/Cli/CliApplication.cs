@@ -25,7 +25,7 @@ internal static class CliApplication
 
         Usage:
           adr-guard init [repository] [options]
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>] [--changed --base-ref <ref>] [--baseline <file>]
+          adr-guard check [directory] [--format text|json|sarif] [--diagnostic-locations] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>] [--changed --base-ref <ref>] [--baseline <file>]
           adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
           adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>] [--catalog enriched]
           adr-guard new [adr-directory] (--title <title> [--dry-run|--preview] | --form) [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>]
@@ -95,10 +95,11 @@ internal static class CliApplication
 
     private const string CheckHelpText = """
         Usage:
-          adr-guard check [directory] [--format text|json|sarif] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>] [--changed --base-ref <ref>] [--baseline <file>]
+          adr-guard check [directory] [--format text|json|sarif] [--diagnostic-locations] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>] [--changed --base-ref <ref>] [--baseline <file>]
 
         Validate ADR files recursively. The directory defaults to the configured ADR directory or current directory.
         Text is the default. JSON and SARIF 2.1.0 are deterministic data documents written to stdout.
+        --diagnostic-locations opts machine reports into evidenced one-based line and column locations.
         ADR format defaults to canonical; MADR 4.0 is selected explicitly with --adr-format madr-4.
         Extra lifecycle values are opt-in mappings such as 'Rejected=rejected,Under Review=proposed'.
         Filename policies are canonical, unnumbered, adr-prefix, or numeric:1..9.
@@ -580,7 +581,8 @@ internal static class CliApplication
                 out var validationProfile,
                 out var changed,
                 out var baseReference,
-                out var baselinePath))
+                out var baselinePath,
+                out var diagnosticLocations))
         {
             return WriteCommandUsageError("check", error);
         }
@@ -598,6 +600,7 @@ internal static class CliApplication
             changed,
             baseReference,
             baselinePath,
+            diagnosticLocations,
             output,
             error,
             cancellationToken);
@@ -616,7 +619,8 @@ internal static class CliApplication
         out string? validationProfile,
         out bool changed,
         out string? baseReference,
-        out string? baselinePath)
+        out string? baselinePath,
+        out bool diagnosticLocations)
     {
         directoryPath = ".";
         format = CheckOutputFormat.Text;
@@ -630,6 +634,7 @@ internal static class CliApplication
         changed = false;
         baseReference = null;
         baselinePath = null;
+        diagnosticLocations = false;
         var directoryAssigned = false;
         var formatAssigned = false;
         var adrFormatAssigned = false;
@@ -637,6 +642,12 @@ internal static class CliApplication
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
+            if (argument == "--diagnostic-locations")
+            {
+                if (diagnosticLocations) return false;
+                diagnosticLocations = true;
+                continue;
+            }
             if (argument == "--validate-metadata")
             {
                 if (validateMetadata) return false;

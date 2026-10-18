@@ -168,7 +168,7 @@ Destinos de relacionamentos precisam resolver para arquivos Markdown regulares d
 
 ## Diagnósticos, validação ao salvar e baseline
 
-`Validar ADRs` converte achados do JSON da CLI com schema `1.0` em Problems. Como o schema não define linha e coluna, o diagnóstico navega para `(0, 0)` sem afirmar uma localização exata. JSON malformado, schema incompatível, divergência entre exit code e `valid`, arquivo fora do diretório e exits `2`–`4` são falhas operacionais.
+`Validar ADRs` converte achados do JSON da CLI com schema `1.0` em Problems. Valores opcionais `line` e `column`, baseados em um, navegam diretamente para a localização no Markdown interpretado; CLIs antigas e achados limitados ao arquivo usam `(0, 0)` como fallback. JSON malformado, schema incompatível, divergência entre exit code e `valid`, arquivo fora do diretório e exits `2`–`4` são falhas operacionais.
 
 `adrGuard.validation.onSave` começa como `false`. Quando habilitada, somente ADRs Markdown salvas dentro do diretório configurado disparam validação; rajadas são agrupadas, execuções antigas são canceladas e resultados obsoletos não substituem os atuais. Esse fluxo nunca cria ADR, gera índice, chama IA, busca refs Git ou escreve baseline.
 
@@ -229,7 +229,7 @@ O manifesto é a fonte de verdade. Valores de recurso são salvos por pasta pela
 - **Opção não suportada / exit 2:** a CLI é anterior ao contrato solicitado de MADR, validação incremental ou baseline. Instale uma CLI compatível ou use a validação canônica completa.
 - **Workspace desabilitado:** confie no workspace e use uma pasta local `file:`. Workspaces virtuais e hosts somente web não são suportados.
 - **Timeout/limite de saída:** aumente a configuração limitada de máquina somente se o repositório realmente exigir.
-- **Sem linha exata:** o schema JSON `1.0` informa o arquivo, mas não uma posição; abra o diagnóstico e consulte a regra ADR indicada.
+- **Sem linha exata:** a CLI instalada não forneceu uma localização comprovada para esse achado; a extensão abre o arquivo em `(0, 0)`.
 - **CLI remota incompatível:** instale/configure a CLI no host remoto da extensão.
 - **Capacidade visual indisponível:** execute o comando relevante com `--help` no host da extensão e use um build que exponha o contrato necessário.
 - **MCP indisponível:** confirme habilitação explícita, confiança, caminho absoluto no host, nome exato e disponibilidade de `dotnet` para DLL. Caminho válido significa disponível para iniciar, não conectado.

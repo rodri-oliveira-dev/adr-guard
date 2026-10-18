@@ -13,6 +13,7 @@ internal static class CheckReportRenderer
         ValidationResult result,
         string checkedDirectory,
         DiagnosticBaselineComparison? baseline,
+        bool includeLocations,
         TextWriter output) =>
         WriteDocument(output, writer =>
         {
@@ -43,6 +44,11 @@ internal static class CheckReportRenderer
                 writer.WriteString("message", issue.Message);
                 writer.WriteString("file", ToReportPath(issue.FilePath, reportRoot));
                 if (issue.Severity == ValidationSeverity.Warning) writer.WriteString("severity", "warning");
+                if (includeLocations && issue.Line is not null && issue.Column is not null)
+                {
+                    writer.WriteNumber("line", issue.Line.Value);
+                    writer.WriteNumber("column", issue.Column.Value);
+                }
                 WriteJsonBaselineState(writer, issue, checkedDirectory, baseline);
                 writer.WriteEndObject();
             }
@@ -55,6 +61,7 @@ internal static class CheckReportRenderer
         ValidationResult result,
         string checkedDirectory,
         DiagnosticBaselineComparison? baseline,
+        bool includeLocations,
         TextWriter output) =>
         WriteDocument(output, writer =>
         {
@@ -113,6 +120,13 @@ internal static class CheckReportRenderer
                 writer.WriteStartObject("artifactLocation");
                 writer.WriteString("uri", ToSarifUri(ToReportPath(issue.FilePath, reportRoot)));
                 writer.WriteEndObject();
+                if (includeLocations && issue.Line is not null && issue.Column is not null)
+                {
+                    writer.WriteStartObject("region");
+                    writer.WriteNumber("startLine", issue.Line.Value);
+                    writer.WriteNumber("startColumn", issue.Column.Value);
+                    writer.WriteEndObject();
+                }
                 writer.WriteEndObject();
                 writer.WriteEndObject();
                 writer.WriteEndArray();

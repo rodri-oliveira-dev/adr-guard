@@ -1,8 +1,8 @@
 # JSON, SARIF, and GitHub Code Scanning
 
-`adr-guard check --format json` emits the versioned [ADR Guard check report v1 schema](schemas/adr-check-report-v1.schema.json). Diagnostics are ordered by file, code, and message. `valid` reflects structural validation; the summary and file list make empty/success reports explicit.
+`adr-guard check --format json` emits the versioned [ADR Guard check report v1 schema](schemas/adr-check-report-v1.schema.json). Diagnostics are ordered by file, code, and message. `valid` reflects structural validation; the summary and file list make empty/success reports explicit. Add `--diagnostic-locations` to opt in to optional one-based `line` and `column` properties when the validator can identify a source location from parsed Markdown. The properties are omitted together when the evidence identifies only the file. Without the flag, output remains compatible with strict schema `1.0` clients that predate these optional properties.
 
-`adr-guard check --format sarif` emits SARIF 2.1.0. Each ADR diagnostic becomes a result with its stable `ruleId`, message, severity, and workspace-appropriate artifact URI. ADR Guard does not own reliable Markdown source positions, so it does not invent a line/region.
+`adr-guard check --format sarif` emits SARIF 2.1.0. Each ADR diagnostic becomes a result with its stable `ruleId`, message, severity, and workspace-appropriate artifact URI. With `--diagnostic-locations`, known positions become a `region`; file-only diagnostics omit it. ADR Guard never invents a line or column when the validator lacks location evidence.
 
 Keep the normal validation job read-only. If Code Scanning upload is desired, use a separate job/step and grant only that job `security-events: write`:
 

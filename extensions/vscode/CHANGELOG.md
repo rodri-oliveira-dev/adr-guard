@@ -4,6 +4,7 @@ All notable changes to ADR Guard for VS Code are documented here. Extension vers
 
 ## 1.1.0 — Unreleased
 
+- Navigate Problems diagnostics to optional CLI-provided line and column locations, while retaining the document-start fallback for older CLIs and file-only findings.
 - Added optional, default-off MCP registration through the stable VS Code provider API, with one isolated `stdio` definition per trusted local workspace folder and an independently installed MCP executable or built DLL configured at machine scope.
 - Added visual, explicitly invoked CLI workflows for Architecture Impact, Architectural Drift, diagnostic baseline creation/update, standard/enriched catalogs, AI-assisted ADR drafting, and advisory Technical Review with `--compare-ref`.
 - Added workspace-scoped architecture/governance/AI settings, MCP availability states, bilingual accessible UI, cancellation/stale-response protection, privacy confirmations, and strict versioned JSON parsing.

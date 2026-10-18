@@ -129,10 +129,10 @@ Field IDs are opaque per-load identifiers; clients must not infer or hard-code t
 ## Check output
 
 ```text
-adr-guard check [directory] [--format text|json|sarif]
+adr-guard check [directory] [--format text|json|sarif] [--diagnostic-locations]
 ```
 
-`text` remains the default. JSON uses schema version `1.0`; SARIF uses version `2.1.0`. Both are written to stdout on success and ADR validation failure, while operational diagnostics use stderr. Exit codes remain `0` for valid, `1` for ADR diagnostics, `2` for invalid usage/configuration, and `3` for operational failure.
+`text` remains the default. JSON uses schema version `1.0`; SARIF uses version `2.1.0`. `--diagnostic-locations` opts machine reports into evidenced one-based line/column properties or SARIF regions; it omits locations that cannot be proven. Without the flag, the existing report shape is preserved for strict clients. Both formats are written to stdout on success and ADR validation failure, while operational diagnostics use stderr. Exit codes remain `0` for valid, `1` for ADR diagnostics, `2` for invalid usage/configuration, and `3` for operational failure.
 
 ## Architecture impact
 

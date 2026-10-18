@@ -6,4 +6,6 @@ internal sealed record ValidationIssue(
     string Code,
     string FilePath,
     string Message,
-    ValidationSeverity Severity = ValidationSeverity.Error);
+    ValidationSeverity Severity = ValidationSeverity.Error,
+    int? Line = null,
+    int? Column = null);
