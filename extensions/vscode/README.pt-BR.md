@@ -4,7 +4,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 
 > **Extensão publicada:** [ADR Guard para VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) está disponível no Visual Studio Marketplace como `rodrioliveira.adr-guard`. A extensão VS Code e a CLI .NET são distribuídas e versionadas separadamente; a extensão não inclui a CLI.
 
-> **Estado da release:** a versão 1.1.0 está preparada, mas não publicada. Ela inclui o provider MCP e os fluxos visuais de Impacto, Drift, baseline, catálogo enriquecido, Rascunho por IA e Review Técnico descritos abaixo. O MCP 1.0.0 é uma candidata separada e não publicada; portanto, o uso atual do MCP ainda exige pacote local ou build do código-fonte.
+> **Estado da release:** a versão 1.0.1 está publicada no Marketplace. A versão 1.1.0 é uma candidata em código-fonte/VSIX que adiciona o provider MCP e os fluxos visuais de Impacto, Drift, baseline, catálogo enriquecido, Rascunho por IA e Review Técnico descritos abaixo. O MCP 1.0.0 está publicado separadamente no NuGet.org e no MCP Registry.
 
 ## Funcionalidades
 
@@ -27,7 +27,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 
 ## Prévia da interface
 
-As imagens abaixo documentam a interface visual disponível na extensão 1.0.0 publicada e preservada pela candidata 1.1.0, capturada em um Extension Development Host real com uma CLI compatível. A criação e a edição visuais exigem os contratos de formulário schema `1.0` da CLI 1.7.0. As novas telas de arquitetura, governança, IA e MCP são descritas em texto porque não há captura adicional verificada; as imagens existentes não são apresentadas como evidência dessas telas novas.
+As imagens abaixo documentam a interface visual disponível na extensão 1.0.1 publicada e preservada pela candidata 1.1.0, capturada em um Extension Development Host real com uma CLI compatível. A criação e a edição visuais exigem os contratos de formulário schema `1.0` da CLI 1.7.0. As novas telas de arquitetura, governança, IA e MCP são descritas em texto porque não há captura adicional verificada; as imagens existentes não são apresentadas como evidência dessas telas novas.
 
 ### Consultar e buscar
 
@@ -150,7 +150,7 @@ Esses fluxos usam sempre a CLI diretamente e funcionam com MCP habilitado, desab
 
 ## Integração MCP
 
-Depois que o pacote NuGet for efetivamente publicado, `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0` normalmente cria o host em `$HOME/.dotnet/tools/adr-guard-mcp` no Unix ou `%USERPROFILE%\.dotnet\tools\adr-guard-mcp.exe` no Windows. Resolva o caminho absoluto no host com `command -v adr-guard-mcp` ou `(Get-Command adr-guard-mcp).Source` e salve esse valor em `adrGuard.mcp.path`. A extensão não presume que o host herdou o `PATH` do shell interativo. O empacotamento e a automação de release estão preparados, mas continuam não publicados até a verificação da release manual.
+Instale o pacote publicado com `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0`. Isso normalmente cria o host em `$HOME/.dotnet/tools/adr-guard-mcp` no Unix ou `%USERPROFILE%\.dotnet\tools\adr-guard-mcp.exe` no Windows. Resolva o caminho absoluto no host com `command -v adr-guard-mcp` ou `(Get-Command adr-guard-mcp).Source` e salve esse valor em `adrGuard.mcp.path`. A extensão não presume que o host herdou o `PATH` do shell interativo.
 
 O provider MCP opcional começa desabilitado. Em workspace local `file:` e confiável, defina `adrGuard.mcp.path` no escopo de máquina para uma `adr-guard-mcp.dll` absoluta ou app host da plataforma fora de todos os workspaces e habilite `adrGuard.mcp.enabled` na pasta desejada. A tela distingue desabilitado, não configurado, não encontrado, inválido, disponível para iniciar e erro conhecido. A verificação explícita valida a configuração; nunca informa “conectado” apenas por um caminho válido.
 
@@ -220,7 +220,7 @@ O manifesto é a fonte de verdade. Valores de recurso são salvos por pasta pela
 | Integração básica da CLI | `adr-guard` v1.3.0 ou superior compatível para os comandos básicos documentados. |
 | Criação/edição visual | Contratos de formulário schema `1.0` da CLI 1.7.0. |
 | Impacto, drift, baseline, catálogo enriquecido, draft, review/comparação | Build da CLI cujo `<command> --help` exponha os flags pedidos; a extensão verifica capacidades em vez de presumir versões iguais. |
-| MCP | Opcional. API estável de provider MCP do VS Code e MCP 1.0.0 instalado separadamente; a candidata está preparada, mas não publicada, e a extensão funciona integralmente sem ela. |
+| MCP | Opcional. A candidata 1.1.0 da extensão usa a API estável de provider MCP do VS Code com o MCP 1.0.0 publicado e instalado separadamente; a extensão funciona integralmente sem ele. |
 
 ## Solução de problemas
 
