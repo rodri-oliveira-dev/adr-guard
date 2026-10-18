@@ -6,6 +6,8 @@
 
 `adr-guard check --format sarif` emits SARIF 2.1.0. Each ADR diagnostic becomes a result with its stable `ruleId`, message, severity, and workspace-appropriate artifact URI. With `--diagnostic-locations`, known positions become a `region`; file-only diagnostics omit it. ADR Guard never invents a line or column when the validator lacks location evidence.
 
+For `ADR008`, an existing but empty or unusable `Superseded by` section is located at its parsed heading. When the section itself is absent, the finding remains file-only because no exact insertion point can be proven.
+
 Keep the normal validation job read-only. If Code Scanning upload is desired, use a separate job/step and grant only that job `security-events: write`:
 
 ```yaml

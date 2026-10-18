@@ -291,6 +291,34 @@ public sealed class AdrValidatorTests
     }
 
     [Fact]
+    public void ValidateLocatesEmptySupersededBySectionWithoutLocatingAbsentSection()
+    {
+        var absent = Parse(
+            "docs/adr/0001-absent.md",
+            ValidMarkdown("Absent", "Superseded"));
+        var empty = Parse(
+            "docs/adr/0002-empty.md",
+            ValidMarkdown("Empty", "Superseded")
+                + $"{Environment.NewLine}{Environment.NewLine}## Superseded by{Environment.NewLine}");
+
+        var issues = AdrValidator.Validate([absent, empty]).Issues
+            .Where(issue => issue.Code == ValidationCodes.MissingSupersededBy)
+            .ToArray();
+
+        var absentIssue = Assert.Single(
+            issues,
+            issue => issue.FilePath.EndsWith("0001-absent.md", StringComparison.Ordinal));
+        Assert.Null(absentIssue.Line);
+        Assert.Null(absentIssue.Column);
+
+        var emptyIssue = Assert.Single(
+            issues,
+            issue => issue.FilePath.EndsWith("0002-empty.md", StringComparison.Ordinal));
+        Assert.Equal(15, emptyIssue.Line);
+        Assert.Equal(1, emptyIssue.Column);
+    }
+
+    [Fact]
     public void ValidateAcceptsSupersededByLinkToExistingAdr()
     {
         const string firstMarkdown = """

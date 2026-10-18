@@ -22,3 +22,27 @@ dotnet test --project tests/AdrGuard.Tests/AdrGuard.Tests.csproj --configuration
 ```
 
 A suíte existente de testes unitários e de integração continua responsável por traversal, caminho físico e contenção de symlinks. O smoke não cria symlinks porque os runners Windows compartilhados não concedem esse privilégio de forma consistente. Separadores nativos e o comportamento de case do filesystem são exercitados por cada runner; o teste não exige que variantes distintas apenas por maiúsculas/minúsculas coexistam.
+
+## Auditoria de diagnósticos
+
+Todos os códigos atuais de validação foram rastreados do parser e validador até texto, JSON/SARIF e o adaptador Problems do VS Code. `--diagnostic-locations` continua opt-in e disponível apenas no código-fonte até a publicação de uma versão da CLI que a contenha.
+
+| Código / família | Gatilho e ação | Evidência de localização exata | Cobertura / resultado da auditoria |
+| --- | --- | --- | --- |
+| `ADR001` | Nome de arquivo viola a convenção selecionada; renomeie-o. | Somente arquivo; a violação é o path. | Cobertura do validador; intencionalmente sem posição. |
+| `ADR002` | Título H1 ausente; adicione-o. | Somente arquivo; não existe heading. | Cobertura do validador; intencionalmente sem posição. |
+| `ADR003` | Status canônico ausente/vazio ou metadata MADR vazia; adicione valor suportado. | Heading canônico existente apenas. Heading ausente e front matter continuam limitados ao arquivo. | Cobertura do validador e fallback do adaptador. |
+| `ADR004` | Status não suportado; escolha um valor do ciclo de vida configurado. | Heading canônico de status interpretado. | Cobertura JSON, SARIF, VS Code e smoke multiplataforma. |
+| `ADR005` | Seção obrigatória ausente/vazia; adicione conteúdo. | Heading interpretado quando vazio; seção ausente fica limitada ao arquivo. | Cobertura JSON/SARIF e VS Code. |
+| `ADR006` | Identidade numérica/estável duplicada; torne as identidades únicas. | Conflito entre arquivos, portanto limitado ao arquivo. | Cobertura incremental/global. |
+| `ADR007` | Target Markdown/relacionamento inseguro ou não resolvido; corrija o target reportado. | Link interpretado quando presente; metadata de status MADR não resolvida fica limitada ao arquivo. | Cobertura de relacionamento baseada no parser. |
+| `ADR008` | ADR substituída não possui sucessora utilizável; adicione link para ADR existente. | Heading `Superseded by` interpretado quando existe; seção ausente fica limitada ao arquivo. | **Lacuna corrigida:** validador, JSON, SARIF e fixture de contrato do VS Code. |
+| `ADR009` | Seção canônica/MADR duplicada; remova ou una duplicatas. | Segundo heading interpretado. | Cobertura de localização do validador. |
+| `ADR010` | Grafo de substituição contém ciclo; interrompa o ciclo. | Conflito global com várias arestas, portanto limitado ao arquivo. | Cobertura de determinismo do grafo. |
+| `ADR011`–`ADR012` | Auto-substituição ou múltiplas sucessoras; corrija o conjunto de relações. | Resultado do grafo atualmente limitado ao arquivo. | Coberto; posição por aresta adiada porque o validador normaliza targets antes desses checks. |
+| `ADR013` | Direção de substituição conflita com status/target; alinhe ambos os lados. | Referência `Supersedes` interpretada quando retida; conflitos normalizados de sucessora/status ficam limitados ao arquivo. | Caminhos com posição e fallback cobertos. |
+| `ADR014` | Dependência aponta para ADR inativa; revise a dependência. | Referência de dependência interpretada. | Cobertura de localização do validador. |
+| `ADR015` | Placeholder de autoria não resolvido; substitua-o. | Heading da seção interpretada que o contém. Severidade depende da policy. | Cobertura da policy de placeholders. |
+| `ADR016` | Metadata limitada inválida; corrija chave/valor nomeado. | Somente arquivo porque posições de chaves do front matter não são retidas pelo parser atual. | Cobertura de metadata; expansão do parser adiada para evitar coordenadas inferidas. |
+
+A auditoria não justificou alterar identificadores, severidade, ordenação, mensagens, exit codes, versões de schema nem fingerprints de baseline. Em particular, estruturas ausentes, conflitos globais de grafo e achados de front matter permanecem sem posição em vez de receber coordenadas inferidas.

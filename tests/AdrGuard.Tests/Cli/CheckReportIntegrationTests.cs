@@ -110,6 +110,56 @@ public sealed class CheckReportIntegrationTests
     [Theory]
     [InlineData("json")]
     [InlineData("sarif")]
+    public void MachineReportLocatesExistingEmptySupersededByHeading(string format)
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "0001-superseded.md"), """
+                # Superseded
+
+                ## Status
+                Superseded
+
+                ## Context
+                Context.
+
+                ## Decision
+                Decision.
+
+                ## Consequences
+                Consequences.
+
+                ## Superseded by
+                """);
+
+            var result = Run(["check", root, "--format", format, "--diagnostic-locations"]);
+
+            Assert.Equal(ExitCodes.ValidationFailed, result.ExitCode);
+            using var document = JsonDocument.Parse(result.Output);
+            var diagnostic = format == "json"
+                ? document.RootElement.GetProperty("diagnostics").EnumerateArray()
+                    .Single(item => item.GetProperty("code").GetString() == "ADR008")
+                : document.RootElement.GetProperty("runs")[0]
+                    .GetProperty("results").EnumerateArray()
+                    .Single(item => item.GetProperty("ruleId").GetString() == "ADR008")
+                    .GetProperty("locations")[0]
+                    .GetProperty("physicalLocation")
+                    .GetProperty("region");
+
+            Assert.Equal(15, diagnostic.GetProperty(format == "json" ? "line" : "startLine").GetInt32());
+            Assert.Equal(1, diagnostic.GetProperty(format == "json" ? "column" : "startColumn").GetInt32());
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Theory]
+    [InlineData("json")]
+    [InlineData("sarif")]
     public void MachineReportIsDeterministicAndValidOnSuccess(string format)
     {
         var root = CreateTempDirectory();

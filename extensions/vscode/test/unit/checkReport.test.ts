@@ -14,11 +14,15 @@ describe('ADR check report v1 parser', () => {
 
     const invalid = parseCheckReport(await readFile(path.join(fixtures, 'check-invalid.json'), 'utf8'));
     assert.equal(invalid.valid, false);
-    assert.deepEqual(invalid.diagnostics.map((item) => item.code), ['ADR005', 'ADR003']);
+    assert.deepEqual(invalid.diagnostics.map((item) => item.code), ['ADR005', 'ADR003', 'ADR008']);
     assert.equal(invalid.diagnostics[0]?.file, 'docs/adr/0002-use-redis.md');
     assert.deepEqual(
       { line: invalid.diagnostics[0].line, column: invalid.diagnostics[0].column },
       { line: 7, column: 1 },
+    );
+    assert.deepEqual(
+      { line: invalid.diagnostics[2]?.line, column: invalid.diagnostics[2]?.column },
+      { line: 15, column: 1 },
     );
   });
 

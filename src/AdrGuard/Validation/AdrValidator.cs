@@ -519,7 +519,7 @@ internal static class AdrValidator
 
         if (section is null || string.IsNullOrWhiteSpace(section.Content))
         {
-            AddMissingSupersededByIssue(document, issues);
+            AddMissingSupersededByIssue(document, section, issues);
             return;
         }
 
@@ -531,16 +531,19 @@ internal static class AdrValidator
             return;
         }
 
-        AddMissingSupersededByIssue(document, issues);
+        AddMissingSupersededByIssue(document, section, issues);
     }
 
     private static void AddMissingSupersededByIssue(
         AdrDocument document,
+        AdrSection? section,
         List<ValidationIssue> issues)
     {
         issues.Add(new ValidationIssue(
             ValidationCodes.MissingSupersededBy,
             document.FilePath,
-            "An ADR with status 'Superseded' must define a 'Superseded by' section linking to an existing ADR."));
+            "An ADR with status 'Superseded' must define a 'Superseded by' section linking to an existing ADR.",
+            Line: section?.Line,
+            Column: section?.Column));
     }
 }
