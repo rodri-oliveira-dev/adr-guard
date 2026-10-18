@@ -17,7 +17,7 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     --no-self-contained \
     /p:UseAppHost=true
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0.13-azurelinux3.0@sha256:26d37c58334e91321cfc6b69f287b72f644ae9105d23238fde65c5a59733783e AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0.13-azurelinux3.0@sha256:0f82ccc5e4affe9f538d8fc5e14cc246e11459a72ebc5cef1ea2287625f6f2a3 AS final
 WORKDIR /workspace
 
 # Impact analysis invokes the bounded local Git CLI. The runtime remains
