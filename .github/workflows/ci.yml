@@ -261,6 +261,9 @@ jobs:
       - name: Verify MCP GitHub Packages publication and backfill policy
         run: bash scripts/mcp-github-packages-policy-test.sh
 
+      - name: Verify independent component distribution policy
+        run: bash scripts/component-distribution-policy-test.sh
+
   github-action-contract:
     name: GitHub Action contract
     runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
