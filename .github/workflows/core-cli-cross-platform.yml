@@ -1,0 +1,65 @@
+name: Core CLI cross-platform smoke
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - src/AdrGuard/**
+      - tests/AdrGuard.Tests/Cli/CoreCliCrossPlatformSmokeTests.cs
+      - tests/AdrGuard.Tests/AdrGuard.Tests.csproj
+      - global.json
+      - Directory.Build.props
+      - Directory.Packages.props
+      - .github/workflows/core-cli-cross-platform.yml
+  pull_request:
+    paths:
+      - src/AdrGuard/**
+      - tests/AdrGuard.Tests/Cli/CoreCliCrossPlatformSmokeTests.cs
+      - tests/AdrGuard.Tests/AdrGuard.Tests.csproj
+      - global.json
+      - Directory.Build.props
+      - Directory.Packages.props
+      - .github/workflows/core-cli-cross-platform.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-cli-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: ${{ matrix.os }} public CLI journey
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-26.04
+          - windows-2025
+          - macos-15
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_NOLOGO: "true"
+      NUGET_XMLDOC_MODE: skip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Exercise public CLI contract
+        run: >-
+          dotnet test --project tests/AdrGuard.Tests/AdrGuard.Tests.csproj
+          --configuration Release
+          --filter-class AdrGuard.Tests.Cli.CoreCliCrossPlatformSmokeTests
