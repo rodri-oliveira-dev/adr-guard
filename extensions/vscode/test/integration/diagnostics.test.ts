@@ -8,7 +8,7 @@ import { DiagnosticManager } from '../../src/validation/diagnostics';
 import { SaveValidationController } from '../../src/validation/onSave';
 
 suite('ADR Guard Problems diagnostics', () => {
-  test('publishes ADR005 at document start and clears it after correction', async () => {
+  test('publishes ADR005 at its reported location and clears it after correction', async () => {
     const folder = vscode.workspace.workspaceFolders?.[0];
     assert.ok(folder);
     const uri = vscode.Uri.joinPath(folder.uri, 'docs', 'adr', '0001-invalid.md');
@@ -22,7 +22,7 @@ suite('ADR Guard Problems diagnostics', () => {
       await manager.validate(folder, 'docs/adr');
       assert.equal(fake.lastArguments[0], 'check');
       assert.equal(fake.lastArguments[1]?.toLowerCase(), vscode.Uri.joinPath(folder.uri, 'docs', 'adr').fsPath.toLowerCase());
-      assert.deepEqual(fake.lastArguments.slice(2), ['--format', 'json']);
+      assert.deepEqual(fake.lastArguments.slice(2), ['--format', 'json', '--diagnostic-locations']);
       assert.equal(fake.lastArguments.includes('index'), false);
       const diagnostics = vscode.languages.getDiagnostics(uri);
       assert.equal(diagnostics.length, 1);
@@ -32,7 +32,7 @@ suite('ADR Guard Problems diagnostics', () => {
       assert.equal(diagnostic.message, "ADR must define a non-empty 'Decision' section.");
       assert.equal(diagnostic.source, 'ADR Guard');
       assert.equal(diagnostic.severity, vscode.DiagnosticSeverity.Error);
-      assert.equal(diagnostic.range.start.line, 0);
+      assert.equal(diagnostic.range.start.line, 2);
       assert.equal(diagnostic.range.start.character, 0);
       assert.equal((await vscode.workspace.openTextDocument(uri)).uri.toString(), uri.toString());
 
@@ -41,6 +41,25 @@ suite('ADR Guard Problems diagnostics', () => {
       await manager.validate(folder, 'docs/adr');
       assert.deepEqual(vscode.languages.getDiagnostics(uri), []);
       assert.ok(logMessages.some((message) => message.includes('Published 0')));
+    } finally {
+      manager.dispose();
+    }
+  });
+
+  test('retries without diagnostic locations for an older CLI', async () => {
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    assert.ok(folder);
+    const fake = new FakeExecutor(folder.uri.fsPath);
+    fake.rejectDiagnosticLocationsOnce = true;
+    const manager = new DiagnosticManager(
+      fake as unknown as CliExecutor,
+      { info: () => undefined } as unknown as OperationalLog,
+    );
+    try {
+      await manager.validate(folder, 'docs/adr');
+      assert.equal(fake.executions.length, 2);
+      assert.equal(fake.executions[0]?.includes('--diagnostic-locations'), true);
+      assert.equal(fake.executions[1]?.includes('--diagnostic-locations'), false);
     } finally {
       manager.dispose();
     }
@@ -68,7 +87,7 @@ suite('ADR Guard Problems diagnostics', () => {
         process.platform === 'win32' && pathLike(argument) ? argument.toLowerCase() : argument), [
         '--adr-format', 'madr-4', '--changed', '--base-ref', 'origin/main',
         '--baseline', vscode.Uri.joinPath(folder.uri, '.adrguard-baseline.json').fsPath.toLowerCase(),
-        '--format', 'json',
+        '--format', 'json', '--diagnostic-locations',
       ]);
       const uri = vscode.Uri.joinPath(folder.uri, 'docs', 'adr', '0001-invalid.md');
       assert.match(vscode.languages.getDiagnostics(uri)[0]?.message ?? '', /Existing in baseline/u);
@@ -207,11 +226,28 @@ class FakeExecutor {
   public exitCode = 1;
   public termination: CliRunResult['termination'] = 'exited';
   public lastArguments: readonly string[] = [];
+  public rejectDiagnosticLocationsOnce = false;
+  public readonly executions: string[][] = [];
 
   public constructor(private readonly root: string) {}
 
   public execute(_folder: vscode.WorkspaceFolder, args: readonly string[]): Promise<{ result: CliRunResult; workspaceRoot: string }> {
     this.lastArguments = args;
+    this.executions.push([...args]);
+    if (this.rejectDiagnosticLocationsOnce && args.includes('--diagnostic-locations')) {
+      this.rejectDiagnosticLocationsOnce = false;
+      return Promise.resolve({
+        workspaceRoot: this.root,
+        result: {
+          termination: 'exited',
+          exitCode: 2,
+          exitKind: 'usage-error',
+          stdout: '',
+          stderr: 'unsupported option',
+          signal: null,
+        },
+      });
+    }
     return Promise.resolve({
       workspaceRoot: this.root,
       result: {
@@ -240,6 +276,8 @@ function invalidReport(): object {
       code: 'ADR005',
       message: "ADR must define a non-empty 'Decision' section.",
       file: 'docs/adr/0001-invalid.md',
+      line: 3,
+      column: 1,
     }],
   };
 }

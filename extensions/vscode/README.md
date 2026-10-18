@@ -168,7 +168,7 @@ Relationship targets must resolve to regular Markdown files within the selected 
 
 ## Diagnostics, save validation, and baseline
 
-`Validate ADRs` maps schema `1.0` CLI JSON findings to Problems. Because that schema does not define line and column positions, diagnostics navigate to `(0, 0)` without claiming an exact source location. Malformed JSON, incompatible schemas, contradictory exit codes, files outside the ADR directory, and CLI exits `2`–`4` are operational failures rather than clean results.
+`Validate ADRs` maps schema `1.0` CLI JSON findings to Problems. Optional one-based `line` and `column` values navigate directly to the parsed Markdown location; older CLIs and file-only findings fall back to `(0, 0)`. Malformed JSON, incompatible schemas, contradictory exit codes, files outside the ADR directory, and CLI exits `2`–`4` are operational failures rather than clean results.
 
 `adrGuard.validation.onSave` defaults to `false`. When enabled, only saved Markdown ADRs below the configured directory trigger validation; save bursts are debounced, older runs are cancelled, and stale results cannot replace newer diagnostics. Save validation never creates ADRs, generates an index, runs AI, fetches Git refs, or writes a baseline.
 
@@ -229,7 +229,7 @@ The manifest is authoritative. Resource values are saved per workspace folder by
 - **Unsupported option / exit code 2:** the installed CLI is older than the requested MADR, changed-validation, or baseline contract. Install a compatible CLI or use full canonical validation.
 - **Workspace disabled:** trust the workspace and use a local `file:` folder. Virtual workspaces and pure browser hosts are intentionally unsupported.
 - **Timeout/output limit:** raise the bounded machine setting only when the repository legitimately requires it.
-- **No exact diagnostic line:** JSON schema `1.0` supplies a file but no source range; open the diagnostic and inspect the named ADR rule.
+- **No exact diagnostic line:** the installed CLI did not provide an evidenced location for this finding; the extension opens the file at `(0, 0)`.
 - **Remote CLI mismatch:** install/configure the CLI on the remote extension host.
 - **Visual capability unavailable:** run the relevant CLI command with `--help` on the extension host and use a build that exposes the required contract.
 - **MCP unavailable:** confirm explicit enablement, workspace trust, the host-local absolute path, exact server filename, and `dotnet` availability for a DLL. A valid path means available to start, not connected.

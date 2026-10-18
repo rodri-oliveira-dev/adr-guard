@@ -63,8 +63,14 @@ export class DiagnosticManager implements vscode.Disposable {
       ...(options.changed === undefined ? {} : { changed: options.changed }),
       ...(options.baseReference === undefined ? {} : { baseReference: options.baseReference }),
       ...(baselinePath === undefined ? {} : { baselinePath }),
+      diagnosticLocations: true,
     });
-    const execution = await this.executor.execute(folder, args, signal);
+    let execution = await this.executor.execute(folder, args, signal);
+    if (execution.result.termination === 'exited' && execution.result.exitCode === 2) {
+      const fallbackArgs = args.filter((argument) => argument !== '--diagnostic-locations');
+      this.log.info('Validation returned a usage error with diagnostic locations enabled; retrying without the optional location flag.');
+      execution = await this.executor.execute(folder, fallbackArgs, signal);
+    }
     const { result } = execution;
     if (result.termination !== 'exited') {
       if (result.termination === 'cancelled') {
@@ -143,8 +149,11 @@ export class DiagnosticManager implements vscode.Disposable {
         throw new CheckReportError('diagnostic file resolves outside the ADR directory');
       }
       const uri = vscode.Uri.file(safePath);
+      const position = finding.line === undefined || finding.column === undefined
+        ? new vscode.Position(0, 0)
+        : new vscode.Position(finding.line - 1, finding.column - 1);
       const diagnostic = new vscode.Diagnostic(
-        new vscode.Range(0, 0, 0, 0),
+        new vscode.Range(position, position),
         finding.baselineState === undefined
           ? finding.message
           : finding.baselineState === 'new'

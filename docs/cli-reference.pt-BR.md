@@ -129,10 +129,10 @@ IDs de campo são identificadores opacos de cada carregamento; clientes não dev
 ## Saída do check
 
 ```text
-adr-guard check [diretório] [--format text|json|sarif]
+adr-guard check [diretório] [--format text|json|sarif] [--diagnostic-locations]
 ```
 
-`text` permanece como default. JSON usa schema `1.0`; SARIF usa `2.1.0`. Ambos são gravados no stdout em sucesso e falha de validação; diagnósticos operacionais usam stderr. Os exit codes continuam `0` para válido, `1` para diagnósticos ADR, `2` para uso/configuração inválida e `3` para falha operacional.
+`text` permanece como default. JSON usa schema `1.0`; SARIF usa `2.1.0`. `--diagnostic-locations` habilita linha/coluna baseadas em um ou regiões SARIF somente quando há evidência; posições não comprovadas são omitidas. Sem a flag, o formato existente do relatório é preservado para clientes estritos. Ambos são gravados no stdout em sucesso e falha de validação; diagnósticos operacionais usam stderr. Os exit codes continuam `0` para válido, `1` para diagnósticos ADR, `2` para uso/configuração inválida e `3` para falha operacional.
 
 ## Impacto arquitetural
 

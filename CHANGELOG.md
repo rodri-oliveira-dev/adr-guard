@@ -8,6 +8,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ### Added
 - Prepare an authenticated GitHub Packages distribution channel for future MCP versions and a separate manual backfill of the existing, immutable MCP 1.0.0 release. Package hash and commit provenance are validated before upload; NuGet.org and MCP Registry remain the primary publication channels.
+- Add opt-in one-based `line` and `column` evidence to schema 1.0 validation diagnostics and matching SARIF regions while preserving the default report shape and file-only findings when no precise location is known.
 
 ### Fixed
 - Fix the independent MCP release version-reservation step to distinguish HTTP 404 (create) from HTTP 200 (verify), cap GET/POST API responses to 64 KiB, and keep authorization tokens out of process arguments; add offline regression tests before any package publication.

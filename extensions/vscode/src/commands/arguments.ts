@@ -22,6 +22,7 @@ export interface CheckArguments {
   readonly changed?: boolean;
   readonly baseReference?: string;
   readonly baselinePath?: string;
+  readonly diagnosticLocations?: boolean;
 }
 
 export function buildInitArguments(options: InitArguments): string[] {
@@ -57,6 +58,7 @@ export function buildCheckArguments(options: CheckArguments): string[] {
     ...changeArguments,
     ...(options.baselinePath === undefined ? [] : ['--baseline', options.baselinePath]),
     '--format', 'json',
+    ...(options.diagnosticLocations === true ? ['--diagnostic-locations'] : []),
   ];
 }
 

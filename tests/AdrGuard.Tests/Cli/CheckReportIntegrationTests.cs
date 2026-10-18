@@ -49,6 +49,67 @@ public sealed class CheckReportIntegrationTests
     [Theory]
     [InlineData("json")]
     [InlineData("sarif")]
+    public void MachineReportIncludesKnownSourceLocation(string format)
+    {
+        var root = CreateTempDirectory();
+
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "0001-invalid.md"), """
+                # Invalid
+
+                ## Status
+                Unknown
+
+                ## Context
+                Context.
+
+                ## Decision
+                Decision.
+
+                ## Consequences
+                Consequences.
+                """);
+            var compatible = Run(["check", root, "--format", format]);
+            using (var compatibleDocument = JsonDocument.Parse(compatible.Output))
+            {
+                var compatibleDiagnostic = format == "json"
+                    ? compatibleDocument.RootElement.GetProperty("diagnostics").EnumerateArray()
+                        .Single(item => item.GetProperty("code").GetString() == "ADR004")
+                    : compatibleDocument.RootElement.GetProperty("runs")[0]
+                        .GetProperty("results").EnumerateArray()
+                        .Single(item => item.GetProperty("ruleId").GetString() == "ADR004")
+                        .GetProperty("locations")[0]
+                        .GetProperty("physicalLocation");
+                Assert.False(compatibleDiagnostic.TryGetProperty(format == "json" ? "line" : "region", out _));
+            }
+
+            var result = Run(["check", root, "--format", format, "--diagnostic-locations"]);
+
+            Assert.Equal(ExitCodes.ValidationFailed, result.ExitCode);
+            using var document = JsonDocument.Parse(result.Output);
+            var diagnostic = format == "json"
+                ? document.RootElement.GetProperty("diagnostics").EnumerateArray()
+                    .Single(item => item.GetProperty("code").GetString() == "ADR004")
+                : document.RootElement.GetProperty("runs")[0]
+                    .GetProperty("results").EnumerateArray()
+                    .Single(item => item.GetProperty("ruleId").GetString() == "ADR004")
+                    .GetProperty("locations")[0]
+                    .GetProperty("physicalLocation")
+                    .GetProperty("region");
+
+            Assert.Equal(3, diagnostic.GetProperty(format == "json" ? "line" : "startLine").GetInt32());
+            Assert.Equal(1, diagnostic.GetProperty(format == "json" ? "column" : "startColumn").GetInt32());
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Theory]
+    [InlineData("json")]
+    [InlineData("sarif")]
     public void MachineReportIsDeterministicAndValidOnSuccess(string format)
     {
         var root = CreateTempDirectory();

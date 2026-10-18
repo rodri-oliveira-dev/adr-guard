@@ -10,7 +10,9 @@
     {
       "code": "ADR005",
       "message": "Required section 'Decision' is missing.",
-      "file": "docs/adr/0002-use-redis.md"
+      "file": "docs/adr/0002-use-redis.md",
+      "line": 7,
+      "column": 1
     },
     {
       "code": "ADR003",

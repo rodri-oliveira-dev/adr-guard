@@ -24,6 +24,7 @@ internal static class CheckCommand
             changed: false,
             baseReference: null,
             baselinePath: null,
+            diagnosticLocations: false,
             output,
             error,
             default);
@@ -38,7 +39,7 @@ internal static class CheckCommand
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken) =>
-        Run(directoryPath, format, adrFormat, null, false, null, null, false, null, changed, baseReference, baselinePath, output, error, cancellationToken);
+        Run(directoryPath, format, adrFormat, null, false, null, null, false, null, changed, baseReference, baselinePath, false, output, error, cancellationToken);
 
     internal static int Run(
         string directoryPath,
@@ -53,6 +54,7 @@ internal static class CheckCommand
         bool changed,
         string? baseReference,
         string? baselinePath,
+        bool diagnosticLocations,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken)
@@ -124,6 +126,7 @@ internal static class CheckCommand
                         result,
                         directoryPath,
                         baseline,
+                        diagnosticLocations,
                         output);
                     break;
                 case CheckOutputFormat.Sarif:
@@ -131,6 +134,7 @@ internal static class CheckCommand
                         result,
                         directoryPath,
                         baseline,
+                        diagnosticLocations,
                         output);
                     break;
             }

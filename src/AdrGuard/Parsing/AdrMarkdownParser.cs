@@ -19,14 +19,18 @@ internal static class AdrMarkdownParser
 
         string? currentHeading = null;
         var currentLevel = 0;
+        int? currentLine = null;
+        int? currentColumn = null;
         var currentContent = new StringBuilder();
         char? fenceMarker = null;
         var fenceLength = 0;
         var firstLine = true;
         var inFrontMatter = false;
+        var lineNumber = 0;
 
         foreach (var line in ReadLines(markdown))
         {
+            lineNumber++;
             if (firstLine)
             {
                 firstLine = false;
@@ -65,16 +69,32 @@ internal static class AdrMarkdownParser
                 if (level == 1)
                 {
                     title ??= heading;
-                    FlushSection(sections, currentHeading, currentLevel, currentContent);
+                    FlushSection(
+                        sections,
+                        currentHeading,
+                        currentLevel,
+                        currentContent,
+                        currentLine,
+                        currentColumn);
                     currentHeading = null;
                     currentLevel = 0;
+                    currentLine = null;
+                    currentColumn = null;
                     currentContent.Clear();
                     continue;
                 }
 
-                FlushSection(sections, currentHeading, currentLevel, currentContent);
+                FlushSection(
+                    sections,
+                    currentHeading,
+                    currentLevel,
+                    currentContent,
+                    currentLine,
+                    currentColumn);
                 currentHeading = heading;
                 currentLevel = level;
+                currentLine = lineNumber;
+                currentColumn = line.Length - line.TrimStart().Length + 1;
                 currentContent.Clear();
                 continue;
             }
@@ -82,7 +102,13 @@ internal static class AdrMarkdownParser
             AppendToCurrentSection(currentHeading, currentContent, line);
         }
 
-        FlushSection(sections, currentHeading, currentLevel, currentContent);
+        FlushSection(
+            sections,
+            currentHeading,
+            currentLevel,
+            currentContent,
+            currentLine,
+            currentColumn);
 
         var sectionStatus = sections
             .FirstOrDefault(section =>
@@ -289,7 +315,9 @@ internal static class AdrMarkdownParser
         List<AdrSection> sections,
         string? heading,
         int level,
-        StringBuilder content)
+        StringBuilder content,
+        int? line,
+        int? column)
     {
         if (heading is null)
         {
@@ -299,7 +327,9 @@ internal static class AdrMarkdownParser
         sections.Add(new AdrSection(
             heading,
             level,
-            content.ToString().Trim()));
+            content.ToString().Trim(),
+            line,
+            column));
     }
 
     private static void AppendToCurrentSection(
