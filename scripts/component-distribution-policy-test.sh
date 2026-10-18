@@ -44,6 +44,7 @@ assert_vsix_upload_retention() {
       upload = 0
       vsix = 0
       retention = 0
+      path = 0
       if ($0 ~ /^[[:space:]]*-[[:space:]]+uses:[[:space:]]*actions\/upload-artifact@/) {
         upload = 1
       }
@@ -52,11 +53,29 @@ assert_vsix_upload_retention() {
     /^[[:space:]]*uses:[[:space:]]*actions\/upload-artifact@/ {
       upload = 1
     }
-    upload && /^[[:space:]]*path:[[:space:]]*.*\.vsix[[:space:]]*(#.*)?$/ {
+    upload && /^[[:space:]]*path:/ {
+      value = $0
+      sub(/^[[:space:]]*path:[[:space:]]*/, "", value)
+      sub(/[[:space:]]*#.*$/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      gsub(/^["\047]|["\047]$/, "", value)
+      path = 1
+      if (tolower(value) ~ /\.vsix/) {
+        vsix = 1
+      }
+    }
+    upload && path && tolower($0) ~ /\.vsix/ {
       vsix = 1
     }
-    upload && /^[[:space:]]*retention-days:[[:space:]]*21[[:space:]]*(#.*)?$/ {
-      retention = 1
+    upload && /^[[:space:]]*retention-days:/ {
+      value = $0
+      sub(/^[[:space:]]*retention-days:[[:space:]]*/, "", value)
+      sub(/[[:space:]]*#.*$/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      gsub(/^["\047]|["\047]$/, "", value)
+      if (value == "21") {
+        retention = 1
+      }
     }
     END {
       evaluate_step()
@@ -71,7 +90,22 @@ assert_vsix_upload_retention() {
 
 assert_no_marketplace_publication() {
   local workflow="$1"
-  if grep -Eiq '(^|[[:space:]])vsce[[:space:]]+publish|@vscode/vsce([^[:space:]]*)?([[:space:]]+[^[:space:]]+)*[[:space:]]+publish|uses:[[:space:]]*[^[:space:]]*publish-vscode-extension|VSCE_PAT|AZURE_ACCESS_TOKEN|environment:[[:space:]]*vscode-marketplace' "$workflow"; then
+  local normalized
+  normalized="$(awk '
+    {
+      sub(/\r$/, "")
+      buffer = buffer $0
+      if (sub(/\\[[:space:]]*$/, " ", buffer)) {
+        next
+      }
+      print buffer
+      buffer = ""
+    }
+    END {
+      if (buffer != "") print buffer
+    }
+  ' "$workflow")"
+  if grep -Eiq '(^|[[:space:]])vsce[[:space:]]+publish|@vscode/vsce([^[:space:]]*)?([[:space:]]+[^[:space:]]+)*[[:space:]]+publish|uses:[[:space:]]*[^[:space:]]*publish-vscode-extension|VSCE_PAT|AZURE_ACCESS_TOKEN|environment:[[:space:]]*vscode-marketplace' <<< "$normalized"; then
     echo "VS Code workflow must not publish to the Marketplace: $workflow" >&2
     return 1
   fi
