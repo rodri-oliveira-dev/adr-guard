@@ -46,3 +46,18 @@ All current validation codes were traced from the parser and validator through t
 | `ADR016` | Invalid bounded metadata; correct the named key/value. | File only because front-matter key positions are not retained by the current parser. | Metadata coverage; parser expansion deferred to avoid inferred coordinates. |
 
 The audit did not justify changing diagnostic identifiers, severity, ordering, messages, exit codes, schema versions, or baseline fingerprints. In particular, missing structures, graph-wide conflicts, and front-matter findings remain unlocated rather than receiving inferred coordinates.
+
+## Reproducible performance baseline
+
+`benchmarks/AdrGuard.Benchmarks` is a dependency-free, informational harness. It generates separate valid and deterministically invalid synthetic corpora of 100, 500, and 900 ADRs. The files use varied lifecycle statuses, resolved references/dependencies, bounded prose, and one invalid status per 100 ADRs. No production content or network/provider call is involved.
+
+Build the CLI and harness, then record five subsequent samples plus a first-run sample:
+
+```text
+dotnet build AdrGuard.slnx --configuration Release
+dotnet run --project benchmarks/AdrGuard.Benchmarks/AdrGuard.Benchmarks.csproj --configuration Release --no-build -- --cli src/AdrGuard/bin/Release/net10.0/adr-guard.dll --output benchmarks/results/local.json --samples 5
+```
+
+The harness reports generation time separately. `check-invalid` expects exit `1`; `index-valid` expects exit `0` and removes only its generated `README.md` before each timed invocation so every sample measures index creation rather than the idempotent no-op. Each operation starts a fresh CLI process. Therefore `firstRun` is an OS/filesystem-cache proxy, not a persistent-process JIT measurement; `subsequentRuns` contains the median, minimum, maximum, spread, and median peak working set. Results also record dataset hashes, OS, architecture, .NET runtime, logical processor count, available memory, CLI version, source SHA, and dirty-tree state.
+
+Committed measurements are environment-specific observations, not SLAs or CI thresholds. Compare only reports with matching dataset hashes and investigate material changes with profiling before proposing optimization.

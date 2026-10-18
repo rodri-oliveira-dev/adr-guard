@@ -46,3 +46,18 @@ Todos os códigos atuais de validação foram rastreados do parser e validador a
 | `ADR016` | Metadata limitada inválida; corrija chave/valor nomeado. | Somente arquivo porque posições de chaves do front matter não são retidas pelo parser atual. | Cobertura de metadata; expansão do parser adiada para evitar coordenadas inferidas. |
 
 A auditoria não justificou alterar identificadores, severidade, ordenação, mensagens, exit codes, versões de schema nem fingerprints de baseline. Em particular, estruturas ausentes, conflitos globais de grafo e achados de front matter permanecem sem posição em vez de receber coordenadas inferidas.
+
+## Baseline reproduzível de performance
+
+`benchmarks/AdrGuard.Benchmarks` é um harness informativo e sem dependências. Ele gera corpora sintéticos válidos e deterministicamente inválidos, separados, com 100, 500 e 900 ADRs. Os arquivos usam status variados do ciclo de vida, referências/dependências resolvidas, texto limitado e um status inválido a cada 100 ADRs. Nenhum conteúdo de produção nem chamada de rede/provider é utilizado.
+
+Compile a CLI e o harness, depois registre cinco amostras subsequentes além da primeira execução:
+
+```text
+dotnet build AdrGuard.slnx --configuration Release
+dotnet run --project benchmarks/AdrGuard.Benchmarks/AdrGuard.Benchmarks.csproj --configuration Release --no-build -- --cli src/AdrGuard/bin/Release/net10.0/adr-guard.dll --output benchmarks/results/local.json --samples 5
+```
+
+O harness reporta o tempo de geração separadamente. `check-invalid` espera exit `1`; `index-valid` espera exit `0` e remove somente o `README.md` gerado antes de cada invocação medida, para que toda amostra meça a criação do índice em vez do no-op idempotente. Cada operação inicia um novo processo da CLI. Portanto, `firstRun` é um proxy de cache do SO/filesystem, não uma medição de JIT em processo persistente; `subsequentRuns` contém mediana, mínimo, máximo, variação e mediana do pico de working set. Os resultados também registram hashes dos datasets, SO, arquitetura, runtime .NET, quantidade de processadores lógicos, memória disponível, versão da CLI, SHA do código-fonte e estado de alterações locais.
+
+Medições commitadas são observações específicas do ambiente, não SLAs nem thresholds de CI. Compare apenas relatórios com hashes de dataset iguais e investigue mudanças relevantes com profiling antes de propor otimização.
