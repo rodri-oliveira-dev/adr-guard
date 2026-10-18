@@ -16,8 +16,8 @@ https://github.com/rodri-oliveira-dev
 
 Please include privately:
 
-- affected ADR Guard version / Action ref;
-- affected execution mode (.NET Tool, container, GitHub Action);
+- affected component and version / Action ref;
+- affected execution mode (.NET Tool, MCP server, VS Code extension, container, or GitHub Action);
 - impact and attack prerequisites;
 - minimal reproduction;
 - whether the issue is already public;
@@ -25,7 +25,7 @@ Please include privately:
 
 ## GitHub Action security model
 
-The reusable Action is intentionally limited to deterministic `check` and `index` operations. It does not expose AI `draft` provider credentials.
+The reusable Action supports deterministic `check` and `index`, opt-in advisory or policy-enforced `review`, and opt-in advisory `impact`. It does not expose `new`, `draft`, `baseline`, or `drift` as Action commands. Review credentials are accepted only through the caller step environment after review is selected explicitly; they are never Action inputs.
 
 Its runtime hardening, token model, workspace write boundaries, anonymous GHCR pull policy, version pinning, and annotation escaping are documented in:
 
@@ -34,7 +34,7 @@ Its runtime hardening, token model, workspace write boundaries, anonymous GHCR p
 
 ## Secret handling
 
-Never place provider API keys or repository secrets in ADR Markdown, workflow inputs, issue reports, or command-line arguments. The default GitHub Action does not request provider API keys or forward the runner environment into its container.
+Never place provider API keys or repository secrets in ADR Markdown, workflow inputs, issue reports, or command-line arguments. `check`, `index`, and `impact` do not require provider credentials. For explicit `review`, supply only the selected provider variable through the caller step environment as documented; the Action validates the provider-specific environment before forwarding it to the isolated container.
 
 ## Disclosure
 

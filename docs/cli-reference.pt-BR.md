@@ -2,7 +2,7 @@
 
 > Disponibilidade: `init`, `.adrguard.yml` e a saída estruturada de `check` foram publicados no ADR Guard v1.2.0. A seleção do formato MADR 4.0 foi publicada na v1.3.0. Consulte as [Releases do GitHub](https://github.com/rodri-oliveira-dev/adr-guard/releases) para os artefatos exatos.
 
-> A análise de impacto arquitetural foi introduzida na v1.5.0, o drift arquitetural na v1.6.0 e os contratos de formulário visual na v1.7.0. A CLI 1.8.0 está preparada, mas não publicada; confirme a disponibilidade exata nas [Releases do GitHub](https://github.com/rodri-oliveira-dev/adr-guard/releases) e no NuGet.org.
+> A análise de impacto arquitetural foi introduzida na v1.5.0, o drift arquitetural na v1.6.0 e os contratos de formulário visual na v1.7.0. A CLI 1.8.0 está publicada no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.8.0) e em sua [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.8.0).
 
 > Os contratos de formulário visual no schema `1.0` exigem CLI 1.7.0 ou superior e, no uso visual, uma extensão VS Code compatível e versionada separadamente. Versões da CLI, extensão e MCP são independentes.
 

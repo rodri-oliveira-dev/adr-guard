@@ -4,7 +4,7 @@
 
 ADR Guard MCP is a local, read-only adapter that gives compatible Model Context Protocol clients structured access to ADR discovery, validation, impact analysis, and architectural drift verification. It reuses the authoritative ADR Guard domain implementation; it does not approve architectural decisions or turn advisory evidence into compliance.
 
-> **Publication status:** version `1.0.0` and its release automation are prepared, but `RodriOliveira.AdrGuard.Mcp` and the Registry entry must not be treated as public until the first manual release is completed and verified.
+> **Publication status:** version `1.0.0` is published on NuGet.org, in the dedicated `mcp/v1.0.0` GitHub Release, and in the MCP Registry. GitHub Packages is an optional authenticated secondary channel whose `1.0.0` backfill remains a separate manual step.
 
 ## Install and run
 
