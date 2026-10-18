@@ -31,6 +31,13 @@ assert_semver() {
 assert_vsix_upload_retention() {
   local workflow="$1"
   awk -v workflow="$workflow" '
+    function is_upload_action(value) {
+      sub(/^[[:space:]]*(-[[:space:]]+)?uses:[[:space:]]*/, "", value)
+      sub(/[[:space:]]*#.*$/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      gsub(/^["\047]|["\047]$/, "", value)
+      return value ~ /^actions\/upload-artifact@/
+    }
     function evaluate_step() {
       if (!upload || !vsix) return
       uploads++
@@ -45,13 +52,15 @@ assert_vsix_upload_retention() {
       vsix = 0
       retention = 0
       path = 0
-      if ($0 ~ /^[[:space:]]*-[[:space:]]+uses:[[:space:]]*actions\/upload-artifact@/) {
+      if ($0 ~ /^[[:space:]]*-[[:space:]]+uses:/ && is_upload_action($0)) {
         upload = 1
       }
       next
     }
-    /^[[:space:]]*uses:[[:space:]]*actions\/upload-artifact@/ {
-      upload = 1
+    /^[[:space:]]*uses:/ {
+      if (is_upload_action($0)) {
+        upload = 1
+      }
     }
     upload && /^[[:space:]]*path:/ {
       value = $0
@@ -107,7 +116,7 @@ assert_no_marketplace_publication() {
         folded = 0
       }
 
-      if ($0 ~ /^[[:space:]]*(-[[:space:]]+)?run:[[:space:]]*>[-+]?[[:space:]]*(#.*)?$/) {
+      if ($0 ~ /^[[:space:]]*(-[[:space:]]+)?run:[[:space:]]*>[[:digit:]+-]*[[:space:]]*(#.*)?$/) {
         folded_indentation = match($0, /[^ ]/) - 1
         folded = 1
         next

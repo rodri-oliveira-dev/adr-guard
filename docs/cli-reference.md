@@ -128,6 +128,8 @@ Field IDs are opaque per-load identifiers; clients must not infer or hard-code t
 
 ## Check output
 
+> Unreleased: `--diagnostic-locations` is available in the current source tree but is not part of the published CLI 1.8.0 package. Use this option only with a source build until a containing CLI version is released.
+
 ```text
 adr-guard check [directory] [--format text|json|sarif] [--diagnostic-locations]
 ```

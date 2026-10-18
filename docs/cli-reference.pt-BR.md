@@ -128,6 +128,8 @@ IDs de campo são identificadores opacos de cada carregamento; clientes não dev
 
 ## Saída do check
 
+> Não lançado: `--diagnostic-locations` está disponível no código-fonte atual, mas não faz parte do pacote publicado da CLI 1.8.0. Use essa opção somente com um build do código-fonte até que uma versão da CLI que a contenha seja lançada.
+
 ```text
 adr-guard check [diretório] [--format text|json|sarif] [--diagnostic-locations]
 ```
