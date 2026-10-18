@@ -30,7 +30,8 @@ assert_semver() {
 
 assert_vsix_upload_retention() {
   local workflow="$1"
-  awk -v workflow="$workflow" '
+  local require_upload="${2:-false}"
+  awk -v workflow="$workflow" -v require_upload="$require_upload" '
     function is_upload_action(value) {
       sub(/^[[:space:]]*(-[[:space:]]+)?uses:[[:space:]]*/, "", value)
       sub(/[[:space:]]*#.*$/, "", value)
@@ -62,9 +63,10 @@ assert_vsix_upload_retention() {
         upload = 1
       }
     }
-    upload && /^[[:space:]]*path:/ {
+    upload && /path:[[:space:]]*/ {
       value = $0
-      sub(/^[[:space:]]*path:[[:space:]]*/, "", value)
+      sub(/^.*path:[[:space:]]*/, "", value)
+      sub(/[[:space:]]*[,}].*$/, "", value)
       sub(/[[:space:]]*#.*$/, "", value)
       sub(/[[:space:]]+$/, "", value)
       gsub(/^["\047]|["\047]$/, "", value)
@@ -76,9 +78,10 @@ assert_vsix_upload_retention() {
     upload && path && tolower($0) ~ /\.vsix/ {
       vsix = 1
     }
-    upload && /^[[:space:]]*retention-days:/ {
+    upload && /retention-days:[[:space:]]*/ {
       value = $0
-      sub(/^[[:space:]]*retention-days:[[:space:]]*/, "", value)
+      sub(/^.*retention-days:[[:space:]]*/, "", value)
+      sub(/[[:space:]]*[,}].*$/, "", value)
       sub(/[[:space:]]*#.*$/, "", value)
       sub(/[[:space:]]+$/, "", value)
       gsub(/^["\047]|["\047]$/, "", value)
@@ -88,7 +91,7 @@ assert_vsix_upload_retention() {
     }
     END {
       evaluate_step()
-      if (uploads == 0) {
+      if (require_upload == "true" && uploads == 0) {
         print "No VSIX upload-artifact step found: " workflow > "/dev/stderr"
         invalid = 1
       }
@@ -160,10 +163,11 @@ grep -Fq '<PackAsTool>true</PackAsTool>' "$CLI_PROJECT"
 grep -Fq '<PackAsTool>true</PackAsTool>' "$MCP_PROJECT"
 
 for workflow in "$EXTENSION_CI" "$EXTENSION_PACKAGE"; do
-  assert_vsix_upload_retention "$workflow"
+  assert_vsix_upload_retention "$workflow" true
 done
 
 while IFS= read -r -d '' workflow; do
+  assert_vsix_upload_retention "$workflow"
   assert_no_marketplace_publication "$workflow"
 done < <(find "$WORKFLOW_DIR" -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) -print0)
 
