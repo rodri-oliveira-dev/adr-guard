@@ -10,7 +10,7 @@ The independently versioned **ADR Guard for VS Code 1.1.0** candidate is availab
 - An optional MCP registration provider, disabled by default, that requires a compatible, independently installed MCP server.
 - Bilingual UI and explicit execution, permission, and workspace trust boundaries.
 
-For individual capabilities and CLI requirements, see the [extension README](../../extensions/vscode/README.md) and [compatibility matrix](../compatibility.md). CLI 1.8.0 is the recommended companion for the full visual workflow; MCP 1.0.0 is independent and must not be assumed to be published.
+For individual capabilities and CLI requirements, see the [extension README](../../extensions/vscode/README.md) and [compatibility matrix](../compatibility.md). CLI 1.8.0 is the recommended companion for the full visual workflow; MCP 1.0.0 is independently published on NuGet.org, GitHub Releases, and the MCP Registry.
 
 ## Download a validated VSIX (21-day window)
 

@@ -7,6 +7,7 @@ MCP_PROJECT="$ROOT_DIR/src/AdrGuard.Mcp/AdrGuard.Mcp.csproj"
 EXTENSION_MANIFEST="$ROOT_DIR/extensions/vscode/package.json"
 EXTENSION_CI="$ROOT_DIR/.github/workflows/vscode-extension.yml"
 EXTENSION_PACKAGE="$ROOT_DIR/.github/workflows/vscode-extension-release.yml"
+WORKFLOW_DIR="$ROOT_DIR/.github/workflows"
 CI="$ROOT_DIR/.github/workflows/ci.yml"
 
 xml_value() {
@@ -25,6 +26,51 @@ assert_semver() {
     echo "$component version must use stable SemVer; found '${version:-<empty>}'." >&2
     exit 1
   }
+}
+
+assert_vsix_upload_retention() {
+  local workflow="$1"
+  awk -v workflow="$workflow" '
+    function evaluate_step() {
+      if (!upload || !vsix) return
+      uploads++
+      if (!retention) {
+        print "VSIX upload step must retain its artifact for 21 days: " workflow > "/dev/stderr"
+        invalid = 1
+      }
+    }
+    /^[[:space:]]*- name:/ {
+      evaluate_step()
+      upload = 0
+      vsix = 0
+      retention = 0
+    }
+    /^[[:space:]]*uses:[[:space:]]*actions\/upload-artifact@/ {
+      upload = 1
+    }
+    upload && /^[[:space:]]*path:[[:space:]]*.*\.vsix[[:space:]]*(#.*)?$/ {
+      vsix = 1
+    }
+    upload && /^[[:space:]]*retention-days:[[:space:]]*21[[:space:]]*(#.*)?$/ {
+      retention = 1
+    }
+    END {
+      evaluate_step()
+      if (uploads == 0) {
+        print "No VSIX upload-artifact step found: " workflow > "/dev/stderr"
+        invalid = 1
+      }
+      exit invalid
+    }
+  ' "$workflow"
+}
+
+assert_no_marketplace_publication() {
+  local workflow="$1"
+  if grep -Eiq '(^|[[:space:]])(npx[[:space:]]+([^[:space:]]+[[:space:]]+)*|pnpm[[:space:]]+exec[[:space:]]+|yarn[[:space:]]+)?vsce[[:space:]]+publish|uses:[[:space:]]*[^[:space:]]*publish-vscode-extension|VSCE_PAT|AZURE_ACCESS_TOKEN|environment:[[:space:]]*vscode-marketplace' "$workflow"; then
+    echo "VS Code workflow must not publish to the Marketplace: $workflow" >&2
+    return 1
+  fi
 }
 
 cli_id="$(xml_value "$CLI_PROJECT" PackageId)"
@@ -48,13 +94,12 @@ grep -Fq '<PackAsTool>true</PackAsTool>' "$CLI_PROJECT"
 grep -Fq '<PackAsTool>true</PackAsTool>' "$MCP_PROJECT"
 
 for workflow in "$EXTENSION_CI" "$EXTENSION_PACKAGE"; do
-  grep -Fq 'actions/upload-artifact@' "$workflow"
-  grep -Fq 'retention-days: 21' "$workflow"
-  if grep -Eiq 'vsce[[:space:]]+publish|publish-vscode-extension|marketplace[^[:space:]]*publish' "$workflow"; then
-    echo "VS Code workflow must not publish to the Marketplace: $workflow" >&2
-    exit 1
-  fi
+  assert_vsix_upload_retention "$workflow"
 done
+
+while IFS= read -r -d '' workflow; do
+  assert_no_marketplace_publication "$workflow"
+done < <(find "$WORKFLOW_DIR" -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) -print0)
 
 grep -Fq 'workflow_dispatch:' "$EXTENSION_PACKAGE"
 grep -Fq "if: github.ref == 'refs/heads/main'" "$EXTENSION_PACKAGE"

@@ -1,8 +1,8 @@
-# Candidata a release do ADR Guard MCP v1.0.0
+# ADR Guard MCP v1.0.0
 
 [English](mcp-v1.0.0.md)
 
-Esta é a primeira release estável preparada do servidor ADR Guard MCP, versionado de forma independente. Ela não comprova que o pacote NuGet, a GitHub Release ou a entrada no Registry foram publicados. Estabilidade significa aqui que os sete nomes públicos de ferramentas, argumentos de inicialização, resultados estruturados no schema `1.0`, identidade do pacote, comando e transporte `stdio` foram revisados e cobertos por testes de contrato; não promete compatibilidade com futuras mudanças incompatíveis do protocolo ou do Registry.
+Esta é a primeira release estável do servidor ADR Guard MCP, versionado de forma independente. A versão `1.0.0` está publicada no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), em sua [GitHub Release dedicada](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0) e no MCP Registry. Os sete nomes públicos de ferramentas, argumentos de inicialização, resultados estruturados no schema `1.0`, identidade do pacote, comando e transporte `stdio` foram revisados e cobertos por testes de contrato; isso não promete compatibilidade com futuras mudanças incompatíveis do protocolo ou do Registry.
 
 ## Incluído
 
@@ -13,7 +13,7 @@ Esta é a primeira release estável preparada do servidor ADR Guard MCP, version
 - Resultados estruturados de validação, impacto e drift que preservam estados inválidos, desconhecidos, inconclusivos e de falha de política sem afirmar aprovação arquitetural ou conformidade.
 - Testes de instalação do pacote, handshake MCP real, inicialização, descoberta das sete ferramentas, invocação, entrada inválida, impacto, drift, encerramento, manifesto e contrato do arquivo `.nupkg`.
 
-## Instalação após a publicação
+## Instalação
 
 ```shell
 dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0
@@ -30,8 +30,8 @@ dotnet tool run adr-guard-mcp -- --repository /caminho/absoluto/do/repositorio -
 
 O .NET 10 é obrigatório. Git é necessário somente para análise de impacto e metadados de drift associados a commit. O servidor não oferece transporte de rede, ferramentas de escrita, integração com providers, download automático, aprovação de ADRs nem produção de evidências.
 
-## Pré-requisitos de publicação
+## Verificação da publicação
 
-Propriedade/trusted publishing no NuGet, ambiente protegido `mcp-release`, CI bem-sucedida no commit selecionado da `main`, tags imutáveis de reserva/release, verificação pública do pacote e validação/publicação no Registry continuam sendo pré-requisitos externos. Não descreva o MCP 1.0.0 como operacionalmente publicado antes que todas as etapas terminem e os identificadores públicos sejam verificados de forma independente.
+A release concluiu o workflow protegido `mcp-release`, as tags imutáveis de reserva/release, a verificação pública do pacote e a validação no Registry. O NuGet.org é o canal recomendado de instalação. O GitHub Packages continua sendo um canal secundário autenticado cujo backfill da versão `1.0.0` é uma operação manual separada e não deve republicar a release imutável.
 
 Consulte a [visão geral](../mcp.pt-BR.md), a [configuração](../mcp-configuration.pt-BR.md), os [contratos das ferramentas](../mcp-tools.pt-BR.md), o [modelo de segurança](../mcp-security.pt-BR.md) e os [pré-requisitos de release](../mcp-release.pt-BR.md).

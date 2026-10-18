@@ -42,6 +42,23 @@ public sealed class AdrRelationshipValidatorTests
     }
 
     [Fact]
+    public void InconsistentSupersedesDeclarationPreservesHeadingLocation()
+    {
+        var old = Parse("0001-old.md", Canonical("Old", "Accepted"));
+        var current = Parse(
+            "0002-current.md",
+            Canonical("Current", "Accepted", "## Supersedes\n[Old](0001-old.md)"));
+
+        var issue = Assert.Single(
+            AdrValidator.Validate([old, current]).Issues,
+            item => item.Code == ValidationCodes.InconsistentSupersession
+                && item.FilePath.EndsWith("0002-current.md", StringComparison.Ordinal));
+
+        Assert.Equal(10, issue.Line);
+        Assert.Equal(1, issue.Column);
+    }
+
+    [Fact]
     public void ValidSupersessionPairIsAccepted()
     {
         var first = Parse(
@@ -108,10 +125,12 @@ public sealed class AdrRelationshipValidatorTests
 
         var result = AdrValidator.Validate([inactive, dependency, narrative]);
 
-        Assert.Contains(
+        var issue = Assert.Single(
             result.Issues,
-            issue => issue.Code == ValidationCodes.InactiveDependency
-                && issue.FilePath.EndsWith("0002-dependent.md", StringComparison.Ordinal));
+            item => item.Code == ValidationCodes.InactiveDependency
+                && item.FilePath.EndsWith("0002-dependent.md", StringComparison.Ordinal));
+        Assert.Equal(10, issue.Line);
+        Assert.Equal(1, issue.Column);
         Assert.DoesNotContain(
             result.Issues,
             issue => issue.Code == ValidationCodes.InactiveDependency

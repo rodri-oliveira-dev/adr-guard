@@ -8,14 +8,14 @@ ADR Guard MCP is a local, read-only adapter that gives compatible Model Context 
 
 ## Install and run
 
-After publication, install the framework-dependent .NET 10 tool from NuGet.org:
+Install the published framework-dependent .NET 10 tool from NuGet.org:
 
 ```shell
 dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0
 adr-guard-mcp --repository /absolute/path/to/repository --adr-directory docs/adr
 ```
 
-For a repository-local tool manifest after publication:
+For a repository-local tool manifest:
 
 ```shell
 dotnet new tool-manifest

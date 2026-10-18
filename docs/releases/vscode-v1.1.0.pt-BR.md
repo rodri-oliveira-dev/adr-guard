@@ -10,7 +10,7 @@ A candidata **ADR Guard para VS Code 1.1.0**, versionada de forma independente, 
 - Provider opcional de registro MCP, desabilitado por padrão, que exige um servidor MCP compatível instalado de forma independente.
 - Interface bilíngue e limites explícitos de execução, permissões e confiança do workspace.
 
-Para recursos e requisitos da CLI, consulte o [README da extensão](../../extensions/vscode/README.pt-BR.md) e a [matriz de compatibilidade](../compatibility.pt-BR.md). A CLI 1.8.0 é a versão recomendada para o fluxo visual completo; o MCP 1.0.0 é independente e não deve ser considerado publicado sem verificação.
+Para recursos e requisitos da CLI, consulte o [README da extensão](../../extensions/vscode/README.pt-BR.md) e a [matriz de compatibilidade](../compatibility.pt-BR.md). A CLI 1.8.0 é a versão recomendada para o fluxo visual completo; o MCP 1.0.0 está publicado de forma independente no NuGet.org, em GitHub Releases e no MCP Registry.
 
 ## Download do VSIX validado (prazo de 21 dias)
 

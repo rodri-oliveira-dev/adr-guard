@@ -156,7 +156,9 @@ internal static class AdrRelationshipValidator
                 issues.Add(new ValidationIssue(
                     ValidationCodes.InconsistentSupersession,
                     document.FilePath,
-                    $"ADR declares that it supersedes '{predecessor.FileName}', but that ADR is not Superseded."));
+                    $"ADR declares that it supersedes '{predecessor.FileName}', but that ADR is not Superseded.",
+                    Line: reference.Line,
+                    Column: reference.Column));
             }
 
             if (successors.TryGetValue(predecessor, out var declared)
@@ -166,7 +168,9 @@ internal static class AdrRelationshipValidator
                 issues.Add(new ValidationIssue(
                     ValidationCodes.InconsistentSupersession,
                     document.FilePath,
-                    $"ADR '{predecessor.FileName}' names a different superseding decision."));
+                    $"ADR '{predecessor.FileName}' names a different superseding decision.",
+                    Line: reference.Line,
+                    Column: reference.Column));
             }
         }
     }
@@ -188,7 +192,9 @@ internal static class AdrRelationshipValidator
             issues.Add(new ValidationIssue(
                 ValidationCodes.InactiveDependency,
                 document.FilePath,
-                $"ADR explicitly depends on inactive decision '{dependency.FileName}' ({dependency.Status})."));
+                $"ADR explicitly depends on inactive decision '{dependency.FileName}' ({dependency.Status}).",
+                Line: reference.Line,
+                Column: reference.Column));
         }
     }
 
