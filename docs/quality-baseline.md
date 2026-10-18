@@ -61,3 +61,18 @@ dotnet run --project benchmarks/AdrGuard.Benchmarks/AdrGuard.Benchmarks.csproj -
 The harness reports generation time separately. `check-invalid` expects exit `1`; `index-valid` expects exit `0` and removes only its generated `README.md` before each timed invocation so every sample measures index creation rather than the idempotent no-op. Each operation starts a fresh CLI process. Therefore `firstRun` is an OS/filesystem-cache proxy, not a persistent-process JIT measurement; `subsequentRuns` contains the median, minimum, maximum, spread, and median peak working set. Results also record dataset hashes, OS, architecture, .NET runtime, logical processor count, available memory, CLI version, source SHA, and dirty-tree state.
 
 Committed measurements are environment-specific observations, not SLAs or CI thresholds. Compare only reports with matching dataset hashes and investigate material changes with profiling before proposing optimization.
+
+### Observed Windows baseline — 2026-10-18
+
+The complete machine-readable report is [`benchmarks/results/windows-x64-2026-10-18.json`](../benchmarks/results/windows-x64-2026-10-18.json). It measured source and CLI SHA `9c2a27069f4a5035f5b19c5082b1bcf6e63d89a0` on Windows x64, .NET 10.0.13, 8 logical processors, and approximately 31.4 GiB available memory. The worktree-dirty marker is true because the checkout contained a pre-existing unrelated `.gitignore` edit; the report records the exact CLI informational version and dataset hashes so this limitation is explicit.
+
+| ADRs | Operation | Preparation | First run | Subsequent median (min–max; spread) | Median peak working set |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 100 | invalid `check` | 86.348 ms | 1160.496 ms | 249.938 ms (245.875–443.897; 198.022 ms) | 30.7 MiB |
+| 100 | valid `index` | 86.348 ms | 264.249 ms | 288.936 ms (237.275–334.579; 97.304 ms) | 30.8 MiB |
+| 500 | invalid `check` | 276.916 ms | 343.386 ms | 323.914 ms (307.121–396.411; 89.290 ms) | 35.5 MiB |
+| 500 | valid `index` | 276.916 ms | 297.796 ms | 304.722 ms (301.316–334.843; 33.527 ms) | 35.7 MiB |
+| 900 | invalid `check` | 488.876 ms | 372.419 ms | 360.756 ms (353.914–399.050; 45.135 ms) | 36.4 MiB |
+| 900 | valid `index` | 488.876 ms | 410.112 ms | 357.520 ms (344.182–380.462; 36.279 ms) | 36.9 MiB |
+
+Two complete local generations produced identical hashes for all six valid/invalid datasets. Temporary scenario directories were absent after each run. The first 100-ADR check shows substantial cold-start/noise cost, reinforcing why no threshold or optimization conclusion is attached to this baseline. No macOS or Linux performance numbers were measured in this checkpoint.

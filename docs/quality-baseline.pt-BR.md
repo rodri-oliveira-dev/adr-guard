@@ -61,3 +61,18 @@ dotnet run --project benchmarks/AdrGuard.Benchmarks/AdrGuard.Benchmarks.csproj -
 O harness reporta o tempo de geração separadamente. `check-invalid` espera exit `1`; `index-valid` espera exit `0` e remove somente o `README.md` gerado antes de cada invocação medida, para que toda amostra meça a criação do índice em vez do no-op idempotente. Cada operação inicia um novo processo da CLI. Portanto, `firstRun` é um proxy de cache do SO/filesystem, não uma medição de JIT em processo persistente; `subsequentRuns` contém mediana, mínimo, máximo, variação e mediana do pico de working set. Os resultados também registram hashes dos datasets, SO, arquitetura, runtime .NET, quantidade de processadores lógicos, memória disponível, versão da CLI, SHA do código-fonte e estado de alterações locais.
 
 Medições commitadas são observações específicas do ambiente, não SLAs nem thresholds de CI. Compare apenas relatórios com hashes de dataset iguais e investigue mudanças relevantes com profiling antes de propor otimização.
+
+### Baseline Windows observada — 18/10/2026
+
+O relatório completo legível por máquina está em [`benchmarks/results/windows-x64-2026-10-18.json`](../benchmarks/results/windows-x64-2026-10-18.json). Ele mediu o código-fonte e a CLI no SHA `9c2a27069f4a5035f5b19c5082b1bcf6e63d89a0`, em Windows x64, .NET 10.0.13, 8 processadores lógicos e aproximadamente 31,4 GiB de memória disponível. O marcador de worktree com alterações é verdadeiro porque o checkout continha uma edição preexistente e não relacionada em `.gitignore`; o relatório registra a versão informacional exata da CLI e os hashes dos datasets para explicitar essa limitação.
+
+| ADRs | Operação | Preparação | Primeira execução | Mediana subsequente (mín–máx; variação) | Mediana do pico de working set |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 100 | `check` inválido | 86,348 ms | 1160,496 ms | 249,938 ms (245,875–443,897; 198,022 ms) | 30,7 MiB |
+| 100 | `index` válido | 86,348 ms | 264,249 ms | 288,936 ms (237,275–334,579; 97,304 ms) | 30,8 MiB |
+| 500 | `check` inválido | 276,916 ms | 343,386 ms | 323,914 ms (307,121–396,411; 89,290 ms) | 35,5 MiB |
+| 500 | `index` válido | 276,916 ms | 297,796 ms | 304,722 ms (301,316–334,843; 33,527 ms) | 35,7 MiB |
+| 900 | `check` inválido | 488,876 ms | 372,419 ms | 360,756 ms (353,914–399,050; 45,135 ms) | 36,4 MiB |
+| 900 | `index` válido | 488,876 ms | 410,112 ms | 357,520 ms (344,182–380,462; 36,279 ms) | 36,9 MiB |
+
+Duas gerações locais completas produziram hashes idênticos para todos os seis datasets válidos/inválidos. Diretórios temporários dos cenários estavam ausentes após cada execução. O primeiro `check` com 100 ADRs mostra custo relevante de cold start/ruído, reforçando por que não há threshold nem conclusão de otimização associada a esta baseline. Nenhum número de performance para macOS ou Linux foi medido neste checkpoint.

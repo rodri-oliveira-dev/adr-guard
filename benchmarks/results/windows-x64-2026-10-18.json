@@ -1,0 +1,132 @@
+{
+  "SchemaVersion": "1.0",
+  "RecordedAtUtc": "2026-10-18T22:07:29.1833358+00:00",
+  "SourceRevision": "9c2a27069f4a5035f5b19c5082b1bcf6e63d89a0",
+  "WorkingTreeDirty": true,
+  "CliVersion": "1.8.0\u002B9c2a27069f4a5035f5b19c5082b1bcf6e63d89a0",
+  "SamplesPerScenario": 5,
+  "Environment": {
+    "OperatingSystem": "Microsoft Windows 10.0.26300",
+    "OsArchitecture": "X64",
+    "ProcessArchitecture": "X64",
+    "DotNetRuntime": ".NET 10.0.13",
+    "LogicalProcessorCount": 8,
+    "AvailableMemoryBytes": 33711067136
+  },
+  "Results": [
+    {
+      "AdrCount": 100,
+      "Operation": "check-invalid",
+      "DatasetSha256": "1ea167585480dd71e9bb01c8fa9c3b08bb82eb4aeb8b8f6d45bb1096cb9e577c",
+      "PreparationMilliseconds": 86.348,
+      "FirstRun": {
+        "ElapsedMilliseconds": 1160.496,
+        "PeakWorkingSetBytes": 31764480,
+        "ExitCode": 1
+      },
+      "SubsequentRuns": {
+        "Count": 5,
+        "MedianElapsedMilliseconds": 249.938,
+        "MinimumElapsedMilliseconds": 245.875,
+        "MaximumElapsedMilliseconds": 443.897,
+        "SpreadMilliseconds": 198.022,
+        "MedianPeakWorkingSetBytes": 32153600
+      }
+    },
+    {
+      "AdrCount": 100,
+      "Operation": "index-valid",
+      "DatasetSha256": "f7855ffc37bbe1b14c13aceddd11379b184745f61a70449d5094e64b62406b1d",
+      "PreparationMilliseconds": 86.348,
+      "FirstRun": {
+        "ElapsedMilliseconds": 264.249,
+        "PeakWorkingSetBytes": 32038912,
+        "ExitCode": 0
+      },
+      "SubsequentRuns": {
+        "Count": 5,
+        "MedianElapsedMilliseconds": 288.936,
+        "MinimumElapsedMilliseconds": 237.275,
+        "MaximumElapsedMilliseconds": 334.579,
+        "SpreadMilliseconds": 97.304,
+        "MedianPeakWorkingSetBytes": 32288768
+      }
+    },
+    {
+      "AdrCount": 500,
+      "Operation": "check-invalid",
+      "DatasetSha256": "407619b48cb89c72ed237d4515ade5a3a15afa5ef49bba37abd8eafcb0419331",
+      "PreparationMilliseconds": 276.916,
+      "FirstRun": {
+        "ElapsedMilliseconds": 343.386,
+        "PeakWorkingSetBytes": 37040128,
+        "ExitCode": 1
+      },
+      "SubsequentRuns": {
+        "Count": 5,
+        "MedianElapsedMilliseconds": 323.914,
+        "MinimumElapsedMilliseconds": 307.121,
+        "MaximumElapsedMilliseconds": 396.411,
+        "SpreadMilliseconds": 89.29,
+        "MedianPeakWorkingSetBytes": 37253120
+      }
+    },
+    {
+      "AdrCount": 500,
+      "Operation": "index-valid",
+      "DatasetSha256": "0224c11c3597bf0300152846b0d2535ab1339ccdbcfcf5b19c315485dac52359",
+      "PreparationMilliseconds": 276.916,
+      "FirstRun": {
+        "ElapsedMilliseconds": 297.796,
+        "PeakWorkingSetBytes": 37031936,
+        "ExitCode": 0
+      },
+      "SubsequentRuns": {
+        "Count": 5,
+        "MedianElapsedMilliseconds": 304.722,
+        "MinimumElapsedMilliseconds": 301.316,
+        "MaximumElapsedMilliseconds": 334.843,
+        "SpreadMilliseconds": 33.527,
+        "MedianPeakWorkingSetBytes": 37470208
+      }
+    },
+    {
+      "AdrCount": 900,
+      "Operation": "check-invalid",
+      "DatasetSha256": "c8705638f634583daadfa96590a605cc63a25cdcff5c387308ece50f8396a7ae",
+      "PreparationMilliseconds": 488.876,
+      "FirstRun": {
+        "ElapsedMilliseconds": 372.419,
+        "PeakWorkingSetBytes": 38563840,
+        "ExitCode": 1
+      },
+      "SubsequentRuns": {
+        "Count": 5,
+        "MedianElapsedMilliseconds": 360.756,
+        "MinimumElapsedMilliseconds": 353.914,
+        "MaximumElapsedMilliseconds": 399.05,
+        "SpreadMilliseconds": 45.135,
+        "MedianPeakWorkingSetBytes": 38174720
+      }
+    },
+    {
+      "AdrCount": 900,
+      "Operation": "index-valid",
+      "DatasetSha256": "cf22539288ebd2740cbcc58d61a5c7dbe9e9378bc9107e332e6ca2569e0b40a6",
+      "PreparationMilliseconds": 488.876,
+      "FirstRun": {
+        "ElapsedMilliseconds": 410.112,
+        "PeakWorkingSetBytes": 37883904,
+        "ExitCode": 0
+      },
+      "SubsequentRuns": {
+        "Count": 5,
+        "MedianElapsedMilliseconds": 357.52,
+        "MinimumElapsedMilliseconds": 344.182,
+        "MaximumElapsedMilliseconds": 380.462,
+        "SpreadMilliseconds": 36.279,
+        "MedianPeakWorkingSetBytes": 38682624
+      }
+    }
+  ]
+}
