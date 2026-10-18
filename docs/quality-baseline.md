@@ -49,7 +49,7 @@ The audit did not justify changing diagnostic identifiers, severity, ordering, m
 
 ## Reproducible performance baseline
 
-`benchmarks/AdrGuard.Benchmarks` is a dependency-free, informational harness. It generates separate valid and deterministically invalid synthetic corpora of 100, 500, and 900 ADRs. The files use varied lifecycle statuses, resolved references/dependencies, bounded prose, and one invalid status per 100 ADRs. No production content or network/provider call is involved.
+`benchmarks/AdrGuard.Benchmarks` is a dependency-free, informational harness. It generates separate valid and deterministically invalid synthetic corpora of 100, 500, and 900 ADRs with normalized LF line endings. The files use varied lifecycle statuses, resolved references/dependencies, bounded prose, and one invalid status per 100 ADRs. No production content or network/provider call is involved.
 
 Build the CLI and harness, then record five subsequent samples plus a first-run sample:
 

@@ -49,7 +49,7 @@ A auditoria não justificou alterar identificadores, severidade, ordenação, me
 
 ## Baseline reproduzível de performance
 
-`benchmarks/AdrGuard.Benchmarks` é um harness informativo e sem dependências. Ele gera corpora sintéticos válidos e deterministicamente inválidos, separados, com 100, 500 e 900 ADRs. Os arquivos usam status variados do ciclo de vida, referências/dependências resolvidas, texto limitado e um status inválido a cada 100 ADRs. Nenhum conteúdo de produção nem chamada de rede/provider é utilizado.
+`benchmarks/AdrGuard.Benchmarks` é um harness informativo e sem dependências. Ele gera corpora sintéticos válidos e deterministicamente inválidos, separados, com 100, 500 e 900 ADRs e finais de linha LF normalizados. Os arquivos usam status variados do ciclo de vida, referências/dependências resolvidas, texto limitado e um status inválido a cada 100 ADRs. Nenhum conteúdo de produção nem chamada de rede/provider é utilizado.
 
 Compile a CLI e o harness, depois registre cinco amostras subsequentes além da primeira execução:
 

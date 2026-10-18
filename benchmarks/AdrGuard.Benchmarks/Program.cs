@@ -382,10 +382,10 @@ internal static class SyntheticAdrGenerator
                     ? "Proposed"
                     : id % 13 == 0 ? "Deprecated" : "Accepted";
             var relationships = id > 1 && id % 10 == 0
-                ? $"{Environment.NewLine}## Dependencies{Environment.NewLine}[Foundation](0001-synthetic-decision-0001.md){Environment.NewLine}"
+                ? "\n## Dependencies\n[Foundation](0001-synthetic-decision-0001.md)\n"
                 : string.Empty;
             var references = id > 1 && id % 7 == 0
-                ? $"{Environment.NewLine}## References{Environment.NewLine}[Previous decision]({id - 1:D4}-synthetic-decision-{id - 1:D4}.md){Environment.NewLine}"
+                ? $"\n## References\n[Previous decision]({id - 1:D4}-synthetic-decision-{id - 1:D4}.md)\n"
                 : string.Empty;
             var content = $"""
                 # Synthetic decision {id:D4}
@@ -404,7 +404,7 @@ internal static class SyntheticAdrGenerator
                 The generated decision provides stable parsing work, repeatable indexing input, and explicit trade-offs.
                 Operators must treat these measurements as environment-specific evidence rather than a service-level objective.
                 {relationships}{references}
-                """;
+                """.ReplaceLineEndings("\n");
             File.WriteAllText(
                 Path.Combine(directory, $"{id:D4}-synthetic-decision-{id:D4}.md"),
                 content,
