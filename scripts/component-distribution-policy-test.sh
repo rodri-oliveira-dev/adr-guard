@@ -67,7 +67,7 @@ assert_vsix_upload_retention() {
 
 assert_no_marketplace_publication() {
   local workflow="$1"
-  if grep -Eiq '(^|[[:space:]])(npx[[:space:]]+([^[:space:]]+[[:space:]]+)*|pnpm[[:space:]]+exec[[:space:]]+|yarn[[:space:]]+)?vsce[[:space:]]+publish|uses:[[:space:]]*[^[:space:]]*publish-vscode-extension|VSCE_PAT|AZURE_ACCESS_TOKEN|environment:[[:space:]]*vscode-marketplace' "$workflow"; then
+  if grep -Eiq '(^|[[:space:]])(@vscode/)?vsce[[:space:]]+publish|uses:[[:space:]]*[^[:space:]]*publish-vscode-extension|VSCE_PAT|AZURE_ACCESS_TOKEN|environment:[[:space:]]*vscode-marketplace' "$workflow"; then
     echo "VS Code workflow must not publish to the Marketplace: $workflow" >&2
     return 1
   fi
