@@ -94,6 +94,25 @@ assert_no_marketplace_publication() {
   normalized="$(awk '
     {
       sub(/\r$/, "")
+
+      if (folded) {
+        indentation = match($0, /[^ ]/) - 1
+        if ($0 ~ /^[[:space:]]*$/ || indentation > folded_indentation) {
+          sub(/^[[:space:]]*/, "")
+          buffer = buffer $0 " "
+          next
+        }
+        print buffer
+        buffer = ""
+        folded = 0
+      }
+
+      if ($0 ~ /^[[:space:]]*(-[[:space:]]+)?run:[[:space:]]*>[-+]?[[:space:]]*(#.*)?$/) {
+        folded_indentation = match($0, /[^ ]/) - 1
+        folded = 1
+        next
+      }
+
       buffer = buffer $0
       if (sub(/\\[[:space:]]*$/, " ", buffer)) {
         next
