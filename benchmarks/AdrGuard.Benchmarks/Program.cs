@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
@@ -97,7 +98,9 @@ internal static class Program
                 SchemaVersion: "1.0",
                 RecordedAtUtc: DateTimeOffset.UtcNow,
                 SourceRevision: revision,
-                WorkingTreeDirty: !string.IsNullOrWhiteSpace(status),
+                WorkingTreeDirty: status is null
+                    ? null
+                    : !string.IsNullOrWhiteSpace(status),
                 CliVersion: version.Output.Trim(),
                 SamplesPerScenario: options.Samples,
                 Environment: new EnvironmentMetadata(
@@ -230,45 +233,39 @@ internal static class Program
         using var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException($"Unable to start '{executable}'.");
         var stopwatch = Stopwatch.StartNew();
-        var outputTask = process.StandardOutput.ReadToEndAsync();
-        var errorTask = process.StandardError.ReadToEndAsync();
         using var timeout = new CancellationTokenSource(ProcessTimeout);
+        var outputTask = ReadBoundedAsync(process.StandardOutput, timeout.Token);
+        var errorTask = ReadBoundedAsync(process.StandardError, timeout.Token);
         long peakWorkingSetBytes = 0;
         try
         {
             var exitTask = process.WaitForExitAsync(timeout.Token);
             while (!exitTask.IsCompleted)
             {
-                try
-                {
-                    process.Refresh();
-                    peakWorkingSetBytes = Math.Max(
-                        peakWorkingSetBytes,
-                        process.WorkingSet64);
-                }
-                catch (InvalidOperationException)
-                {
-                    // The process exited between the completion check and sample.
-                }
+                await ThrowIfCaptureFailedAsync(outputTask, errorTask);
+                CapturePeakWorkingSet(process, ref peakWorkingSetBytes);
 
                 await Task.WhenAny(
                     exitTask,
                     Task.Delay(TimeSpan.FromMilliseconds(10), timeout.Token));
             }
             await exitTask;
+            CapturePeakWorkingSet(process, ref peakWorkingSetBytes);
+            await ThrowIfCaptureFailedAsync(outputTask, errorTask);
         }
         catch (OperationCanceledException)
         {
-            process.Kill(entireProcessTree: true);
+            await TerminateAsync(process);
             throw new TimeoutException($"'{executable}' exceeded the {ProcessTimeout.TotalSeconds}-second benchmark timeout.");
+        }
+        catch (InvalidDataException)
+        {
+            await TerminateAsync(process);
+            throw;
         }
         stopwatch.Stop();
         var output = await outputTask;
         var error = await errorTask;
-        if (output.Length > MaximumCapturedCharacters || error.Length > MaximumCapturedCharacters)
-        {
-            throw new InvalidDataException("Benchmark process output exceeded the capture limit.");
-        }
 
         return new ProcessResult(
             process.ExitCode,
@@ -276,6 +273,70 @@ internal static class Program
             error,
             stopwatch.Elapsed,
             peakWorkingSetBytes);
+    }
+
+    private static async Task<string> ReadBoundedAsync(
+        StreamReader reader,
+        CancellationToken cancellationToken)
+    {
+        var output = new StringBuilder();
+        var buffer = new char[4096];
+        while (true)
+        {
+            var read = await reader.ReadAsync(buffer.AsMemory(), cancellationToken);
+            if (read == 0)
+            {
+                return output.ToString();
+            }
+
+            if (output.Length > MaximumCapturedCharacters - read)
+            {
+                throw new InvalidDataException("Benchmark process output exceeded the capture limit.");
+            }
+
+            output.Append(buffer, 0, read);
+        }
+    }
+
+    private static async Task ThrowIfCaptureFailedAsync(params Task<string>[] captureTasks)
+    {
+        foreach (var captureTask in captureTasks)
+        {
+            if (captureTask.IsFaulted || captureTask.IsCanceled)
+            {
+                await captureTask;
+            }
+        }
+    }
+
+    private static void CapturePeakWorkingSet(Process process, ref long peakWorkingSetBytes)
+    {
+        try
+        {
+            process.Refresh();
+            peakWorkingSetBytes = Math.Max(peakWorkingSetBytes, process.PeakWorkingSet64);
+        }
+        catch (InvalidOperationException)
+        {
+            // The process handle became unavailable while capturing its final peak.
+        }
+    }
+
+    private static async Task TerminateAsync(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            // The process exited while termination was requested.
+        }
+
+        await process.WaitForExitAsync();
     }
 
     private static void EnsureExit(string operation, ProcessResult result, int expectedExitCode)
@@ -295,7 +356,8 @@ internal static class Program
             var result = await RunProcessAsync("git", arguments, Directory.GetCurrentDirectory());
             return result.ExitCode == 0 ? result.Output.Trim() : null;
         }
-        catch (Exception exception) when (exception is InvalidOperationException or TimeoutException)
+        catch (Exception exception) when (
+            exception is InvalidOperationException or TimeoutException or Win32Exception)
         {
             return null;
         }
@@ -431,7 +493,7 @@ internal sealed record BenchmarkReport(
     string SchemaVersion,
     DateTimeOffset RecordedAtUtc,
     string SourceRevision,
-    bool WorkingTreeDirty,
+    bool? WorkingTreeDirty,
     string CliVersion,
     int SamplesPerScenario,
     EnvironmentMetadata Environment,

@@ -56,16 +56,25 @@ public sealed class CoreCliCrossPlatformSmokeTests
                 firstIndex,
                 await File.ReadAllTextAsync(indexPath, TestContext.Current.CancellationToken));
 
+            var adrPath = Assert.Single(Directory.GetFiles(adrDirectory, "0001-*.md"));
+            var validContent = await File.ReadAllTextAsync(
+                adrPath,
+                TestContext.Current.CancellationToken);
+            var unchangedInvalidPath = Path.Combine(adrDirectory, "0002-unchanged-invalid.md");
+            await File.WriteAllTextAsync(
+                unchangedInvalidPath,
+                validContent
+                    .Replace("# Adopt portable cache", "# Unchanged invalid decision", StringComparison.Ordinal)
+                    .Replace("\nProposed\n", "\nApproved\n", StringComparison.Ordinal),
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
+                TestContext.Current.CancellationToken);
+
             await RunGitAsync(repository, "init", "--initial-branch=main");
             await RunGitAsync(repository, "config", "user.email", "adr-guard-smoke@example.invalid");
             await RunGitAsync(repository, "config", "user.name", "ADR Guard Smoke");
             await RunGitAsync(repository, "add", ".");
             await RunGitAsync(repository, "commit", "-m", "smoke baseline");
 
-            var adrPath = Assert.Single(Directory.GetFiles(adrDirectory, "0001-*.md"));
-            var validContent = await File.ReadAllTextAsync(
-                adrPath,
-                TestContext.Current.CancellationToken);
             var invalidContent = validContent.Replace(
                 "\nProposed\n",
                 "\nApproved\n",
@@ -98,8 +107,12 @@ public sealed class CoreCliCrossPlatformSmokeTests
             using var invalidReport = JsonDocument.Parse(invalid.Output);
             Assert.False(invalidReport.RootElement.GetProperty("valid").GetBoolean());
             var diagnostic = Assert.Single(
-                invalidReport.RootElement.GetProperty("diagnostics").EnumerateArray(),
-                item => item.GetProperty("code").GetString() == "ADR004");
+                invalidReport.RootElement.GetProperty("diagnostics").EnumerateArray());
+            Assert.Equal("ADR004", diagnostic.GetProperty("code").GetString());
+            Assert.EndsWith(
+                Path.GetFileName(adrPath),
+                diagnostic.GetProperty("file").GetString(),
+                StringComparison.Ordinal);
             Assert.True(diagnostic.GetProperty("line").GetInt32() >= 1);
             Assert.True(diagnostic.GetProperty("column").GetInt32() >= 1);
         }

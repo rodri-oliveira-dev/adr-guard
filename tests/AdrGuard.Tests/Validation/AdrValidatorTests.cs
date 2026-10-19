@@ -291,7 +291,7 @@ public sealed class AdrValidatorTests
     }
 
     [Fact]
-    public void ValidateLocatesEmptySupersededBySectionWithoutLocatingAbsentSection()
+    public void ValidateLocatesUnusableSupersededBySectionsWithoutLocatingAbsentSection()
     {
         var absent = Parse(
             "docs/adr/0001-absent.md",
@@ -300,8 +300,14 @@ public sealed class AdrValidatorTests
             "docs/adr/0002-empty.md",
             ValidMarkdown("Empty", "Superseded")
                 + $"{Environment.NewLine}{Environment.NewLine}## Superseded by{Environment.NewLine}");
+        var unresolved = Parse(
+            "docs/adr/0003-unresolved.md",
+            ValidMarkdown("Unresolved", "Superseded")
+                + $"{Environment.NewLine}{Environment.NewLine}## Superseded by{Environment.NewLine}"
+                + $"[Missing ADR](0009-missing.md){Environment.NewLine}");
 
-        var issues = AdrValidator.Validate([absent, empty]).Issues
+        var result = AdrValidator.Validate([absent, empty, unresolved]);
+        var issues = result.Issues
             .Where(issue => issue.Code == ValidationCodes.MissingSupersededBy)
             .ToArray();
 
@@ -316,6 +322,16 @@ public sealed class AdrValidatorTests
             issue => issue.FilePath.EndsWith("0002-empty.md", StringComparison.Ordinal));
         Assert.Equal(15, emptyIssue.Line);
         Assert.Equal(1, emptyIssue.Column);
+
+        var unresolvedIssue = Assert.Single(
+            issues,
+            issue => issue.FilePath.EndsWith("0003-unresolved.md", StringComparison.Ordinal));
+        Assert.Equal(15, unresolvedIssue.Line);
+        Assert.Equal(1, unresolvedIssue.Column);
+        Assert.Contains(
+            result.Issues,
+            issue => issue.Code == ValidationCodes.BrokenReference
+                && issue.FilePath.EndsWith("0003-unresolved.md", StringComparison.Ordinal));
     }
 
     [Fact]
