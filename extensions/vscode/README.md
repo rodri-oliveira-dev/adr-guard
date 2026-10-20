@@ -162,13 +162,13 @@ See the source-only [MCP overview](../../docs/mcp.md), [configuration](../../doc
 
 ## ADR Explorer and formats
 
-The **Architecture Decision Records** view appears in the built-in Explorer. It scans the configured ADR directory, ignores its generated `README.md`, and displays a bounded subset of title, status, and recognized Markdown relationships. Those fields are navigation metadata only; the CLI remains authoritative for canonical and MADR 4.0 structure and governance.
+The **Architecture Decision Records** view appears in the dedicated ADR Guard container in the Activity Bar, not in VS Code's built-in Explorer container. It scans the configured ADR directory, ignores its generated `README.md`, and displays a bounded subset of title, status, and recognized Markdown relationships. Those fields are navigation metadata only; the CLI remains authoritative for canonical and MADR 4.0 structure and governance.
 
 Relationship targets must resolve to regular Markdown files within the selected workspace and ADR directory. Ambiguous, missing, external, virtual, or symlink-escaping targets are not opened.
 
 ## Diagnostics, save validation, and baseline
 
-`Validate ADRs` maps schema `1.0` CLI JSON findings to Problems. Optional one-based `line` and `column` values navigate directly to the parsed Markdown location; older CLIs and file-only findings fall back to `(0, 0)`. Malformed JSON, incompatible schemas, contradictory exit codes, files outside the ADR directory, and CLI exits `2`–`4` are operational failures rather than clean results.
+`Validate ADRs` opts into `--diagnostic-locations` and maps schema `1.0` CLI JSON findings to Problems. Optional one-based `line` and `column` report values are converted to zero-based VS Code coordinates and navigate directly to the parsed Markdown location. If an older CLI rejects the optional flag, the extension retries without it; file-only findings then use `(0, 0)` only because no position was proven. Malformed JSON, incompatible schemas, partial or invalid positions, contradictory exit codes, files outside the ADR directory, and CLI exits `2`–`4` after compatibility handling are operational failures rather than clean results.
 
 `adrGuard.validation.onSave` defaults to `false`. When enabled, only saved Markdown ADRs below the configured directory trigger validation; save bursts are debounced, older runs are cancelled, and stale results cannot replace newer diagnostics. Save validation never creates ADRs, generates an index, runs AI, fetches Git refs, or writes a baseline.
 

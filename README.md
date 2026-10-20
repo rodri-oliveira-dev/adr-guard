@@ -89,6 +89,10 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 | CI reports | Produce text, JSON, or SARIF validation output | [Check reports](docs/check-reports.md) |
 | Agent Skills | Give agents portable instructions for human-controlled ADR and CLI workflows | [Skills guide](docs/skills/README.md) |
 
+### Internal runtime architecture
+
+The CLI and MCP server are separate executables that reference the same internal `AdrGuard.Core` class library. Core owns their shared deterministic parsing, validation, configuration, Git inventory, impact, and drift behavior; it does not depend on either executable and is not a standalone product or NuGet package. CLI packages and containers carry the CLI plus Core, while the independently versioned MCP package carries MCP plus Core and does not contain the CLI executable. VS Code and the GitHub Action remain adapters over the CLI contract and do not reimplement Core rules. See [ADR 0008](docs/adr/0008-extract-an-internal-shared-core.md) and the [compatibility matrix](docs/compatibility.md).
+
 Release status (verified on 2026-10-18): CLI `1.8.0` is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.8.0) and in its [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.8.0). VS Code `1.0.1` is published in the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard); version `1.1.0` remains a source/VSIX candidate. MCP `1.0.0` is published independently on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), in its [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0), and in the MCP Registry. See the [compatibility matrix](docs/compatibility.md) for exact component boundaries.
 
 The [published ADR Guard for VS Code extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) includes the visual ADR list plus guided creation, editing, and settings. These screens require the CLI 1.7.0 form contracts. Extension and CLI versions remain independent.

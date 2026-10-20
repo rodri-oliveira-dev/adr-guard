@@ -9,3 +9,4 @@
 | [0005](0005-evolve-adr-practice-compatibility-by-policy.md) | Evolve ADR practice compatibility by explicit policy | Accepted |
 | [0006](0006-analyze-architecture-impact-from-explicit-mappings.md) | Analyze architecture impact from explicit local mappings | Accepted |
 | [0007](0007-verify-architecture-rules-from-bounded-evidence.md) | Verify architecture rules from bounded evidence | Accepted |
+| [0008](0008-extract-an-internal-shared-core.md) | Extract an internal shared Core | Accepted |

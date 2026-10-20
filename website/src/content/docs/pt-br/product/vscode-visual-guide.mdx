@@ -119,7 +119,7 @@ Use **ADR Guard: Validar ADRs** para validação completa, **Validar ADRs altera
 
 ![Painel Problems do VS Code mostrando um diagnóstico ADR005 real para uma seção Decision ausente.](/adr-guard/images/vscode/adr-problems.png)
 
-Relatórios schema `1.0` podem incluir linha e coluna opcionais, baseadas em 1, quando a CLI possui evidência confiável do parser. Os itens em Problems navegam diretamente para essas posições; diagnósticos sem essa evidência preservam o fallback no nível do arquivo, na linha 1, coluna 1. Saída malformada, schemas incompatíveis, caminhos inseguros, códigos de saída contraditórios e exits 2–4 são falhas operacionais, não validações limpas.
+A extensão ativa `--diagnostic-locations`. Relatórios schema `1.0` podem incluir linha e coluna opcionais, baseadas em 1, quando a CLI possui evidência confiável do parser; o adaptador as converte para coordenadas do VS Code baseadas em zero. Os itens em Problems navegam diretamente para essas posições. Se uma CLI antiga rejeitar a flag opcional, a extensão repete a execução sem ela, e diagnósticos sem posição comprovada preservam o fallback `(0, 0)` no nível do arquivo (exibido como linha 1, coluna 1). Saída malformada, schemas incompatíveis, caminhos inseguros, códigos de saída contraditórios e exits 2–4 após o tratamento de compatibilidade são falhas operacionais, não validações limpas.
 
 A validação verifica regras determinísticas do documento. Ela não aprova a escolha arquitetural, não transforma o status de uma ADR em aprovação de governança e não substitui revisão humana.
 

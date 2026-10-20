@@ -6,9 +6,9 @@ ADR Guard is a .NET tool for creating, validating, indexing, reviewing, impact-m
 
 The repository has two executable products and several adapters and distribution surfaces:
 
-- `src/AdrGuard`: the authoritative .NET CLI executable and, until the staged Core extraction is complete, the current home of most domain behavior.
-- `src/AdrGuard.Mcp`: the read-only MCP executable, with seven versioned tools over stdio. It currently references the CLI project; the Core extraction roadmap removes that dependency in favor of a direct Core reference.
-- `src/AdrGuard.Core`: the internal, non-packable .NET class library that owns reusable domain behavior as it is migrated. It never references either executable.
+- `src/AdrGuard`: the authoritative .NET CLI executable and its command, presentation, provider, and filesystem adapters.
+- `src/AdrGuard.Mcp`: the read-only MCP executable, with seven versioned tools over stdio and a direct reference to Core.
+- `src/AdrGuard.Core`: the internal, non-packable .NET class library that owns shared parsing, validation, configuration, Git inventory, impact, and drift behavior. It never references either executable.
 - `extensions/vscode`: a workspace-host TypeScript adapter. It discovers and invokes the CLI, validates versioned output contracts, and presents results in VS Code. It must not reimplement CLI business rules.
 - The root `action.yml` and container image adapt the released CLI contract for GitHub Actions.
 
@@ -20,10 +20,10 @@ The root composite GitHub Action is also an adapter around the released CLI/cont
 
 | Path | Responsibility |
 | --- | --- |
-| `src/AdrGuard.Core` | Internal reusable domain library; it cannot depend on CLI or MCP and is not independently published. |
+| `src/AdrGuard.Core/{Model,Parsing,Validation}` | ADR models, parsers, deterministic validation, relations, and report contracts. |
+| `src/AdrGuard.Core/{Configuration,Git,Impact,Drift}` | Shared configuration, bounded Git inventory, impact analysis, and drift rules/policy. |
 | `src/AdrGuard/Cli` | CLI command parsing, exit codes, output selection, and orchestration. |
-| `src/AdrGuard/{Parsing,Validation,Generation,Indexing,Baselines}` | ADR workflows awaiting or excluded from staged Core migration according to ownership and dependency seams. |
-| `src/AdrGuard/{Impact,Drift}` | Versioned mappings, evidence, findings, baselines, and drift analysis awaiting staged Core migration. |
+| `src/AdrGuard/{Generation,Indexing,Baselines}` | CLI-owned write workflows and presentation-specific baseline/index orchestration. |
 | `src/AdrGuard/Review` | Optional provider adapters, bounded review context, policy, security boundary, and versioned reports. |
 | `src/AdrGuard/Git` | Narrow Git process and change-inventory adapters. |
 | `src/AdrGuard.Mcp` | MCP stdio host, versioned tool contracts, transport DTOs, and workspace adapter. |
@@ -48,7 +48,7 @@ The root composite GitHub Action is also an adapter around the released CLI/cont
 - Fail closed when evidence is missing, malformed, unsupported, outside its declared scope, or cannot be verified. Represent uncertainty as `unknown`/inconclusive rather than inferred compliance.
 - Keep parsing, policy, validation, impact, and drift rules in the .NET core. The VS Code extension and GitHub Action invoke and adapt the CLI; they do not maintain parallel rule engines.
 - Preserve separation between pure decisions and adapters for files, Git, processes, HTTP providers, console rendering, VS Code, and GitHub Actions.
-- Keep the target project graph `AdrGuard -> AdrGuard.Core` and `AdrGuard.Mcp -> AdrGuard.Core`, with no Core-to-executable or MCP-to-CLI dependency. During roadmap steps 1-3 only, the pre-existing MCP-to-CLI edge remains an explicitly temporary compatibility seam; the automated graph guard must reject Core-to-executable edges immediately and enforce removal of the temporary edge in step 4.
+- Keep the project graph `AdrGuard -> AdrGuard.Core` and `AdrGuard.Mcp -> AdrGuard.Core`, with no Core-to-executable, MCP-to-CLI, or CLI-to-MCP dependency. Automated graph guards enforce these boundaries.
 - Move reusable rules to Core by cohesive dependency seam. Keep CLI presentation, command routing and exit-code adaptation in the CLI, and keep MCP transport/contracts in MCP; never duplicate rules between adapters.
 - Keep Core implementation types `internal` by default. Grant only assembly-specific test or consumer visibility when required; do not widen public APIs merely to cross a project boundary.
 - Treat JSON/SARIF schemas, CLI arguments and exit codes, Action inputs/outputs, configuration formats, report fields, extension settings/commands, and skill frontmatter as versioned public contracts.

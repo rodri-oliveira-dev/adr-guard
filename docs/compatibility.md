@@ -26,5 +26,16 @@ The products use independent SemVer streams. Equal version numbers are not requi
 
 The CLI runs independently of both the extension and MCP. The extension retains its complete CLI-backed behavior when MCP is disabled, missing, or incompatible. The MCP server runs with any compatible `stdio` client and does not require the extension.
 
+## Internal assembly and package boundaries
+
+Current source builds use this dependency graph:
+
+```text
+VS Code / GitHub Action ──process or container──> AdrGuard CLI ──> AdrGuard.Core
+compatible MCP client ───────────────stdio──────> AdrGuard.Mcp ──> AdrGuard.Core
+```
+
+`AdrGuard.Core` is an internal, non-packable class library. It contains shared parsing, validation, configuration, bounded Git inventory, impact, and drift behavior, but exposes no independently versioned consumer product. The CLI NuGet tool and CLI container include `adr-guard` plus `AdrGuard.Core.dll`; the MCP NuGet tool includes `adr-guard-mcp` plus `AdrGuard.Core.dll` and excludes `adr-guard.dll`. CLI and MCP therefore share deterministic rules while retaining separate executables, package IDs, versions, release tags, and publication workflows. The source extraction does not change the published CLI 1.8.0, MCP 1.0.0, Marketplace 1.0.1, or Action `@v1` artifacts by itself.
+
 Confirm an installed CLI with `adr-guard --version` plus the relevant command's `--help`. Confirm extension versions in the Visual Studio Marketplace, and MCP versions in both NuGet.org and the MCP Registry. A branch, local package, workflow VSIX, manifest, or release note alone does not establish registry publication.
 

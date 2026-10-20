@@ -162,13 +162,13 @@ Consulte [visão geral](../../docs/mcp.pt-BR.md), [configuração](../../docs/mc
 
 ## ADR Explorer e formatos
 
-A view **Registros de Decisões de Arquitetura** aparece no Explorer padrão. Ela percorre o diretório configurado, ignora o `README.md` gerado e exibe um subconjunto limitado de título, status e relacionamentos Markdown reconhecidos. Esses dados servem apenas à navegação; a CLI continua sendo a autoridade para estrutura e governança canônica e MADR 4.0.
+A view **Registros de Decisões de Arquitetura** aparece no contêiner dedicado do ADR Guard na Barra de Atividades, não no contêiner Explorer padrão do VS Code. Ela percorre o diretório configurado, ignora o `README.md` gerado e exibe um subconjunto limitado de título, status e relacionamentos Markdown reconhecidos. Esses dados servem apenas à navegação; a CLI continua sendo a autoridade para estrutura e governança canônica e MADR 4.0.
 
 Destinos de relacionamentos precisam resolver para arquivos Markdown regulares dentro do workspace e diretório de ADRs selecionados. Destinos ambíguos, inexistentes, externos, virtuais ou que escapem por symlink não são abertos.
 
 ## Diagnósticos, validação ao salvar e baseline
 
-`Validar ADRs` converte achados do JSON da CLI com schema `1.0` em Problems. Valores opcionais `line` e `column`, baseados em um, navegam diretamente para a localização no Markdown interpretado; CLIs antigas e achados limitados ao arquivo usam `(0, 0)` como fallback. JSON malformado, schema incompatível, divergência entre exit code e `valid`, arquivo fora do diretório e exits `2`–`4` são falhas operacionais.
+`Validar ADRs` ativa `--diagnostic-locations` e converte achados do JSON da CLI com schema `1.0` em Problems. Valores opcionais `line` e `column` no relatório, baseados em um, são convertidos para coordenadas do VS Code baseadas em zero e navegam diretamente para a localização no Markdown interpretado. Se uma CLI antiga rejeitar a flag opcional, a extensão repete a execução sem ela; achados limitados ao arquivo usam então `(0, 0)` apenas porque nenhuma posição foi comprovada. JSON malformado, schema incompatível, posição parcial ou inválida, divergência entre exit code e `valid`, arquivo fora do diretório e exits `2`–`4` após o tratamento de compatibilidade são falhas operacionais.
 
 `adrGuard.validation.onSave` começa como `false`. Quando habilitada, somente ADRs Markdown salvas dentro do diretório configurado disparam validação; rajadas são agrupadas, execuções antigas são canceladas e resultados obsoletos não substituem os atuais. Esse fluxo nunca cria ADR, gera índice, chama IA, busca refs Git ou escreve baseline.
 

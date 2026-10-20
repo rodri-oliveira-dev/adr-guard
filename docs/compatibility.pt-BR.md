@@ -26,5 +26,16 @@ Os produtos usam linhas SemVer independentes. Números iguais não são obrigat�
 
 A CLI executa independentemente da extensão e do MCP. A extensão preserva todo o comportamento apoiado pela CLI quando MCP está desabilitado, ausente ou incompatível. O servidor MCP funciona com qualquer cliente `stdio` compatível e não exige a extensão.
 
+## Limites internos de assemblies e pacotes
+
+As builds atuais do código-fonte usam este grafo de dependências:
+
+```text
+VS Code / GitHub Action ──processo ou container──> CLI AdrGuard ──> AdrGuard.Core
+cliente MCP compatível ───────────────stdio──────> AdrGuard.Mcp ──> AdrGuard.Core
+```
+
+`AdrGuard.Core` é uma biblioteca de classes interna, sem pacote próprio. Ela contém parsing, validação, configuração, inventário Git limitado, impacto e drift compartilhados, mas não expõe um produto para consumidores com versionamento independente. A .NET Tool e o container da CLI incluem `adr-guard` e `AdrGuard.Core.dll`; a .NET Tool MCP inclui `adr-guard-mcp` e `AdrGuard.Core.dll` e exclui `adr-guard.dll`. CLI e MCP compartilham assim regras determinísticas, mas preservam executáveis, IDs de pacote, versões, tags de release e workflows de publicação separados. A extração presente no código-fonte não altera por si só os artefatos publicados CLI 1.8.0, MCP 1.0.0, Marketplace 1.0.1 ou Action `@v1`.
+
 Confirme uma CLI instalada com `adr-guard --version` e o `--help` do comando relevante. Confirme versões da extensão no Visual Studio Marketplace e versões MCP tanto no NuGet.org quanto no MCP Registry. Branch, pacote local, VSIX de workflow, manifesto ou nota de release isolados não comprovam publicação em registro.
 

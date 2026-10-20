@@ -119,7 +119,7 @@ Use **ADR Guard: Validate ADRs** for full validation, **Validate Changed ADRs** 
 
 ![VS Code Problems panel showing a real ADR005 diagnostic for a missing Decision section.](/adr-guard/images/vscode/adr-problems.png)
 
-Schema `1.0` reports can include optional one-based line and column locations when the CLI has reliable parser evidence. Problems entries navigate directly to those locations; diagnostics without that evidence retain the file-level fallback at line 1, column 1. Malformed output, incompatible schemas, unsafe paths, contradictory exit codes, and CLI exits 2–4 are operational failures rather than clean validation.
+The extension opts into `--diagnostic-locations`. Schema `1.0` reports can include optional one-based line and column locations when the CLI has reliable parser evidence; the adapter converts them to zero-based VS Code coordinates. Problems entries navigate directly to those locations. If an older CLI rejects the optional flag, the extension retries without it, and diagnostics without proven positions retain the file-level `(0, 0)` fallback (shown as line 1, column 1). Malformed output, incompatible schemas, unsafe paths, contradictory exit codes, and CLI exits 2–4 after compatibility handling are operational failures rather than clean validation.
 
 Validation checks deterministic document rules. It does not approve the architectural choice, turn an ADR status into governance approval, or replace human review.
 
