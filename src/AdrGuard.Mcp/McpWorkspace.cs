@@ -255,8 +255,8 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         foreach (var evidencePath in evidencePaths ?? []) ValidateRelativePath(evidencePath, nameof(evidencePaths));
         var selectedPolicy = policy switch
         {
-            "advisory" => AdrGuard.Cli.DriftPolicy.Advisory,
-            "enforce" => AdrGuard.Cli.DriftPolicy.Enforce,
+            "advisory" => DriftPolicy.Advisory,
+            "enforce" => DriftPolicy.Enforce,
             _ => throw new ArgumentException("Drift policy must be advisory or enforce.", nameof(policy)),
         };
 
@@ -275,16 +275,8 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
             commit,
             DateTimeOffset.UtcNow,
             cancellationToken);
-        var report = AdrGuard.Cli.DriftReportFactory.Create(analysis, selectedPolicy);
-        var inconclusive = analysis.Coverage.Unknown > 0
-                           || analysis.Findings.Any(item => item.BaselineState == "unresolved-baseline");
-        var rules = manifest.Rules.ToDictionary(item => item.Id, StringComparer.Ordinal);
-        var policyFailed = selectedPolicy == AdrGuard.Cli.DriftPolicy.Enforce
-                           && analysis.Findings.Any(item => item.Outcome == FitnessOutcome.Violation
-                               && item.Confidence == "deterministic-static"
-                               && item.BaselineState == "new"
-                               && rules.TryGetValue(item.RuleId, out var rule)
-                               && rule.Gate);
+        var evaluation = DriftPolicyEvaluator.Evaluate(analysis, manifest, selectedPolicy);
+        var report = evaluation.Report;
         return McpResponseLimit.Ensure(new DriftToolResult(
             report.SchemaVersion,
             report.Policy,
@@ -311,8 +303,8 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
                     evidenceItem.Target,
                     evidenceItem.Line,
                     evidenceItem.Detail)).ToArray())).ToArray(),
-            inconclusive,
-            policyFailed));
+            evaluation.Inconclusive,
+            evaluation.PolicyFailed));
     }
 
     private WorkspaceContext LoadContext(

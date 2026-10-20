@@ -5,7 +5,6 @@ using AdrGuard.Git;
 namespace AdrGuard.Cli;
 
 internal enum DriftOutputFormat { Text, Json }
-internal enum DriftPolicy { Advisory, Enforce }
 
 internal static class DriftCommand
 {
@@ -22,22 +21,20 @@ internal static class DriftCommand
             var commit = TryReadCommit(root, cancellationToken);
             var now = DateTimeOffset.UtcNow;
             var analysis = DriftEngine.Analyze(manifest, evidence, baseline, commit, now, cancellationToken);
-            var report = DriftReportFactory.Create(analysis, policy);
+            var evaluation = DriftPolicyEvaluator.Evaluate(analysis, manifest, policy);
+            var report = evaluation.Report;
             if (format == DriftOutputFormat.Json) DriftReportRenderer.WriteJson(report, output);
             else DriftReportRenderer.WriteText(report, output);
 
             if (writeBaselinePath is not null)
                 DriftSnapshotService.Write(root, writeBaselinePath, DriftEngine.Snapshot(analysis, now), updateBaseline);
 
-            if (analysis.Coverage.Unknown > 0 || analysis.Findings.Any(x => x.BaselineState == "unresolved-baseline"))
+            if (evaluation.Inconclusive)
             {
                 error.WriteLine("Architecture drift analysis is inconclusive; unknown evidence is not compliance.");
                 return ExitCodes.OperationalError;
             }
-            var rules = manifest.Rules.ToDictionary(x => x.Id, StringComparer.Ordinal);
-            var blocking = analysis.Findings.Any(x => x.Outcome == FitnessOutcome.Violation && x.Confidence == "deterministic-static"
-                && x.BaselineState == "new" && rules.TryGetValue(x.RuleId, out var rule) && rule.Gate);
-            if (policy == DriftPolicy.Enforce && blocking)
+            if (evaluation.PolicyFailed)
             {
                 error.WriteLine("Architecture drift enforcement failed for one or more new deterministic violations.");
                 return ExitCodes.PolicyFailed;
@@ -55,17 +52,6 @@ internal static class DriftCommand
         try { return GitCommandRunner.RunBounded(root, ["rev-parse", "--verify", "HEAD"], TimeSpan.FromSeconds(5), 256, cancellationToken).Trim(); }
         catch (GitOperationException) { return null; }
     }
-}
-
-internal sealed record DriftReport(string SchemaVersion, string Policy, DriftReportRepository Repository, DriftCoverage Coverage, IReadOnlyList<DriftReportFinding> Findings);
-internal sealed record DriftReportRepository(string RulesManifest, string? Commit);
-internal sealed record DriftReportFinding(string Fingerprint, string RuleId, string AdrStableId, string Outcome, string CheckType, string Confidence, string BaselineState, string Explanation, IReadOnlyList<FitnessEvidence> Evidence);
-
-internal static class DriftReportFactory
-{
-    internal static DriftReport Create(DriftAnalysis analysis, DriftPolicy policy) => new("1.0", policy.ToString().ToLowerInvariant(),
-        new(analysis.RulesManifest, analysis.Commit), analysis.Coverage,
-        analysis.Findings.Select(x => new DriftReportFinding(x.Fingerprint, x.RuleId, x.AdrStableId, DriftEngine.Format(x.Outcome), x.CheckType, x.Confidence, x.BaselineState, x.Explanation, x.Evidence)).ToArray());
 }
 
 internal static class DriftReportRenderer

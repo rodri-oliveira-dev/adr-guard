@@ -71,6 +71,38 @@ public sealed class DriftEngineTests
     }
 
     [Fact]
+    public void SharedPolicyEvaluationPreservesAdvisoryAndEnforceSemantics()
+    {
+        using var repository = Repository.Create(ForbiddenReference);
+        var manifest = repository.Manifest();
+        var analysis = DriftEngine.Analyze(manifest, null, null, "abc123", Now, CancellationToken.None);
+
+        var advisory = DriftPolicyEvaluator.Evaluate(analysis, manifest, DriftPolicy.Advisory);
+        var enforced = DriftPolicyEvaluator.Evaluate(analysis, manifest, DriftPolicy.Enforce);
+
+        Assert.False(advisory.Inconclusive);
+        Assert.False(advisory.PolicyFailed);
+        Assert.Equal("advisory", advisory.Report.Policy);
+        Assert.True(enforced.PolicyFailed);
+        Assert.Equal("enforce", enforced.Report.Policy);
+        Assert.Equal("violation", Assert.Single(enforced.Report.Findings).Outcome);
+    }
+
+    [Fact]
+    public void SharedPolicyEvaluationKeepsUnknownEvidenceInconclusive()
+    {
+        using var repository = Repository.Create("<Project><ItemGroup><ProjectReference Include=\"$(Dynamic)\" /></ItemGroup></Project>");
+        var manifest = repository.Manifest();
+        var analysis = DriftEngine.Analyze(manifest, null, null, null, Now, CancellationToken.None);
+
+        var evaluation = DriftPolicyEvaluator.Evaluate(analysis, manifest, DriftPolicy.Enforce);
+
+        Assert.True(evaluation.Inconclusive);
+        Assert.False(evaluation.PolicyFailed);
+        Assert.Equal("unknown", Assert.Single(evaluation.Report.Findings).Outcome);
+    }
+
+    [Fact]
     public void SnapshotWriteLoadRequiresExplicitUpdateAndRejectsMalformedContract()
     {
         using var repository = Repository.Create(ForbiddenReference);
