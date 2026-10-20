@@ -23,10 +23,13 @@ public sealed class ProjectDependencyTests
     [Fact]
     public void CliReferencesCoreDirectly()
     {
+        var references = ProjectReferences(CliProject);
+
         Assert.Contains(
             Normalize(CoreProject),
-            ProjectReferences(CliProject),
+            references,
             StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain(Normalize(McpProject), references, StringComparer.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -24,7 +24,7 @@ MCP client ──stdio──> MCP ────────────> Core
 
 The CLI retains command routing, exit-code adaptation, human and machine presentation, write workflows, providers, and boundary orchestration. MCP retains its seven read-only versioned tools, `stdio` transport, request/response contracts, and workspace boundary. Core references neither executable; its shared Git process adapter remains bounded, cancellation-aware, and isolated from pure decisions. Automated architecture tests reject Core-to-executable edges, MCP-to-CLI references, cycles, and accidental visibility seams.
 
-Core is distributed only as a runtime dependency inside the existing CLI and MCP .NET Tool packages and inside the CLI container. It has no independent package ID, release, tag, or compatibility stream. The CLI and MCP products continue to version and publish independently.
+Packages and containers built from source after this decision distribute Core only as a runtime dependency inside the CLI and MCP .NET Tool packages and inside the CLI container. This decision does not retroactively change published artifacts. Core has no independent package ID, release, tag, or compatibility stream. The CLI and MCP products continue to version and publish independently.
 
 ## Alternatives considered
 
@@ -34,6 +34,6 @@ Core is distributed only as a runtime dependency inside the existing CLI and MCP
 
 ## Consequences
 
-CLI and MCP now share one deterministic implementation without depending on one another. Package and Docker builds must carry `AdrGuard.Core.dll`, while the MCP package must not carry `adr-guard.dll`. Changes to Core must trigger CLI cross-platform and compatibility coverage.
+CLI and MCP now share one deterministic implementation without depending on one another. New package and Docker builds from this source must carry `AdrGuard.Core.dll`, while new MCP package builds must not carry `adr-guard.dll`. Changes to Core must trigger CLI cross-platform and compatibility coverage.
 
 The additional assembly is an internal implementation detail, not a new product. Contributors must keep adapters at executable boundaries, preserve strict contracts, and move a rule into Core only when it is genuinely shared or domain-owned. Existing release histories remain unchanged; availability of source or a local package is not evidence of a newly published product version.

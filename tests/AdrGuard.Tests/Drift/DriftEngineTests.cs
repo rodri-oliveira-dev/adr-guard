@@ -103,6 +103,56 @@ public sealed class DriftEngineTests
     }
 
     [Fact]
+    public void SharedPolicyEvaluationDoesNotFailForExistingBaselineViolation()
+    {
+        using var repository = Repository.Create(ForbiddenReference);
+        var manifest = repository.Manifest();
+        var baseline = DriftEngine.Snapshot(
+            DriftEngine.Analyze(manifest, null, null, null, Now, CancellationToken.None),
+            Now);
+        var analysis = DriftEngine.Analyze(manifest, null, baseline, null, Now, CancellationToken.None);
+
+        var evaluation = DriftPolicyEvaluator.Evaluate(analysis, manifest, DriftPolicy.Enforce);
+
+        Assert.Equal("existing", Assert.Single(analysis.Findings).BaselineState);
+        Assert.False(evaluation.Inconclusive);
+        Assert.False(evaluation.PolicyFailed);
+    }
+
+    [Fact]
+    public void SharedPolicyEvaluationDoesNotFailForNonGatingRule()
+    {
+        using var repository = Repository.Create(ForbiddenReference);
+        var manifest = repository.Manifest(gate: false);
+        var analysis = DriftEngine.Analyze(manifest, null, null, null, Now, CancellationToken.None);
+
+        var evaluation = DriftPolicyEvaluator.Evaluate(analysis, manifest, DriftPolicy.Enforce);
+
+        Assert.Equal("new", Assert.Single(analysis.Findings).BaselineState);
+        Assert.False(evaluation.Inconclusive);
+        Assert.False(evaluation.PolicyFailed);
+    }
+
+    [Fact]
+    public void SharedPolicyEvaluationTreatsUnresolvedBaselineAsInconclusiveWithoutUnknownCoverage()
+    {
+        using var repository = Repository.Create(ForbiddenReference);
+        var originalManifest = repository.Manifest();
+        var baseline = DriftEngine.Snapshot(
+            DriftEngine.Analyze(originalManifest, null, null, null, Now, CancellationToken.None),
+            Now);
+        var emptyManifest = new FitnessManifest(repository.Root, ".adrguard-fitness.json", []);
+        var analysis = DriftEngine.Analyze(emptyManifest, null, baseline, null, Now, CancellationToken.None);
+
+        var evaluation = DriftPolicyEvaluator.Evaluate(analysis, emptyManifest, DriftPolicy.Enforce);
+
+        Assert.Equal(0, analysis.Coverage.Unknown);
+        Assert.Equal("unresolved-baseline", Assert.Single(analysis.Findings).BaselineState);
+        Assert.True(evaluation.Inconclusive);
+        Assert.False(evaluation.PolicyFailed);
+    }
+
+    [Fact]
     public void SnapshotWriteLoadRequiresExplicitUpdateAndRejectsMalformedContract()
     {
         using var repository = Repository.Create(ForbiddenReference);
@@ -139,11 +189,11 @@ public sealed class DriftEngineTests
             var repository = new Repository(root); repository.WriteDomain(xml); return repository;
         }
         internal void WriteDomain(string xml) => File.WriteAllText(Path.Combine(Root, "src", "Domain", "Domain.csproj"), xml);
-        internal FitnessManifest Manifest(string to = "src/Infrastructure/Infrastructure.csproj")
+        internal FitnessManifest Manifest(string to = "src/Infrastructure/Infrastructure.csproj", bool gate = true)
         {
             var rule = new FitnessRule("domain-no-infrastructure", new("ADR-1", "docs/adr/0001.md", FitnessDecisionState.Effective, "Accepted", null),
                 ["src/Domain/Domain.csproj", to], FitnessCheckType.ForbidProjectReference,
-                "src/Domain/Domain.csproj", to, null, "dotnet-project-reference", "error", true);
+                "src/Domain/Domain.csproj", to, null, "dotnet-project-reference", "error", gate);
             return new(Root, ".adrguard-fitness.json", [rule]);
         }
         public void Dispose() => Directory.Delete(Root, true);

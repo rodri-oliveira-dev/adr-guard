@@ -25,7 +25,6 @@ The root composite GitHub Action is also an adapter around the released CLI/cont
 | `src/AdrGuard/Cli` | CLI command parsing, exit codes, output selection, and orchestration. |
 | `src/AdrGuard/{Generation,Indexing,Baselines}` | CLI-owned write workflows and presentation-specific baseline/index orchestration. |
 | `src/AdrGuard/Review` | Optional provider adapters, bounded review context, policy, security boundary, and versioned reports. |
-| `src/AdrGuard/Git` | Narrow Git process and change-inventory adapters. |
 | `src/AdrGuard.Mcp` | MCP stdio host, versioned tool contracts, transport DTOs, and workspace adapter. |
 | `tests/AdrGuard.Tests` | xUnit v3 Core/CLI unit, contract, and integration tests, organized to mirror production areas. |
 | `tests/AdrGuard.Mcp.Tests` | xUnit v3 MCP protocol, workspace, security, and packaged-tool tests. |
