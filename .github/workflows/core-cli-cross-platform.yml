@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - src/AdrGuard.Core/**
       - src/AdrGuard/**
       - tests/AdrGuard.Tests/Cli/CoreCliCrossPlatformSmokeTests.cs
       - tests/AdrGuard.Tests/AdrGuard.Tests.csproj
@@ -14,6 +15,7 @@ on:
       - .github/workflows/core-cli-cross-platform.yml
   pull_request:
     paths:
+      - src/AdrGuard.Core/**
       - src/AdrGuard/**
       - tests/AdrGuard.Tests/Cli/CoreCliCrossPlatformSmokeTests.cs
       - tests/AdrGuard.Tests/AdrGuard.Tests.csproj

@@ -29,6 +29,8 @@ fi
 
 echo "Container default user: ${configured_user}"
 
+docker run --rm --read-only --entrypoint /bin/sh "${IMAGE}" -c 'test -s /app/AdrGuard.Core.dll'
+
 docker run --rm --read-only "${IMAGE}" --help >"${TEMP_DIR}/help.txt"
 grep -q "ADR Guard" "${TEMP_DIR}/help.txt"
 grep -q "Exit codes:" "${TEMP_DIR}/help.txt"

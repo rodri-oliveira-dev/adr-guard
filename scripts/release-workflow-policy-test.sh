@@ -71,8 +71,10 @@ grep -Fq 'ADR-backed architectural drift' "${PROJECT}" || {
   exit 1
 }
 
-grep -Fq 'Coordinates the documented CLI contracts used by ADR Guard for VS Code 1.1.0 and ADR Guard MCP 1.0.0' "${CI_WORKFLOW}"
-grep -Fq 'Keeps validation, form, JSON/SARIF, impact, drift, review, catalog and exit-code contracts backward compatible' "${CI_WORKFLOW}"
+grep -Fq "tools/net10.0/any/AdrGuard.Core.dll" "${CI_WORKFLOW}"
+grep -Fq -- "--configfile artifacts/cli-source/nuget.config" "${CI_WORKFLOW}"
+grep -Fq "tools/net10.0/any/AdrGuard.Core.dll" "${WORKFLOW}"
+grep -Fq -- "--configfile artifacts/cli-source/nuget.config" "${WORKFLOW}"
 
 grep -Fq 'org.opencontainers.image.description=A .NET CLI for validating, maintaining, reviewing, analyzing impact, and verifying ADR-backed architectural drift.' "${WORKFLOW}" || {
   echo "OCI metadata must describe the prepared architectural drift capability." >&2

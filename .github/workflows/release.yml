@@ -267,6 +267,9 @@ jobs:
             exit 1
           fi
 
+          unzip -Z1 "${expected}" | grep -Fxq 'tools/net10.0/any/AdrGuard.Core.dll'
+          ! unzip -Z1 "${expected}" | grep -Fxq 'tools/net10.0/any/adr-guard-mcp.dll'
+
       - name: Install and smoke-test packaged tool
         shell: bash
         env:
@@ -274,12 +277,10 @@ jobs:
         run: |
           set -euo pipefail
 
-          dotnet tool install \
-            --tool-path ./.release-tools \
-            RodriOliveira.AdrGuard \
-            --version "${PACKAGE_VERSION}" \
-            --add-source ./artifacts/packages \
-            --ignore-failed-sources
+          dotnet new nugetconfig --output artifacts/cli-source --force
+          dotnet nuget remove source nuget --configfile artifacts/cli-source/nuget.config
+          dotnet nuget add source "${GITHUB_WORKSPACE}/artifacts/packages" --name cli-local --configfile artifacts/cli-source/nuget.config
+          dotnet tool install --tool-path ./.release-tools RodriOliveira.AdrGuard --version "${PACKAGE_VERSION}" --configfile artifacts/cli-source/nuget.config
 
           ADR_GUARD_BIN="${PWD}/.release-tools/adr-guard" bash scripts/template-regression-test.sh
           ./.release-tools/adr-guard check docs/adr

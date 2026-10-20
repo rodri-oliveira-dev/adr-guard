@@ -9,6 +9,9 @@ EXTENSION_CI="$ROOT_DIR/.github/workflows/vscode-extension.yml"
 EXTENSION_PACKAGE="$ROOT_DIR/.github/workflows/vscode-extension-release.yml"
 WORKFLOW_DIR="$ROOT_DIR/.github/workflows"
 CI="$ROOT_DIR/.github/workflows/ci.yml"
+CORE_CROSS_PLATFORM="$ROOT_DIR/.github/workflows/core-cli-cross-platform.yml"
+AGENT_SKILLS="$ROOT_DIR/.github/workflows/agent-skills.yml"
+AGENT_SKILLS_PORTAL="$ROOT_DIR/.github/workflows/agent-skills-portal.yml"
 
 xml_value() {
   local file="$1" element="$2"
@@ -162,6 +165,10 @@ grep -Fq '<ProjectReference Include="../AdrGuard.Core/AdrGuard.Core.csproj" />' 
 ! grep -Fq '../AdrGuard/AdrGuard.csproj' "$MCP_PROJECT"
 grep -Fq '<PackAsTool>true</PackAsTool>' "$CLI_PROJECT"
 grep -Fq '<PackAsTool>true</PackAsTool>' "$MCP_PROJECT"
+test "$(grep -Fc '      - src/AdrGuard.Core/**' "$CORE_CROSS_PLATFORM")" -eq 2
+test "$(grep -Fc "      - 'AGENTS.md'" "$AGENT_SKILLS")" -eq 2
+! grep -Fq 'working-directory: website' "$AGENT_SKILLS"
+grep -Fq 'working-directory: website' "$AGENT_SKILLS_PORTAL"
 
 for workflow in "$EXTENSION_CI" "$EXTENSION_PACKAGE"; do
   assert_vsix_upload_retention "$workflow" true
