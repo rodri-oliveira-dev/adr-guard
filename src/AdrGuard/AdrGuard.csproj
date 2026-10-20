@@ -21,7 +21,7 @@
     <PackageReleaseNotes Condition="'$(VersionPrefix)' == '1.9.0'">Adds opt-in --diagnostic-locations evidence to JSON and SARIF validation reports while preserving the default report shape, schema versions, commands and exit codes.
 Improves relationship diagnostics and cross-platform Git path handling.
 Ships the internal, non-packable AdrGuard.Core assembly used directly by the CLI and MCP without creating a public Core package.
-Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/releases/v1.9.0.md</PackageReleaseNotes>
+Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/rodri-oliveira-dev/adr-guard</PackageProjectUrl>
     <RepositoryUrl>https://github.com/rodri-oliveira-dev/adr-guard</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
