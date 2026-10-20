@@ -141,7 +141,10 @@ jobs:
           for entry in README.md LICENSE tools/net10.0/any/adr-guard-mcp.dll tools/net10.0/any/AdrGuard.Core.dll tools/net10.0/any/adr-guard-mcp.deps.json tools/net10.0/any/DotnetToolSettings.xml; do
             unzip -Z1 "$package" | grep -Fxq "$entry"
           done
-          ! unzip -Z1 "$package" | grep -Fxq 'tools/net10.0/any/adr-guard.dll'
+          if unzip -Z1 "$package" | grep -Fxq 'tools/net10.0/any/adr-guard.dll'; then
+            echo "::error::MCP package must not contain the CLI executable assembly."
+            exit 1
+          fi
           unzip -p "$package" README.md | grep -Fq "<!-- mcp-name: $MCP_SERVER_NAME -->"
           sha256sum "$package" .mcp/server.json > artifacts/mcp/SHA256SUMS
           cp .mcp/server.json artifacts/mcp/server.json

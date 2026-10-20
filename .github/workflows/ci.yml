@@ -68,7 +68,10 @@ jobs:
           test -s "artifacts/package/RodriOliveira.AdrGuard.${ADR_GUARD_VERSION}.nupkg"
           package_file="artifacts/package/RodriOliveira.AdrGuard.${ADR_GUARD_VERSION}.nupkg"
           unzip -Z1 "${package_file}" | grep -Fxq 'tools/net10.0/any/AdrGuard.Core.dll'
-          ! unzip -Z1 "${package_file}" | grep -Fxq 'tools/net10.0/any/adr-guard-mcp.dll'
+          if unzip -Z1 "${package_file}" | grep -Fxq 'tools/net10.0/any/adr-guard-mcp.dll'; then
+            echo "::error::CLI package must not contain the MCP executable assembly."
+            exit 1
+          fi
           unzip -Z1 "${package_file}" | grep -Fxq 'icon-nuget.png'
           unzip -p "${package_file}" RodriOliveira.AdrGuard.nuspec | grep -Fq '<icon>icon-nuget.png</icon>'
           cmp images/icon-nuget.png <(unzip -p "${package_file}" icon-nuget.png)
@@ -111,7 +114,10 @@ jobs:
           unzip -Z1 "${package}" | grep -Fxq 'README.md'
           unzip -Z1 "${package}" | grep -Fxq 'LICENSE'
           unzip -Z1 "${package}" | grep -Fxq 'tools/net10.0/any/AdrGuard.Core.dll'
-          ! unzip -Z1 "${package}" | grep -Fxq 'tools/net10.0/any/adr-guard.dll'
+          if unzip -Z1 "${package}" | grep -Fxq 'tools/net10.0/any/adr-guard.dll'; then
+            echo "::error::MCP package must not contain the CLI executable assembly."
+            exit 1
+          fi
           unzip -Z1 "${package}" | grep -Fxq 'tools/net10.0/any/adr-guard-mcp.deps.json'
           unzip -p "${package}" README.md | grep -Fq '<!-- mcp-name: io.github.rodri-oliveira-dev/adr-guard -->'
 

@@ -268,7 +268,10 @@ jobs:
           fi
 
           unzip -Z1 "${expected}" | grep -Fxq 'tools/net10.0/any/AdrGuard.Core.dll'
-          ! unzip -Z1 "${expected}" | grep -Fxq 'tools/net10.0/any/adr-guard-mcp.dll'
+          if unzip -Z1 "${expected}" | grep -Fxq 'tools/net10.0/any/adr-guard-mcp.dll'; then
+            echo "::error::CLI package must not contain the MCP executable assembly."
+            exit 1
+          fi
 
       - name: Install and smoke-test packaged tool
         shell: bash
