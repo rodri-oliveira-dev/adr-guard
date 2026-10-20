@@ -64,6 +64,8 @@ The manually dispatched release workflow uses the selected `main` commit as the 
 
 The Action tags are intentionally published after the container job succeeds. A failed container publication therefore cannot expose a new Action tag whose runtime artifact is missing. The internal reservation tag is not a supported Action reference and prevents a later commit from reusing a SemVer that may already have partially published artifacts.
 
+Curated notes may contain pre-publication guidance between `release-candidate-only` markers while the version is still a source candidate. Before creating the immutable GitHub Release, the workflow uses `scripts/render-release-notes.sh` to remove every marked block and fails closed on missing, nested, or unbalanced markers. The published body therefore keeps the versioned changes, compatibility, limitations, and public installation command without permanently claiming that the release is unpublished or that an older version is current.
+
 ## Idempotency and conflicts
 
 The exact SemVer tag is immutable. On a rerun:

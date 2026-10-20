@@ -3,8 +3,10 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WORKFLOW="${ROOT_DIR}/.github/workflows/release.yml"
+MCP_WORKFLOW="${ROOT_DIR}/.github/workflows/mcp-release.yml"
 CI_WORKFLOW="${ROOT_DIR}/.github/workflows/ci.yml"
 PROJECT="${ROOT_DIR}/src/AdrGuard/AdrGuard.csproj"
+RELEASE_NOTES_RENDERER="${ROOT_DIR}/scripts/render-release-notes.sh"
 
 grep -Fq '  workflow_dispatch:' "${WORKFLOW}" || {
   echo "Release workflow must be started explicitly with workflow_dispatch." >&2
@@ -168,7 +170,10 @@ grep -Fq 'release_notes=(--notes-file docs/releases/v1.6.0.md)' <<<"${release_bl
 grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.8.0 ]]; then' <<<"${release_block}"
 grep -Fq 'release_notes=(--notes-file docs/releases/v1.8.0.md)' <<<"${release_block}"
 grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.9.0 ]]; then' <<<"${release_block}"
-grep -Fq 'release_notes=(--notes-file docs/releases/v1.9.0.md)' <<<"${release_block}"
+grep -Fq 'bash scripts/render-release-notes.sh docs/releases/v1.9.0.md "$rendered_notes"' <<<"${release_block}"
+grep -Fq 'release_notes=(--notes-file "$rendered_notes")' <<<"${release_block}"
+grep -Fq 'bash scripts/render-release-notes.sh "$notes" artifacts/mcp/RELEASE_NOTES.md' "${MCP_WORKFLOW}"
+grep -Fq -- '--notes-file artifacts/mcp/RELEASE_NOTES.md' "${MCP_WORKFLOW}"
 test -s "${ROOT_DIR}/docs/releases/v1.1.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.1.0.pt-BR.md"
 test -s "${ROOT_DIR}/docs/releases/v1.3.0.md"
@@ -181,5 +186,42 @@ test -s "${ROOT_DIR}/docs/releases/v1.8.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.8.0.pt-BR.md"
 test -s "${ROOT_DIR}/docs/releases/v1.9.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.9.0.pt-BR.md"
+
+bash -n "${RELEASE_NOTES_RENDERER}"
+notes_fixture="$(mktemp -d)"
+trap 'rm -rf "${notes_fixture}"' EXIT
+for notes in \
+  "${ROOT_DIR}/docs/releases/v1.9.0.md" \
+  "${ROOT_DIR}/docs/releases/v1.9.0.pt-BR.md" \
+  "${ROOT_DIR}/docs/releases/mcp-v1.0.1.md" \
+  "${ROOT_DIR}/docs/releases/mcp-v1.0.1.pt-BR.md"; do
+  rendered_notes="${notes_fixture}/$(basename "${notes}")"
+  grep -Fq '<!-- release-candidate-only:start -->' "${notes}"
+  grep -Fq '<!-- release-candidate-only:end -->' "${notes}"
+  bash "${RELEASE_NOTES_RENDERER}" "${notes}" "${rendered_notes}"
+  test -s "${rendered_notes}"
+  ! grep -Fq '<!-- release-candidate-only:' "${rendered_notes}"
+  ! grep -Eiq 'candidate|candidata|not published|não está publicad' "${rendered_notes}"
+  ! grep -Fq '## Post-publication checklist' "${rendered_notes}"
+  ! grep -Fq '## Checklist pós-publicação' "${rendered_notes}"
+done
+
+printf '%s\n' '# Missing markers' > "${notes_fixture}/missing-markers.md"
+if bash "${RELEASE_NOTES_RENDERER}" "${notes_fixture}/missing-markers.md" "${notes_fixture}/missing-rendered.md" >/dev/null 2>&1; then
+  echo 'Release notes renderer must reject sources without candidate-only markers.' >&2
+  exit 1
+fi
+
+printf '%s\n' \
+  '# Nested markers' \
+  '<!-- release-candidate-only:start -->' \
+  '<!-- release-candidate-only:start -->' \
+  'candidate guidance' \
+  '<!-- release-candidate-only:end -->' \
+  '<!-- release-candidate-only:end -->' > "${notes_fixture}/nested-markers.md"
+if bash "${RELEASE_NOTES_RENDERER}" "${notes_fixture}/nested-markers.md" "${notes_fixture}/nested-rendered.md" >/dev/null 2>&1; then
+  echo 'Release notes renderer must reject nested candidate-only markers.' >&2
+  exit 1
+fi
 
 echo "Release workflow Action publication policy checks passed."

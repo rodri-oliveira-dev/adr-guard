@@ -23,7 +23,7 @@ O workflow compila um `.nupkg` dependente do framework, valida o marcador do REA
 
 Reexecuções preservam versão e SHA originais. A etapa de reserva distingue HTTP `404` (criar uma nova tag) de HTTP `200` (verificar o commit exato da tag existente) e interrompe a publicação em erros de autorização, transporte ou servidor. As respostas da API do GitHub são limitadas a 64 KiB, e o token temporário é transmitido ao curl pela configuração na entrada padrão, nunca como argumento do processo. Tags de reserva/release existentes devem apontar para esse SHA. Versões NuGet e Registry existentes devem comprovar metadados equivalentes ou o workflow falha de forma fechada. Etapas posteriores ausentes podem ser retomadas; artefatos imutáveis e tags nunca são sobrescritos ou movidos.
 
-Os assets são o `.nupkg` MCP, `SHA256SUMS`, `server.json` validado e notas específicas do MCP. O pacote não é binário nativo autossuficiente. Disponibilidade preview e mudanças de schema do Registry continuam riscos externos, e workflows de PR/push nunca publicam.
+Os assets são o `.nupkg` MCP, `SHA256SUMS`, `server.json` validado e notas específicas do MCP. As notas-fonte podem conter orientações de pré-publicação entre marcadores `release-candidate-only`. Durante o empacotamento, `scripts/render-release-notes.sh` remove esses blocos marcados e falha de forma fechada quando os marcadores estão ausentes, aninhados ou desbalanceados; o `RELEASE_NOTES.md` neutro resultante é usado tanto como asset imutável quanto como corpo da GitHub Release. O pacote não é binário nativo autossuficiente. Disponibilidade preview e mudanças de schema do Registry continuam riscos externos, e workflows de PR/push nunca publicam.
 
 ## GitHub Packages: publicação retroativa da release existente
 

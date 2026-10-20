@@ -1,8 +1,10 @@
-# ADR Guard MCP v1.0.1 — Candidata a release (não publicada)
+# ADR Guard MCP v1.0.1
 
 [English](mcp-v1.0.1.md)
 
+<!-- release-candidate-only:start -->
 O ADR Guard MCP `1.0.1` está preparado no código-fonte, mas, em 20/10/2026, **não está publicado** no NuGet.org, em GitHub Releases, no GitHub Packages nem no MCP Registry. A release MCP pública atual continua sendo a `1.0.0`. Esta candidata patch altera a composição interna e corrige o tratamento de plataforma, preservando todos os contratos públicos do MCP.
+<!-- release-candidate-only:end -->
 
 ## Principais mudanças
 
@@ -32,10 +34,11 @@ Não há mudança pública intencional. A correção do macOS evita rejeitar um 
 
 - O servidor não possui transporte de rede, ferramentas de escrita, serviço hospedado, integração com provider, aprovação autônoma nem produção de evidências.
 - Ele não executa builds, testes, scripts ou `git fetch` e não pode criar, editar, aprovar nem alterar o status de ciclo de vida de uma ADR.
-- O `.mcp/server.json` versionado permanece intencionalmente na versão `1.0.0` atualmente publicada no Registry; o workflow protegido gera e valida o manifesto `1.0.1` somente para o commit selecionado na release.
+- O `.mcp/server.json` versionado registra a última entrada do Registry verificada de forma independente. O workflow protegido deriva a versão selecionada do commit validado da release e valida o manifesto gerado antes da publicação no Registry.
 
-## Instalar a candidata
+## Instalar ou atualizar
 
+<!-- release-candidate-only:start -->
 Antes da publicação, instale somente o pacote local validado:
 
 ```shell
@@ -45,7 +48,16 @@ dotnet tool install --tool-path ./.mcp-tools RodriOliveira.AdrGuard.Mcp \
 ```
 
 Continue usando `1.0.0` nas instalações pelo NuGet público até que `1.0.1` esteja visível de forma independente no NuGet.org e no MCP Registry.
+<!-- release-candidate-only:end -->
 
+Quando o NuGet.org listar a versão exata, instale-a com:
+
+```shell
+dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.1
+adr-guard-mcp --repository /caminho/absoluto/do/repo --adr-directory docs/adr
+```
+
+<!-- release-candidate-only:start -->
 ## Checklist pós-publicação
 
 Depois que a publicação for explicitamente autorizada e concluída:
@@ -55,3 +67,4 @@ Depois que a publicação for explicitamente autorizada e concluída:
 - verifique se a entrada oficial do Registry identifica `1.0.1`, aponta para o mesmo pacote NuGet e continua declarando `stdio`;
 - verifique o GitHub Packages separadamente; não execute o backfill histórico de `1.0.0` como parte desta release;
 - somente então atualize `.mcp/server.json`, defaults de instalação, estado no changelog, READMEs, matriz de compatibilidade e fontes do portal de candidata para publicada.
+<!-- release-candidate-only:end -->

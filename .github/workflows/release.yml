@@ -711,7 +711,9 @@ jobs:
               exit 1
             fi
 
-            release_notes=(--notes-file docs/releases/v1.9.0.md)
+            rendered_notes="$RUNNER_TEMP/v1.9.0-release-notes.md"
+            bash scripts/render-release-notes.sh docs/releases/v1.9.0.md "$rendered_notes"
+            release_notes=(--notes-file "$rendered_notes")
           fi
 
           gh release create "${RELEASE_TAG}" \

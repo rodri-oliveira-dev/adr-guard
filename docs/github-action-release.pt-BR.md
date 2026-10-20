@@ -64,6 +64,8 @@ O workflow de release disparado manualmente usa o commit selecionado da `main` c
 
 As tags da Action só são publicadas depois que o job de container termina com sucesso. Assim, uma falha na publicação do container não consegue expor uma nova tag da Action cujo runtime ainda não exista. A tag interna de reserva não é uma referência suportada da Action e impede que um commit posterior reutilize um SemVer que possa ter artefatos parcialmente publicados.
 
+As notas curadas podem conter orientações de pré-publicação entre marcadores `release-candidate-only` enquanto a versão ainda é candidata no código-fonte. Antes de criar a GitHub Release imutável, o workflow usa `scripts/render-release-notes.sh` para remover todos os blocos marcados e falha de forma fechada quando os marcadores estão ausentes, aninhados ou desbalanceados. Assim, o corpo publicado preserva mudanças versionadas, compatibilidade, limitações e o comando de instalação pública sem afirmar permanentemente que a release não foi publicada ou que uma versão anterior continua vigente.
+
 ## Idempotência e conflitos
 
 A tag SemVer exata é imutável. Em uma reexecução:
