@@ -22,4 +22,4 @@ The [VS Code Extension CI](https://github.com/rodri-oliveira-dev/adr-guard/actio
 - Download files from the workflow run's **Artifacts** section, not from the historic [Marketplace deployments](https://github.com/rodri-oliveira-dev/adr-guard/deployments/vscode-marketplace) page.
 - The extension version must be stable `MAJOR.MINOR.PATCH` and the manifest must identify publisher `rodrioliveira` and package `adr-guard`.
 
-To publish on the Marketplace in the future, a **separate, explicitly approved publishing workflow** and Marketplace authentication would need to be introduced. VSIX packaging alone never updates the Marketplace.
+Version 1.1.0 is already available in the Marketplace, but this repository workflow did not publish it and has no Marketplace credentials. Any future Marketplace update still requires a **separate, explicitly approved publication path** and Marketplace authentication. VSIX packaging alone never updates the Marketplace.

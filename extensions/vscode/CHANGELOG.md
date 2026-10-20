@@ -2,16 +2,16 @@
 
 All notable changes to ADR Guard for VS Code are documented here. Extension versions are independent from ADR Guard CLI versions.
 
-## 1.1.0 — Unreleased
+## 1.1.0 — 2026-10-20
 
 - Navigate Problems diagnostics to optional CLI-provided line and column locations, while retaining the document-start fallback for older CLIs and file-only findings.
 - Added optional, default-off MCP registration through the stable VS Code provider API, with one isolated `stdio` definition per trusted local workspace folder and an independently installed MCP executable or built DLL configured at machine scope.
 - Added visual, explicitly invoked CLI workflows for Architecture Impact, Architectural Drift, diagnostic baseline creation/update, standard/enriched catalogs, AI-assisted ADR drafting, and advisory Technical Review with `--compare-ref`.
 - Added workspace-scoped architecture/governance/AI settings, MCP availability states, bilingual accessible UI, cancellation/stale-response protection, privacy confirmations, and strict versioned JSON parsing.
 - Fixed visual impact and drift execution to preserve repository-relative file operands required by the CLI, and stopped unrelated analysis/review workflows from requiring the configured ADR directory to exist.
-- Updated 1.1.0 candidate distribution: the manual **VS Code VSIX Package** GitHub Actions workflow validates and builds `adr-guard-<version>.vsix` from the extension manifest and exposes it as the `adr-guard-vscode-<version>` downloadable workflow artifact, retained for 21 days (subject to repository retention limits). The VS Code Extension CI workflow also retains its validated, versioned VSIX artifacts for 21 days.
-- **No Marketplace publication occurs in either workflow.** Version 1.1.0 remains unpublished on the Marketplace; downloading a VSIX is a separate, manual installation path and does not represent a public Marketplace release. A distinct, explicitly approved publishing workflow would be required to publish new versions to the Marketplace. MCP 1.0.0 is an independent, optional dependency published separately on NuGet.org and in the MCP Registry.
-- See [VSIX packaging and installation](PUBLISHING.md) and the [VS Code 1.1.0 candidate release notes](../../docs/releases/vscode-v1.1.0.md) ([pt-BR](../../docs/releases/vscode-v1.1.0.pt-BR.md)).
+- Published independently on the Visual Studio Marketplace as `rodrioliveira.adr-guard` 1.1.0. The repository's manual **VS Code VSIX Package** workflow still only validates and builds `adr-guard-<version>.vsix`, retained for 21 days; it does not publish to the Marketplace.
+- MCP 1.0.0 remains an independent, optional dependency published separately on NuGet.org and in the MCP Registry.
+- See [VSIX packaging and installation](PUBLISHING.md) and the [VS Code 1.1.0 release notes](../../docs/releases/vscode-v1.1.0.md) ([pt-BR](../../docs/releases/vscode-v1.1.0.pt-BR.md)).
 
 ## 1.0.1 — 2026-10-15
 

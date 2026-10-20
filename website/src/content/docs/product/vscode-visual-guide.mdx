@@ -1,6 +1,6 @@
 ---
 title: VS Code — Visual Guide
-description: A visual walkthrough of the ADR Guard 1.1.0 release-candidate interface for browsing, creating, editing, configuring, and validating ADRs in VS Code.
+description: A visual walkthrough of the published ADR Guard 1.1.0 interface for browsing, creating, editing, configuring, and validating ADRs in VS Code.
 sidebar:
   order: 2
   badge:
@@ -11,10 +11,10 @@ sidebar:
 ADR Guard for VS Code is a workspace-hosted interface over the .NET CLI. The extension provides navigation, forms, settings, and Problems diagnostics; the CLI remains authoritative for parsing, generation, editing, validation, policy, and exit codes.
 
 :::note[Release status]
-These screenshots capture the interface from extension **1.0.0**, using the released CLI **1.7.0** form contracts, and remain representative of the shared interface in the published Marketplace version **1.0.1**. The architecture/governance/AI screens and MCP provider prepared for extension **1.1.0** are documented textually below because no verified captures or Marketplace release for 1.1.0 exist yet. Extension, CLI, and MCP releases are independent.
+These screenshots capture the interface from extension **1.0.0**, using the released CLI **1.7.0** form contracts, and remain representative of the shared interface in the published Marketplace version **1.1.0**. The architecture/governance/AI screens and MCP provider included in 1.1.0 are documented textually below because no additional verified captures exist. Extension, CLI, and MCP releases are independent.
 :::
 
-For the unreleased 1.1.0 candidate, the [VS Code VSIX Package GitHub Actions workflow](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/vscode-extension-release.yml) builds and validates a versioned `.vsix` downloadable from the successful run's **Artifacts** section for **21 days** (subject to repository retention limits). This is an artifact-only installation option; **the workflow does not publish to the Marketplace**. See the [candidate release notes](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/releases/vscode-v1.1.0.md) for the download and manual installation procedure.
+The [VS Code VSIX Package GitHub Actions workflow](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/vscode-extension-release.yml) builds and validates a versioned `.vsix` downloadable from the successful run's **Artifacts** section for **21 days** (subject to repository retention limits). This remains an artifact-only installation option; **the workflow does not publish to the Marketplace**, even though 1.1.0 is independently available there. See the [release notes](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/releases/vscode-v1.1.0.md).
 
 For command tables, settings keys, trust boundaries, and troubleshooting, use the [VS Code extension reference](../vscode-extension/). This guide focuses on the interface and common workflows.
 
@@ -107,9 +107,9 @@ Leave the executable empty to use secure discovery on the extension host `PATH`,
 
 Settings are written at their documented user, machine, or workspace-folder scopes. If a grouped write fails, the extension attempts to roll back earlier writes and keeps the draft available instead of reporting partial success.
 
-### 1.1.0 release-candidate analysis and integrations
+### 1.1.0 analysis and integrations
 
-The 1.1.0 release-candidate panel adds Architecture Impact, Architectural Fitness, Diagnostic Baselines, ADR Catalog, AI-Assisted ADR Draft, and AI-Assisted Technical Review cards. Opening a card does not execute it. Results appear only after explicit execution and remain scoped to the selected workspace. Impact and drift preserve evidence and uncertainty; `unknown` is not shown as success. Baseline replacement, catalog generation, and draft creation require explicit confirmation. AI forms disclose provider, model, and selected context before transmission.
+The 1.1.0 panel adds Architecture Impact, Architectural Fitness, Diagnostic Baselines, ADR Catalog, AI-Assisted ADR Draft, and AI-Assisted Technical Review cards. Opening a card does not execute it. Results appear only after explicit execution and remain scoped to the selected workspace. Impact and drift preserve evidence and uncertainty; `unknown` is not shown as success. Baseline replacement, catalog generation, and draft creation require explicit confirmation. AI forms disclose provider, model, and selected context before transmission.
 
 The same settings screen adds Architecture Analysis, AI Providers, and MCP Integration sections. MCP is disabled by default and its check reports configuration availability, not a live connection. See the [extension reference](../vscode-extension/) and [MCP guide](../mcp/) for exact behavior and release status.
 

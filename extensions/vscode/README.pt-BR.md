@@ -4,7 +4,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 
 > **Extensão publicada:** [ADR Guard para VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) está disponível no Visual Studio Marketplace como `rodrioliveira.adr-guard`. A extensão VS Code e a CLI .NET são distribuídas e versionadas separadamente; a extensão não inclui a CLI.
 
-> **Estado da release:** a versão 1.0.1 está publicada no Marketplace. A versão 1.1.0 é uma candidata em código-fonte/VSIX que adiciona o provider MCP e os fluxos visuais de Impacto, Drift, baseline, catálogo enriquecido, Rascunho por IA e Review Técnico descritos abaixo. O MCP 1.0.0 está publicado separadamente no NuGet.org e no MCP Registry.
+> **Estado da release (verificado em 20/10/2026):** a versão 1.1.0 está publicada no Marketplace e adiciona o provider MCP e os fluxos visuais de Impacto, Drift, baseline, catálogo enriquecido, Rascunho por IA e Review Técnico descritos abaixo. O MCP 1.0.0 está publicado separadamente no NuGet.org e no MCP Registry; MCP 1.0.1 continua sendo uma candidata não publicada.
 
 ## Funcionalidades
 
@@ -27,7 +27,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 
 ## Prévia da interface
 
-As imagens abaixo documentam a interface visual disponível na extensão 1.0.1 publicada e preservada pela candidata 1.1.0, capturada em um Extension Development Host real com uma CLI compatível. A criação e a edição visuais exigem os contratos de formulário schema `1.0` da CLI 1.7.0. As novas telas de arquitetura, governança, IA e MCP são descritas em texto porque não há captura adicional verificada; as imagens existentes não são apresentadas como evidência dessas telas novas.
+As imagens abaixo documentam a interface visual introduzida antes e preservada pela extensão 1.1.0 publicada, capturada em um Extension Development Host real com uma CLI compatível. A criação e a edição visuais exigem os contratos de formulário schema `1.0` da CLI 1.7.0. As telas de arquitetura, governança, IA e MCP são descritas em texto porque não há captura adicional verificada; as imagens existentes não são apresentadas como evidência dessas telas.
 
 ### Consultar e buscar
 
@@ -131,7 +131,7 @@ A seção Integração com a CLI expõe o executável, timeout e limite de saíd
 
 ## Fluxos visuais de arquitetura, governança e IA
 
-O painel reutilizável do ADR Guard expõe estes fluxos da candidata 1.1.0 como ações internas da Webview; eles não são comandos adicionais da Paleta:
+O painel reutilizável do ADR Guard expõe estes fluxos publicados na versão 1.1.0 como ações internas da Webview; eles não são comandos adicionais da Paleta:
 
 | Área | Invocação da CLI | Comportamento visual e limite |
 | --- | --- | --- |
@@ -216,11 +216,11 @@ O manifesto é a fonte de verdade. Valores de recurso são salvos por pasta pela
 | Superfície | Requisito |
 | --- | --- |
 | VS Code | `1.101.0` ou superior na linha `1.x`. |
-| Extensão 1.1.0 | Preparada, não publicada. Releases da extensão e CLI são independentes; confirme as notas do Marketplace antes de depender dos recursos da candidata. |
+| Extensão 1.1.0 | Publicada no Visual Studio Marketplace. Releases da extensão e da CLI permanecem independentes. |
 | Integração básica da CLI | `adr-guard` v1.3.0 ou superior compatível para os comandos básicos documentados. |
 | Criação/edição visual | Contratos de formulário schema `1.0` da CLI 1.7.0. |
 | Impacto, drift, baseline, catálogo enriquecido, draft, review/comparação | Build da CLI cujo `<command> --help` exponha os flags pedidos; a extensão verifica capacidades em vez de presumir versões iguais. |
-| MCP | Opcional. A candidata 1.1.0 da extensão usa a API estável de provider MCP do VS Code com o MCP 1.0.0 publicado e instalado separadamente; a extensão funciona integralmente sem ele. |
+| MCP | Opcional. A extensão 1.1.0 usa a API estável de provider MCP do VS Code com o MCP 1.0.0 instalado separadamente ou build compatível com o schema `1.0`; a extensão funciona integralmente sem ele. |
 
 ## Solução de problemas
 

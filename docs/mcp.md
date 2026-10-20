@@ -4,7 +4,7 @@
 
 The ADR Guard MCP server is a local, read-only adapter that exposes ADR Guard domain capabilities to Model Context Protocol clients. It lets a compatible agent list, read, search, relate, validate, and analyze ADRs without replacing the CLI or embedding an AI model in ADR Guard.
 
-> **Availability:** MCP `1.0.0` is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0), and the official MCP Registry. GitHub Packages is an authenticated secondary feed with an independently triggered backfill for the already published 1.0.0 release. See [MCP release distribution](mcp-release.md).
+> **Availability:** MCP `1.0.0` is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0), and the official MCP Registry. MCP `1.0.1` is an unpublished candidate; do not use its version in public installation commands until both NuGet.org and the Registry are verified. GitHub Packages is an authenticated secondary feed with an independently triggered backfill for the already published 1.0.0 release. See [MCP release distribution](mcp-release.md).
 
 The prepared Registry name is `io.github.rodri-oliveira-dev/adr-guard`, backed by the NuGet package `RodriOliveira.AdrGuard.Mcp`. The Registry is discovery metadata for compatible clients; it does not guarantee client-side automatic installation. The only transport is local `stdio`.
 
@@ -14,15 +14,15 @@ The prepared Registry name is `io.github.rodri-oliveira-dev/adr-guard`, backed b
 flowchart LR
   Agent[Compatible VS Code agent] --> Client[VS Code MCP client]
   Client -->|stdio| Server[adr-guard-mcp process]
-  Server --> Domain[ADR Guard .NET domain services]
-  Domain --> Files[Bounded repository files]
-  Domain --> Git[Read-only local Git inventory]
+  Server --> Core[Internal AdrGuard.Core]
+  Core --> Files[Bounded repository files]
+  Core --> Git[Read-only local Git inventory]
   Extension[ADR Guard VS Code extension] -->|registers one definition per folder| Client
   Extension -->|traditional visual workflows| CLI[adr-guard CLI]
-  CLI --> Domain
+  CLI --> Core
 ```
 
-The MCP process and CLI are separate executables over the same .NET domain implementation. The extension's visual commands continue to invoke `adr-guard` directly. MCP registration is optional and only lets VS Code manage an independent `adr-guard-mcp` process for a selected workspace folder.
+The MCP process and CLI are separate executables that reference the same internal, non-packable `AdrGuard.Core` implementation directly. Candidate MCP packages contain MCP plus Core and exclude the CLI executable; candidate CLI packages contain CLI plus Core and exclude MCP. Core has no package or release stream. The extension's visual commands continue to invoke `adr-guard` directly. MCP registration is optional and only lets VS Code manage an independent `adr-guard-mcp` process for a selected workspace folder.
 
 ADR Guard supplies structured tools and evidence. The client agent performs natural-language interpretation. Neither the server nor an agent can approve an ADR, establish architectural compliance beyond the declared deterministic rules, or change lifecycle status.
 

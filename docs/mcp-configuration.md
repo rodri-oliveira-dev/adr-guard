@@ -4,6 +4,8 @@
 
 MCP 1.0.0 is a [published .NET Tool on NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0) with a [dedicated GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0) and official Registry entry. NuGet.org is the recommended installation channel; GitHub Packages is an optional authenticated secondary feed that requires a one-time backfill for version 1.0.0.
 
+MCP 1.0.1 is prepared as an unpublished local-package candidate. It has the same seven tools and schema `1.0` contracts but carries the new direct internal Core dependency. Keep public installation examples on 1.0.0 until 1.0.1 is visible in both NuGet.org and the Registry.
+
 ## Install the published package
 
 The package requires the .NET 10 runtime and installs `adr-guard-mcp` independently from the traditional `adr-guard` CLI:
@@ -57,7 +59,7 @@ Unknown, missing, or malformed arguments return exit code `2`. Startup I/O and a
 
 ## VS Code extension integration
 
-The integration prepared for VS Code extension 1.1.0 uses the stable VS Code MCP provider API and is disabled by default:
+The integration published in VS Code extension 1.1.0 uses the stable VS Code MCP provider API and is disabled by default:
 
 1. Build the server in the environment that hosts the workspace extension.
 2. Open a trusted local `file:` workspace.

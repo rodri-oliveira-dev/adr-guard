@@ -6,16 +6,25 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
+- No additional CLI changes after the `1.9.0` release candidate baseline.
+
+## 1.9.0 — Release candidate; not published
+
 ### Added
-- Prepare an authenticated GitHub Packages distribution channel for future MCP versions and a separate manual backfill of the existing, immutable MCP 1.0.0 release. Package hash and commit provenance are validated before upload; NuGet.org and MCP Registry remain the primary publication channels.
 - Add opt-in one-based `line` and `column` evidence to schema 1.0 validation diagnostics and matching SARIF regions while preserving the default report shape and file-only findings when no precise location is known.
+- Add cross-platform process-level smoke coverage and an informational, reproducible performance baseline.
 
 ### Changed
 - Extract shared deterministic parsing, validation, configuration, Git inventory, impact, and drift behavior into the internal, non-packable `AdrGuard.Core` assembly. CLI and MCP packages carry Core directly while remaining independently versioned executables; commands, schemas, exit codes, and the seven MCP tools are unchanged.
+- Prepare CLI package metadata and curated bilingual release notes for `1.9.0` without publishing a package, tag, release, container, or Action alias.
 
 ### Fixed
-- Fix the independent MCP release version-reservation step to distinguish HTTP 404 (create) from HTTP 200 (verify), cap GET/POST API responses to 64 KiB, and keep authorization tokens out of process arguments; add offline regression tests before any package publication.
 - Resolve physical Git directory identities before repository containment checks so macOS `/var` and `/private/var` aliases no longer break MCP impact analysis or incremental ADR detection. Physical containment and symlink protections remain enforced.
+- Preserve parser-backed locations for relationship diagnostics while leaving findings without reliable evidence at file scope.
+
+### Compatibility and publication
+- Preserve CLI commands, defaults, arguments, exit codes `0`–`4`, JSON schema `1.0`, SARIF `2.1.0`, diagnostic fingerprints, and deterministic ordering.
+- CLI `1.8.0` remains the public version until every `1.9.0` channel is independently verified. See the [candidate release notes](docs/releases/v1.9.0.md) and their [post-publication checklist](docs/releases/v1.9.0.md#post-publication-checklist).
 
 ## [1.8.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.8.0) — 2026-10-17
 

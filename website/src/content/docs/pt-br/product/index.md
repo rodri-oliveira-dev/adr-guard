@@ -14,7 +14,7 @@ O ADR Guard mantém o julgamento arquitetural com pessoas e automatiza verifica�
 | [CLI](./cli/) | Você precisa da superfície local completa | Executa localmente com argumentos e configuração explícitos |
 | [GitHub Action](./github-action/) | Pull requests devem validar ou revisar mudanças | Executa no GitHub Actions com permissões e entradas definidas |
 | [Extensão VS Code](./vscode-extension/) · [Guia visual](./vscode-visual-guide/) | Colaboradores querem criação/edição visual, explorer, comandos e diagnósticos | Executa no host do workspace; aceita apenas workspaces locais confiáveis; invoca uma CLI compatível existente |
-| [Servidor MCP](./mcp/) | Agentes compatíveis precisam de ferramentas estruturadas e somente leitura do ADR Guard | Candidata MCP 1.0.0 por pacote local/build do código-fonte; um repositório limitado por processo `stdio`; sem distribuição MCP oficial |
+| [Servidor MCP](./mcp/) | Agentes compatíveis precisam de ferramentas estruturadas e somente leitura do ADR Guard | MCP 1.0.0 publicado no NuGet.org e no MCP Registry; 1.0.1 é candidata não publicada; um repositório limitado por processo `stdio` |
 | [Contêiner](./containers/) | Você quer runtime isolado e reproduzível | Monte apenas arquivos necessários e passe configuração conscientemente |
 | [Agent Skills](../skills/) | Você quer orientação de um agente para decisões e fluxos da CLI | Instruções portáteis; não incluem a CLI nem aprovam arquitetura |
 
@@ -43,7 +43,7 @@ Rascunho e revisão enviam contexto selecionado ao provedor configurado. A saíd
 
 ## Status do MCP
 
-O servidor MCP 1.0.0 independente e o provider opcional da candidata VS Code 1.1.0 estão implementados e testados. Eles podem ser instalados de um pacote local ou compilados do código-fonte e expõem sete ferramentas somente leitura por `stdio`. Nenhum pacote NuGet, container, instalador, versão da extensão no Marketplace contendo o provider ou outra distribuição MCP oficial foi publicada. Não trate disponibilidade no código-fonte como disponibilidade em release.
+O servidor MCP 1.0.0 independente está publicado no NuGet.org e no MCP Registry, e o provider opcional está publicado na extensão VS Code 1.1.0. O servidor expõe sete ferramentas somente leitura por `stdio` e é instalado separadamente da extensão. MCP 1.0.1 e CLI 1.9.0 permanecem candidatas não publicadas; não trate código-fonte nem artifacts de workflow como disponibilidade em registro.
 
 Consulte a [visão geral do MCP](./mcp/), o [guia de configuração](./mcp-configuration/), as [ferramentas disponíveis](./mcp-tools/) e o [modelo de segurança](./mcp-security/) para o contrato implementado e instruções de desenvolvimento local.
 

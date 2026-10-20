@@ -6,6 +6,8 @@ The `MCP Release` workflow (`.github/workflows/mcp-release.yml`) is independent 
 
 MCP `1.0.0` has been published to [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), a [dedicated GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0), and the MCP Registry. GitHub Packages is a separate, authenticated secondary NuGet feed; its `1.0.0` availability requires the dedicated backfill workflow after this change is merged.
 
+MCP `1.0.1` is an unpublished release candidate. Its project baseline is `1.0.1`, while the checked-in `.mcp/server.json` intentionally records the latest Registry publication, `1.0.0`. The manual workflow structurally replaces both manifest version fields with the explicit `workflow_dispatch` input, validates the generated manifest, and publishes it only after package and GitHub Release gates succeed.
+
 ## Required one-time administration
 
 1. On NuGet.org, ensure `rodri-oliveira-dev` owns or can create `RodriOliveira.AdrGuard.Mcp`.

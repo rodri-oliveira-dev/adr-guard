@@ -4,7 +4,7 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 
 > **Published extension:** [ADR Guard for VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) is available on the Visual Studio Marketplace as `rodrioliveira.adr-guard`. The VS Code extension and .NET CLI are distributed and versioned separately; the extension does not bundle the CLI.
 
-> **Release status:** version 1.0.1 is published in the Marketplace. Version 1.1.0 is a source/VSIX candidate that adds the MCP provider and visual Impact, Drift, baseline, enriched catalog, AI Draft, and Technical Review workflows described below. MCP 1.0.0 is published separately on NuGet.org and in the MCP Registry.
+> **Release status (verified 2026-10-20):** version 1.1.0 is published in the Marketplace and adds the MCP provider and visual Impact, Drift, baseline, enriched catalog, AI Draft, and Technical Review workflows described below. MCP 1.0.0 is published separately on NuGet.org and in the MCP Registry; MCP 1.0.1 remains an unpublished candidate.
 
 ## Features
 
@@ -27,7 +27,7 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 
 ## Interface preview
 
-The images below document the visual interface available in the published extension 1.0.1 and retained by the 1.1.0 release candidate, captured in a real Extension Development Host with a compatible CLI. Visual creation and editing require the CLI 1.7.0 schema `1.0` form contracts. The new architecture, governance, AI, and MCP screens are described textually because no additional verified capture is available; the existing images are not presented as evidence of those new screens.
+The images below document the visual interface introduced before and retained by the published extension 1.1.0, captured in a real Extension Development Host with a compatible CLI. Visual creation and editing require the CLI 1.7.0 schema `1.0` form contracts. The architecture, governance, AI, and MCP screens are described textually because no additional verified capture is available; the existing images are not presented as evidence of those screens.
 
 ### Browse and search
 
@@ -131,7 +131,7 @@ The CLI Integration section exposes the machine-scoped executable, timeout, and 
 
 ## Visual architecture, governance, and AI workflows
 
-The reusable ADR Guard panel exposes these 1.1.0 release-candidate workflows as internal Webview actions; they are not additional Command Palette commands:
+The reusable ADR Guard panel exposes these published 1.1.0 workflows as internal Webview actions; they are not additional Command Palette commands:
 
 | Area | CLI invocation | Visual behavior and boundary |
 | --- | --- | --- |
@@ -216,11 +216,11 @@ The manifest is authoritative. Resource values are saved per workspace folder by
 | Surface | Requirement |
 | --- | --- |
 | VS Code | `1.101.0` or newer in the `1.x` line. |
-| Extension 1.1.0 | Prepared, not published. Extension and CLI releases are independent; verify Marketplace release notes before relying on release-candidate features. |
+| Extension 1.1.0 | Published in the Visual Studio Marketplace. Extension and CLI releases remain independent. |
 | Core CLI integration | Compatible `adr-guard` v1.3.0 or newer for the documented baseline commands. |
 | Visual create/edit | CLI 1.7.0 schema `1.0` form contracts. |
 | Impact, drift, baseline, enriched catalog, draft, review/compare | A CLI build whose `<command> --help` exposes the requested flags; the extension checks capabilities instead of assuming matching versions. |
-| MCP | Optional. The extension 1.1.0 candidate uses the stable VS Code MCP provider API with the separately published MCP 1.0.0; the extension remains fully functional without it. |
+| MCP | Optional. Extension 1.1.0 uses the stable VS Code MCP provider API with separately installed MCP 1.0.0 or a compatible schema `1.0` build; the extension remains fully functional without it. |
 
 ## Troubleshooting
 
