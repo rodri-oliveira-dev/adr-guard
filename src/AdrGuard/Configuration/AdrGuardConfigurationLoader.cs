@@ -4,7 +4,7 @@ namespace AdrGuard.Configuration;
 
 internal static class AdrGuardConfigurationLoader
 {
-    internal const string FileName = ".adrguard.yml";
+    internal const string FileName = AdrGuardConfigurationFile.Name;
     private const int MaximumBytes = 64 * 1024;
 
     private static readonly HashSet<string> KnownKeys =

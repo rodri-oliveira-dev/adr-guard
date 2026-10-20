@@ -21,6 +21,15 @@ public sealed class ProjectDependencyTests
     }
 
     [Fact]
+    public void CliReferencesCoreDirectly()
+    {
+        Assert.Contains(
+            Normalize(CoreProject),
+            ProjectReferences(CliProject),
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void CurrentProductionProjectGraphIsAcyclic()
     {
         var projects = new[] { CoreProject, CliProject, McpProject };

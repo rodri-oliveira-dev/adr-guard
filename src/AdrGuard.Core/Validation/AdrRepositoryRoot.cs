@@ -18,7 +18,7 @@ internal static class AdrRepositoryRoot
              current is not null;
              current = current.Parent)
         {
-            if (File.Exists(Path.Combine(current.FullName, AdrGuardConfigurationLoader.FileName))
+            if (File.Exists(Path.Combine(current.FullName, AdrGuardConfigurationFile.Name))
                 || Directory.Exists(Path.Combine(current.FullName, ".git"))
                 || File.Exists(Path.Combine(current.FullName, ".git")))
             {

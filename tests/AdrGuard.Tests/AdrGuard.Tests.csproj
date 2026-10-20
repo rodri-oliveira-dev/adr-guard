@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../src/AdrGuard.Core/AdrGuard.Core.csproj" />
     <ProjectReference Include="../../src/AdrGuard/AdrGuard.csproj" />
   </ItemGroup>
 
