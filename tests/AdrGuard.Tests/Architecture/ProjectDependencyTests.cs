@@ -30,6 +30,44 @@ public sealed class ProjectDependencyTests
     }
 
     [Fact]
+    public void McpReferencesCoreWithoutCliProjectReference()
+    {
+        var references = ProjectReferences(McpProject);
+
+        Assert.Contains(Normalize(CoreProject), references, StringComparer.OrdinalIgnoreCase);
+        Assert.DoesNotContain(Normalize(CliProject), references, StringComparer.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CliDoesNotGrantInternalAccessToMcp()
+    {
+        var cliProject = LoadProject(CliProject);
+        Assert.DoesNotContain(
+            cliProject.Descendants().Where(element => element.Name.LocalName == "InternalsVisibleTo"),
+            element => string.Equals(
+                element.Attribute("Include")?.Value,
+                "adr-guard-mcp",
+                StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void McpSourceDoesNotUseCliNamespace()
+    {
+        var mcpSourceRoot = Path.Combine(RepositoryRoot(), "src", "AdrGuard.Mcp");
+        var cliNamespaceUsages = Directory.EnumerateFiles(mcpSourceRoot, "*.cs", SearchOption.AllDirectories)
+            .Where(path =>
+            {
+                var relative = Path.GetRelativePath(mcpSourceRoot, path);
+                return !relative.StartsWith($"bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+                       && !relative.StartsWith($"obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase);
+            })
+            .Where(path => File.ReadAllText(path).Contains("AdrGuard.Cli", StringComparison.Ordinal))
+            .Select(path => Path.GetRelativePath(RepositoryRoot(), path))
+            .ToArray();
+        Assert.Empty(cliNamespaceUsages);
+    }
+
+    [Fact]
     public void CurrentProductionProjectGraphIsAcyclic()
     {
         var projects = new[] { CoreProject, CliProject, McpProject };

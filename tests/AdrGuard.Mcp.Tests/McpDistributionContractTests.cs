@@ -78,7 +78,8 @@ public sealed class McpDistributionContractTests
         Assert.Contains("CHANGELOG.md", names);
         Assert.Contains("LICENSE", names);
         Assert.Contains("tools/net10.0/any/adr-guard-mcp.dll", names);
-        Assert.Contains("tools/net10.0/any/adr-guard.dll", names);
+        Assert.Contains("tools/net10.0/any/AdrGuard.Core.dll", names);
+        Assert.DoesNotContain("tools/net10.0/any/adr-guard.dll", names);
         Assert.Contains("tools/net10.0/any/adr-guard-mcp.deps.json", names);
         Assert.Contains("tools/net10.0/any/DotnetToolSettings.xml", names);
 

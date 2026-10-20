@@ -202,6 +202,38 @@ public sealed class McpWorkspaceTests
         Assert.Equal(before, repository.Snapshot());
     }
 
+    [Fact]
+    public void DriftPreservesAdvisoryEnforceAndUnknownPolicyResults()
+    {
+        using var repository = TemporaryMcpRepository.Create();
+        repository.Write("docs/adr/0001-safe-boundary.md", AcceptedAdr);
+        repository.Write(
+            "src/Domain/Domain.csproj",
+            "<Project><ItemGroup><ProjectReference Include=\"../Infrastructure/Infrastructure.csproj\" /></ItemGroup></Project>");
+        repository.Write("src/Infrastructure/Infrastructure.csproj", "<Project />");
+        repository.Write(".adrguard-fitness.json", FitnessManifest);
+        var workspace = CreateWorkspace(repository);
+
+        var advisory = workspace.VerifyArchitecture(
+            ".adrguard-fitness.json", null, null, "advisory", TestContext.Current.CancellationToken);
+        var enforced = workspace.VerifyArchitecture(
+            ".adrguard-fitness.json", null, null, "enforce", TestContext.Current.CancellationToken);
+
+        Assert.False(advisory.PolicyFailed);
+        Assert.Equal("violation", Assert.Single(advisory.Findings).Outcome);
+        Assert.True(enforced.PolicyFailed);
+
+        repository.Write(
+            "src/Domain/Domain.csproj",
+            "<Project><ItemGroup><ProjectReference Include=\"$(Dynamic)\" /></ItemGroup></Project>");
+        var unknown = workspace.VerifyArchitecture(
+            ".adrguard-fitness.json", null, null, "enforce", TestContext.Current.CancellationToken);
+
+        Assert.True(unknown.Inconclusive);
+        Assert.False(unknown.PolicyFailed);
+        Assert.Equal("unknown", Assert.Single(unknown.Findings).Outcome);
+    }
+
     private static McpWorkspace CreateWorkspace(TemporaryMcpRepository repository) =>
         new(new McpServerOptions(repository.Root, "docs/adr", TimeSpan.FromSeconds(10)));
 

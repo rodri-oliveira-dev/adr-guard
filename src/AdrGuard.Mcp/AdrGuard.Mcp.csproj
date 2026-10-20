@@ -31,7 +31,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../AdrGuard/AdrGuard.csproj" />
+    <ProjectReference Include="../AdrGuard.Core/AdrGuard.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

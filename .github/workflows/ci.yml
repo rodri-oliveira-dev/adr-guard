@@ -108,7 +108,8 @@ jobs:
           test -s "${package}"
           unzip -Z1 "${package}" | grep -Fxq 'README.md'
           unzip -Z1 "${package}" | grep -Fxq 'LICENSE'
-          unzip -Z1 "${package}" | grep -Fxq 'tools/net10.0/any/adr-guard.dll'
+          unzip -Z1 "${package}" | grep -Fxq 'tools/net10.0/any/AdrGuard.Core.dll'
+          ! unzip -Z1 "${package}" | grep -Fxq 'tools/net10.0/any/adr-guard.dll'
           unzip -Z1 "${package}" | grep -Fxq 'tools/net10.0/any/adr-guard-mcp.deps.json'
           unzip -p "${package}" README.md | grep -Fq '<!-- mcp-name: io.github.rodri-oliveira-dev/adr-guard -->'
 

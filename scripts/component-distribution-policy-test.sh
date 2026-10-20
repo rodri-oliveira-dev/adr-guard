@@ -158,7 +158,8 @@ assert_semver CLI "$cli_version"
 assert_semver MCP "$mcp_version"
 assert_semver 'VS Code extension' "$extension_version"
 
-grep -Fq '<ProjectReference Include="../AdrGuard/AdrGuard.csproj" />' "$MCP_PROJECT"
+grep -Fq '<ProjectReference Include="../AdrGuard.Core/AdrGuard.Core.csproj" />' "$MCP_PROJECT"
+! grep -Fq '../AdrGuard/AdrGuard.csproj' "$MCP_PROJECT"
 grep -Fq '<PackAsTool>true</PackAsTool>' "$CLI_PROJECT"
 grep -Fq '<PackAsTool>true</PackAsTool>' "$MCP_PROJECT"
 

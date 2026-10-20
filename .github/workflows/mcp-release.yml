@@ -138,9 +138,10 @@ jobs:
           dotnet pack src/AdrGuard.Mcp/AdrGuard.Mcp.csproj --configuration Release --no-build --output artifacts/mcp -p:Version="$VERSION" -p:PackageVersion="$VERSION" -p:RepositoryCommit="$VALIDATED_SHA" -p:ContinuousIntegrationBuild=true
           package="artifacts/mcp/$MCP_PACKAGE_ID.$VERSION.nupkg"
           test -s "$package"
-          for entry in README.md LICENSE tools/net10.0/any/adr-guard-mcp.dll tools/net10.0/any/adr-guard.dll tools/net10.0/any/adr-guard-mcp.deps.json tools/net10.0/any/DotnetToolSettings.xml; do
+          for entry in README.md LICENSE tools/net10.0/any/adr-guard-mcp.dll tools/net10.0/any/AdrGuard.Core.dll tools/net10.0/any/adr-guard-mcp.deps.json tools/net10.0/any/DotnetToolSettings.xml; do
             unzip -Z1 "$package" | grep -Fxq "$entry"
           done
+          ! unzip -Z1 "$package" | grep -Fxq 'tools/net10.0/any/adr-guard.dll'
           unzip -p "$package" README.md | grep -Fq "<!-- mcp-name: $MCP_SERVER_NAME -->"
           sha256sum "$package" .mcp/server.json > artifacts/mcp/SHA256SUMS
           cp .mcp/server.json artifacts/mcp/server.json
