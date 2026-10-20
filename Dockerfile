@@ -4,11 +4,13 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0.402@sha256:0d99ebf1ccad15037b5c98c9fe8979
 WORKDIR /src
 
 COPY global.json Directory.Build.props Directory.Packages.props ./
+COPY src/AdrGuard.Core/AdrGuard.Core.csproj src/AdrGuard.Core/
 COPY src/AdrGuard/AdrGuard.csproj src/AdrGuard/
 
 RUN dotnet restore src/AdrGuard/AdrGuard.csproj
 
 COPY src/AdrGuard/ src/AdrGuard/
+COPY src/AdrGuard.Core/ src/AdrGuard.Core/
 
 RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     --configuration Release \
