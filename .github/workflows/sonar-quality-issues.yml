@@ -1,0 +1,49 @@
+name: Sync Sonar Quality Issues
+
+on:
+  schedule:
+    - cron: "17 12 * * 1" # Monday, approximately 09:17 in Sao Paulo
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sonar-quality-issues-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync high-impact findings
+    if: ${{ vars.SONAR_CI_ENABLED == 'true' && github.ref == 'refs/heads/main' }}
+    runs-on: ${{ vars.RUNNER_OS || 'ubuntu-26.04' }}
+    timeout-minutes: 15
+    env:
+      SONAR_HOST_URL: https://sonarcloud.io
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+      SONAR_ISSUE_LABEL: Sonar Quality Issues
+    steps:
+      - name: Checkout trusted default-branch source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Verify Sonar configuration
+        shell: bash
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "${SONAR_PROJECT_KEY}" || { echo "::error::Set SONAR_PROJECT_KEY"; exit 1; }
+          test -n "${SONAR_TOKEN}" || { echo "::error::Set SONAR_TOKEN"; exit 1; }
+
+      - name: Synchronize high-impact Sonar findings
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const sync = require('./scripts/sonar-quality-sync.cjs');
+            await sync({github, context, core});
