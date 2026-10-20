@@ -13,6 +13,7 @@ Páginas de referência descrevem contratos e limites operacionais, não o percu
 - [Modo de revisão da GitHub Action](./generated/github-action-review/)
 - [Processo de release da GitHub Action](./generated/github-action-release/)
 - [Verificação externa](./generated/github-action-external-verification/)
+- [Verificações SonarQube Cloud](./sonarqube-cloud/)
 
 O [contrato do relatório de revisão por IA v1](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/adr-review-report-v1.md) ainda não possui tradução de origem; por isso não há fallback silencioso no portal. Os esquemas JSON continuam versionados no repositório. Trate a fonte e a versão instalada da CLI como autoritativas ao integrar saídas estruturadas.
 

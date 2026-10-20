@@ -89,6 +89,10 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 | CI reports | Produce text, JSON, or SARIF validation output | [Check reports](docs/check-reports.md) |
 | Agent Skills | Give agents portable instructions for human-controlled ADR and CLI workflows | [Skills guide](docs/skills/README.md) |
 
+### Repository code quality (optional)
+
+Maintainers can enable [SonarQube Cloud checks](docs/sonarqube-cloud.md) for .NET coverage, pull-request Quality Gates, and controlled HIGH/BLOCKER issue synchronization. This automation is **disabled until explicitly configured** and does not affect released products or the normal CI.
+
 ### Internal runtime architecture
 
 The CLI and MCP server are separate executables that reference the same internal `AdrGuard.Core` class library. Core owns their shared deterministic parsing, validation, configuration, Git inventory, impact, and drift behavior; it does not depend on either executable and is not a standalone product or NuGet package. Packages and containers built from this source after the extraction carry the CLI plus Core, while independently versioned MCP packages built from this source carry MCP plus Core and do not contain the CLI executable. This source change does not alter already published CLI `1.8.0` or MCP `1.0.0` artifacts. VS Code and the GitHub Action remain adapters over the CLI contract and do not reimplement Core rules. See [ADR 0008](docs/adr/0008-extract-an-internal-shared-core.md) and the [compatibility matrix](docs/compatibility.md).

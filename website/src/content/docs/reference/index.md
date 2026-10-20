@@ -13,6 +13,7 @@ Reference pages describe contracts and operational boundaries rather than the le
 - [GitHub Action review mode](./generated/github-action-review/)
 - [GitHub Action release process](./generated/github-action-release/)
 - [External verification](./generated/github-action-external-verification/)
+- [SonarQube Cloud repository checks](./sonarqube-cloud/)
 
 The [AI review report v1 contract](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/adr-review-report-v1.md) and JSON schemas remain versioned in the repository. Treat the source and installed CLI version as authoritative when integrating structured output.
 

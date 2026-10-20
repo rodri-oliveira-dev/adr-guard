@@ -6,9 +6,9 @@ module.exports = async function syncSonar({github, context, core}) {
   const { owner, repo } = context.repo;
   const sonarHost = process.env.SONAR_HOST_URL.replace(/\/+$/, "");
   const projectKey = process.env.SONAR_PROJECT_KEY;
-  if (!projectKey || !sonarToken) throw new Error('SONAR_PROJECT_KEY and SONAR_TOKEN are required.');
   const labelName = process.env.SONAR_ISSUE_LABEL;
   const sonarToken = process.env.SONAR_TOKEN;
+  if (!projectKey || !sonarToken) throw new Error('SONAR_PROJECT_KEY and SONAR_TOKEN are required.');
   const workflowAuthor = "github-actions[bot]";
   const trackedSeverities = new Set(["BLOCKER", "HIGH"]);
   const severityRank = new Map([
@@ -63,7 +63,7 @@ module.exports = async function syncSonar({github, context, core}) {
     const prefix = `${projectKey}:`;
     return component?.startsWith(prefix)
       ? component.slice(prefix.length)
-      : component ?? "Componente não informado";
+      : component ?? "Component not supplied";
   }
   
   function encodeRepositoryPath(path) {
@@ -78,7 +78,7 @@ module.exports = async function syncSonar({github, context, core}) {
       return [
         nextManagedBody,
         "",
-        "<!-- Anotações manuais podem ser adicionadas abaixo. Esta área é preservada pelo workflow. -->",
+        "<!-- Manual notes may be added below. This section is preserved by the workflow. -->",
         "",
       ].join("\n");
     }
@@ -302,75 +302,75 @@ module.exports = async function syncSonar({github, context, core}) {
         ? issue.tags
             .map((tag) => `\`${markdownInline(tag)}\``)
             .join(", ")
-        : "Não informadas";
+        : "Not supplied";
   
     const managedLines = [
       syncStart,
       `<!-- sonar-issue-key:${issue.key} -->`,
       "> Sincronizada automaticamente do SonarQube Cloud. Enquanto o finding permanecer **OPEN** com impacto **HIGH** ou **BLOCKER**, esta issue representa o mesmo problema.",
       "",
-      "## Resumo",
+      "## Summary",
       "",
       `- **Impacto:** ${impactText}`,
-      `- **Qualidade afetada:** ${
+      `- **Affected software quality:** ${
         affectedQualities.length > 0
           ? affectedQualities
               .map((quality) => `\`${markdownInline(quality)}\``)
               .join(", ")
-          : "Não informada"
+          : "Not supplied"
       }`,
-      `- **Regra:** [${markdownInline(ruleName)} (\`${markdownInline(issue.rule)}\`)](${sonarRuleUrl})`,
+      `- **Rule:** [${markdownInline(ruleName)} (\`${markdownInline(issue.rule)}\`)](${sonarRuleUrl})`,
       `- **Clean Code attribute:** ${
         issue.cleanCodeAttribute
           ? `\`${markdownInline(issue.cleanCodeAttribute)}\``
-          : "Não informado"
+          : "Not supplied"
       }`,
-      `- **Categoria:** ${
+      `- **Category:** ${
         issue.cleanCodeAttributeCategory
           ? `\`${markdownInline(issue.cleanCodeAttributeCategory)}\``
-          : "Não informada"
+          : "Not supplied"
       }`,
-      `- **Localização:** [\`${markdownInline(locationLabel)}\`](${fileUrl})`,
-      `- **Esforço estimado:** ${
-        issue.effort ? `\`${markdownInline(issue.effort)}\`` : "Não informado"
+      `- **Location:** [\`${markdownInline(locationLabel)}\`](${fileUrl})`,
+      `- **Estimated effort:** ${
+        issue.effort ? `\`${markdownInline(issue.effort)}\`` : "Not supplied"
       }`,
-      `- **Quick fix indicado pelo Sonar:** ${
+      `- **Quick fix available:** ${
         issue.quickFixAvailable === true
-          ? "Sim"
+          ? "Yes"
           : issue.quickFixAvailable === false
-            ? "Não"
-            : "Não informado"
+            ? "No"
+            : "Not supplied"
       }`,
       `- **Tags:** ${tags}`,
-      `- **Criada no Sonar:** ${
+      `- **Created in Sonar:** ${
         issue.creationDate
           ? `\`${markdownInline(issue.creationDate)}\``
-          : "Não informado"
+          : "Not supplied"
       }`,
-      `- **Atualizada no Sonar:** ${
+      `- **Updated in Sonar:** ${
         issue.updateDate
           ? `\`${markdownInline(issue.updateDate)}\``
-          : "Não informado"
+          : "Not supplied"
       }`,
       "",
-      "## Diagnóstico do Sonar",
+      "## Sonar finding",
       "",
       quoteMarkdown(issue.message),
       "",
-      "## Orientação para correção",
+      "## Suggested remediation",
       "",
-      "1. Abra o finding original no Sonar e confirme a localização primária e eventuais fluxos/localizações secundárias.",
-      `2. Leia a regra **${markdownInline(ruleName)}** e identifique a causa raiz, evitando apenas silenciar o diagnóstico.`,
-      "3. Aplique a menor alteração que elimine o problema sem alterar comportamento não relacionado.",
-      "4. Adicione ou ajuste testes quando a correção afetar comportamento, contratos ou cenários de borda.",
-      "5. Execute build e testes relevantes localmente e confirme que não surgiram regressões.",
-      "6. Reexecute a análise do Sonar; o finding deve deixar de permanecer OPEN quando a correção for reconhecida.",
+      "1. Open the original Sonar finding and inspect primary and secondary locations.",
+      `2. Review rule **${markdownInline(ruleName)}** and identify the root cause rather than suppressing the finding.`,
+      "3. Apply the smallest fix that addresses the cause without unrelated changes.",
+      "4. Add or update regression tests when behavior, contracts, or edge cases are affected.",
+      "5. Run the relevant build and tests and check for regressions.",
+      "6. Rerun Sonar analysis and confirm the finding no longer remains OPEN.",
     ];
   
     if (relatedLocations.length > 0) {
       managedLines.push(
         "",
-        "## Localizações relacionadas",
+        "## Related locations",
         "",
         ...relatedLocations,
       );
