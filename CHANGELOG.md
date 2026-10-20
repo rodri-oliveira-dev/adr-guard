@@ -8,7 +8,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 - No additional CLI changes after the `1.9.0` release candidate baseline.
 
-## 1.9.0 — Release candidate; not published
+## [1.9.0] — Release candidate; not published
 
 ### Added
 - Add opt-in one-based `line` and `column` evidence to schema 1.0 validation diagnostics and matching SARIF regions while preserving the default report shape and file-only findings when no precise location is known.
