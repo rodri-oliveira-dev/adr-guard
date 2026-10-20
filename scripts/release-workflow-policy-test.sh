@@ -153,7 +153,7 @@ grep -Fq 'ADR_GUARD_BIN="${PWD}/.release-tools/adr-guard" bash scripts/template-
   exit 1
 }
 
-# Feature releases 1.1.0, 1.3.0, 1.5.0, 1.6.0, and 1.8.0 use curated notes; other releases
+# Feature releases 1.1.0, 1.3.0, 1.5.0, 1.6.0, 1.8.0, and 1.9.0 use curated notes; other releases
 # retain generated notes, and all tags remain immutable.
 grep -Fq 'ref: ${{ needs.build-and-pack.outputs.validated-sha }}' <<<"${release_block}"
 grep -Fq 'release_notes=(--generate-notes)' <<<"${release_block}"
@@ -167,6 +167,8 @@ grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.6.0 ]]; then' <<<"${release_block}"
 grep -Fq 'release_notes=(--notes-file docs/releases/v1.6.0.md)' <<<"${release_block}"
 grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.8.0 ]]; then' <<<"${release_block}"
 grep -Fq 'release_notes=(--notes-file docs/releases/v1.8.0.md)' <<<"${release_block}"
+grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.9.0 ]]; then' <<<"${release_block}"
+grep -Fq 'release_notes=(--notes-file docs/releases/v1.9.0.md)' <<<"${release_block}"
 test -s "${ROOT_DIR}/docs/releases/v1.1.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.1.0.pt-BR.md"
 test -s "${ROOT_DIR}/docs/releases/v1.3.0.md"
@@ -177,5 +179,7 @@ test -s "${ROOT_DIR}/docs/releases/v1.6.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.6.0.pt-BR.md"
 test -s "${ROOT_DIR}/docs/releases/v1.8.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.8.0.pt-BR.md"
+test -s "${ROOT_DIR}/docs/releases/v1.9.0.md"
+test -s "${ROOT_DIR}/docs/releases/v1.9.0.pt-BR.md"
 
 echo "Release workflow Action publication policy checks passed."
