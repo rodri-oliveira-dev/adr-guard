@@ -19,7 +19,7 @@ O workflow de análise é [`.github/workflows/sonar.yml`](../.github/workflows/s
 ## Cobertura e Quality Gate
 
 - `.config/dotnet-tools.json` fixa versões de `dotnet-sonarscanner` e `dotnet-coverage`; `dotnet tool restore` instala as ferramentas locais.
-- `eng/sonar-coverage.settings.xml` seleciona os assemblies de produção `AdrGuard.Core.dll`, `adr-guard.dll` e `adr-guard-mcp.dll`, excluindo testes, benchmarks, código gerado e assemblies não relacionados.
+- `eng/sonar-coverage.settings.xml` seleciona os assemblies de produção `AdrGuard.Core.dll`, `adr-guard.dll` e `adr-guard-mcp.dll`, excluindo testes, benchmarks, código gerado, assemblies não relacionados e a automação em `eng/**` do gate de cobertura, sem retirar essa automação da análise estática.
 - `eng/run-sonar-tests.ps1` executa a suíte da solução pelo **Microsoft.Testing.Platform nativo** (xUnit v3), sem filtros VSTest ou chamadas reais a provedores de IA.
 - O XML de cobertura Visual Studio é salvo em `artifacts/coverage/sonar/coverage.xml` e verificado quanto aos três assemblies antes do envio ao Sonar.
 - Nos PRs, o scanner aguarda o Quality Gate. O workflow resolve a tarefa do Compute Engine da análise atual e consulta o gate pelo respectivo `analysisId`; assim, um gate reprovado é apresentado com suas condições mesmo quando o scanner termina com falha. Um único comentário do bot é sempre atualizado; ausência de evidência da tarefa, falhas de API/rede ou respostas malformadas são indicadas como `UNKNOWN`, nunca como sucesso ou como resultado desatualizado.

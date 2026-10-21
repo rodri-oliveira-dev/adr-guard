@@ -2,7 +2,21 @@
 
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const updateQualityGate = require('../sonar-quality-gate.cjs');
+
+test('excludes repository automation from coverage but retains static analysis', () => {
+  const workflow = fs.readFileSync(
+    path.resolve(__dirname, '../../.github/workflows/sonar.yml'),
+    'utf8',
+  );
+  const sourceExclusions = workflow.match(/\/d:sonar\.exclusions="([^"]+)"/)?.[1] ?? '';
+  const coverageExclusions = workflow.match(/\/d:sonar\.coverage\.exclusions="([^"]+)"/)?.[1] ?? '';
+
+  assert.match(coverageExclusions, /(?:^|,)eng\/\*\*(?:,|$)/);
+  assert.doesNotMatch(sourceExclusions, /(?:^|,)eng\/\*\*(?:,|$)/);
+});
 
 function createFake(existingBody = '') {
   const created = [];

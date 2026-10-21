@@ -98,7 +98,7 @@ jobs:
             /d:sonar.host.url="${SONAR_HOST_URL}" \
             /d:sonar.cs.vscoveragexml.reportsPaths="artifacts/coverage/sonar/coverage.xml" \
             /d:sonar.exclusions="tests/**,benchmarks/**,website/**,scripts/**,skills/**,**/bin/**,**/obj/**,**/*.g.cs,**/*.generated.cs" \
-            /d:sonar.coverage.exclusions="tests/**,benchmarks/**,website/**,scripts/**,skills/**,**/*.g.cs,**/*.generated.cs" \
+            /d:sonar.coverage.exclusions="tests/**,benchmarks/**,eng/**,website/**,scripts/**,skills/**,**/*.g.cs,**/*.generated.cs" \
             /d:sonar.qualitygate.wait="${IS_PR}" \
             /d:sonar.qualitygate.timeout=300
 
