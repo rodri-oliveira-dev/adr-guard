@@ -133,7 +133,8 @@ internal static class AdrCustomTemplateLoader
             || Regex.IsMatch(
                 source,
                 @"(?<!\{)\{[A-Za-z][A-Za-z0-9_-]*\}(?!\})",
-                RegexOptions.CultureInvariant))
+                RegexOptions.CultureInvariant,
+                TimeSpan.FromMilliseconds(100)))
         {
             throw new InvalidDataException(
                 $"Custom ADR template '{sourcePath}' contains unsupported placeholder syntax. Use {{{{name}}}} tokens.");

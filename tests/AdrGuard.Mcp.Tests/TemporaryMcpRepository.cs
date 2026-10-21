@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using AdrGuard.Processes;
 
 namespace AdrGuard.Mcp.Tests;
 
@@ -73,7 +74,7 @@ internal sealed class TemporaryMcpRepository : IDisposable
     {
         using var process = new Process
         {
-            StartInfo = new ProcessStartInfo("git")
+            StartInfo = new ProcessStartInfo(ExecutablePathResolver.Resolve("git"))
             {
                 WorkingDirectory = Root,
                 RedirectStandardOutput = true,

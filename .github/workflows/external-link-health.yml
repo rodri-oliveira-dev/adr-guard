@@ -35,7 +35,7 @@ jobs:
 
       - name: Generate synchronized documentation
         working-directory: website
-        run: npm ci && npm run sync:docs
+        run: npm ci --ignore-scripts && npm run sync:docs
 
       - name: Check external links
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2

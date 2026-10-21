@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using AdrGuard.Processes;
 
 namespace AdrGuard.Git;
 
@@ -13,7 +14,7 @@ internal static class GitCommandRunner
         ArgumentNullException.ThrowIfNull(arguments);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var startInfo = new ProcessStartInfo("git")
+        var startInfo = new ProcessStartInfo(ExecutablePathResolver.Resolve("git"))
         {
             WorkingDirectory = workingDirectory,
             RedirectStandardInput = true,
@@ -94,7 +95,7 @@ internal static class GitCommandRunner
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumOutputCharacters);
 
         cancellationToken.ThrowIfCancellationRequested();
-        var startInfo = new ProcessStartInfo("git")
+        var startInfo = new ProcessStartInfo(ExecutablePathResolver.Resolve("git"))
         {
             WorkingDirectory = workingDirectory,
             RedirectStandardInput = true,

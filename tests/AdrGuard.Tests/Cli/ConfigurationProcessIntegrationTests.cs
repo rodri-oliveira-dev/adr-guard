@@ -1,4 +1,5 @@
 using AdrGuard.Cli;
+using AdrGuard.Processes;
 using System.Diagnostics;
 using System.Text.Json;
 using Xunit;
@@ -333,7 +334,7 @@ public sealed class ConfigurationProcessIntegrationTests
         string workingDirectory,
         params string[] arguments)
     {
-        var startInfo = new ProcessStartInfo("dotnet")
+        var startInfo = new ProcessStartInfo(ExecutablePathResolver.Resolve("dotnet"))
         {
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,

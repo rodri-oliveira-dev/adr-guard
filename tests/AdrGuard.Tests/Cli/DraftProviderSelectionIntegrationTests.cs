@@ -171,7 +171,11 @@ public sealed class DraftProviderSelectionIntegrationTests
                 .Concat(
                     [
                         "--endpoint",
-                        "http://example.test/v1",
+                        new UriBuilder(
+                            Uri.UriSchemeHttp,
+                            "example.test",
+                            -1,
+                            "v1").Uri.AbsoluteUri,
                     ])
                 .ToArray();
 

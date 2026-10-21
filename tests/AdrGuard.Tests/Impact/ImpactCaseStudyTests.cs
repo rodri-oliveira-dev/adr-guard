@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AdrGuard.Cli;
+using AdrGuard.Processes;
 using Xunit;
 
 namespace AdrGuard.Tests.Impact;
@@ -141,7 +142,7 @@ public sealed class ImpactCaseStudyTests
 
     private static void RunGit(string workingDirectory, params string[] arguments)
     {
-        var startInfo = new ProcessStartInfo("git")
+        var startInfo = new ProcessStartInfo(ExecutablePathResolver.Resolve("git"))
         {
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,

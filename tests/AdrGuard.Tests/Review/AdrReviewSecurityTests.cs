@@ -275,11 +275,13 @@ public sealed class AdrReviewSecurityTests
     }
 
     [Theory]
-    [InlineData("http://provider.example.test/v1")]
-    [InlineData("http://127.0.0.1:8080/v1")]
+    [InlineData("provider.example.test", -1)]
+    [InlineData("127.0.0.1", 8080)]
     public void AuthenticatedPlainHttpProviderEndpointIsRejected(
-        string endpoint)
+        string host,
+        int port)
     {
+        var endpoint = new UriBuilder(Uri.UriSchemeHttp, host, port, "v1").Uri.AbsoluteUri;
         var root = CreateTempDirectory();
 
         try

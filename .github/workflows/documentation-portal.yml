@@ -54,7 +54,7 @@ jobs:
 
       - name: Install from lockfile
         working-directory: website
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Check, test, build, and verify routes and links
         working-directory: website

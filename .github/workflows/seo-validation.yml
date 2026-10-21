@@ -43,7 +43,7 @@ jobs:
 
       - name: Install from lockfile
         working-directory: website
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Build production site
         working-directory: website

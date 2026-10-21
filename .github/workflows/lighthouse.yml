@@ -39,7 +39,7 @@ jobs:
 
       - name: Install and build
         working-directory: website
-        run: npm ci && npm run build
+        run: npm ci --ignore-scripts && npm run build
 
       - name: Start production preview
         working-directory: website
@@ -56,7 +56,7 @@ jobs:
 
       - name: Collect three runs per page
         working-directory: website
-        run: npx --yes @lhci/cli@0.15.1 collect --config=lighthouserc.cjs
+        run: npx --yes --ignore-scripts @lhci/cli@0.15.1 collect --config=lighthouserc.cjs
 
       - name: Publish score summary
         working-directory: website
@@ -64,7 +64,7 @@ jobs:
 
       - name: Enforce budgets
         working-directory: website
-        run: npx --yes @lhci/cli@0.15.1 assert --config=lighthouserc.cjs
+        run: npx --yes --ignore-scripts @lhci/cli@0.15.1 assert --config=lighthouserc.cjs
 
       - name: Upload Lighthouse reports
         if: always()

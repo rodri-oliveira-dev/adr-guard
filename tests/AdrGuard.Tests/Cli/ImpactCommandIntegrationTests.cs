@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using AdrGuard.Cli;
+using AdrGuard.Processes;
 using Xunit;
 
 namespace AdrGuard.Tests.Cli;
@@ -176,7 +177,7 @@ public sealed class ImpactCommandIntegrationTests
         string workingDirectory,
         params string[] arguments)
     {
-        var startInfo = new ProcessStartInfo("dotnet")
+        var startInfo = new ProcessStartInfo(ExecutablePathResolver.Resolve("dotnet"))
         {
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,
@@ -199,7 +200,7 @@ public sealed class ImpactCommandIntegrationTests
 
     private static string RunGit(string workingDirectory, params string[] arguments)
     {
-        var startInfo = new ProcessStartInfo("git")
+        var startInfo = new ProcessStartInfo(ExecutablePathResolver.Resolve("git"))
         {
             WorkingDirectory = workingDirectory,
             RedirectStandardOutput = true,

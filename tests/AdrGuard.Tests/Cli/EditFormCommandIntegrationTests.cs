@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AdrGuard.Cli;
+using AdrGuard.Processes;
 using AdrGuard.Validation;
 using Xunit;
 
@@ -720,7 +721,7 @@ public sealed class EditFormCommandIntegrationTests
         string path,
         byte[] input)
     {
-        var startInfo = new ProcessStartInfo("dotnet")
+        var startInfo = new ProcessStartInfo(ExecutablePathResolver.Resolve("dotnet"))
         {
             WorkingDirectory = workingDirectory,
             RedirectStandardInput = true,

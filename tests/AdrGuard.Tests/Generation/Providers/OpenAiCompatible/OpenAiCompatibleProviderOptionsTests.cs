@@ -57,10 +57,11 @@ public sealed class OpenAiCompatibleProviderOptionsTests
     }
 
     [Theory]
-    [InlineData("http://example.test/v1")]
-    [InlineData("http://10.0.0.10:1234/v1")]
-    public void ConstructorRejectsRemoteHttpEvenWithoutApiKey(string endpoint)
+    [InlineData("example.test", -1)]
+    [InlineData("10.0.0.10", 1234)]
+    public void ConstructorRejectsRemoteHttpEvenWithoutApiKey(string host, int port)
     {
+        var endpoint = new UriBuilder(Uri.UriSchemeHttp, host, port, "v1").Uri.AbsoluteUri;
         var exception = Assert.Throws<ArgumentException>(
             () => new OpenAiCompatibleProviderOptions(
                 new Uri(endpoint),
@@ -73,11 +74,12 @@ public sealed class OpenAiCompatibleProviderOptionsTests
     }
 
     [Theory]
-    [InlineData("http://localhost:1234/v1")]
-    [InlineData("http://127.0.0.1:1234/v1")]
-    [InlineData("http://[::1]:1234/v1")]
-    public void ConstructorAllowsLoopbackHttpWithoutApiKey(string endpoint)
+    [InlineData("localhost")]
+    [InlineData("127.0.0.1")]
+    [InlineData("::1")]
+    public void ConstructorAllowsLoopbackHttpWithoutApiKey(string host)
     {
+        var endpoint = new UriBuilder(Uri.UriSchemeHttp, host, 1234, "v1").Uri.AbsoluteUri;
         var options = new OpenAiCompatibleProviderOptions(
             new Uri(endpoint),
             "local-model");

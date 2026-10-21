@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using AdrGuard.Cli;
+using AdrGuard.Processes;
 using Xunit;
 
 namespace AdrGuard.Tests.Cli;
@@ -248,7 +249,7 @@ public sealed class NewFormCommandIntegrationTests
         var root = CreateDirectory();
         try
         {
-            var startInfo = new ProcessStartInfo("dotnet")
+            var startInfo = new ProcessStartInfo(ExecutablePathResolver.Resolve("dotnet"))
             {
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,

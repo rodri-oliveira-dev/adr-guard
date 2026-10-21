@@ -36,7 +36,7 @@ jobs:
           cache-dependency-path: website/package-lock.json
       - name: Install from lockfile
         working-directory: website
-        run: npm ci
+        run: npm ci --ignore-scripts
       - name: Check, test, build, verify SEO, routes, links and HTML
         working-directory: website
         run: npm run validate

@@ -41,7 +41,11 @@ internal static class FitnessManifestLoader
             if (candidate is null || candidate.Decision is null || candidate.Scope is null || candidate.Check is null || candidate.Evidence is null || candidate.Failure is null)
                 throw new FitnessManifestException("Fitness manifest contains an incomplete rule.");
             var id = Token(candidate.Id, "rule ID", 128);
-            if (!ids.Add(id) || !System.Text.RegularExpressions.Regex.IsMatch(id, "^[a-z0-9][a-z0-9._-]*$"))
+            if (!ids.Add(id) || !System.Text.RegularExpressions.Regex.IsMatch(
+                id,
+                "^[a-z0-9][a-z0-9._-]*$",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+                TimeSpan.FromMilliseconds(100)))
                 throw new FitnessManifestException($"Fitness rule ID '{id}' is invalid or duplicated.");
             var decisionPath = Normalize(root, candidate.Decision.Path, ".md", "ADR path");
             var projects = NormalizeProjects(root, candidate.Scope.Projects);

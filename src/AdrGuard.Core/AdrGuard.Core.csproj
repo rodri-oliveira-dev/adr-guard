@@ -9,5 +9,6 @@
     <InternalsVisibleTo Include="adr-guard" />
     <InternalsVisibleTo Include="adr-guard-mcp" />
     <InternalsVisibleTo Include="AdrGuard.Tests" />
+    <InternalsVisibleTo Include="AdrGuard.Mcp.Tests" />
   </ItemGroup>
 </Project>

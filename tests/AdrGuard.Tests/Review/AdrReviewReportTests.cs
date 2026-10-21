@@ -192,7 +192,7 @@ public sealed class AdrReviewReportTests
                 new AdrReviewFinding(
                     "clarity-and-rationale",
                     "potential-risk",
-                    "/tmp/0001-use-cache.md",
+                    Path.GetFullPath("0001-use-cache.md"),
                     "Use a cache.",
                     "Absolute path should not be accepted.",
                     "Use selected source attribution."),

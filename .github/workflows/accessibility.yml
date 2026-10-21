@@ -39,7 +39,7 @@ jobs:
 
       - name: Install and build
         working-directory: website
-        run: npm ci && npm run build
+        run: npm ci --ignore-scripts && npm run build
 
       - name: Start production preview
         working-directory: website
@@ -56,7 +56,7 @@ jobs:
 
       - name: Run Pa11y CI with axe and HTML_CodeSniffer
         working-directory: website
-        run: npx --yes pa11y-ci@5.0.0 --config .pa11yci --threshold 0
+        run: npx --yes --ignore-scripts pa11y-ci@5.0.0 --config .pa11yci --threshold 0
 
       - name: Write coverage note
         if: always()

@@ -46,7 +46,7 @@ public sealed class AdrReviewProviderIntegrationTests
 
         var result = await provider.ReviewAsync(
             new AdrReviewRequest(
-                "/tmp/0001-use-cache.md",
+                Path.GetFullPath("0001-use-cache.md"),
                 "# Use cache",
                 "Target ADR source: 0001-use-cache.md"),
             TestContext.Current.CancellationToken);
