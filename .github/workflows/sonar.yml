@@ -30,8 +30,8 @@ jobs:
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
-      - name: Test Sonar issue synchronization
-        run: node --test scripts/tests/sonar-quality-sync.test.cjs
+      - name: Test Sonar automation
+        run: node --test scripts/tests/sonar-quality-sync.test.cjs scripts/tests/sonar-quality-gate.test.cjs
 
   analysis:
     name: Sonar analysis and coverage
@@ -43,7 +43,7 @@ jobs:
     timeout-minutes: 35
     permissions:
       contents: read
-      issues: write
+      pull-requests: write
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
       DOTNET_NOLOGO: "true"
@@ -88,14 +88,13 @@ jobs:
         id: begin
         shell: bash
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONARQUBE_SCANNER_PARAMS: '{"sonar.token":${{ toJSON(secrets.SONAR_TOKEN) }}}'
           IS_PR: ${{ github.event_name == 'pull_request' }}
         run: |
           set -euo pipefail
           dotnet sonarscanner begin \
             /k:"${SONAR_PROJECT_KEY}" \
             /o:"${SONAR_ORGANIZATION}" \
-            /d:sonar.token="${SONAR_TOKEN}" \
             /d:sonar.host.url="${SONAR_HOST_URL}" \
             /d:sonar.cs.vscoveragexml.reportsPaths="artifacts/coverage/sonar/coverage.xml" \
             /d:sonar.exclusions="tests/**,benchmarks/**,website/**,scripts/**,skills/**,**/bin/**,**/obj/**,**/*.g.cs,**/*.generated.cs" \
@@ -146,10 +145,10 @@ jobs:
         id: sonar_end
         shell: bash
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONARQUBE_SCANNER_PARAMS: '{"sonar.token":${{ toJSON(secrets.SONAR_TOKEN) }}}'
         run: |
           set -euo pipefail
-          dotnet sonarscanner end /d:sonar.token="${SONAR_TOKEN}"
+          dotnet sonarscanner end
 
       - name: Update one Quality Gate comment
         if: ${{ always() && github.event_name == 'pull_request' }}
@@ -160,52 +159,5 @@ jobs:
           SONAR_SCAN_RESULT: ${{ steps.sonar_end.outcome }}
         with:
           script: |
-            const marker = '<!-- adr-guard:sonar-quality-gate -->';
-            const { owner, repo } = context.repo;
-            const pr = context.issue.number;
-            const runUrl = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID;
-            const projectKey = process.env.SONAR_PROJECT_KEY;
-            const token = process.env.SONAR_TOKEN;
-            const dashboard = 'https://sonarcloud.io/project/overview?id=' + encodeURIComponent(projectKey || '') + '&pullRequest=' + pr;
-            let status = 'UNKNOWN';
-            let conditions = [];
-            let detail = '';
-            if (process.env.SONAR_SCAN_RESULT !== 'success') {
-              detail = 'Scanner/coverage analysis did not finish successfully. Inspect the workflow run.';
-            } else if (!token || !projectKey) {
-              detail = 'Sonar configuration is unavailable.';
-            } else {
-              core.setSecret(token);
-              const url = new URL('https://sonarcloud.io/api/qualitygates/project_status');
-              url.searchParams.set('projectKey', projectKey);
-              url.searchParams.set('pullRequest', String(pr));
-              const response = await fetch(url, {headers: {Authorization: 'Bearer ' + token, Accept: 'application/json'}});
-              if (!response.ok) {
-                detail = 'Quality Gate lookup failed (HTTP ' + response.status + ').';
-              } else {
-                const result = await response.json();
-                status = result.projectStatus?.status ?? 'UNKNOWN';
-                conditions = result.projectStatus?.conditions ?? [];
-              }
-            }
-            const table = conditions.length
-              ? ['| Metric | Result | Actual | Threshold |', '| --- | --- | --- | --- |'].concat(
-                  conditions.map(c => '| `' + String(c.metricKey || 'unknown') + '` | ' + String(c.status || 'UNKNOWN') + ' | ' + String(c.actualValue ?? 'n/a') + ' | ' + String(c.errorThreshold ?? 'n/a') + ' |')
-                ).join('\n')
-              : 'No computed conditions available.';
-            const body = [
-              marker, '### ADR Guard — SonarQube Cloud Quality Gate', '',
-              '**Status: ' + status + '**', '', detail, '', table, '',
-              '- [SonarQube Cloud](' + dashboard + ')',
-              '- [Workflow run](' + runUrl + ')'
-            ].join('\n');
-            const comments = await github.paginate(github.rest.issues.listComments, {owner, repo, issue_number: pr, per_page: 100});
-            const previous = comments.find(c => c.user?.login === 'github-actions[bot]' && c.body?.includes(marker));
-            if (previous) {
-              if (previous.body !== body) await github.rest.issues.updateComment({owner, repo, comment_id: previous.id, body});
-            } else {
-              await github.rest.issues.createComment({owner, repo, issue_number: pr, body});
-            }
-            if (process.env.SONAR_SCAN_RESULT === 'success' && status !== 'OK') {
-              core.setFailed('Sonar Quality Gate status ' + status + '.');
-            }
+            const updateQualityGate = require('./scripts/sonar-quality-gate.cjs');
+            await updateQualityGate({github, context, core});

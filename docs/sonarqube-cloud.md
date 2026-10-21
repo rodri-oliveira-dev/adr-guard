@@ -22,7 +22,7 @@ The Sonar analysis workflow is [`.github/workflows/sonar.yml`](../.github/workfl
 - `eng/sonar-coverage.settings.xml` selects the **production** assemblies `AdrGuard.Core.dll`, `adr-guard.dll`, and `adr-guard-mcp.dll`. It excludes tests, benchmarks, generated files, and unrelated assemblies.
 - `eng/run-sonar-tests.ps1` executes the repository's **native Microsoft.Testing.Platform** solution tests (xUnit v3) as one instrumented run; it does not use VSTest filters or provider-backed AI tests.
 - Coverage is written as Visual Studio coverage XML at `artifacts/coverage/sonar/coverage.xml` and verified for all three production assemblies before upload.
-- In pull requests, the scanner waits for the Quality Gate. A single bot-authored comment reports its **actual** status and Sonar links; errors or missing results are reported as unknown, never as success.
+- In pull requests, the scanner waits for the Quality Gate. The workflow resolves the current scan's Compute Engine task and queries the gate by its `analysisId`, so a failed gate is reported with its conditions even when the scanner exits unsuccessfully. A single bot-authored comment is always refreshed; missing task evidence, API/network failures, or malformed responses are reported as `UNKNOWN`, never as success or as a stale result.
 - Sonar analysis is isolated from the normal CI and package/release jobs. Once enabled, a failing Sonar workflow is visible as a separate check. Configure required status checks only when stable.
 
 The workflow does **not** upload coverage to Codecov or publish public coverage/Quality Gate badges. Add those only after configuring and verifying the corresponding service/project.
@@ -36,7 +36,7 @@ The workflow does **not** upload coverage to Codecov or publish public coverage/
 - Sonar API/auth failures cause the workflow to fail rather than silently claiming no findings. Never run this workflow with sample credentials against the production issue tracker.
 - A disabled workflow makes no GitHub Issue changes. Manual notes and manually authored issues are not overwritten.
 
-Offline test: `node --test scripts/tests/sonar-quality-sync.test.cjs`. This exercises create, repeat, human-note preservation, authorship checks, and API failure handling without external services.
+Offline test: `node --test scripts/tests/sonar-quality-sync.test.cjs scripts/tests/sonar-quality-gate.test.cjs`. This exercises create, repeat, human-note preservation, authorship checks, Quality Gate failure reporting, and API failure handling without external services.
 
 ## Troubleshooting
 

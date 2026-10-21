@@ -22,7 +22,7 @@ O workflow de análise é [`.github/workflows/sonar.yml`](../.github/workflows/s
 - `eng/sonar-coverage.settings.xml` seleciona os assemblies de produção `AdrGuard.Core.dll`, `adr-guard.dll` e `adr-guard-mcp.dll`, excluindo testes, benchmarks, código gerado e assemblies não relacionados.
 - `eng/run-sonar-tests.ps1` executa a suíte da solução pelo **Microsoft.Testing.Platform nativo** (xUnit v3), sem filtros VSTest ou chamadas reais a provedores de IA.
 - O XML de cobertura Visual Studio é salvo em `artifacts/coverage/sonar/coverage.xml` e verificado quanto aos três assemblies antes do envio ao Sonar.
-- Nos PRs, o scanner aguarda o Quality Gate. Um único comentário do bot apresenta o **estado real** e os links relevantes; falhas e resultados ausentes são indicados como desconhecidos, nunca como sucesso.
+- Nos PRs, o scanner aguarda o Quality Gate. O workflow resolve a tarefa do Compute Engine da análise atual e consulta o gate pelo respectivo `analysisId`; assim, um gate reprovado é apresentado com suas condições mesmo quando o scanner termina com falha. Um único comentário do bot é sempre atualizado; ausência de evidência da tarefa, falhas de API/rede ou respostas malformadas são indicadas como `UNKNOWN`, nunca como sucesso ou como resultado desatualizado.
 - A análise Sonar é independente da CI regular e da publicação. Após ativação, falhas aparecerão como checks separados. Só os torne obrigatórios depois da estabilização.
 
 O workflow **não** envia cobertura ao Codecov nem publica badges de cobertura/Quality Gate. Adicione-os somente após verificar o serviço e o projeto correspondente.
@@ -36,7 +36,7 @@ O workflow [`sonar-quality-issues.yml`](../.github/workflows/sonar-quality-issue
 - Erros de autenticação/API interrompem a automação em vez de informar falsamente ausência de findings. Nunca faça testes com credenciais de exemplo no tracker de produção.
 - O workflow desabilitado não modifica issues. Anotações e issues criadas manualmente são preservadas.
 
-Teste offline: `node --test scripts/tests/sonar-quality-sync.test.cjs`. Verifica criação, repetição, preservação de notas, autoria e falhas da API sem acessar serviços externos.
+Teste offline: `node --test scripts/tests/sonar-quality-sync.test.cjs scripts/tests/sonar-quality-gate.test.cjs`. Verifica criação, repetição, preservação de notas, autoria, relato de reprovação do Quality Gate e falhas da API sem acessar serviços externos.
 
 ## Solução de problemas
 

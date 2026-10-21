@@ -107,6 +107,10 @@ test('ignores user-authored lookalike issues', {concurrency: false}, async () =>
 
 test('fails closed on Sonar API errors without writing issues', {concurrency: false}, async () => {
   const fake = createFake();
-  await assert.rejects(exercise([finding], fake, false), /HTTP 503/);
+  await assert.rejects(exercise([finding], fake, false), (error) => {
+    assert.match(error.message, /HTTP 503/);
+    assert.doesNotMatch(error.message, /Unavailable/);
+    return true;
+  });
   assert.equal(fake.created.length, 0);
 });

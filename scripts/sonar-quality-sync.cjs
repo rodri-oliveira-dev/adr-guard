@@ -37,9 +37,8 @@ module.exports = async function syncSonar({github, context, core}) {
     });
   
     if (!response.ok) {
-      const responseBody = await response.text();
       throw new Error(
-        `Sonar API ${path} failed with HTTP ${response.status}: ${responseBody.slice(0, 500)}`,
+        `Sonar API ${path} failed with HTTP ${response.status}.`,
       );
     }
   
