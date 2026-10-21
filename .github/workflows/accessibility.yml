@@ -56,6 +56,8 @@ jobs:
 
       - name: Run Pa11y CI with axe and HTML_CodeSniffer
         working-directory: website
+        env:
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
         run: npx --yes --ignore-scripts pa11y-ci@5.0.0 --config .pa11yci --threshold 0
 
       - name: Write coverage note
