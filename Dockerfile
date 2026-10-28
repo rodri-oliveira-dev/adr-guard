@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0-noble@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b AS build
 WORKDIR /src
 
 COPY global.json Directory.Build.props Directory.Packages.props ./
@@ -19,15 +19,15 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     --no-self-contained \
     /p:UseAppHost=true
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0-noble@sha256:a3f9f81954b9c810af2ed18849716c8dc74a4707bd0907fdbd69be81554c0f30 AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0.14-azurelinux3.0@sha256:95592fff74346fbedcad6fe4c2701723ecea11fb84a0913c9e72ba68891c7b9d AS final
 WORKDIR /workspace
 
 # Impact analysis invokes the bounded local Git CLI. The runtime remains
 # non-root and the Action mounts consumer repositories read-only.
 # hadolint ignore=DL3041
-RUN apt-get update \
-    && apt-get install --no-install-recommends --yes git \
-    && rm -rf /var/lib/apt/lists/*
+RUN tdnf install -y git \
+    && tdnf clean all \
+    && rm -rf /var/cache/tdnf
 
 LABEL org.opencontainers.image.title="ADR Guard" \
       org.opencontainers.image.description="A .NET CLI for validating, maintaining, reviewing, analyzing impact, and verifying ADR-backed architectural drift." \
