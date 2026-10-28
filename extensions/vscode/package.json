@@ -328,21 +328,33 @@
         },
         "adrGuard.analysis.driftPolicy": {
           "type": "string",
-          "enum": ["advisory", "enforce"],
+          "enum": [
+            "advisory",
+            "enforce"
+          ],
           "default": "advisory",
           "scope": "resource",
           "description": "%configuration.analysis.driftPolicy%"
         },
         "adrGuard.governance.catalog": {
           "type": "string",
-          "enum": ["standard", "enriched"],
+          "enum": [
+            "standard",
+            "enriched"
+          ],
           "default": "standard",
           "scope": "resource",
           "description": "%configuration.governance.catalog%"
         },
         "adrGuard.ai.provider": {
           "type": "string",
-          "enum": ["", "openai", "anthropic", "gemini", "openai-compatible"],
+          "enum": [
+            "",
+            "openai",
+            "anthropic",
+            "gemini",
+            "openai-compatible"
+          ],
           "default": "",
           "scope": "resource",
           "description": "%configuration.ai.provider%"
@@ -394,6 +406,8 @@
   },
   "overrides": {
     "diff": "8.0.3",
-    "serialize-javascript": "7.0.5"
+    "serialize-javascript": "7.1.3",
+    "qs": "6.16.1",
+    "@azure/msal-node": "7.1.1"
   }
 }
