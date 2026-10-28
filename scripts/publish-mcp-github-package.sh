@@ -95,7 +95,7 @@ fi
 
 # Deliberately omit --skip-duplicate: a concurrent 409 must fail rather than
 # silently accepting an unverified immutable package.
-# SDK 10.0.402 supports NUGET_API_KEY via environment, avoiding token argv.
+# SDK 10.0.403 supports NUGET_API_KEY via environment, avoiding token argv.
 dotnet nuget push "$local_package" --source "$GITHUB_PACKAGE_SOURCE"
 
 # Account for short registry propagation, but never accept a missing or

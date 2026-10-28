@@ -19,7 +19,7 @@ Para um manifesto local de ferramentas, use `dotnet tool install --local RodriOl
 
 ## Pré-requisitos e build do código-fonte
 
-- SDK .NET `10.0.402`, fixado em `global.json`.
+- SDK .NET `10.0.403`, fixado em `global.json`.
 - Checkout local contendo `src/AdrGuard.Mcp`.
 - Git no host do servidor somente ao usar `analyze_impact` ou quando `verify_architecture` registra o commit atual.
 

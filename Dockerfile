@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0.402@sha256:0d99ebf1ccad15037b5c98c9fe8979d6b8dbac23812feae2277a0b277b5c5ffa AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b AS build
 WORKDIR /src
 
 COPY global.json Directory.Build.props Directory.Packages.props ./
@@ -19,7 +19,7 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     --no-self-contained \
     /p:UseAppHost=true
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0.13-azurelinux3.0@sha256:0f82ccc5e4affe9f538d8fc5e14cc246e11459a72ebc5cef1ea2287625f6f2a3 AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0.14-azurelinux3.0@sha256:95592fff74346fbedcad6fe4c2701723ecea11fb84a0913c9e72ba68891c7b9d AS final
 WORKDIR /workspace
 
 # Impact analysis invokes the bounded local Git CLI. The runtime remains

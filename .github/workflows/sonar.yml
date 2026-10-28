@@ -63,7 +63,7 @@ jobs:
           global-json-file: global.json
 
       - name: Setup Java 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.0
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: "21"
@@ -149,6 +149,24 @@ jobs:
         run: |
           set -euo pipefail
           dotnet sonarscanner end
+
+      - name: Diagnose failed Sonar PR findings
+        if: ${{ failure() && github.event_name == 'pull_request' }}
+        shell: bash
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          issues="$(curl --fail --silent --show-error --retry 2 \
+            --header "Authorization: Bearer ${SONAR_TOKEN}" \
+            --get \
+            --data-urlencode "componentKeys=${SONAR_PROJECT_KEY}" \
+            --data-urlencode "pullRequest=${PR_NUMBER}" \
+            --data-urlencode "ps=100" \
+            "${SONAR_HOST_URL}/api/issues/search")"
+          echo "Sonar PR issue count: $(jq -r '.total // .paging.total // 0' <<< "${issues}")"
+          jq -r '.issues[:50][]? | "\(.key) | \(.impacts[0].softwareQuality // .type // "UNKNOWN") | \(.component):\(.line // "?") | \(.message)"' <<< "${issues}"
 
       - name: Update one Quality Gate comment
         if: ${{ always() && github.event_name == 'pull_request' }}
