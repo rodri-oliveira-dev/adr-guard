@@ -1,6 +1,6 @@
 ---
 name: dotnet-bug-investigation
-description: Use esta skill para investigar bugs, regressões, falhas de testes ou comportamento inesperado em APIs, workers ou bibliotecas .NET quando a causa ainda não é conhecida. Priorize evidência, reprodução e teste de regressão antes da correção. Não use para feature nova com requisitos já definidos.
+description: Use esta skill para investigar bugs, regressões, falhas de teste ou comportamento inesperado em uma biblioteca .NET quando a causa ainda não é conhecida. Priorize evidência, reprodução e teste de regressão antes da correção. Não use para feature nova com requisitos já definidos.
 license: MIT
 ---
 
@@ -26,14 +26,14 @@ Encontrar a causa raiz com o menor contexto necessário, corrigir o comportament
 6. Verifique se a falha é regressão, comportamento já existente, configuração incorreta ou lacuna de teste.
 7. Adicione teste que falhe pelo motivo correto antes da correção quando o cenário for automatizável.
 8. Implemente a menor correção que ataque a causa raiz.
-9. Execute primeiro a validação direcionada e depois a baseline documentada em `AGENTS.md`, README ou CI do repositório, conforme disponível.
+9. Execute primeiro a validação direcionada e depois a baseline definida em `AGENTS.md`.
 10. Revise o diff procurando mecanismos que apenas escondam o sintoma.
 
 # Áreas de atenção
 
 - Em concorrência/estado, procure race conditions, falta de atomicidade e suposições de ordem; não adicione lock, retry ou delay sem demonstrar a causa.
-- Em compatibilidade/API, preserve contratos não envolvidos e trate mudança pública como breaking change deliberado; verifique contratos HTTP, mensagens e APIs públicas conforme o projeto.
-- Em dependências/configuração, confirme as versões nos arquivos realmente usados pelo projeto (por exemplo, `Directory.Packages.props` ou `.csproj`) e diferencie falha do código de falha do ambiente/toolchain.
+- Em compatibilidade/API, preserve contratos não envolvidos e trate mudança pública como breaking change deliberado.
+- Em dependências/configuração, confirme versões em `Directory.Packages.props` e diferencie falha do código de falha do ambiente/toolchain.
 
 # Restrições específicas
 
@@ -42,7 +42,7 @@ Encontrar a causa raiz com o menor contexto necessário, corrigir o comportament
 - Não adicione retry, timeout maior ou sleep sem evidência.
 - Não confunda correlação com causa raiz.
 
-Respeite as instruções aplicáveis de `AGENTS.md`, quando existir, e a configuração real de build, testes e CI do repositório consumidor.
+As demais restrições e validações globais são definidas em `AGENTS.md`.
 
 # Saída esperada
 
