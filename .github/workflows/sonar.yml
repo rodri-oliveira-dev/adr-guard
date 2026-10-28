@@ -150,6 +150,24 @@ jobs:
           set -euo pipefail
           dotnet sonarscanner end
 
+      - name: Diagnose failed Sonar PR findings
+        if: ${{ failure() && github.event_name == 'pull_request' }}
+        shell: bash
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          issues="$(curl --fail --silent --show-error --retry 2 \
+            --header "Authorization: Bearer ${SONAR_TOKEN}" \
+            --get \
+            --data-urlencode "componentKeys=${SONAR_PROJECT_KEY}" \
+            --data-urlencode "pullRequest=${PR_NUMBER}" \
+            --data-urlencode "ps=100" \
+            "${SONAR_HOST_URL}/api/issues/search")"
+          echo "Sonar PR issue count: $(jq -r '.total // .paging.total // 0' <<< "${issues}")"
+          jq -r '.issues[:50][]? | "\(.key) | \(.impacts[0].softwareQuality // .type // "UNKNOWN") | \(.component):\(.line // "?") | \(.message)"' <<< "${issues}"
+
       - name: Update one Quality Gate comment
         if: ${{ always() && github.event_name == 'pull_request' }}
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
