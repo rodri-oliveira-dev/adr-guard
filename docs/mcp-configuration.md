@@ -19,7 +19,7 @@ For a local tool manifest, use `dotnet tool install --local RodriOliveira.AdrGua
 
 ## Prerequisites and source build
 
-- .NET SDK `10.0.402`, as pinned by `global.json`.
+- .NET SDK `10.0.403`, as pinned by `global.json`.
 - A local checkout containing `src/AdrGuard.Mcp`.
 - Git on the server host only when using `analyze_impact` or when `verify_architecture` records the current commit.
 
