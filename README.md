@@ -89,6 +89,10 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 | CI reports | Produce text, JSON, or SARIF validation output | [Check reports](docs/check-reports.md) |
 | Agent Skills | Give agents portable instructions for human-controlled ADR and CLI workflows | [Skills guide](docs/skills/README.md) |
 
+### See ADR Guard in action
+
+The [ADR Guard demo repository](https://github.com/rodri-oliveira-dev/adr-guard-demo) shows the complete GitHub Actions validation cycle: an intentionally incomplete Architecture Decision Record fails deterministic `check` validation, then passes after the document is corrected. Follow the preserved [demonstration pull request](https://github.com/rodri-oliveira-dev/adr-guard-demo/pull/1), or read the [GitHub Action guide](docs/github-action.md#real-github-actions-demo) for the verified runs.
+
 ### Repository code quality (optional)
 
 Maintainers can enable [SonarQube Cloud checks](docs/sonarqube-cloud.md) for .NET coverage, pull-request Quality Gates, and controlled HIGH/BLOCKER issue synchronization. This automation is **disabled until explicitly configured** and does not affect released products or the normal CI.

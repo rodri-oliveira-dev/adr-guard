@@ -4,6 +4,8 @@
 
 Para evidência arquitetural executável, consulte o [estudo de caso de drift arquitetural](architectural-drift/README.pt-BR.md).
 
+Esta biblioteca reúne **exemplos de documentos ADR**, que mostram como registrar decisões. Para um **exemplo de automação**, com esses documentos validados em um pull request real, consulte a [demonstração no GitHub Actions](../github-action.pt-BR.md#demonstração-real-no-github-actions).
+
 Estes exemplos expressam a mesma decisão — usar PostgreSQL como sistema de registro de pedidos — em três níveis de estrutura. Eles contêm justificativas completas, não instruções de template. Cada idioma e formato fica em diretório separado porque toda amostra usa intencionalmente o ID `0001` e a seleção de formato vale para o conjunto validado inteiro.
 
 | Exemplo | Por que esta forma serve |

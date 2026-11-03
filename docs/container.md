@@ -117,8 +117,8 @@ The container path is protected by multiple independent controls:
 - Hadolint is a required CI gate for the `Dockerfile`;
 - Dependabot monitors the .NET base images referenced by the `Dockerfile`;
 - CI builds and smoke-tests the image before a release can run;
-- Trivy scans the built CI image for fixable `HIGH` and `CRITICAL` OS/library vulnerabilities and fails the workflow when any are found;
-- the runtime image is based on the .NET chiseled image and runs as a non-root user;
+- Trivy scans the built CI image for fixable `MEDIUM`, `HIGH`, and `CRITICAL` OS/library vulnerabilities and fails the workflow when any are found;
+- the runtime uses the official .NET Alpine image, includes the bounded local Git dependency, and runs as a non-root user;
 - release images carry OCI source, documentation, author, license, version, and revision metadata;
 - BuildKit publishes an SBOM attestation and `mode=max` provenance attestation with each multi-platform release;
 - the release workflow verifies that both `linux/amd64` and `linux/arm64` manifests and attestation manifests are present in GHCR and Docker Hub.

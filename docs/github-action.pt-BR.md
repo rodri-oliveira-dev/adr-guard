@@ -87,6 +87,21 @@ jobs:
 
 Uma cópia desse workflow está em [examples/github-action-pr.yml](examples/github-action-pr.yml).
 
+## Demonstração real no GitHub Actions
+
+O [repositório demonstrativo do ADR Guard](https://github.com/rodri-oliveira-dev/adr-guard-demo) preserva um ciclo completo de validação no [pull request #1](https://github.com/rodri-oliveira-dev/adr-guard-demo/pull/1):
+
+1. Um Architecture Decision Record válido é alterado intencionalmente.
+2. A seção obrigatória `Consequences` é removida.
+3. A Action executa `check`, que reporta `ADR005` porque a seção está ausente.
+4. O GitHub Actions registra a [execução com falha e exit code `1`](https://github.com/rodri-oliveira-dev/adr-guard-demo/actions/runs/41699840621).
+5. A ADR é corrigida com a restauração de consequências equilibradas.
+6. A validação seguinte [passa com exit code `0`](https://github.com/rodri-oliveira-dev/adr-guard-demo/actions/runs/41700021294).
+
+A falha é parte intencional do histórico da demonstração, não um defeito do ADR Guard. O pull request já foi mesclado, mas as duas execuções continuam disponíveis para inspeção. O repositório demonstrativo contém o workflow reproduzível e o tutorial; este guia não os duplica.
+
+O modo `check` aplica regras determinísticas à documentação. Ele não aprova a ADR, não avalia o mérito técnico da decisão e não substitui a revisão arquitetural humana.
+
 ## Validação da branch principal
 
 Use a mesma validação somente leitura depois dos merges em `main`:

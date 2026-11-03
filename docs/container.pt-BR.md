@@ -117,8 +117,8 @@ O caminho do container é protegido por controles independentes:
 - Hadolint é um quality gate obrigatório do `Dockerfile` no CI;
 - Dependabot monitora as imagens-base .NET referenciadas pelo `Dockerfile`;
 - o CI faz build e smoke tests da imagem antes que uma release possa executar;
-- o Trivy analisa a imagem gerada no CI em busca de vulnerabilidades corrigíveis `HIGH` e `CRITICAL` em pacotes do sistema operacional e bibliotecas, falhando o workflow quando encontra alguma;
-- a imagem de runtime usa a variante chiseled do .NET e executa como usuário não-root;
+- o Trivy analisa a imagem gerada no CI em busca de vulnerabilidades corrigíveis `MEDIUM`, `HIGH` e `CRITICAL` em pacotes do sistema operacional e bibliotecas, falhando o workflow quando encontra alguma;
+- o runtime usa a imagem oficial .NET Alpine, inclui a dependência local e limitada de Git e executa como usuário não-root;
 - imagens de release recebem metadados OCI de origem, documentação, autor, licença, versão e revisão;
 - o BuildKit publica uma attestation de SBOM e uma attestation de provenance em `mode=max` para cada release multi-plataforma;
 - o workflow de release verifica a presença dos manifests `linux/amd64`, `linux/arm64` e dos manifests de attestation tanto no GHCR quanto no Docker Hub.
