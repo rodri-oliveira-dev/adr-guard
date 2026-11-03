@@ -65,7 +65,7 @@ grep -Eq '^  model:' "${ROOT_DIR}/action.yml"
 grep -Eq '^  base-ref:' "${ROOT_DIR}/action.yml"
 grep -Eq '^  impact-map:' "${ROOT_DIR}/action.yml"
 
-grep -Fq 'tdnf install -y git' "${ROOT_DIR}/Dockerfile"
+grep -Fq 'apk add --no-cache git=2.54.0-r0' "${ROOT_DIR}/Dockerfile"
 grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"
 
 if grep -Eq '(^|[[:space:]])draft([[:space:]]|$)' "${ROOT_DIR}/action.yml"; then
