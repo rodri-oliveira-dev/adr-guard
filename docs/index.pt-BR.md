@@ -13,6 +13,7 @@ Architecture Decision Records (ADRs), ou Registros de Decisão de Arquitetura, p
 | Criar e validar meu primeiro registro | [Escreva sua primeira ADR](guides/getting-started.pt-BR.md) |
 | Escolher Minimal, Extended, Custom ou MADR 4.0 | [Escolha um template ou formato](decision-design/choosing-a-template.pt-BR.md) |
 | Estabelecer a prática em uma equipe | [Adote ADRs em equipe](guides/team-adoption.pt-BR.md) |
+| Ver uma validação falhar e passar no GitHub Actions | [Explore a demonstração real](github-action.pt-BR.md#demonstração-real-no-github-actions) |
 | Encontrar contratos de comandos e integrações | [Referência técnica](#referência-técnica) |
 
 ## Aprenda a prática
@@ -48,7 +49,7 @@ Architecture Decision Records (ADRs), ou Registros de Decisão de Arquitetura, p
 | Dados de governança | [metadados opcionais](metadata.pt-BR.md), [catálogo enriquecido](catalog.pt-BR.md) |
 | Relatórios | [relatórios de check](check-reports.pt-BR.md), [schema do relatório de review](adr-review-report-v1.md), [política de review](adr-review-policy-v1.pt-BR.md) |
 | Fluxos assistidos por IA | [templates e privacidade do draft](draft-templates.pt-BR.md), [review de ADRs](adr-review.pt-BR.md), [review comparativo](comparative-review.pt-BR.md), [segurança do review](adr-review-security.pt-BR.md) |
-| Integrações | [GitHub Action](github-action.pt-BR.md), [VS Code](../extensions/vscode/README.pt-BR.md), [servidor MCP](mcp.pt-BR.md), [distribuição MCP](mcp-release.pt-BR.md), [imagens de container](container.pt-BR.md) |
+| Integrações | [GitHub Action e demonstração real](github-action.pt-BR.md), [VS Code](../extensions/vscode/README.pt-BR.md), [servidor MCP](mcp.pt-BR.md), [distribuição MCP](mcp-release.pt-BR.md), [imagens de container](container.pt-BR.md) |
 | Evidência de auditoria | [Rastreabilidade entre implementação e documentação](documentation-audit.pt-BR.md), [matriz de compatibilidade](compatibility.pt-BR.md) |
 | Release e cadeia de suprimentos | [política de release da Action](github-action-release.pt-BR.md), [segurança da Action](github-action-security.pt-BR.md), [auditoria da release pública](public-release-audit.pt-BR.md) |
 | Arquitetura do projeto | [índice das ADRs do próprio ADR Guard](adr/README.md) |

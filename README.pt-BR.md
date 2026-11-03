@@ -89,6 +89,10 @@ Consulte a [matriz de seleção](docs/decision-design/choosing-a-template.pt-BR.
 | Relatórios de CI | Produzir validação em texto, JSON ou SARIF | [Relatórios de check](docs/check-reports.pt-BR.md) |
 | Agent Skills | Oferecer instruções portáveis a agentes para fluxos de ADR e CLI controlados por pessoas | [Guia de Skills](docs/skills/README.pt-BR.md) |
 
+### Veja o ADR Guard na prática
+
+O [repositório demonstrativo do ADR Guard](https://github.com/rodri-oliveira-dev/adr-guard-demo) apresenta o ciclo completo de validação no GitHub Actions: um Architecture Decision Record intencionalmente incompleto falha na verificação determinística do modo `check` e passa depois que o documento é corrigido. Acompanhe o [pull request da demonstração](https://github.com/rodri-oliveira-dev/adr-guard-demo/pull/1) ou consulte o [guia da GitHub Action](docs/github-action.pt-BR.md#demonstração-real-no-github-actions) para ver as execuções verificadas.
+
 ### Qualidade de código do repositório (opcional)
 
 Mantenedores podem habilitar [verificações SonarQube Cloud](docs/sonarqube-cloud.pt-BR.md) para cobertura .NET, Quality Gate em PRs e sincronização controlada de issues HIGH/BLOCKER. A automação permanece **desabilitada até sua configuração explícita** e não altera os produtos publicados nem a CI regular.
