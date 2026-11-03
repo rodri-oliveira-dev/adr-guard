@@ -6,7 +6,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
-- No additional CLI changes after the `1.9.0` release candidate baseline.
+- Harden the container supply chain by moving the pinned build and runtime bases to the official .NET Alpine variants, retaining the bounded Git dependency and non-root execution while removing a vulnerable transitive Perl package chain.
 
 ## [1.9.0] — Release candidate; not published
 
