@@ -38,60 +38,27 @@ internal static class GeneratedAdrStructureGuard
         }
 
         using var reader = new StringReader(content);
-        char? fenceMarker = null;
-        var fenceLength = 0;
+        var fenceTracker = new MarkdownFenceTracker();
         string? previousUnfencedLine = null;
 
         while (reader.ReadLine() is { } line)
         {
-            if (TryGetFence(
-                    line,
-                    out var marker,
-                    out var markerLength))
+            if (fenceTracker.TryConsume(line))
             {
-                if (fenceMarker is null)
-                {
-                    fenceMarker = marker;
-                    fenceLength = markerLength;
-                    previousUnfencedLine = null;
-                    continue;
-                }
-
-                if (marker == fenceMarker
-                    && markerLength >= fenceLength
-                    && IsClosingFence(line, markerLength))
-                {
-                    fenceMarker = null;
-                    fenceLength = 0;
-                    previousUnfencedLine = null;
-                    continue;
-                }
-            }
-
-            if (fenceMarker is not null)
-            {
-                continue;
-            }
-
-            if (TryParseHeading(
-                    line,
-                    out var level,
-                    out var heading))
-            {
-                RejectStructuralHeading(
-                    fieldName,
-                    rejectAllHeadings,
-                    level,
-                    heading);
                 previousUnfencedLine = null;
                 continue;
             }
 
-            if (TryParseSetextHeading(
-                    previousUnfencedLine,
+            if (fenceTracker.IsInsideFence)
+            {
+                continue;
+            }
+
+            if (TryParseStructuralHeading(
                     line,
-                    out level,
-                    out heading))
+                    previousUnfencedLine,
+                    out var level,
+                    out var heading))
             {
                 RejectStructuralHeading(
                     fieldName,
@@ -107,6 +74,21 @@ internal static class GeneratedAdrStructureGuard
                 : line;
         }
     }
+
+    private static bool TryParseStructuralHeading(
+        string line,
+        string? previousUnfencedLine,
+        out int level,
+        out string heading) =>
+        TryParseHeading(
+            line,
+            out level,
+            out heading)
+        || TryParseSetextHeading(
+            previousUnfencedLine,
+            line,
+            out level,
+            out heading);
 
     private static void RejectStructuralHeading(
         string fieldName,
@@ -167,65 +149,6 @@ internal static class GeneratedAdrStructureGuard
         return heading.Length > 0;
     }
 
-    private static bool TryGetFence(
-        string line,
-        out char marker,
-        out int markerLength)
-    {
-        marker = default;
-        markerLength = 0;
-
-        var indentation = 0;
-        while (indentation < line.Length
-            && line[indentation] == ' ')
-        {
-            indentation++;
-        }
-
-        // CommonMark fenced code blocks may be indented by at most three
-        // spaces. Four or more spaces are indented code, not a fence.
-        if (indentation > 3)
-        {
-            return false;
-        }
-
-        var trimmed = line.AsSpan(indentation);
-        if (trimmed.Length < 3
-            || trimmed[0] is not ('`' or '~'))
-        {
-            return false;
-        }
-
-        marker = trimmed[0];
-
-        while (markerLength < trimmed.Length
-            && trimmed[markerLength] == marker)
-        {
-            markerLength++;
-        }
-
-        if (markerLength < 3)
-        {
-            return false;
-        }
-
-        // CommonMark forbids backticks in the info string of a backtick
-        // fence. If present, this line is ordinary text and must not suppress
-        // structural heading parsing on following lines.
-        return marker != '`'
-            || trimmed[markerLength..].IndexOf('`') < 0;
-    }
-
-    private static bool IsClosingFence(
-        string line,
-        int markerLength)
-    {
-        var trimmed = line.TrimStart();
-
-        return trimmed[markerLength..]
-            .All(char.IsWhiteSpace);
-    }
-
     private static bool TryParseHeading(
         string line,
         out int level,
@@ -274,5 +197,101 @@ internal static class GeneratedAdrStructureGuard
         }
 
         return heading[..closingStart].TrimEnd();
+    }
+
+    private sealed class MarkdownFenceTracker
+    {
+        private char? marker;
+        private int length;
+
+        internal bool IsInsideFence => marker is not null;
+
+        internal bool TryConsume(string line)
+        {
+            if (!TryGetFence(
+                    line,
+                    out var candidateMarker,
+                    out var candidateLength))
+            {
+                return false;
+            }
+
+            if (marker is null)
+            {
+                marker = candidateMarker;
+                length = candidateLength;
+                return true;
+            }
+
+            if (candidateMarker != marker
+                || candidateLength < length
+                || !IsClosingFence(line, candidateLength))
+            {
+                return false;
+            }
+
+            marker = null;
+            length = 0;
+            return true;
+        }
+
+        private static bool TryGetFence(
+            string line,
+            out char marker,
+            out int markerLength)
+        {
+            marker = default;
+            markerLength = 0;
+
+            var indentation = 0;
+            while (indentation < line.Length
+                && line[indentation] == ' ')
+            {
+                indentation++;
+            }
+
+            // CommonMark fenced code blocks may be indented by at most three
+            // spaces. Four or more spaces are indented code, not a fence.
+            if (indentation > 3)
+            {
+                return false;
+            }
+
+            var trimmed = line.AsSpan(indentation);
+            if (trimmed.Length < 3
+                || trimmed[0] is not ('`' or '~'))
+            {
+                return false;
+            }
+
+            marker = trimmed[0];
+
+            while (markerLength < trimmed.Length
+                && trimmed[markerLength] == marker)
+            {
+                markerLength++;
+            }
+
+            if (markerLength < 3)
+            {
+                return false;
+            }
+
+            // CommonMark forbids backticks in the info string of a backtick
+            // fence. If present, this line is ordinary text and must not
+            // suppress structural heading parsing on following lines.
+            return marker != '`'
+                || trimmed[markerLength..].IndexOf('`') < 0;
+        }
+
+        private static bool IsClosingFence(
+            string line,
+            int markerLength)
+        {
+            var trimmed = line.TrimStart();
+
+            return trimmed[markerLength..]
+                .All(char.IsWhiteSpace);
+        }
     }
 }

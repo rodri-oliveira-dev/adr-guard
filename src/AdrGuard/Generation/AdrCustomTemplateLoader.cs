@@ -23,21 +23,59 @@ internal static class AdrCustomTemplateLoader
         ArgumentException.ThrowIfNullOrWhiteSpace(cultureName);
         cancellationToken.ThrowIfCancellationRequested();
 
+        var sourcePath = ResolveSourcePath(
+            templateFilePath,
+            invocationDirectory);
+        var bytes = ReadTemplateBytes(
+            sourcePath,
+            cancellationToken);
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var source = DecodeTemplate(
+            bytes,
+            sourcePath);
+        ValidatePlaceholderSyntax(
+            source,
+            sourcePath);
+
+        var template = Parse(
+            source,
+            cultureName,
+            sourcePath);
+
+        ValidateRenderedTemplate(
+            template,
+            sourcePath);
+
+        return template;
+    }
+
+    private static string ResolveSourcePath(
+        string templateFilePath,
+        string? invocationDirectory)
+    {
         var sourcePath = Path.GetFullPath(
             templateFilePath,
             Path.GetFullPath(invocationDirectory ?? Environment.CurrentDirectory));
 
-        if (!string.Equals(
+        if (string.Equals(
                 Path.GetExtension(sourcePath),
                 ".md",
                 StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException(
-                $"--template-file must reference a local Markdown (.md) file: '{sourcePath}'.",
-                nameof(templateFilePath));
+            return sourcePath;
         }
 
-        byte[] bytes;
+        throw new ArgumentException(
+            $"--template-file must reference a local Markdown (.md) file: '{sourcePath}'.",
+            nameof(templateFilePath));
+    }
+
+    private static byte[] ReadTemplateBytes(
+        string sourcePath,
+        CancellationToken cancellationToken)
+    {
         try
         {
             using var input = new FileStream(
@@ -80,7 +118,7 @@ internal static class AdrCustomTemplateLoader
                 }
             }
 
-            bytes = buffer.ToArray();
+            return buffer.ToArray();
         }
         catch (FileNotFoundException exception)
         {
@@ -100,9 +138,12 @@ internal static class AdrCustomTemplateLoader
                 $"Custom ADR template '{sourcePath}' cannot be read (access denied).",
                 exception);
         }
+    }
 
-        cancellationToken.ThrowIfCancellationRequested();
-
+    private static string DecodeTemplate(
+        byte[] bytes,
+        string sourcePath)
+    {
         string source;
         try
         {
@@ -128,6 +169,13 @@ internal static class AdrCustomTemplateLoader
                 $"Custom ADR template '{sourcePath}' contains an unsupported NUL character.");
         }
 
+        return source;
+    }
+
+    private static void ValidatePlaceholderSyntax(
+        string source,
+        string sourcePath)
+    {
         if (source.Contains("${", StringComparison.Ordinal)
             || source.Contains("{%", StringComparison.Ordinal)
             || Regex.IsMatch(
@@ -139,12 +187,12 @@ internal static class AdrCustomTemplateLoader
             throw new InvalidDataException(
                 $"Custom ADR template '{sourcePath}' contains unsupported placeholder syntax. Use {{{{name}}}} tokens.");
         }
+    }
 
-        var template = Parse(
-            source,
-            cultureName,
-            sourcePath);
-
+    private static void ValidateRenderedTemplate(
+        AdrTemplateDefinition template,
+        string sourcePath)
+    {
         // Structural, placeholder and validator checks run before returning
         // anything to a creation workflow. The preview path is only a parser
         // input; loading a template never writes or selects an ADR target.
@@ -179,79 +227,129 @@ internal static class AdrCustomTemplateLoader
                 $"Custom ADR template '{sourcePath}' is not validator-compatible: "
                 + string.Join("; ", validation.Issues.Select(issue => issue.Message)));
         }
-
-        return template;
     }
 
     private static AdrTemplateDefinition Parse(
         string content,
         string cultureName,
         string sourcePath)
+        => new CustomTemplateParser(
+            content,
+            cultureName,
+            sourcePath).ParseDefinition();
+
+    private sealed class CustomTemplateParser(
+        string content,
+        string cultureName,
+        string sourcePath)
     {
-        var lines = content
-            .Replace("\r\n", "\n", StringComparison.Ordinal)
-            .Replace('\r', '\n')
-            .Split('\n');
+        private readonly List<AdrTemplateSection> sections = [];
+        private readonly List<string> currentBody = [];
+        private string? currentHeading;
+        private bool sawTitle;
+        private bool sawStatus;
 
-        var sections = new List<AdrTemplateSection>();
-        var currentBody = new List<string>();
-        string? currentHeading = null;
-        var sawTitle = false;
-        var sawStatus = false;
+        internal AdrTemplateDefinition ParseDefinition()
+        {
+            var lines = content
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace('\r', '\n')
+                .Split('\n');
 
-        foreach (var line in lines)
+            foreach (var line in lines)
+            {
+                ParseLine(line);
+            }
+
+            FinishSection();
+
+            if (!sawTitle || !sawStatus)
+            {
+                throw new InvalidDataException(
+                    $"Custom ADR template '{sourcePath}' must define '# {{{{title}}}}' and '## Status'.");
+            }
+
+            return new AdrTemplateDefinition(
+                cultureName,
+                sections);
+        }
+
+        private void ParseLine(string line)
         {
             if (!sawTitle)
             {
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    continue;
-                }
-
-                if (line != "# {{title}}")
-                {
-                    throw new InvalidDataException(
-                        $"Custom ADR template '{sourcePath}' must start with exactly '# {{{{title}}}}'.");
-                }
-
-                sawTitle = true;
-                continue;
+                ParseTitle(line);
+                return;
             }
 
             if (line.StartsWith("## ", StringComparison.Ordinal))
             {
-                FinishSection();
-
-                var heading = line[3..];
-                if (string.IsNullOrWhiteSpace(heading)
-                    || heading != heading.Trim()
-                    || heading.Contains("{{", StringComparison.Ordinal)
-                    || heading.Contains("}}", StringComparison.Ordinal))
-                {
-                    throw new InvalidDataException(
-                        $"Custom ADR template '{sourcePath}' has an invalid or dynamic level-two heading.");
-                }
-
-                if (!sawStatus)
-                {
-                    if (heading != "Status")
-                    {
-                        throw new InvalidDataException(
-                            $"Custom ADR template '{sourcePath}' must place '## Status' immediately after the title.");
-                    }
-
-                    sawStatus = true;
-                }
-                else if (heading == "Status")
-                {
-                    throw new InvalidDataException(
-                        $"Custom ADR template '{sourcePath}' must not define multiple Status sections.");
-                }
-
-                currentHeading = heading;
-                continue;
+                StartSection(line[3..]);
+                return;
             }
 
+            ValidateSectionBodyLine(line);
+
+            if (currentHeading is not null)
+            {
+                currentBody.Add(line);
+            }
+        }
+
+        private void ParseTitle(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line))
+            {
+                return;
+            }
+
+            if (line != "# {{title}}")
+            {
+                throw new InvalidDataException(
+                    $"Custom ADR template '{sourcePath}' must start with exactly '# {{{{title}}}}'.");
+            }
+
+            sawTitle = true;
+        }
+
+        private void StartSection(string heading)
+        {
+            FinishSection();
+
+            if (string.IsNullOrWhiteSpace(heading)
+                || heading != heading.Trim()
+                || heading.Contains("{{", StringComparison.Ordinal)
+                || heading.Contains("}}", StringComparison.Ordinal))
+            {
+                throw new InvalidDataException(
+                    $"Custom ADR template '{sourcePath}' has an invalid or dynamic level-two heading.");
+            }
+
+            ValidateStatusSection(heading);
+            currentHeading = heading;
+        }
+
+        private void ValidateStatusSection(string heading)
+        {
+            if (!sawStatus)
+            {
+                if (heading != "Status")
+                {
+                    throw new InvalidDataException(
+                        $"Custom ADR template '{sourcePath}' must place '## Status' immediately after the title.");
+                }
+
+                sawStatus = true;
+            }
+            else if (heading == "Status")
+            {
+                throw new InvalidDataException(
+                    $"Custom ADR template '{sourcePath}' must not define multiple Status sections.");
+            }
+        }
+
+        private void ValidateSectionBodyLine(string line)
+        {
             var leading = line.TrimStart();
             if (leading.StartsWith("# ", StringComparison.Ordinal)
                 || leading.StartsWith("## ", StringComparison.Ordinal)
@@ -262,33 +360,15 @@ internal static class AdrCustomTemplateLoader
                     $"Custom ADR template '{sourcePath}' contains a level-one title or malformed level-two heading in a section body.");
             }
 
-            if (currentHeading is null)
+            if (currentHeading is null
+                && !string.IsNullOrWhiteSpace(line))
             {
-                if (!string.IsNullOrWhiteSpace(line))
-                {
-                    throw new InvalidDataException(
-                        $"Custom ADR template '{sourcePath}' has text outside a declared section.");
-                }
-
-                continue;
+                throw new InvalidDataException(
+                    $"Custom ADR template '{sourcePath}' has text outside a declared section.");
             }
-
-            currentBody.Add(line);
         }
 
-        FinishSection();
-
-        if (!sawTitle || !sawStatus)
-        {
-            throw new InvalidDataException(
-                $"Custom ADR template '{sourcePath}' must define '# {{{{title}}}}' and '## Status'.");
-        }
-
-        return new AdrTemplateDefinition(
-            cultureName,
-            sections);
-
-        void FinishSection()
+        private void FinishSection()
         {
             if (currentHeading is null)
             {
@@ -298,25 +378,38 @@ internal static class AdrCustomTemplateLoader
             var body = string.Join("\n", currentBody).Trim();
             if (currentHeading == "Status")
             {
-                if (body is not ("{{status}}" or "Proposed"))
-                {
-                    throw new InvalidDataException(
-                        $"Custom ADR template '{sourcePath}' must set Status to exactly '{{{{status}}}}' or 'Proposed'.");
-                }
+                ValidateStatusBody(body);
             }
             else
             {
-                if (string.IsNullOrWhiteSpace(body))
-                {
-                    throw new InvalidDataException(
-                        $"Custom ADR template '{sourcePath}' has an empty '{currentHeading}' section.");
-                }
-
-                sections.Add(new AdrTemplateSection(currentHeading, body));
+                AddContentSection(body);
             }
 
             currentBody.Clear();
             currentHeading = null;
+        }
+
+        private void ValidateStatusBody(string body)
+        {
+            if (body is not ("{{status}}" or "Proposed"))
+            {
+                throw new InvalidDataException(
+                    $"Custom ADR template '{sourcePath}' must set Status to exactly '{{{{status}}}}' or 'Proposed'.");
+            }
+        }
+
+        private void AddContentSection(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                throw new InvalidDataException(
+                    $"Custom ADR template '{sourcePath}' has an empty '{currentHeading}' section.");
+            }
+
+            sections.Add(
+                new AdrTemplateSection(
+                    currentHeading!,
+                    body));
         }
     }
 }

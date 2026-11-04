@@ -16,7 +16,8 @@ namespace AdrGuard.Cli;
 
 internal static class CliApplication
 {
-    private const string DefaultDraftCultureName = "en-US";
+    private const string DraftUsageHint =
+        "Run 'adr-guard draft --help' for usage.";
 
     private const string HelpText = """
         ADR Guard
@@ -266,7 +267,8 @@ internal static class CliApplication
         IAdrGenerationProvider? generationProvider = null,
         Func<HttpClient>? httpClientFactory = null,
         Func<string, string?>? environmentVariableReader = null,
-        IAdrReviewProvider? reviewProvider = null) =>
+        IAdrReviewProvider? reviewProvider = null,
+        string? invocationDirectory = null) =>
         RunCore(
             args,
             TextReader.Null,
@@ -276,6 +278,7 @@ internal static class CliApplication
             httpClientFactory,
             environmentVariableReader,
             reviewProvider,
+            invocationDirectory,
             default);
 
     internal static int Run(
@@ -296,6 +299,7 @@ internal static class CliApplication
             httpClientFactory,
             environmentVariableReader,
             reviewProvider,
+            null,
             cancellationToken);
 
     internal static int Run(
@@ -313,6 +317,7 @@ internal static class CliApplication
             null,
             null,
             null,
+            null,
             cancellationToken);
 
     private static int RunCore(
@@ -324,6 +329,7 @@ internal static class CliApplication
         Func<HttpClient>? httpClientFactory,
         Func<string, string?>? environmentVariableReader,
         IAdrReviewProvider? reviewProvider,
+        string? invocationDirectory,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -348,7 +354,7 @@ internal static class CliApplication
         {
             var configuration = args[0] == "init"
                 ? null
-                : AdrGuardConfigurationLoader.Load(Directory.GetCurrentDirectory());
+                : AdrGuardConfigurationLoader.Load(invocationDirectory ?? Directory.GetCurrentDirectory());
             effectiveArgs = ConfigurationArguments.Apply(args, configuration);
         }
         catch (AdrGuardConfigurationException exception)
@@ -568,238 +574,28 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        if (!TryParseCheckArguments(
-                args,
-                out var directoryPath,
-                out var format,
-                out var adrFormat,
-                out var lifecycleStatuses,
-                out var conventionalSupersession,
-                out var filenamePolicy,
-                out var placeholderPolicy,
-                out var validateMetadata,
-                out var validationProfile,
-                out var changed,
-                out var baseReference,
-                out var baselinePath,
-                out var diagnosticLocations))
+        if (!CheckCommandArguments.TryParse(args, out var arguments))
         {
             return WriteCommandUsageError("check", error);
         }
 
         return CheckCommand.Run(
-            directoryPath,
-            format,
-            adrFormat,
-            lifecycleStatuses,
-            conventionalSupersession,
-            filenamePolicy,
-            placeholderPolicy,
-            validateMetadata,
-            validationProfile,
-            changed,
-            baseReference,
-            baselinePath,
-            diagnosticLocations,
+            arguments.DirectoryPath,
+            arguments.Format,
+            arguments.AdrFormat,
+            arguments.LifecycleStatuses,
+            arguments.ConventionalSupersession,
+            arguments.FilenamePolicy,
+            arguments.PlaceholderPolicy,
+            arguments.ValidateMetadata,
+            arguments.ValidationProfile,
+            arguments.Changed,
+            arguments.BaseReference,
+            arguments.BaselinePath,
+            arguments.DiagnosticLocations,
             output,
             error,
             cancellationToken);
-    }
-
-    private static bool TryParseCheckArguments(
-        IReadOnlyList<string> args,
-        out string directoryPath,
-        out CheckOutputFormat format,
-        out AdrFormat adrFormat,
-        out string? lifecycleStatuses,
-        out bool conventionalSupersession,
-        out string? filenamePolicy,
-        out string? placeholderPolicy,
-        out bool validateMetadata,
-        out string? validationProfile,
-        out bool changed,
-        out string? baseReference,
-        out string? baselinePath,
-        out bool diagnosticLocations)
-    {
-        directoryPath = ".";
-        format = CheckOutputFormat.Text;
-        adrFormat = AdrFormat.Canonical;
-        lifecycleStatuses = null;
-        conventionalSupersession = false;
-        filenamePolicy = null;
-        placeholderPolicy = null;
-        validateMetadata = false;
-        validationProfile = null;
-        changed = false;
-        baseReference = null;
-        baselinePath = null;
-        diagnosticLocations = false;
-        var directoryAssigned = false;
-        var formatAssigned = false;
-        var adrFormatAssigned = false;
-
-        for (var index = 1; index < args.Count; index++)
-        {
-            var argument = args[index];
-            if (argument == "--diagnostic-locations")
-            {
-                if (diagnosticLocations) return false;
-                diagnosticLocations = true;
-                continue;
-            }
-            if (argument == "--validate-metadata")
-            {
-                if (validateMetadata) return false;
-                validateMetadata = true;
-                continue;
-            }
-            if (argument == "--conventional-supersession")
-            {
-                if (conventionalSupersession) return false;
-                conventionalSupersession = true;
-                continue;
-            }
-            if (argument == "--changed")
-            {
-                if (changed)
-                {
-                    return false;
-                }
-
-                changed = true;
-                continue;
-            }
-
-            if (argument == "--base-ref")
-            {
-                if (baseReference is not null
-                    || index + 1 >= args.Count
-                    || string.IsNullOrWhiteSpace(args[index + 1]))
-                {
-                    return false;
-                }
-
-                var candidate = args[++index];
-                try
-                {
-                    GitChangeDetector.ValidateReference(candidate);
-                }
-                catch (ArgumentException)
-                {
-                    return false;
-                }
-
-                baseReference = candidate;
-                continue;
-            }
-
-            if (argument == "--baseline")
-            {
-                if (baselinePath is not null
-                    || index + 1 >= args.Count
-                    || string.IsNullOrWhiteSpace(args[index + 1])
-                    || args[index + 1].StartsWith('-'))
-                {
-                    return false;
-                }
-
-                baselinePath = args[++index];
-                continue;
-            }
-
-            if (argument == "--format")
-            {
-                if (formatAssigned || index + 1 >= args.Count)
-                {
-                    return false;
-                }
-
-                format = args[++index] switch
-                {
-                    "text" => CheckOutputFormat.Text,
-                    "json" => CheckOutputFormat.Json,
-                    "sarif" => CheckOutputFormat.Sarif,
-                    _ => (CheckOutputFormat)(-1),
-                };
-                if (!Enum.IsDefined(format))
-                {
-                    return false;
-                }
-
-                formatAssigned = true;
-                continue;
-            }
-
-            if (argument == "--adr-format")
-            {
-                if (adrFormatAssigned || index + 1 >= args.Count)
-                {
-                    return false;
-                }
-
-                adrFormat = args[++index] switch
-                {
-                    "canonical" => AdrFormat.Canonical,
-                    "madr-4" => AdrFormat.Madr4,
-                    _ => (AdrFormat)(-1),
-                };
-                if (!Enum.IsDefined(adrFormat))
-                {
-                    return false;
-                }
-
-                adrFormatAssigned = true;
-                continue;
-            }
-
-            if (argument == "--lifecycle-statuses")
-            {
-                if (lifecycleStatuses is not null || index + 1 >= args.Count)
-                {
-                    return false;
-                }
-
-                lifecycleStatuses = args[++index];
-                try { AdrLifecyclePolicy.Parse(lifecycleStatuses); }
-                catch (ArgumentException) { return false; }
-                continue;
-            }
-
-            if (argument == "--filename-policy")
-            {
-                if (filenamePolicy is not null || index + 1 >= args.Count) return false;
-                filenamePolicy = args[++index];
-                try { AdrFilenamePolicy.Parse(filenamePolicy); } catch (ArgumentException) { return false; }
-                continue;
-            }
-
-            if (argument == "--placeholder-policy")
-            {
-                if (placeholderPolicy is not null || index + 1 >= args.Count) return false;
-                placeholderPolicy = args[++index];
-                if (placeholderPolicy is not ("off" or "warn" or "error")) return false;
-                continue;
-            }
-
-            if (argument == "--validation-profile")
-            {
-                if (validationProfile is not null || index + 1 >= args.Count) return false;
-                validationProfile = args[++index];
-                try { AdrValidationOptionsFactory.ParseProfile(validationProfile); } catch (ArgumentException) { return false; }
-                continue;
-            }
-
-            if (argument.StartsWith('-') || directoryAssigned)
-            {
-                return false;
-            }
-
-            directoryPath = argument;
-            directoryAssigned = true;
-        }
-
-        return changed == (baseReference is not null);
     }
 
     private static int RunBaseline(
@@ -814,126 +610,20 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        var directory = ".";
-        string? outputPath = null;
-        var update = false;
-        var format = AdrFormat.Canonical;
-        string? lifecycleStatuses = null;
-        var conventionalSupersession = false;
-        string? filenamePolicy = null;
-        string? validationProfile = null;
-        var directoryAssigned = false;
-        var formatAssigned = false;
-
-        for (var index = 1; index < args.Count; index++)
-        {
-            var argument = args[index];
-            if (argument == "--conventional-supersession")
-            {
-                if (conventionalSupersession)
-                {
-                    return WriteCommandUsageError("baseline", error);
-                }
-                conventionalSupersession = true;
-                continue;
-            }
-            if (argument == "--update")
-            {
-                if (update)
-                {
-                    return WriteCommandUsageError("baseline", error);
-                }
-
-                update = true;
-                continue;
-            }
-
-            if (argument is "--output" or "--adr-format" or "--lifecycle-statuses" or "--filename-policy" or "--validation-profile")
-            {
-                if (index + 1 >= args.Count || args[index + 1].StartsWith('-'))
-                {
-                    return WriteCommandUsageError("baseline", error);
-                }
-
-                var value = args[++index];
-                if (argument == "--output")
-                {
-                    if (outputPath is not null)
-                    {
-                        return WriteCommandUsageError("baseline", error);
-                    }
-
-                    outputPath = value;
-                }
-                else
-                {
-                    if (argument == "--filename-policy")
-                    {
-                        filenamePolicy = value;
-                        try { AdrFilenamePolicy.Parse(filenamePolicy); }
-                        catch (ArgumentException) { return WriteCommandUsageError("baseline", error); }
-                        continue;
-                    }
-                    if (argument == "--validation-profile")
-                    {
-                        validationProfile = value;
-                        try { AdrValidationOptionsFactory.ParseProfile(validationProfile); }
-                        catch (ArgumentException) { return WriteCommandUsageError("baseline", error); }
-                        continue;
-                    }
-                    if (argument == "--lifecycle-statuses")
-                    {
-                        lifecycleStatuses = value;
-                        try { AdrLifecyclePolicy.Parse(lifecycleStatuses); }
-                        catch (ArgumentException) { return WriteCommandUsageError("baseline", error); }
-                        continue;
-                    }
-
-                    if (formatAssigned)
-                    {
-                        return WriteCommandUsageError("baseline", error);
-                    }
-
-                    format = value switch
-                    {
-                        "canonical" => AdrFormat.Canonical,
-                        "madr-4" => AdrFormat.Madr4,
-                        _ => (AdrFormat)(-1),
-                    };
-                    if (!Enum.IsDefined(format))
-                    {
-                        return WriteCommandUsageError("baseline", error);
-                    }
-
-                    formatAssigned = true;
-                }
-
-                continue;
-            }
-
-            if (argument.StartsWith('-') || directoryAssigned)
-            {
-                return WriteCommandUsageError("baseline", error);
-            }
-
-            directory = argument;
-            directoryAssigned = true;
-        }
-
-        if (outputPath is null)
+        if (!BaselineCommandArguments.TryParse(args, out var arguments))
         {
             return WriteCommandUsageError("baseline", error);
         }
 
         return BaselineCommand.Run(
-            directory,
-            outputPath,
-            update,
-            format,
-            lifecycleStatuses,
-            conventionalSupersession,
-            filenamePolicy,
-            validationProfile,
+            arguments.DirectoryPath,
+            arguments.OutputPath,
+            arguments.Update,
+            arguments.Format,
+            arguments.LifecycleStatuses,
+            arguments.ConventionalSupersession,
+            arguments.FilenamePolicy,
+            arguments.ValidationProfile,
             output,
             error,
             cancellationToken);
@@ -950,29 +640,22 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        if (!TryParseIndexArguments(
+        if (!IndexCommandArguments.TryParse(
                 args,
-                out var directoryPath,
-                out var outputPath,
-                out var adrFormat,
-                out var lifecycleStatuses,
-                out var conventionalSupersession,
-                out var filenamePolicy,
-                out var validationProfile,
-                out var enrichedCatalog))
+                out var indexArguments))
         {
             return WriteCommandUsageError("index", error);
         }
 
         return IndexCommand.Run(
-            directoryPath,
-            outputPath,
-            adrFormat,
-            lifecycleStatuses,
-            conventionalSupersession,
-            filenamePolicy,
-            validationProfile,
-            enrichedCatalog,
+            indexArguments.DirectoryPath,
+            indexArguments.OutputPath,
+            indexArguments.AdrFormat,
+            indexArguments.LifecycleStatuses,
+            indexArguments.ConventionalSupersession,
+            indexArguments.FilenamePolicy,
+            indexArguments.ValidationProfile,
+            indexArguments.EnrichedCatalog,
             output,
             error);
     }
@@ -992,7 +675,7 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        if (!TryParseReviewArguments(args, out var reviewArguments))
+        if (!ReviewCommandArguments.TryParse(args, out var reviewArguments))
         {
             return WriteCommandUsageError("review", error);
         }
@@ -1116,7 +799,7 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        if (!TryParseDraftArguments(
+        if (!DraftCommandArguments.TryParse(
                 args,
                 out var draftArguments))
         {
@@ -1125,66 +808,14 @@ internal static class CliApplication
                 error);
         }
 
-        // Selected templates are validated before constructing or invoking a
-        // provider. Unselected draft keeps its existing culture and output.
-        AdrTemplateDefinition? selectedTemplate = null;
-        if (draftArguments.TemplateName is not null
-            || draftArguments.TemplateFilePath is not null)
+        if (!TryResolveDraftTemplate(
+                draftArguments,
+                error,
+                cancellationToken,
+                out var selectedTemplate,
+                out var templateExitCode))
         {
-            if (draftArguments.TemplateName is not null
-                && draftArguments.TemplateFilePath is not null)
-            {
-                error.WriteLine("--template and --template-file are mutually exclusive.");
-                error.WriteLine("Run 'adr-guard draft --help' for usage.");
-                return ExitCodes.UsageError;
-            }
-
-            if (!string.Equals(draftArguments.CultureName, "en-US", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(draftArguments.CultureName, "pt-BR", StringComparison.OrdinalIgnoreCase))
-            {
-                error.WriteLine("Selected templates support --culture en-US or pt-BR only; unselected draft retains all supported .NET cultures.");
-                error.WriteLine("Run 'adr-guard draft --help' for usage.");
-                return ExitCodes.UsageError;
-            }
-
-            if (draftArguments.TemplateName is not null
-                && !AdrBuiltInTemplates.Names.Contains(draftArguments.TemplateName, StringComparer.Ordinal))
-            {
-                error.WriteLine($"Unknown template '{draftArguments.TemplateName}'. Use minimal or extended.");
-                error.WriteLine("Run 'adr-guard draft --help' for usage.");
-                return ExitCodes.UsageError;
-            }
-
-            try
-            {
-                var templateCultureName = string.Equals(
-                    draftArguments.CultureName,
-                    "pt-BR",
-                    StringComparison.OrdinalIgnoreCase)
-                    ? "pt-BR"
-                    : "en-US";
-
-                selectedTemplate = AdrTemplateSelection.Resolve(
-                    draftArguments.TemplateName,
-                    draftArguments.TemplateFilePath,
-                    templateCultureName,
-                    cancellationToken: cancellationToken);
-            }
-            catch (ArgumentException exception)
-            {
-                error.WriteLine(exception.Message);
-                error.WriteLine("Run 'adr-guard draft --help' for usage.");
-                return ExitCodes.UsageError;
-            }
-            catch (Exception exception) when (exception is InvalidDataException
-                or IOException
-                or UnauthorizedAccessException
-                or InvalidOperationException
-                or OperationCanceledException)
-            {
-                error.WriteLine($"Unable to load ADR draft template: {exception.Message}");
-                return ExitCodes.OperationalError;
-            }
+            return templateExitCode;
         }
 
         if (injectedProvider is not null)
@@ -1208,7 +839,7 @@ internal static class CliApplication
             error.WriteLine(
                 "'draft' requires both --provider and --model.");
             error.WriteLine(
-                "Run 'adr-guard draft --help' for usage.");
+                DraftUsageHint);
             return ExitCodes.UsageError;
         }
 
@@ -1240,7 +871,7 @@ internal static class CliApplication
         {
             error.WriteLine(exception.Message);
             error.WriteLine(
-                "Run 'adr-guard draft --help' for usage.");
+                DraftUsageHint);
             return ExitCodes.UsageError;
         }
         catch (InvalidOperationException exception)
@@ -1250,8 +881,96 @@ internal static class CliApplication
         }
     }
 
+    private static bool TryResolveDraftTemplate(
+        DraftCommandArguments arguments,
+        TextWriter error,
+        CancellationToken cancellationToken,
+        out AdrTemplateDefinition? template,
+        out int exitCode)
+    {
+        template = null;
+        exitCode = ExitCodes.Success;
+
+        if (arguments.TemplateName is null
+            && arguments.TemplateFilePath is null)
+        {
+            return true;
+        }
+
+        if (!ValidateDraftTemplateSelection(arguments, error))
+        {
+            exitCode = ExitCodes.UsageError;
+            return false;
+        }
+
+        try
+        {
+            var cultureName = string.Equals(
+                arguments.CultureName,
+                "pt-BR",
+                StringComparison.OrdinalIgnoreCase)
+                ? "pt-BR"
+                : "en-US";
+
+            template = AdrTemplateSelection.Resolve(
+                arguments.TemplateName,
+                arguments.TemplateFilePath,
+                cultureName,
+                cancellationToken: cancellationToken);
+            return true;
+        }
+        catch (ArgumentException exception)
+        {
+            error.WriteLine(exception.Message);
+            error.WriteLine(DraftUsageHint);
+            exitCode = ExitCodes.UsageError;
+            return false;
+        }
+        catch (Exception exception) when (exception is InvalidDataException
+            or IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or OperationCanceledException)
+        {
+            error.WriteLine($"Unable to load ADR draft template: {exception.Message}");
+            exitCode = ExitCodes.OperationalError;
+            return false;
+        }
+    }
+
+    private static bool ValidateDraftTemplateSelection(
+        DraftCommandArguments arguments,
+        TextWriter error)
+    {
+        if (arguments.TemplateName is not null
+            && arguments.TemplateFilePath is not null)
+        {
+            error.WriteLine("--template and --template-file are mutually exclusive.");
+            error.WriteLine(DraftUsageHint);
+            return false;
+        }
+
+        if (!string.Equals(arguments.CultureName, "en-US", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(arguments.CultureName, "pt-BR", StringComparison.OrdinalIgnoreCase))
+        {
+            error.WriteLine("Selected templates support --culture en-US or pt-BR only; unselected draft retains all supported .NET cultures.");
+            error.WriteLine(DraftUsageHint);
+            return false;
+        }
+
+        if (arguments.TemplateName is not null
+            && !AdrBuiltInTemplates.Names.Contains(arguments.TemplateName, StringComparer.Ordinal))
+        {
+            error.WriteLine($"Unknown template '{arguments.TemplateName}'. Use minimal or extended.");
+            error.WriteLine(DraftUsageHint);
+            return false;
+        }
+
+        return true;
+    }
+
     private static int RunDraftCommand(
-        DraftArguments arguments,
+        DraftCommandArguments arguments,
         IAdrGenerationProvider provider,
         TextWriter output,
         TextWriter error,
@@ -1272,7 +991,7 @@ internal static class CliApplication
             cancellationToken);
 
     private static void WriteProviderSelection(
-        DraftArguments arguments,
+        DraftCommandArguments arguments,
         TextWriter output)
     {
         if (!string.IsNullOrWhiteSpace(arguments.ProviderName))
@@ -1284,557 +1003,6 @@ internal static class CliApplication
         {
             output.WriteLine($"AI model: {arguments.Model}");
         }
-    }
-
-    private static bool TryParseIndexArguments(
-        IReadOnlyList<string> args,
-        out string directoryPath,
-        out string? outputPath,
-        out AdrFormat adrFormat,
-        out string? lifecycleStatuses,
-        out bool conventionalSupersession,
-        out string? filenamePolicy,
-        out string? validationProfile,
-        out bool enrichedCatalog)
-    {
-        directoryPath = ".";
-        outputPath = null;
-        adrFormat = AdrFormat.Canonical;
-        lifecycleStatuses = null;
-        conventionalSupersession = false;
-        filenamePolicy = null;
-        validationProfile = null;
-        enrichedCatalog = false;
-        var directoryAssigned = false;
-        var adrFormatAssigned = false;
-
-        for (var index = 1; index < args.Count; index++)
-        {
-            var argument = args[index];
-            if (argument == "--catalog")
-            {
-                if (enrichedCatalog || index + 1 >= args.Count || args[++index] != "enriched") return false;
-                enrichedCatalog = true;
-                continue;
-            }
-            if (argument == "--conventional-supersession")
-            {
-                if (conventionalSupersession) return false;
-                conventionalSupersession = true;
-                continue;
-            }
-
-            if (argument == "--output")
-            {
-                if (outputPath is not null
-                    || index + 1 >= args.Count)
-                {
-                    return false;
-                }
-
-                outputPath = args[++index];
-                if (string.IsNullOrWhiteSpace(outputPath)
-                    || outputPath.StartsWith('-'))
-                {
-                    return false;
-                }
-
-                continue;
-            }
-
-            if (argument == "--adr-format")
-            {
-                if (adrFormatAssigned || index + 1 >= args.Count)
-                {
-                    return false;
-                }
-
-                adrFormat = args[++index] switch
-                {
-                    "canonical" => AdrFormat.Canonical,
-                    "madr-4" => AdrFormat.Madr4,
-                    _ => (AdrFormat)(-1),
-                };
-                if (!Enum.IsDefined(adrFormat))
-                {
-                    return false;
-                }
-
-                adrFormatAssigned = true;
-                continue;
-            }
-
-            if (argument == "--lifecycle-statuses")
-            {
-                if (lifecycleStatuses is not null || index + 1 >= args.Count)
-                {
-                    return false;
-                }
-                lifecycleStatuses = args[++index];
-                try { AdrLifecyclePolicy.Parse(lifecycleStatuses); }
-                catch (ArgumentException) { return false; }
-                continue;
-            }
-
-            if (argument == "--filename-policy")
-            {
-                if (filenamePolicy is not null || index + 1 >= args.Count) return false;
-                filenamePolicy = args[++index];
-                try { AdrFilenamePolicy.Parse(filenamePolicy); } catch (ArgumentException) { return false; }
-                continue;
-            }
-
-            if (argument == "--validation-profile")
-            {
-                if (validationProfile is not null || index + 1 >= args.Count) return false;
-                validationProfile = args[++index];
-                try { AdrValidationOptionsFactory.ParseProfile(validationProfile); } catch (ArgumentException) { return false; }
-                continue;
-            }
-
-            if (argument.StartsWith('-')
-                || directoryAssigned)
-            {
-                return false;
-            }
-
-            directoryPath = argument;
-            directoryAssigned = true;
-        }
-
-        return true;
-    }
-
-    private static bool TryParseReviewArguments(
-        IReadOnlyList<string> args,
-        out ReviewArguments reviewArguments)
-    {
-        string? targetPath = null;
-        string? providerName = null;
-        string? model = null;
-        string? endpoint = null;
-        string? compareReference = null;
-        string? outputPath = null;
-        string? policyFilePath = null;
-        var contextFilePaths = new List<string>();
-        var includeExistingAdrs = false;
-        var format = AdrReviewOutputFormat.Text;
-        var formatAssigned = false;
-        var overwriteOutput = false;
-        var policyMode = AdrReviewPolicyMode.Advisory;
-        var policyAssigned = false;
-
-        for (var index = 1; index < args.Count; index++)
-        {
-            var argument = args[index];
-
-            if (argument == "--include-existing-adrs")
-            {
-                if (includeExistingAdrs)
-                {
-                    reviewArguments = ReviewArguments.Empty;
-                    return false;
-                }
-
-                includeExistingAdrs = true;
-                continue;
-            }
-
-            if (argument == "--overwrite")
-            {
-                if (overwriteOutput)
-                {
-                    reviewArguments = ReviewArguments.Empty;
-                    return false;
-                }
-
-                overwriteOutput = true;
-                continue;
-            }
-
-            if (argument is
-                "--provider"
-                or "--model"
-                or "--compare-ref"
-                or "--endpoint"
-                or "--context-file"
-                or "--policy"
-                or "--policy-file"
-                or "--format"
-                or "--output")
-            {
-                if (index + 1 >= args.Count)
-                {
-                    reviewArguments = ReviewArguments.Empty;
-                    return false;
-                }
-
-                var value = args[++index];
-
-                if (string.IsNullOrWhiteSpace(value)
-                    || value.StartsWith('-'))
-                {
-                    reviewArguments = ReviewArguments.Empty;
-                    return false;
-                }
-
-                switch (argument)
-                {
-                    case "--provider":
-                        if (providerName is not null)
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
-                        providerName = value;
-                        break;
-
-                    case "--model":
-                        if (model is not null)
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
-                        model = value;
-                        break;
-
-                    case "--compare-ref":
-                        if (compareReference is not null)
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
-                        compareReference = value;
-                        break;
-
-                    case "--endpoint":
-                        if (endpoint is not null)
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
-                        endpoint = value;
-                        break;
-
-                    case "--context-file":
-                        contextFilePaths.Add(value);
-                        break;
-
-                    case "--policy":
-                        if (policyAssigned)
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
-                        policyMode = value switch
-                        {
-                            "advisory" => AdrReviewPolicyMode.Advisory,
-                            "enforce" => AdrReviewPolicyMode.Enforce,
-                            _ => (AdrReviewPolicyMode)(-1),
-                        };
-
-                        if (!Enum.IsDefined(policyMode))
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
-                        policyAssigned = true;
-                        break;
-
-                    case "--policy-file":
-                        if (policyFilePath is not null)
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
-                        policyFilePath = value;
-                        break;
-
-                    case "--format":
-                        if (formatAssigned)
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
-                        format = value switch
-                        {
-                            "text" => AdrReviewOutputFormat.Text,
-                            "json" => AdrReviewOutputFormat.Json,
-                            _ => (AdrReviewOutputFormat)(-1),
-                        };
-
-                        if (!Enum.IsDefined(format))
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
-                        formatAssigned = true;
-                        break;
-
-                    case "--output":
-                        if (outputPath is not null)
-                        {
-                            reviewArguments = ReviewArguments.Empty;
-                            return false;
-                        }
-
-                        outputPath = value;
-                        break;
-                }
-
-                continue;
-            }
-
-            if (argument.StartsWith('-')
-                || targetPath is not null)
-            {
-                reviewArguments = ReviewArguments.Empty;
-                return false;
-            }
-
-            targetPath = argument;
-        }
-
-        if (overwriteOutput
-            && outputPath is null)
-        {
-            reviewArguments = ReviewArguments.Empty;
-            return false;
-        }
-
-        reviewArguments = new ReviewArguments(
-            targetPath ?? string.Empty,
-            providerName,
-            model,
-            endpoint,
-            contextFilePaths,
-            includeExistingAdrs,
-            format,
-            outputPath,
-            overwriteOutput,
-            policyMode,
-            policyFilePath,
-            compareReference);
-
-        return !string.IsNullOrWhiteSpace(targetPath);
-    }
-
-    private static bool TryParseDraftArguments(
-        IReadOnlyList<string> args,
-        out DraftArguments draftArguments)
-    {
-        var directoryPath = ".";
-        var title = string.Empty;
-        var context = string.Empty;
-        var cultureName = DefaultDraftCultureName;
-        string? providerName = null;
-        string? model = null;
-        string? endpoint = null;
-        string? templateName = null;
-        string? templateFilePath = null;
-        var contextFilePaths = new List<string>();
-        var includeExistingAdrs = false;
-        var dryRun = false;
-
-        var directoryAssigned = false;
-        var titleAssigned = false;
-        var contextAssigned = false;
-        var cultureAssigned = false;
-        var providerAssigned = false;
-        var modelAssigned = false;
-        var endpointAssigned = false;
-        var templateAssigned = false;
-        var templateFileAssigned = false;
-        var includeExistingAdrsAssigned = false;
-        var dryRunAssigned = false;
-
-        for (var index = 1; index < args.Count; index++)
-        {
-            var argument = args[index];
-
-            if (argument == "--include-existing-adrs")
-            {
-                if (includeExistingAdrsAssigned)
-                {
-                    draftArguments = DraftArguments.Empty;
-                    return false;
-                }
-
-                includeExistingAdrs = true;
-                includeExistingAdrsAssigned = true;
-                continue;
-            }
-
-            if (argument is "--dry-run" or "--preview")
-            {
-                if (dryRunAssigned)
-                {
-                    draftArguments = DraftArguments.Empty;
-                    return false;
-                }
-
-                dryRun = true;
-                dryRunAssigned = true;
-                continue;
-            }
-
-            if (argument is "--title"
-                or "--context"
-                or "--culture"
-                or "--provider"
-                or "--model"
-                or "--endpoint"
-                or "--context-file"
-                or "--template"
-                or "--template-file")
-            {
-                if (index + 1 >= args.Count)
-                {
-                    draftArguments = DraftArguments.Empty;
-                    return false;
-                }
-
-                var value = args[++index];
-                if (string.IsNullOrWhiteSpace(value)
-                    || value.StartsWith('-'))
-                {
-                    draftArguments = DraftArguments.Empty;
-                    return false;
-                }
-
-                switch (argument)
-                {
-                    case "--title":
-                        if (titleAssigned)
-                        {
-                            draftArguments = DraftArguments.Empty;
-                            return false;
-                        }
-
-                        title = value;
-                        titleAssigned = true;
-                        break;
-
-                    case "--context":
-                        if (contextAssigned)
-                        {
-                            draftArguments = DraftArguments.Empty;
-                            return false;
-                        }
-
-                        context = value;
-                        contextAssigned = true;
-                        break;
-
-                    case "--culture":
-                        if (cultureAssigned)
-                        {
-                            draftArguments = DraftArguments.Empty;
-                            return false;
-                        }
-
-                        cultureName = value;
-                        cultureAssigned = true;
-                        break;
-
-                    case "--provider":
-                        if (providerAssigned)
-                        {
-                            draftArguments = DraftArguments.Empty;
-                            return false;
-                        }
-
-                        providerName = value;
-                        providerAssigned = true;
-                        break;
-
-                    case "--model":
-                        if (modelAssigned)
-                        {
-                            draftArguments = DraftArguments.Empty;
-                            return false;
-                        }
-
-                        model = value;
-                        modelAssigned = true;
-                        break;
-
-                    case "--endpoint":
-                        if (endpointAssigned)
-                        {
-                            draftArguments = DraftArguments.Empty;
-                            return false;
-                        }
-
-                        endpoint = value;
-                        endpointAssigned = true;
-                        break;
-
-                    case "--context-file":
-                        contextFilePaths.Add(value);
-                        break;
-
-                    case "--template":
-                        if (templateAssigned)
-                        {
-                            draftArguments = DraftArguments.Empty;
-                            return false;
-                        }
-
-                        templateName = value;
-                        templateAssigned = true;
-                        break;
-
-                    case "--template-file":
-                        if (templateFileAssigned)
-                        {
-                            draftArguments = DraftArguments.Empty;
-                            return false;
-                        }
-
-                        templateFilePath = value;
-                        templateFileAssigned = true;
-                        break;
-                }
-
-                continue;
-            }
-
-            if (argument.StartsWith('-')
-                || directoryAssigned)
-            {
-                draftArguments = DraftArguments.Empty;
-                return false;
-            }
-
-            directoryPath = argument;
-            directoryAssigned = true;
-        }
-
-        draftArguments = new DraftArguments(
-            directoryPath,
-            title,
-            context,
-            cultureName,
-            providerName,
-            model,
-            endpoint,
-            contextFilePaths,
-            includeExistingAdrs,
-            dryRun,
-            templateName,
-            templateFilePath);
-
-        return titleAssigned && contextAssigned;
     }
 
     private static int WriteUsageError(
@@ -1886,63 +1054,4 @@ internal static class CliApplication
                ?? "unknown";
     }
 
-    private sealed record ReviewArguments(
-        string TargetPath,
-        string? ProviderName,
-        string? Model,
-        string? Endpoint,
-        IReadOnlyList<string> ContextFilePaths,
-        bool IncludeExistingAdrs,
-        AdrReviewOutputFormat Format,
-        string? OutputPath,
-        bool OverwriteOutput,
-        AdrReviewPolicyMode PolicyMode,
-        string? PolicyFilePath,
-        string? CompareReference)
-    {
-        internal static ReviewArguments Empty { get; } =
-            new(
-                string.Empty,
-                null,
-                null,
-                null,
-                [],
-                false,
-                AdrReviewOutputFormat.Text,
-                null,
-                false,
-                AdrReviewPolicyMode.Advisory,
-                null,
-                null);
-    }
-
-    private sealed record DraftArguments(
-        string DirectoryPath,
-        string Title,
-        string Context,
-        string CultureName,
-        string? ProviderName,
-        string? Model,
-        string? Endpoint,
-        IReadOnlyList<string> ContextFilePaths,
-        bool IncludeExistingAdrs,
-        bool DryRun,
-        string? TemplateName,
-        string? TemplateFilePath)
-    {
-        internal static DraftArguments Empty { get; } =
-            new(
-                ".",
-                string.Empty,
-                string.Empty,
-                DefaultDraftCultureName,
-                null,
-                null,
-                null,
-                [],
-                false,
-                false,
-                null,
-                null);
-    }
 }

@@ -18,13 +18,70 @@ REVIEW_EN="${ROOT_DIR}/docs/github-action-review.md"
 REVIEW_PT="${ROOT_DIR}/docs/github-action-review.pt-BR.md"
 AUDIT_EN="${ROOT_DIR}/docs/public-release-audit.md"
 AUDIT_PT="${ROOT_DIR}/docs/public-release-audit.pt-BR.md"
+COMPAT_EN="${ROOT_DIR}/docs/compatibility.md"
+COMPAT_PT="${ROOT_DIR}/docs/compatibility.pt-BR.md"
+CLI_REFERENCE_EN="${ROOT_DIR}/docs/cli-reference.md"
+CLI_REFERENCE_PT="${ROOT_DIR}/docs/cli-reference.pt-BR.md"
+CHECK_REPORTS_EN="${ROOT_DIR}/docs/check-reports.md"
+CHECK_REPORTS_PT="${ROOT_DIR}/docs/check-reports.pt-BR.md"
+CLI_PROJECT="${ROOT_DIR}/src/AdrGuard/AdrGuard.csproj"
+MCP_PROJECT="${ROOT_DIR}/src/AdrGuard.Mcp/AdrGuard.Mcp.csproj"
+MCP_MANIFEST="${ROOT_DIR}/.mcp/server.json"
+VSCODE_PACKAGE="${ROOT_DIR}/extensions/vscode/package.json"
+CHANGELOG="${ROOT_DIR}/CHANGELOG.md"
+PORTAL_INDEX_EN="${ROOT_DIR}/website/src/content/docs/product/index.md"
+PORTAL_INDEX_PT="${ROOT_DIR}/website/src/content/docs/pt-br/product/index.md"
 CI="${ROOT_DIR}/.github/workflows/ci.yml"
 
-for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXAMPLE_INCREMENTAL}" "${EXAMPLE_FORK}" "${EXAMPLE_IMPACT}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${REVIEW_EN}" "${REVIEW_PT}" "${AUDIT_EN}" "${AUDIT_PT}"; do
+for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXAMPLE_INCREMENTAL}" "${EXAMPLE_FORK}" "${EXAMPLE_IMPACT}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${REVIEW_EN}" "${REVIEW_PT}" "${AUDIT_EN}" "${AUDIT_PT}" "${COMPAT_EN}" "${COMPAT_PT}" "${CLI_REFERENCE_EN}" "${CLI_REFERENCE_PT}" "${CHECK_REPORTS_EN}" "${CHECK_REPORTS_PT}" "${CLI_PROJECT}" "${MCP_PROJECT}" "${MCP_MANIFEST}" "${VSCODE_PACKAGE}" "${CHANGELOG}" "${PORTAL_INDEX_EN}" "${PORTAL_INDEX_PT}"; do
   test -s "${file}" || {
     echo "Required GitHub Action consumer documentation is missing: ${file}" >&2
     exit 1
   }
+done
+
+# Keep current source versions, published release metadata, and the central
+# compatibility matrix distinct without querying mutable registries in CI.
+cli_source_version="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' "${CLI_PROJECT}" | head -n 1)"
+mcp_source_version="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' "${MCP_PROJECT}" | head -n 1)"
+mcp_registry_version="$(node -p "require(process.argv[1]).version" "${MCP_MANIFEST}")"
+vscode_source_version="$(node -p "require(process.argv[1]).version" "${VSCODE_PACKAGE}")"
+cli_release_version="$(sed -n 's|^## \[\([^]]*\)\](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v[^)]*) .*|\1|p' "${CHANGELOG}" | head -n 1)"
+cli_release_tag="$(sed -n 's|^## \[[^]]*\](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/\(v[^)]*\)) .*|\1|p' "${CHANGELOG}" | head -n 1)"
+
+for version in "${cli_source_version}" "${mcp_source_version}" "${mcp_registry_version}" "${vscode_source_version}" "${cli_release_version}"; do
+  test -n "${version}" || {
+    echo "Could not derive one of the product versions used by documentation checks." >&2
+    exit 1
+  }
+done
+
+test "${cli_release_tag}" = "v${cli_release_version}" || {
+  echo "The CHANGELOG release link tag does not match its version heading." >&2
+  exit 1
+}
+
+for compatibility in "${COMPAT_EN}" "${COMPAT_PT}"; do
+  grep -Fq "\`${cli_source_version}\`" "${compatibility}"
+  grep -Fq "\`${cli_release_version}\`" "${compatibility}"
+  grep -Fq "\`${mcp_source_version}\`" "${compatibility}"
+  grep -Fq "\`${mcp_registry_version}\`" "${compatibility}"
+  grep -Fq "\`${vscode_source_version}\`" "${compatibility}"
+  grep -Fq "\`v${cli_release_version}\`" "${compatibility}"
+  grep -Fq "\`v1\`" "${compatibility}"
+  cli_row="$(grep -F '| CLI / .NET Tool |' "${compatibility}")"
+  if ! grep -Fq "**Published:** \`${cli_release_version}\`" <<< "${cli_row}" \
+    && ! grep -Fq "**Publicado:** \`${cli_release_version}\`" <<< "${cli_row}"; then
+    echo "CLI publication status does not match the published release in: ${compatibility}" >&2
+    exit 1
+  fi
+done
+
+for active_document in "${README_EN}" "${README_PT}" "${COMPAT_EN}" "${COMPAT_PT}" "${CLI_REFERENCE_EN}" "${CLI_REFERENCE_PT}" "${CHECK_REPORTS_EN}" "${CHECK_REPORTS_PT}" "${PORTAL_INDEX_EN}" "${PORTAL_INDEX_PT}"; do
+  if grep -Eiq 'published CLI `?1\.8\.0|CLI `?1\.9\.0`? (is|remains|continua) ((an? |still )?unpublished|not( yet)? published)|CLI `?1\.9\.0`? (permanece|continua sendo) uma candidata não publicada' "${active_document}"; then
+    echo "Active documentation contains a stale CLI publication claim: ${active_document}" >&2
+    exit 1
+  fi
 done
 
 grep -Fq 'github-action-impact-test.sh' "${CI}"

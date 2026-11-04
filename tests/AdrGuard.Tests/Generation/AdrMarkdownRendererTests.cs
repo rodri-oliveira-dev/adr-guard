@@ -137,6 +137,7 @@ public sealed class AdrMarkdownRendererTests
     [InlineData("Decision\n--------")]
     [InlineData("    ```\n## Additional section")]
     [InlineData("``` text `\n## Additional section")]
+    [InlineData("```\nExample\n```\n## Additional section")]
     public void SubstitutionCannotInjectStructuralHeadings(string malicious)
     {
         var request = Request("en-US", context: "Valid.\n" + malicious);
@@ -145,6 +146,19 @@ public sealed class AdrMarkdownRendererTests
             () => AdrMarkdownRenderer.RenderTemplate(request));
 
         Assert.Contains("level-one or level-two", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("```markdown\n# Example\n## Status\nAccepted\n```")]
+    [InlineData("~~~~\nExample title\n=============\nExample section\n---------------\n~~~~")]
+    public void SubstitutionAllowsHeadingsInsideClosedFencedCodeBlocks(string example)
+    {
+        var markdown = AdrMarkdownRenderer.RenderTemplate(
+            Request("en-US", context: "Documented example:\n" + example));
+
+        Assert.Contains(example, markdown, StringComparison.Ordinal);
+        Assert.True(AdrValidator.Validate(
+            [AdrMarkdownParser.Parse("0001-use-cache.md", markdown)]).IsValid);
     }
 
     [Fact]

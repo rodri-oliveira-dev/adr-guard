@@ -8,7 +8,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 - Harden the container supply chain by moving the pinned build and runtime bases to the official .NET Alpine variants, retaining the bounded Git dependency and non-root execution while removing a vulnerable transitive Perl package chain.
 
-## [1.9.0] — Release candidate; not published
+## [1.9.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0) — 2026-10-20
 
 ### Added
 - Add opt-in one-based `line` and `column` evidence to schema 1.0 validation diagnostics and matching SARIF regions while preserving the default report shape and file-only findings when no precise location is known.
@@ -16,7 +16,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ### Changed
 - Extract shared deterministic parsing, validation, configuration, Git inventory, impact, and drift behavior into the internal, non-packable `AdrGuard.Core` assembly. CLI and MCP packages carry Core directly while remaining independently versioned executables; commands, schemas, exit codes, and the seven MCP tools are unchanged.
-- Prepare CLI package metadata and curated bilingual release notes for `1.9.0` without publishing a package, tag, release, container, or Action alias.
+- Published the CLI package metadata and bilingual release notes together with the exact Action tag and moving `v1` compatibility tag for `1.9.0`.
 
 ### Fixed
 - Resolve physical Git directory identities before repository containment checks so macOS `/var` and `/private/var` aliases no longer break MCP impact analysis or incremental ADR detection. Physical containment and symlink protections remain enforced.
@@ -24,7 +24,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ### Compatibility and publication
 - Preserve CLI commands, defaults, arguments, exit codes `0`–`4`, JSON schema `1.0`, SARIF `2.1.0`, diagnostic fingerprints, and deterministic ordering.
-- CLI `1.8.0` remains the public version until every `1.9.0` channel is independently verified. See the [candidate release notes](docs/releases/v1.9.0.md) and their [post-publication checklist](docs/releases/v1.9.0.md#post-publication-checklist).
+- CLI `1.9.0` is independently verified on NuGet.org and GitHub Releases. The moving Action tag `v1` resolves to the same release commit. MCP and VS Code keep their independent version streams. See the [release notes](docs/releases/v1.9.0.md).
 
 ## [1.8.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.8.0) — 2026-10-17
 

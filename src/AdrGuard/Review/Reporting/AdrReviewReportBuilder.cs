@@ -230,100 +230,29 @@ internal static partial class AdrReviewReportBuilder
         }
 
         var sourceText = finding.Source.Trim();
-
-        if (sourceText.Contains('/')
-            || sourceText.Contains('\\')
-            || WindowsAbsolutePath().IsMatch(sourceText))
-        {
-            throw new InvalidOperationException(
-                "Review finding contains an undocumented path. Only selected source IDs and filenames are allowed.");
-        }
+        ValidateSourcePath(sourceText);
 
         var fileTokenMatches = SourceFileToken()
             .Matches(sourceText)
             .Cast<Match>()
             .ToArray();
-        var fileTokens = fileTokenMatches
-            .Select(match => match.Value)
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
-
-        foreach (var token in fileTokens)
-        {
-            if (!sources.Any(source =>
-                    string.Equals(
-                        source.Path,
-                        token,
-                        StringComparison.Ordinal)))
-            {
-                throw new InvalidOperationException(
-                    $"Review finding references an unselected source '{token}'.");
-            }
-        }
+        ValidateFileTokens(
+            fileTokenMatches,
+            sources);
 
         var matches =
             new Dictionary<string, (SelectedSource Source, int Position)>(
                 StringComparer.Ordinal);
 
-        foreach (var source in sources)
-        {
-            var idMarker = $"[{source.SourceId}]";
-            var idPosition = sourceText.IndexOf(
-                idMarker,
-                StringComparison.Ordinal);
-
-            if (idPosition >= 0)
-            {
-                matches[source.SourceId] = (
-                    source,
-                    idPosition);
-            }
-        }
-
-        foreach (var tokenMatch in fileTokenMatches)
-        {
-            var candidates = sources
-                .Where(source =>
-                    string.Equals(
-                        source.Path,
-                        tokenMatch.Value,
-                        StringComparison.Ordinal))
-                .ToArray();
-
-            if (candidates.Length == 0)
-            {
-                continue;
-            }
-
-            if (candidates.Length > 1)
-            {
-                var explicitlyIdentified = candidates
-                    .Any(candidate =>
-                        sourceText.Contains(
-                            $"[{candidate.SourceId}]",
-                            StringComparison.Ordinal));
-
-                if (!explicitlyIdentified)
-                {
-                    throw new InvalidOperationException(
-                        $"Review finding source '{sourceText}' is ambiguous; use the visible source ID.");
-                }
-
-                continue;
-            }
-
-            var candidate = candidates[0];
-
-            if (!matches.TryGetValue(
-                    candidate.SourceId,
-                    out var existing)
-                || tokenMatch.Index < existing.Position)
-            {
-                matches[candidate.SourceId] = (
-                    candidate,
-                    tokenMatch.Index);
-            }
-        }
+        AddSourceIdMatches(
+            sourceText,
+            sources,
+            matches);
+        AddFileTokenMatches(
+            sourceText,
+            fileTokenMatches,
+            sources,
+            matches);
 
         if (matches.Count == 0)
         {
@@ -344,6 +273,128 @@ internal static partial class AdrReviewReportBuilder
                     Line: null,
                     finding.Excerpt))
             .ToArray();
+    }
+
+    private static void ValidateSourcePath(string sourceText)
+    {
+        if (sourceText.Contains('/')
+            || sourceText.Contains('\\')
+            || WindowsAbsolutePath().IsMatch(sourceText))
+        {
+            throw new InvalidOperationException(
+                "Review finding contains an undocumented path. Only selected source IDs and filenames are allowed.");
+        }
+    }
+
+    private static void ValidateFileTokens(
+        IReadOnlyList<Match> fileTokenMatches,
+        IReadOnlyList<SelectedSource> sources)
+    {
+        var fileTokens = fileTokenMatches
+            .Select(match => match.Value)
+            .Distinct(StringComparer.Ordinal);
+
+        foreach (var token in fileTokens)
+        {
+            if (!sources.Any(source =>
+                    string.Equals(
+                        source.Path,
+                        token,
+                        StringComparison.Ordinal)))
+            {
+                throw new InvalidOperationException(
+                    $"Review finding references an unselected source '{token}'.");
+            }
+        }
+    }
+
+    private static void AddSourceIdMatches(
+        string sourceText,
+        IReadOnlyList<SelectedSource> sources,
+        IDictionary<string, (SelectedSource Source, int Position)> matches)
+    {
+        foreach (var source in sources)
+        {
+            var idPosition = sourceText.IndexOf(
+                $"[{source.SourceId}]",
+                StringComparison.Ordinal);
+
+            if (idPosition >= 0)
+            {
+                matches[source.SourceId] = (
+                    source,
+                    idPosition);
+            }
+        }
+    }
+
+    private static void AddFileTokenMatches(
+        string sourceText,
+        IReadOnlyList<Match> fileTokenMatches,
+        IReadOnlyList<SelectedSource> sources,
+        IDictionary<string, (SelectedSource Source, int Position)> matches)
+    {
+        foreach (var tokenMatch in fileTokenMatches)
+        {
+            var candidates = sources
+                .Where(source =>
+                    string.Equals(
+                        source.Path,
+                        tokenMatch.Value,
+                        StringComparison.Ordinal))
+                .ToArray();
+
+            if (candidates.Length == 0)
+            {
+                continue;
+            }
+
+            if (candidates.Length > 1)
+            {
+                ValidateAmbiguousSource(
+                    sourceText,
+                    candidates);
+                continue;
+            }
+
+            AddEarlierMatch(
+                tokenMatch,
+                candidates[0],
+                matches);
+        }
+    }
+
+    private static void ValidateAmbiguousSource(
+        string sourceText,
+        IReadOnlyList<SelectedSource> candidates)
+    {
+        var explicitlyIdentified = candidates
+            .Any(candidate =>
+                sourceText.Contains(
+                    $"[{candidate.SourceId}]",
+                    StringComparison.Ordinal));
+
+        if (!explicitlyIdentified)
+        {
+            throw new InvalidOperationException(
+                $"Review finding source '{sourceText}' is ambiguous; use the visible source ID.");
+        }
+    }
+
+    private static void AddEarlierMatch(
+        Match tokenMatch,
+        SelectedSource candidate,
+        IDictionary<string, (SelectedSource Source, int Position)> matches)
+    {
+        if (!matches.TryGetValue(
+                candidate.SourceId,
+                out var existing)
+            || tokenMatch.Index < existing.Position)
+        {
+            matches[candidate.SourceId] = (
+                candidate,
+                tokenMatch.Index);
+        }
     }
 
     private static string DetermineOutcome(

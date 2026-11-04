@@ -43,7 +43,7 @@ Drafting and review send selected context to the configured provider. Provider o
 
 ## MCP status
 
-The standalone MCP 1.0.0 server is published on NuGet.org and the MCP Registry, and the optional provider is published in VS Code extension 1.1.0. The server exposes seven read-only tools over `stdio` and is installed separately from the extension. MCP 1.0.1 and CLI 1.9.0 remain unpublished candidates; do not treat source or workflow artifacts as registry availability.
+The standalone MCP 1.0.0 server is published on NuGet.org and the MCP Registry, and the optional provider is published in VS Code extension 1.1.0. The server exposes seven read-only tools over `stdio` and is installed separately from the extension. CLI 1.9.0 is published on NuGet.org and GitHub Releases; MCP 1.0.1 remains an unpublished source candidate. Do not treat source, a release, or workflow artifacts as proof of availability in another registry.
 
 Use the [MCP overview](./mcp/), [configuration guide](./mcp-configuration/), [available tools](./mcp-tools/), and [security model](./mcp-security/) for the implemented contract and local-development instructions.
 
