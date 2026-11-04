@@ -38,60 +38,27 @@ internal static class GeneratedAdrStructureGuard
         }
 
         using var reader = new StringReader(content);
-        char? fenceMarker = null;
-        var fenceLength = 0;
+        var fenceTracker = new MarkdownFenceTracker();
         string? previousUnfencedLine = null;
 
         while (reader.ReadLine() is { } line)
         {
-            if (TryGetFence(
-                    line,
-                    out var marker,
-                    out var markerLength))
+            if (fenceTracker.TryConsume(line))
             {
-                if (fenceMarker is null)
-                {
-                    fenceMarker = marker;
-                    fenceLength = markerLength;
-                    previousUnfencedLine = null;
-                    continue;
-                }
-
-                if (marker == fenceMarker
-                    && markerLength >= fenceLength
-                    && IsClosingFence(line, markerLength))
-                {
-                    fenceMarker = null;
-                    fenceLength = 0;
-                    previousUnfencedLine = null;
-                    continue;
-                }
-            }
-
-            if (fenceMarker is not null)
-            {
-                continue;
-            }
-
-            if (TryParseHeading(
-                    line,
-                    out var level,
-                    out var heading))
-            {
-                RejectStructuralHeading(
-                    fieldName,
-                    rejectAllHeadings,
-                    level,
-                    heading);
                 previousUnfencedLine = null;
                 continue;
             }
 
-            if (TryParseSetextHeading(
-                    previousUnfencedLine,
+            if (fenceTracker.IsInsideFence)
+            {
+                continue;
+            }
+
+            if (TryParseStructuralHeading(
                     line,
-                    out level,
-                    out heading))
+                    previousUnfencedLine,
+                    out var level,
+                    out var heading))
             {
                 RejectStructuralHeading(
                     fieldName,
@@ -107,6 +74,21 @@ internal static class GeneratedAdrStructureGuard
                 : line;
         }
     }
+
+    private static bool TryParseStructuralHeading(
+        string line,
+        string? previousUnfencedLine,
+        out int level,
+        out string heading) =>
+        TryParseHeading(
+            line,
+            out level,
+            out heading)
+        || TryParseSetextHeading(
+            previousUnfencedLine,
+            line,
+            out level,
+            out heading);
 
     private static void RejectStructuralHeading(
         string fieldName,
@@ -274,5 +256,42 @@ internal static class GeneratedAdrStructureGuard
         }
 
         return heading[..closingStart].TrimEnd();
+    }
+
+    private sealed class MarkdownFenceTracker
+    {
+        private char? marker;
+        private int length;
+
+        internal bool IsInsideFence => marker is not null;
+
+        internal bool TryConsume(string line)
+        {
+            if (!TryGetFence(
+                    line,
+                    out var candidateMarker,
+                    out var candidateLength))
+            {
+                return false;
+            }
+
+            if (marker is null)
+            {
+                marker = candidateMarker;
+                length = candidateLength;
+                return true;
+            }
+
+            if (candidateMarker != marker
+                || candidateLength < length
+                || !IsClosingFence(line, candidateLength))
+            {
+                return false;
+            }
+
+            marker = null;
+            length = 0;
+            return true;
+        }
     }
 }

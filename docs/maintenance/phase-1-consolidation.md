@@ -269,6 +269,49 @@ possui análise própria no SonarQube Cloud, e a consulta de referência em
 incrementais posteriores; este recorte não moveu complexidade para Core nem
 alterou os command handlers existentes.
 
+### Implementação da etapa 2 — geração, templates e reporting
+
+O segundo recorte foi limitado a três componentes internos com cobertura de
+regressão já estabelecida:
+
+- `AdrCustomTemplateLoader.Load` foi reduzido a um pipeline explícito de
+  resolução de path, leitura limitada, decode UTF-8, validação de placeholders,
+  parsing e validação do preview. O parsing com estado foi isolado em
+  `CustomTemplateParser`, que mantém a ordem histórica de título, Status,
+  headings, conteúdo e fechamento de seção.
+- `GeneratedAdrStructureGuard.ValidateField` passou a delegar o estado de
+  fences a `MarkdownFenceTracker` e a reconhecer headings ATX/Setext por uma
+  operação coesa. As regras CommonMark já implementadas, a distinção entre
+  conteúdo de template e provider e as mensagens de rejeição foram mantidas.
+- `AdrReviewReportBuilder.ResolveEvidence` foi separado nas etapas de rejeição
+  de paths, validação de tokens, resolução por source ID/filename, ambiguidade e
+  ordenação. A extração não amplia fontes aceitas nem infere path, ADR ID ou
+  número de linha.
+
+Com isso, os métodos apontados pelos findings sincronizados
+`AaFbXpaBnKzhk_hT4iMw` ([#282](https://github.com/rodri-oliveira-dev/adr-guard/issues/282)),
+`AaFbXpaBnKzhk_hT4iMx` ([#283](https://github.com/rodri-oliveira-dev/adr-guard/issues/283)),
+`AaFbXpZ1nKzhk_hT4iMt` ([#284](https://github.com/rodri-oliveira-dev/adr-guard/issues/284)) e
+`AaFbXpZnnKzhk_hT4iMl` ([#277](https://github.com/rodri-oliveira-dev/adr-guard/issues/277))
+deixam de concentrar as condicionais reportadas. O GitHub ainda os apresenta
+como abertos porque reflete a última sincronização de `main`; o fechamento no
+Sonar depende de uma nova análise desta branch.
+
+Permanecem fora deste recorte `AdrMarkdownRenderer.RenderTemplate`
+([#252](https://github.com/rodri-oliveira-dev/adr-guard/issues/252)),
+`AdrReviewTextRenderer.Render`
+([#278](https://github.com/rodri-oliveira-dev/adr-guard/issues/278)) e a
+decomposição de `ReviewCommand`. `AdrReviewPolicyLoader.Validate` (#276) continua
+de baixa prioridade por representar validação sequencial apenas um ponto acima
+do limite. Esses itens devem ser tratados incrementalmente, sem ampliar esta
+rodada além dos três componentes selecionados.
+
+A comparação antes/depois executou as mesmas classes e preservou exatamente as
+contagens: `AdrCustomTemplateLoaderTests` 24/24,
+`AdrMarkdownRendererTests` 29/29, `AdrReviewReportTests` 11/11 e
+`AdrReviewRegressionFixtureTests` 14/14, sem falhas ou testes ignorados. O build
+Release concluiu com zero avisos e zero erros.
+
 ## Escopo das próximas seis etapas
 
 ### 1. Congelar comportamento e medir seams
