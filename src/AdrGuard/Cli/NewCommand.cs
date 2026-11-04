@@ -166,20 +166,22 @@ internal static class NewCommand
         while (index < args.Count)
         {
             var argument = args[index++];
-            if (argument is "--dry-run" or "--preview")
-            {
-                if (!state.TrySetDryRun()) return false;
-                continue;
-            }
-            if (argument is not ("--title" or "--template" or "--template-file"
-                or "--culture" or "--filename-policy"))
-            {
-                if (!state.TrySetDirectory(argument)) return false;
-                continue;
-            }
-            if (index >= args.Count || !state.TrySetValue(argument, args[index++])) return false;
+            if (!TryApplyArgument(argument, args, ref index, state)) return false;
         }
         return true;
+    }
+
+    private static bool TryApplyArgument(
+        string argument,
+        IReadOnlyList<string> args,
+        ref int index,
+        NewArgumentState state)
+    {
+        if (argument is "--dry-run" or "--preview") return state.TrySetDryRun();
+        if (argument is not ("--title" or "--template" or "--template-file"
+            or "--culture" or "--filename-policy")) return state.TrySetDirectory(argument);
+        if (index >= args.Count) return false;
+        return state.TrySetValue(argument, args[index++]);
     }
 
     private sealed class NewArgumentState
