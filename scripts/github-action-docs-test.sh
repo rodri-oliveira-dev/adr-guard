@@ -78,7 +78,7 @@ for compatibility in "${COMPAT_EN}" "${COMPAT_PT}"; do
 done
 
 for active_document in "${README_EN}" "${README_PT}" "${COMPAT_EN}" "${COMPAT_PT}" "${CLI_REFERENCE_EN}" "${CLI_REFERENCE_PT}" "${CHECK_REPORTS_EN}" "${CHECK_REPORTS_PT}" "${PORTAL_INDEX_EN}" "${PORTAL_INDEX_PT}"; do
-  if grep -Eiq 'published CLI `?1\.8\.0|CLI `?1\.9\.0`? (is|remains|continua).*unpublished|CLI `?1\.9\.0`? (permanece|continua sendo) uma candidata não publicada' "${active_document}"; then
+  if grep -Eiq 'published CLI `?1\.8\.0|CLI `?1\.9\.0`? (is|remains|continua) ((an? |still )?unpublished|not( yet)? published)|CLI `?1\.9\.0`? (permanece|continua sendo) uma candidata não publicada' "${active_document}"; then
     echo "Active documentation contains a stale CLI publication claim: ${active_document}" >&2
     exit 1
   fi

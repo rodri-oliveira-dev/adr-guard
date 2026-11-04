@@ -278,8 +278,8 @@ internal static class CliApplication
             httpClientFactory,
             environmentVariableReader,
             reviewProvider,
-            default,
-            invocationDirectory);
+            invocationDirectory,
+            default);
 
     internal static int Run(
         IReadOnlyList<string> args,
@@ -299,8 +299,8 @@ internal static class CliApplication
             httpClientFactory,
             environmentVariableReader,
             reviewProvider,
-            cancellationToken,
-            null);
+            null,
+            cancellationToken);
 
     internal static int Run(
         IReadOnlyList<string> args,
@@ -317,8 +317,8 @@ internal static class CliApplication
             null,
             null,
             null,
-            cancellationToken,
-            null);
+            null,
+            cancellationToken);
 
     private static int RunCore(
         IReadOnlyList<string> args,
@@ -329,8 +329,8 @@ internal static class CliApplication
         Func<HttpClient>? httpClientFactory,
         Func<string, string?>? environmentVariableReader,
         IAdrReviewProvider? reviewProvider,
-        CancellationToken cancellationToken,
-        string? invocationDirectory)
+        string? invocationDirectory,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(input);
