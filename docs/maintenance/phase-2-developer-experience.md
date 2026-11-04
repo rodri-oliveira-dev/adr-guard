@@ -502,6 +502,64 @@ fecha essa parte da issue #209 e não sustenta alegações de adoção.
 - Não executados: sessão visual do VS Code, runner hospedado da Action, APIs de
   IA, publicação, testes com participantes e suíte .NET completa.
 
+### Validação integrada dos Prompts 2 a 6
+
+A integração foi repetida em 4 de novembro de 2026 na branch
+`feat/phase-2-developer-experience`, sobre o HEAD `3d71439`, usando o executável
+Release local `1.9.0+3d714392aed78b3ca18896bcdc29ab1ced416a75`. O diff contra
+`main` foi separado nos seguintes recortes observáveis:
+
+| Recorte | Testes e contratos afetados |
+| --- | --- |
+| Plano e evidência de onboarding | Contratos existentes de `init`, `new`, `edit --form`, `check`, `index`, perfis de validação e exit `1` para findings. |
+| Contrato e implementação de `doctor` | Help/roteamento da CLI, argumentos e streams, exits `0`, `2` e `3`, configuração schema 1, descoberta confinada da raiz, diretório de ADRs, runtime e probe limitado do Git. |
+| `drift` na Action | Manifesto de inputs, comandos existentes da Action, exits `0`, `2`, `3` e `4`, JSON schema `1.0`, summary limitado, paths/symlinks, mounts read-only, rede/capabilities, ausência de secrets e documentação EN/pt-BR. |
+| Compatibilidade não alterada | JSON/SARIF de `check`, configuração e políticas existentes. MCP e VS Code não tiveram arquivos ou contratos alterados; `AdrRepositoryRoot.TryResolve` é consumido somente por CLI/Core (`check`, `baseline`, `index` e `doctor`). |
+
+Verificações concluídas:
+
+- Testes MTP/xUnit v3 direcionados em Release: `DoctorCommandIntegrationTests`
+  (`Passed: 12, Failed: 0, Skipped: 0`), `CliApplicationTests` (`7/0/0`),
+  `CliArgumentContractTests` (`32/0/0`), `CheckReportIntegrationTests`
+  (`9/0/0`), `ConfigurationProcessIntegrationTests` (`15/0/0`) e
+  `DriftCommandIntegrationTests` (`8/0/0`). Isso cobre help e argumentos
+  existentes, exits, JSON/SARIF, configuração, `doctor` e drift da CLI.
+- `scripts/github-action-impact-test.sh`, `github-action-drift-test.sh`,
+  `github-action-report-test.sh`, `github-action-docs-test.sh` e
+  `github-marketplace-readiness-test.sh` passaram com Docker capturado e
+  reports limitados. `github-action-security-test.sh 1.9.0` passou contra a
+  imagem pública anônima no digest
+  `sha256:6e21eedd232b2b2858611c8876ba06b52098986336de1461c5d950b7582f4ae9`.
+- O Cenário A passou com `init`, dois `new`, dois ciclos válidos de
+  `edit --form`, falha deliberada `ADR005` com exit `1`, recuperação manual,
+  `check --validation-profile strict` e índice com os dois ADRs `Proposed`.
+- O Cenário B passou ao copiar explicitamente os quatro ADRs descritos no
+  roteiro, seguido de `init`, `check` estrito, catálogo enriquecido, cadeia de
+  supersessão e `edit --form` somente leitura do ADR 0004. A pasta de fixtures
+  contém também `0009-invalid.md`; copiar a pasta inteira deixa de reproduzir
+  o cenário de quatro ADRs e produz corretamente três findings `ADR005`.
+- `npm run sync:docs` sincronizou 78 documentos sem produzir diff adicional.
+  Os checks da Action confirmaram os pares EN/pt-BR, exemplos, matriz de
+  compatibilidade e a distinção entre source de desenvolvimento e Action
+  publicada.
+
+Limitações e pendências desta execução:
+
+- `github-action-smoke-test.sh 1.9.0` confirmou `check`, `index` e as rejeições
+  de inputs anteriores, mas não concluiu no Windows: o Git Bash não criou o
+  symlink Linux usado pelo caso de escape, e o wrapper recebeu um diretório
+  interno válido. O gate completo continua pendente em runner Linux.
+- `github-action-contract-test.sh` não foi executado porque sua fixture gerada
+  `.tmp/adr-action-contract` não estava presente. Nenhuma fixture substituta foi
+  inventada; o gate permanece a cargo do job Linux que a prepara.
+- MCP e VS Code não foram repetidos, pois o diff não alcança essas superfícies
+  nem um comportamento compartilhado consumido por elas. Permanecem também
+  fora do escopo a sessão visual, runner hospedado, participantes externos,
+  publicação e a suíte .NET completa.
+- Nenhuma regressão introduzida pela Fase 2 foi comprovada. Portanto, não houve
+  correção de produto, alteração de contrato, refactor ou funcionalidade
+  adicional nesta validação.
+
 ## Critérios de conclusão
 
 - A issue #209 possui relatório conciso e roteiro reproduzível com dois
