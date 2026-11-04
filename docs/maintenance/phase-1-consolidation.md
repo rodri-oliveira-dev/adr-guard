@@ -144,6 +144,25 @@ obsoleto. Os valores numéricos exatos de complexidade devem ser considerados um
 baseline potencialmente desatualizada até uma nova análise do Sonar, mas a
 inspeção do código atual confirma os problemas estruturais descritos acima.
 
+## Evidências de publicação verificadas
+
+As superfícies de distribuição foram verificadas de forma independente em 3 de
+novembro de 2026. Versão no código-fonte, GitHub Release e publicação em um
+registry não são tratadas como evidências equivalentes.
+
+| Componente | Código-fonte | Evidência pública verificada | Estado documentado |
+| --- | --- | --- | --- |
+| CLI | `src/AdrGuard/AdrGuard.csproj` em `1.9.0` | NuGet.org e GitHub Release exata `v1.9.0` | `1.9.0` publicada |
+| MCP | `src/AdrGuard.Mcp/AdrGuard.Mcp.csproj` em `1.0.1` | NuGet.org, MCP Registry e GitHub Release `mcp/v1.0.0` | `1.0.0` publicada; `1.0.1` candidata no source |
+| VS Code | `extensions/vscode/package.json` em `1.1.0` | API do Visual Studio Marketplace | `1.1.0` publicada |
+| GitHub Action | `action.yml` no repositório | tags remotas `v1` e `v1.9.0` no commit `8c6858a5bf2e2fc7dae36568ae06c60320cd71ac` | `v1.9.0` exata e alias móvel `v1` publicados |
+
+A listagem da Action no Marketplace exibe metadados derivados das releases do
+repositório e, isoladamente, não comprova a versão da Action. Da mesma forma, a
+release do GitHub não comprova a presença do pacote no NuGet ou no MCP Registry.
+A matriz de compatibilidade é a referência central para esse snapshot; READMEs
+e páginas específicas apontam para ela em vez de reproduzir toda a matriz.
+
 ## Riscos e dependências
 
 - **Contrato da CLI:** parsing manual codifica precedência, duplicidade,
@@ -164,10 +183,10 @@ inspeção do código atual confirma os problemas estruturais descritos acima.
 - **Review:** policy determinística deve ocorrer antes do provider quando
   aplicável; conteúdo de IA permanece consultivo e nunca estabelece aprovação.
 - **Compatibilidade publicada:** as linhas de versão são independentes. Conforme
-  a [matriz de compatibilidade](../compatibility.md), o source baseline contém
-  CLI `1.9.0` e MCP `1.0.1` candidatos, enquanto o snapshot documental de 20 de
-  outubro registra CLI `1.8.0` e MCP `1.0.0` como publicados e VS Code `1.1.0`
-  como publicado. A consolidação não altera nenhum desses estados.
+  a [matriz de compatibilidade](../compatibility.md), CLI `1.9.0`, MCP `1.0.0` e
+  VS Code `1.1.0` estão publicados; MCP `1.0.1` existe apenas como candidata no
+  código-fonte. A Action expõe a tag exata `v1.9.0` e o alias móvel `v1`. A
+  consolidação não altera nenhum desses estados.
 - **Documentação:** mudanças futuras de comportamento exigiriam atualização
   equivalente EN/pt-BR e portal. Refactors internos sem mudança observável devem
   apenas manter referências arquiteturais e notas de manutenção coerentes.
@@ -194,9 +213,10 @@ inspeção do código atual confirma os problemas estruturais descritos acima.
    comandos de teste devem usar Microsoft.Testing.Platform/xUnit v3 conforme a
    skill `run-tests`; não usar filtros VSTest.
 
-Nesta entrega de planejamento não há alteração executável, portanto não é
-necessário rodar testes .NET. A validação proporcional é revisão do diff,
-`git diff --check` e confirmação de que somente este documento foi adicionado.
+Nesta etapa documental não há alteração executável, portanto não é necessário
+rodar testes .NET. A validação proporcional inclui sincronização e validação do
+portal, checks bilíngues de documentação e versões, verificação de links,
+revisão do diff e `git diff --check`.
 
 ## Escopo das próximas seis etapas
 

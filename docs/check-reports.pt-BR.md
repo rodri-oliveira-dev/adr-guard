@@ -1,6 +1,6 @@
 # JSON, SARIF e GitHub Code Scanning
 
-> `--diagnostic-locations` está disponível atualmente apenas em builds do código-fonte e não está incluída no pacote publicado da CLI 1.8.0. A saída JSON e SARIF existente continua sendo o padrão publicado.
+> `--diagnostic-locations` está publicada na CLI 1.9.0 e continua opcional. Sem ela, JSON e SARIF preservam o formato anterior compatível e limitado ao arquivo.
 
 `adr-guard check --format json` emite o [schema v1 do relatório do ADR Guard](schemas/adr-check-report-v1.schema.json). Diagnósticos são ordenados por arquivo, código e mensagem. `valid` representa a validação estrutural; resumo e lista de arquivos tornam explícitos os relatórios vazios/de sucesso. Adicione `--diagnostic-locations` para habilitar as propriedades opcionais `line` e `column`, baseadas em um, quando o validador consegue identificar uma localização a partir do Markdown interpretado. As duas propriedades são omitidas quando a evidência identifica somente o arquivo. Sem a flag, a saída permanece compatível com clientes estritos do schema `1.0` anteriores a essas propriedades opcionais.
 

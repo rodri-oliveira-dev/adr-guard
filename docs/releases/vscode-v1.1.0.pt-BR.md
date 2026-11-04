@@ -2,7 +2,7 @@
 
 [English](vscode-v1.1.0.md)
 
-A versão **ADR Guard para VS Code 1.1.0**, versionada de forma independente, está publicada no [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard). A disponibilidade foi verificada novamente em 20/10/2026. Esse estado no Marketplace independe das releases da CLI e do MCP e não significa que o workflow VSIX do repositório a publicou nem que exista tag Git ou GitHub Release.
+A versão **ADR Guard para VS Code 1.1.0**, versionada de forma independente, está publicada no [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard). A disponibilidade foi verificada novamente em 03/11/2026. Esse estado no Marketplace independe das releases da CLI e do MCP e não significa que o workflow VSIX do repositório a publicou nem que exista tag Git ou GitHub Release.
 
 ## Principais mudanças
 
@@ -21,8 +21,7 @@ A versão **ADR Guard para VS Code 1.1.0**, versionada de forma independente, es
 ## Compatibilidade e requisitos
 
 - VS Code `1.101.0+`, workspace local `file:` confiável e host Node de extensão de workspace.
-- CLI compatível instalada separadamente. CLI `1.7.0+` fornece criação/edição visual no schema `1.0`; a CLI pública `1.8.0` suporta os fluxos documentados de arquitetura, governança e IA.
-- CLI `1.9.0` continua sendo uma candidata não publicada que adiciona localizações precisas de diagnóstico; a extensão usa fallback seguro com CLIs anteriores.
+- CLI compatível instalada separadamente. CLI `1.7.0+` fornece criação/edição visual no schema `1.0`; a CLI pública `1.9.0` suporta os fluxos documentados de arquitetura, governança e IA e adiciona localizações precisas de diagnóstico. A extensão usa fallback seguro com CLIs compatíveis anteriores.
 - MCP é opcional. O MCP `1.0.0` publicado é compatível; MCP `1.0.1` é uma candidata independente não publicada, com os contratos das ferramentas no schema `1.0` inalterados.
 
 ## Mudanças de comportamento
@@ -51,7 +50,7 @@ O [workflow VS Code VSIX Package](https://github.com/rodri-oliveira-dev/adr-guar
 
 ## Checklist de acompanhamento da publicação
 
-- Marketplace `rodrioliveira.adr-guard` informa `1.1.0`: verificado em 20/10/2026.
+- Marketplace `rodrioliveira.adr-guard` informa `1.1.0`: verificado em 03/11/2026.
 - Mantenha `extensions/vscode/package.json` em `1.1.0`; não incremente a versão como parte da preparação das releases da CLI/MCP.
 - Mantenha os workflows de CI/empacotamento VSIX somente como artifacts e documente separadamente qualquer caminho futuro de publicação no Marketplace.
 - Não deduza tag Git, GitHub Release ou disponibilidade da CLI/MCP a partir da listagem do Marketplace; verifique cada canal de forma independente.

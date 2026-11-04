@@ -2,7 +2,7 @@
 
 > Availability: `init`, `.adrguard.yml`, and structured `check` output were published in ADR Guard v1.2.0. MADR 4.0 format selection was published in v1.3.0. See [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) for exact artifacts.
 
-> Architecture impact analysis was introduced in v1.5.0, architectural drift in v1.6.0, and visual form contracts in v1.7.0. CLI 1.8.0 is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.8.0) and in its [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.8.0).
+> Architecture impact analysis was introduced in v1.5.0, architectural drift in v1.6.0, and visual form contracts in v1.7.0. CLI 1.9.0 is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.9.0) and in its [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0).
 
 > The schema `1.0` visual-form contracts require CLI 1.7.0 or newer and a separately versioned compatible VS Code extension when used visually. CLI, extension, and MCP versions are independent.
 
@@ -128,7 +128,7 @@ Field IDs are opaque per-load identifiers; clients must not infer or hard-code t
 
 ## Check output
 
-> Release candidate: `--diagnostic-locations` is included in the unpublished CLI 1.9.0 candidate, not in the currently published CLI 1.8.0 package. Use it only with a validated 1.9.0 local package or source build until that version is publicly verified.
+> Published availability: `--diagnostic-locations` is available in CLI 1.9.0 and remains opt-in. Older packages keep the previous file-level JSON/SARIF behavior.
 
 ```text
 adr-guard check [directory] [--format text|json|sarif] [--diagnostic-locations]

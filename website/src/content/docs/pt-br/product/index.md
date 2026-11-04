@@ -43,7 +43,7 @@ Rascunho e revisão enviam contexto selecionado ao provedor configurado. A saíd
 
 ## Status do MCP
 
-O servidor MCP 1.0.0 independente está publicado no NuGet.org e no MCP Registry, e o provider opcional está publicado na extensão VS Code 1.1.0. O servidor expõe sete ferramentas somente leitura por `stdio` e é instalado separadamente da extensão. MCP 1.0.1 e CLI 1.9.0 permanecem candidatas não publicadas; não trate código-fonte nem artifacts de workflow como disponibilidade em registro.
+O servidor MCP 1.0.0 independente está publicado no NuGet.org e no MCP Registry, e o provider opcional está publicado na extensão VS Code 1.1.0. O servidor expõe sete ferramentas somente leitura por `stdio` e é instalado separadamente da extensão. A CLI 1.9.0 está publicada no NuGet.org e no GitHub Releases; MCP 1.0.1 continua sendo uma candidata não publicada no código-fonte. Não trate código-fonte, uma release ou artifacts de workflow como prova de disponibilidade em outro registro.
 
 Consulte a [visão geral do MCP](./mcp/), o [guia de configuração](./mcp-configuration/), as [ferramentas disponíveis](./mcp-tools/) e o [modelo de segurança](./mcp-security/) para o contrato implementado e instruções de desenvolvimento local.
 

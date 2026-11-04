@@ -4,7 +4,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 
 > **Extensão publicada:** [ADR Guard para VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) está disponível no Visual Studio Marketplace como `rodrioliveira.adr-guard`. A extensão VS Code e a CLI .NET são distribuídas e versionadas separadamente; a extensão não inclui a CLI.
 
-> **Estado da release (verificado em 20/10/2026):** a versão 1.1.0 está publicada no Marketplace e adiciona o provider MCP e os fluxos visuais de Impacto, Drift, baseline, catálogo enriquecido, Rascunho por IA e Review Técnico descritos abaixo. O MCP 1.0.0 está publicado separadamente no NuGet.org e no MCP Registry; MCP 1.0.1 continua sendo uma candidata não publicada.
+> **Estado da release (verificado em 03/11/2026):** a versão 1.1.0 está publicada no Marketplace e adiciona o provider MCP e os fluxos visuais de Impacto, Drift, baseline, catálogo enriquecido, Rascunho por IA e Review Técnico descritos abaixo. A CLI 1.9.0 está publicada separadamente no NuGet.org e no GitHub Releases. O MCP 1.0.0 está publicado separadamente no NuGet.org e no MCP Registry; MCP 1.0.1 continua sendo uma candidata não publicada.
 
 ## Funcionalidades
 
