@@ -291,8 +291,9 @@ internal static class DoctorDiagnosticService
             return ".adrguard.yml defines both 'template' and 'template-file'. Fix: keep only one template source.";
         }
 
-        foreach (var property in ConfigurationProperties.Where(
-                     property => message.Contains($"property '{property}'", StringComparison.Ordinal)))
+        var property = ConfigurationProperties.FirstOrDefault(
+            candidate => message.Contains($"property '{candidate}'", StringComparison.Ordinal));
+        if (property is not null)
         {
             return $".adrguard.yml has an invalid value for '{property}'. Fix: use a supported schema 1 value.";
         }

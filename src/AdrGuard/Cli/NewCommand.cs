@@ -157,29 +157,29 @@ internal static class NewCommand
     {
         var state = new NewArgumentState();
         arguments = state;
+        return PopulateState(args, state) && state.TitleAssigned;
+    }
 
-        for (var index = 1; index < args.Count; index++)
+    private static bool PopulateState(IReadOnlyList<string> args, NewArgumentState state)
+    {
+        var index = 1;
+        while (index < args.Count)
         {
-            var argument = args[index];
-
+            var argument = args[index++];
             if (argument is "--dry-run" or "--preview")
             {
                 if (!state.TrySetDryRun()) return false;
                 continue;
             }
-
-            if (argument is "--title" or "--template" or "--template-file" or "--culture" or "--filename-policy")
+            if (argument is not ("--title" or "--template" or "--template-file"
+                or "--culture" or "--filename-policy"))
             {
-                index++;
-                if (index >= args.Count || !state.TrySetValue(argument, args[index])) return false;
-
+                if (!state.TrySetDirectory(argument)) return false;
                 continue;
             }
-
-            if (!state.TrySetDirectory(argument)) return false;
+            if (index >= args.Count || !state.TrySetValue(argument, args[index++])) return false;
         }
-
-        return state.TitleAssigned;
+        return true;
     }
 
     private sealed class NewArgumentState

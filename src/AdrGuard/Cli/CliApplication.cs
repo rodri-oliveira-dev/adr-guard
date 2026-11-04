@@ -417,29 +417,39 @@ internal static class CliApplication
         out DriftArguments arguments)
     {
         var state = new DriftArgumentState();
-        for (var index = 1; index < args.Count; index++)
-        {
-            var argument = args[index];
-            if (argument == "--update-baseline")
-            {
-                if (!state.TrySetUpdateBaseline()) return FailDriftParse(state, out arguments);
-                continue;
-            }
-            if (argument is "--rules" or "--evidence" or "--baseline" or "--write-baseline" or "--format" or "--policy")
-            {
-                index++;
-                if (index >= args.Count || !state.TrySetValue(argument, args[index]))
-                    return FailDriftParse(state, out arguments);
-                continue;
-            }
-            if (!state.TrySetRepository(argument))
-                return FailDriftParse(state, out arguments);
-        }
+        if (!PopulateDriftState(args, state)) return FailDriftParse(state, out arguments);
         var valid = state.Rules.Length > 0
             && (!state.UpdateBaseline || state.WriteBaseline is not null)
             && state.Evidence.Count <= ExternalFitnessEvidenceAdapter.MaximumFiles;
         arguments = state.ToArguments();
         return valid;
+    }
+
+    private static bool PopulateDriftState(
+        IReadOnlyList<string> args,
+        DriftArgumentState state)
+    {
+        var index = 1;
+        while (index < args.Count)
+        {
+            var argument = args[index++];
+            if (!TryApplyDriftArgument(argument, args, ref index, state)) return false;
+        }
+        return true;
+    }
+
+    private static bool TryApplyDriftArgument(
+        string argument,
+        IReadOnlyList<string> args,
+        ref int index,
+        DriftArgumentState state)
+    {
+        if (argument == "--update-baseline") return state.TrySetUpdateBaseline();
+        if (argument is not ("--rules" or "--evidence" or "--baseline"
+            or "--write-baseline" or "--format" or "--policy"))
+            return state.TrySetRepository(argument);
+        if (index >= args.Count) return false;
+        return state.TrySetValue(argument, args[index++]);
     }
 
     private static bool FailDriftParse(DriftArgumentState state, out DriftArguments arguments)
@@ -538,24 +548,28 @@ internal static class CliApplication
         out ImpactArguments arguments)
     {
         var state = new ImpactArgumentState();
-
-        for (var index = 1; index < args.Count; index++)
-        {
-            var argument = args[index];
-            if (argument is "--base-ref" or "--map" or "--format")
-            {
-                index++;
-                if (index >= args.Count || !state.TrySetValue(argument, args[index]))
-                    return FailImpactParse(state, out arguments);
-                continue;
-            }
-
-            if (!state.TrySetRepository(argument))
-                return FailImpactParse(state, out arguments);
-        }
+        if (!PopulateImpactState(args, state)) return FailImpactParse(state, out arguments);
 
         arguments = state.ToArguments();
         return state.BaseAssigned && state.MapAssigned;
+    }
+
+    private static bool PopulateImpactState(
+        IReadOnlyList<string> args,
+        ImpactArgumentState state)
+    {
+        var index = 1;
+        while (index < args.Count)
+        {
+            var argument = args[index++];
+            if (argument is not ("--base-ref" or "--map" or "--format"))
+            {
+                if (!state.TrySetRepository(argument)) return false;
+                continue;
+            }
+            if (index >= args.Count || !state.TrySetValue(argument, args[index++])) return false;
+        }
+        return true;
     }
 
     private static bool FailImpactParse(ImpactArgumentState state, out ImpactArguments arguments)

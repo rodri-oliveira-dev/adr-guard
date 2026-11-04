@@ -75,8 +75,9 @@ internal static class ImpactCorrelationService
         IReadOnlyList<ImpactMapping> mappings,
         CorrelationAccumulator accumulator)
     {
-        var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var unknown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var correlation = new ChangeCorrelation(
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase));
         foreach (var mapping in mappings)
         {
             foreach (var pattern in mapping.Patterns)
@@ -91,14 +92,13 @@ internal static class ImpactCorrelationService
                         pattern,
                         path,
                         role,
-                        matched,
-                        unknown,
+                        correlation,
                         accumulator);
                 }
             }
         }
 
-        return new ChangeCorrelation(matched, unknown);
+        return correlation;
     }
 
     private static void AddEvidence(
@@ -107,8 +107,7 @@ internal static class ImpactCorrelationService
         string pattern,
         string path,
         ImpactEvidencePathRole role,
-        HashSet<string> matched,
-        HashSet<string> unknown,
+        ChangeCorrelation correlation,
         CorrelationAccumulator accumulator)
     {
         var evidence = new ImpactEvidence(
@@ -133,8 +132,8 @@ internal static class ImpactCorrelationService
 
         var target = mapping.Resolution.Kind is ImpactDecisionResolutionKind.Active
             or ImpactDecisionResolutionKind.Proposed
-                ? matched
-                : unknown;
+                ? correlation.Matched
+                : correlation.Unknown;
         target.Add(mapping.Decision.StableId);
     }
 
