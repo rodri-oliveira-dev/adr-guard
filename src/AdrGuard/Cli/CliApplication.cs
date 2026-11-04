@@ -568,238 +568,28 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        if (!TryParseCheckArguments(
-                args,
-                out var directoryPath,
-                out var format,
-                out var adrFormat,
-                out var lifecycleStatuses,
-                out var conventionalSupersession,
-                out var filenamePolicy,
-                out var placeholderPolicy,
-                out var validateMetadata,
-                out var validationProfile,
-                out var changed,
-                out var baseReference,
-                out var baselinePath,
-                out var diagnosticLocations))
+        if (!CheckCommandArguments.TryParse(args, out var arguments))
         {
             return WriteCommandUsageError("check", error);
         }
 
         return CheckCommand.Run(
-            directoryPath,
-            format,
-            adrFormat,
-            lifecycleStatuses,
-            conventionalSupersession,
-            filenamePolicy,
-            placeholderPolicy,
-            validateMetadata,
-            validationProfile,
-            changed,
-            baseReference,
-            baselinePath,
-            diagnosticLocations,
+            arguments.DirectoryPath,
+            arguments.Format,
+            arguments.AdrFormat,
+            arguments.LifecycleStatuses,
+            arguments.ConventionalSupersession,
+            arguments.FilenamePolicy,
+            arguments.PlaceholderPolicy,
+            arguments.ValidateMetadata,
+            arguments.ValidationProfile,
+            arguments.Changed,
+            arguments.BaseReference,
+            arguments.BaselinePath,
+            arguments.DiagnosticLocations,
             output,
             error,
             cancellationToken);
-    }
-
-    private static bool TryParseCheckArguments(
-        IReadOnlyList<string> args,
-        out string directoryPath,
-        out CheckOutputFormat format,
-        out AdrFormat adrFormat,
-        out string? lifecycleStatuses,
-        out bool conventionalSupersession,
-        out string? filenamePolicy,
-        out string? placeholderPolicy,
-        out bool validateMetadata,
-        out string? validationProfile,
-        out bool changed,
-        out string? baseReference,
-        out string? baselinePath,
-        out bool diagnosticLocations)
-    {
-        directoryPath = ".";
-        format = CheckOutputFormat.Text;
-        adrFormat = AdrFormat.Canonical;
-        lifecycleStatuses = null;
-        conventionalSupersession = false;
-        filenamePolicy = null;
-        placeholderPolicy = null;
-        validateMetadata = false;
-        validationProfile = null;
-        changed = false;
-        baseReference = null;
-        baselinePath = null;
-        diagnosticLocations = false;
-        var directoryAssigned = false;
-        var formatAssigned = false;
-        var adrFormatAssigned = false;
-
-        for (var index = 1; index < args.Count; index++)
-        {
-            var argument = args[index];
-            if (argument == "--diagnostic-locations")
-            {
-                if (diagnosticLocations) return false;
-                diagnosticLocations = true;
-                continue;
-            }
-            if (argument == "--validate-metadata")
-            {
-                if (validateMetadata) return false;
-                validateMetadata = true;
-                continue;
-            }
-            if (argument == "--conventional-supersession")
-            {
-                if (conventionalSupersession) return false;
-                conventionalSupersession = true;
-                continue;
-            }
-            if (argument == "--changed")
-            {
-                if (changed)
-                {
-                    return false;
-                }
-
-                changed = true;
-                continue;
-            }
-
-            if (argument == "--base-ref")
-            {
-                if (baseReference is not null
-                    || index + 1 >= args.Count
-                    || string.IsNullOrWhiteSpace(args[index + 1]))
-                {
-                    return false;
-                }
-
-                var candidate = args[++index];
-                try
-                {
-                    GitChangeDetector.ValidateReference(candidate);
-                }
-                catch (ArgumentException)
-                {
-                    return false;
-                }
-
-                baseReference = candidate;
-                continue;
-            }
-
-            if (argument == "--baseline")
-            {
-                if (baselinePath is not null
-                    || index + 1 >= args.Count
-                    || string.IsNullOrWhiteSpace(args[index + 1])
-                    || args[index + 1].StartsWith('-'))
-                {
-                    return false;
-                }
-
-                baselinePath = args[++index];
-                continue;
-            }
-
-            if (argument == "--format")
-            {
-                if (formatAssigned || index + 1 >= args.Count)
-                {
-                    return false;
-                }
-
-                format = args[++index] switch
-                {
-                    "text" => CheckOutputFormat.Text,
-                    "json" => CheckOutputFormat.Json,
-                    "sarif" => CheckOutputFormat.Sarif,
-                    _ => (CheckOutputFormat)(-1),
-                };
-                if (!Enum.IsDefined(format))
-                {
-                    return false;
-                }
-
-                formatAssigned = true;
-                continue;
-            }
-
-            if (argument == "--adr-format")
-            {
-                if (adrFormatAssigned || index + 1 >= args.Count)
-                {
-                    return false;
-                }
-
-                adrFormat = args[++index] switch
-                {
-                    "canonical" => AdrFormat.Canonical,
-                    "madr-4" => AdrFormat.Madr4,
-                    _ => (AdrFormat)(-1),
-                };
-                if (!Enum.IsDefined(adrFormat))
-                {
-                    return false;
-                }
-
-                adrFormatAssigned = true;
-                continue;
-            }
-
-            if (argument == "--lifecycle-statuses")
-            {
-                if (lifecycleStatuses is not null || index + 1 >= args.Count)
-                {
-                    return false;
-                }
-
-                lifecycleStatuses = args[++index];
-                try { AdrLifecyclePolicy.Parse(lifecycleStatuses); }
-                catch (ArgumentException) { return false; }
-                continue;
-            }
-
-            if (argument == "--filename-policy")
-            {
-                if (filenamePolicy is not null || index + 1 >= args.Count) return false;
-                filenamePolicy = args[++index];
-                try { AdrFilenamePolicy.Parse(filenamePolicy); } catch (ArgumentException) { return false; }
-                continue;
-            }
-
-            if (argument == "--placeholder-policy")
-            {
-                if (placeholderPolicy is not null || index + 1 >= args.Count) return false;
-                placeholderPolicy = args[++index];
-                if (placeholderPolicy is not ("off" or "warn" or "error")) return false;
-                continue;
-            }
-
-            if (argument == "--validation-profile")
-            {
-                if (validationProfile is not null || index + 1 >= args.Count) return false;
-                validationProfile = args[++index];
-                try { AdrValidationOptionsFactory.ParseProfile(validationProfile); } catch (ArgumentException) { return false; }
-                continue;
-            }
-
-            if (argument.StartsWith('-') || directoryAssigned)
-            {
-                return false;
-            }
-
-            directoryPath = argument;
-            directoryAssigned = true;
-        }
-
-        return changed == (baseReference is not null);
     }
 
     private static int RunBaseline(
@@ -814,126 +604,20 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        var directory = ".";
-        string? outputPath = null;
-        var update = false;
-        var format = AdrFormat.Canonical;
-        string? lifecycleStatuses = null;
-        var conventionalSupersession = false;
-        string? filenamePolicy = null;
-        string? validationProfile = null;
-        var directoryAssigned = false;
-        var formatAssigned = false;
-
-        for (var index = 1; index < args.Count; index++)
-        {
-            var argument = args[index];
-            if (argument == "--conventional-supersession")
-            {
-                if (conventionalSupersession)
-                {
-                    return WriteCommandUsageError("baseline", error);
-                }
-                conventionalSupersession = true;
-                continue;
-            }
-            if (argument == "--update")
-            {
-                if (update)
-                {
-                    return WriteCommandUsageError("baseline", error);
-                }
-
-                update = true;
-                continue;
-            }
-
-            if (argument is "--output" or "--adr-format" or "--lifecycle-statuses" or "--filename-policy" or "--validation-profile")
-            {
-                if (index + 1 >= args.Count || args[index + 1].StartsWith('-'))
-                {
-                    return WriteCommandUsageError("baseline", error);
-                }
-
-                var value = args[++index];
-                if (argument == "--output")
-                {
-                    if (outputPath is not null)
-                    {
-                        return WriteCommandUsageError("baseline", error);
-                    }
-
-                    outputPath = value;
-                }
-                else
-                {
-                    if (argument == "--filename-policy")
-                    {
-                        filenamePolicy = value;
-                        try { AdrFilenamePolicy.Parse(filenamePolicy); }
-                        catch (ArgumentException) { return WriteCommandUsageError("baseline", error); }
-                        continue;
-                    }
-                    if (argument == "--validation-profile")
-                    {
-                        validationProfile = value;
-                        try { AdrValidationOptionsFactory.ParseProfile(validationProfile); }
-                        catch (ArgumentException) { return WriteCommandUsageError("baseline", error); }
-                        continue;
-                    }
-                    if (argument == "--lifecycle-statuses")
-                    {
-                        lifecycleStatuses = value;
-                        try { AdrLifecyclePolicy.Parse(lifecycleStatuses); }
-                        catch (ArgumentException) { return WriteCommandUsageError("baseline", error); }
-                        continue;
-                    }
-
-                    if (formatAssigned)
-                    {
-                        return WriteCommandUsageError("baseline", error);
-                    }
-
-                    format = value switch
-                    {
-                        "canonical" => AdrFormat.Canonical,
-                        "madr-4" => AdrFormat.Madr4,
-                        _ => (AdrFormat)(-1),
-                    };
-                    if (!Enum.IsDefined(format))
-                    {
-                        return WriteCommandUsageError("baseline", error);
-                    }
-
-                    formatAssigned = true;
-                }
-
-                continue;
-            }
-
-            if (argument.StartsWith('-') || directoryAssigned)
-            {
-                return WriteCommandUsageError("baseline", error);
-            }
-
-            directory = argument;
-            directoryAssigned = true;
-        }
-
-        if (outputPath is null)
+        if (!BaselineCommandArguments.TryParse(args, out var arguments))
         {
             return WriteCommandUsageError("baseline", error);
         }
 
         return BaselineCommand.Run(
-            directory,
-            outputPath,
-            update,
-            format,
-            lifecycleStatuses,
-            conventionalSupersession,
-            filenamePolicy,
-            validationProfile,
+            arguments.DirectoryPath,
+            arguments.OutputPath,
+            arguments.Update,
+            arguments.Format,
+            arguments.LifecycleStatuses,
+            arguments.ConventionalSupersession,
+            arguments.FilenamePolicy,
+            arguments.ValidationProfile,
             output,
             error,
             cancellationToken);

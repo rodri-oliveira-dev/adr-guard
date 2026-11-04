@@ -241,6 +241,34 @@ persistência atômica, falhas de provider e os exit codes `1`, `3` e `4`. Não
 foram adicionados testes MCP porque esta etapa não altera o Core compartilhado
 nem revelou lacuna no contrato read-only do servidor.
 
+### Implementação da etapa 2 — primeiro recorte
+
+O primeiro recorte de implementação foi limitado aos dois métodos de maior
+risco que podiam ser separados sem tocar geração, templates ou o fluxo interno
+de review:
+
+- `TryParseCheckArguments`, com complexidade cognitiva 100 no finding
+  `AaFbXpZOnKzhk_hT4iLe`, foi removido de `CliApplication`. A interpretação foi
+  decomposta em `CheckCommandArguments`, mantendo defaults, opções repetíveis e
+  únicas, validações do Core, dependência entre `--changed` e `--base-ref` e a
+  passagem tipada para `CheckCommand`.
+- o parsing embutido em `RunBaseline`, com complexidade cognitiva 71 no finding
+  `AaFbXpZOnKzhk_hT4iLi`, foi extraído para `BaselineCommandArguments`.
+  `RunBaseline` preserva apenas ajuda, adaptação do erro de uso e dispatch para
+  `BaselineCommand`; inclusive a aceitação histórica da última ocorrência de
+  `--lifecycle-statuses`, `--filename-policy` e `--validation-profile` foi
+  mantida.
+
+Esses dois findings deixam de existir em `CliApplication`; a confirmação de
+fechamento no Sonar depende de uma nova análise da branch. A branch ainda não
+possui análise própria no SonarQube Cloud, e a consulta de referência em
+`main` continua mostrando como abertos os outros seis findings do arquivo:
+`TryParseDriftArguments` (46), `TryParseImpactArguments` (44),
+`TryParseIndexArguments` (64), `TryParseReviewArguments` (77),
+`TryParseDraftArguments` (61) e `RunDraft` (26). Eles permanecem para recortes
+incrementais posteriores; este recorte não moveu complexidade para Core nem
+alterou os command handlers existentes.
+
 ## Escopo das próximas seis etapas
 
 ### 1. Congelar comportamento e medir seams
