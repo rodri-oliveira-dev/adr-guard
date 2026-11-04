@@ -16,6 +16,9 @@ namespace AdrGuard.Cli;
 
 internal static class CliApplication
 {
+    private const string DraftUsageHint =
+        "Run 'adr-guard draft --help' for usage.";
+
     private const string HelpText = """
         ADR Guard
 
@@ -831,7 +834,7 @@ internal static class CliApplication
             error.WriteLine(
                 "'draft' requires both --provider and --model.");
             error.WriteLine(
-                "Run 'adr-guard draft --help' for usage.");
+                DraftUsageHint);
             return ExitCodes.UsageError;
         }
 
@@ -863,7 +866,7 @@ internal static class CliApplication
         {
             error.WriteLine(exception.Message);
             error.WriteLine(
-                "Run 'adr-guard draft --help' for usage.");
+                DraftUsageHint);
             return ExitCodes.UsageError;
         }
         catch (InvalidOperationException exception)
@@ -914,7 +917,7 @@ internal static class CliApplication
         catch (ArgumentException exception)
         {
             error.WriteLine(exception.Message);
-            error.WriteLine("Run 'adr-guard draft --help' for usage.");
+            error.WriteLine(DraftUsageHint);
             exitCode = ExitCodes.UsageError;
             return false;
         }
@@ -938,7 +941,7 @@ internal static class CliApplication
             && arguments.TemplateFilePath is not null)
         {
             error.WriteLine("--template and --template-file are mutually exclusive.");
-            error.WriteLine("Run 'adr-guard draft --help' for usage.");
+            error.WriteLine(DraftUsageHint);
             return false;
         }
 
@@ -946,7 +949,7 @@ internal static class CliApplication
             && !string.Equals(arguments.CultureName, "pt-BR", StringComparison.OrdinalIgnoreCase))
         {
             error.WriteLine("Selected templates support --culture en-US or pt-BR only; unselected draft retains all supported .NET cultures.");
-            error.WriteLine("Run 'adr-guard draft --help' for usage.");
+            error.WriteLine(DraftUsageHint);
             return false;
         }
 
@@ -954,7 +957,7 @@ internal static class CliApplication
             && !AdrBuiltInTemplates.Names.Contains(arguments.TemplateName, StringComparer.Ordinal))
         {
             error.WriteLine($"Unknown template '{arguments.TemplateName}'. Use minimal or extended.");
-            error.WriteLine("Run 'adr-guard draft --help' for usage.");
+            error.WriteLine(DraftUsageHint);
             return false;
         }
 

@@ -45,7 +45,10 @@ internal sealed record BaselineCommandArguments(
             "--lifecycle-statuses" => TryAssignLifecycleStatuses(args, ref index, state),
             "--filename-policy" => TryAssignFilenamePolicy(args, ref index, state),
             "--validation-profile" => TryAssignValidationProfile(args, ref index, state),
-            _ => TryAssignDirectory(args[index], state),
+            _ => CliCommandArgumentReader.TryAssignDirectory(
+                args[index],
+                ref state.DirectoryPath,
+                ref state.DirectoryAssigned),
         };
 
     private static bool TryAssignFlag(ref bool target)
@@ -164,32 +167,15 @@ internal sealed record BaselineCommandArguments(
         return true;
     }
 
-    private static bool TryAssignDirectory(string value, ParseState state)
-    {
-        if (value.StartsWith('-') || state.DirectoryAssigned)
-        {
-            return false;
-        }
-
-        state.DirectoryPath = value;
-        state.DirectoryAssigned = true;
-        return true;
-    }
-
     private static bool TryReadValue(
         IReadOnlyList<string> args,
         ref int index,
-        out string value)
-    {
-        if (index + 1 >= args.Count || args[index + 1].StartsWith('-'))
-        {
-            value = string.Empty;
-            return false;
-        }
-
-        value = args[++index];
-        return true;
-    }
+        out string value) =>
+        CliCommandArgumentReader.TryReadValue(
+            args,
+            ref index,
+            rejectWhitespace: false,
+            out value);
 
     private static BaselineCommandArguments Empty { get; } =
         new(
@@ -204,7 +190,7 @@ internal sealed record BaselineCommandArguments(
 
     private sealed class ParseState
     {
-        internal string DirectoryPath { get; set; } = ".";
+        internal string DirectoryPath = ".";
         internal string? OutputPath { get; set; }
         internal bool Update;
         internal AdrFormat Format { get; set; } = AdrFormat.Canonical;
@@ -212,7 +198,7 @@ internal sealed record BaselineCommandArguments(
         internal bool ConventionalSupersession;
         internal string? FilenamePolicy { get; set; }
         internal string? ValidationProfile { get; set; }
-        internal bool DirectoryAssigned { get; set; }
+        internal bool DirectoryAssigned;
         internal bool FormatAssigned { get; set; }
 
         internal BaselineCommandArguments ToArguments() =>

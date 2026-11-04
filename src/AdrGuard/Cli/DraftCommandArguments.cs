@@ -52,7 +52,10 @@ internal sealed record DraftCommandArguments(
             "--context-file" => TryAddValue(args, ref index, state.ContextFilePaths),
             "--template" => TryAssignValue(args, ref index, ref state.TemplateName),
             "--template-file" => TryAssignValue(args, ref index, ref state.TemplateFilePath),
-            _ => TryAssignDirectory(args[index], state),
+            _ => CliCommandArgumentReader.TryAssignDirectory(
+                args[index],
+                ref state.DirectoryPath,
+                ref state.DirectoryAssigned),
         };
 
     private static bool TryAssignFlag(ref bool target)
@@ -111,33 +114,15 @@ internal sealed record DraftCommandArguments(
         return true;
     }
 
-    private static bool TryAssignDirectory(string value, ParseState state)
-    {
-        if (value.StartsWith('-') || state.DirectoryAssigned)
-        {
-            return false;
-        }
-
-        state.DirectoryPath = value;
-        state.DirectoryAssigned = true;
-        return true;
-    }
-
     private static bool TryReadValue(
         IReadOnlyList<string> args,
         ref int index,
-        out string value)
-    {
-        if (index + 1 >= args.Count)
-        {
-            value = string.Empty;
-            return false;
-        }
-
-        value = args[++index];
-        return !string.IsNullOrWhiteSpace(value)
-            && !value.StartsWith('-');
-    }
+        out string value) =>
+        CliCommandArgumentReader.TryReadValue(
+            args,
+            ref index,
+            rejectWhitespace: true,
+            out value);
 
     internal static DraftCommandArguments Empty { get; } =
         new(
@@ -156,7 +141,7 @@ internal sealed record DraftCommandArguments(
 
     private sealed class ParseState
     {
-        internal string DirectoryPath { get; set; } = ".";
+        internal string DirectoryPath = ".";
         internal string? Title;
         internal string? Context;
         internal string? CultureName = DefaultCultureName;
@@ -169,7 +154,7 @@ internal sealed record DraftCommandArguments(
         internal bool DryRun;
         internal string? TemplateName;
         internal string? TemplateFilePath;
-        internal bool DirectoryAssigned { get; set; }
+        internal bool DirectoryAssigned;
 
         internal DraftCommandArguments ToArguments() =>
             new(

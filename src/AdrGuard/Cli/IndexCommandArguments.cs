@@ -45,7 +45,10 @@ internal sealed record IndexCommandArguments(
             "--lifecycle-statuses" => TryAssignLifecycleStatuses(args, ref index, state),
             "--filename-policy" => TryAssignFilenamePolicy(args, ref index, state),
             "--validation-profile" => TryAssignValidationProfile(args, ref index, state),
-            _ => TryAssignDirectory(args[index], state),
+            _ => CliCommandArgumentReader.TryAssignDirectory(
+                args[index],
+                ref state.DirectoryPath,
+                ref state.DirectoryAssigned),
         };
 
     private static bool TryAssignCatalog(
@@ -183,33 +186,15 @@ internal sealed record IndexCommandArguments(
         return true;
     }
 
-    private static bool TryAssignDirectory(string value, ParseState state)
-    {
-        if (value.StartsWith('-') || state.DirectoryAssigned)
-        {
-            return false;
-        }
-
-        state.DirectoryPath = value;
-        state.DirectoryAssigned = true;
-        return true;
-    }
-
     private static bool TryReadValue(
         IReadOnlyList<string> args,
         ref int index,
-        out string value)
-    {
-        if (index + 1 >= args.Count)
-        {
-            value = string.Empty;
-            return false;
-        }
-
-        value = args[++index];
-        return !string.IsNullOrWhiteSpace(value)
-            && !value.StartsWith('-');
-    }
+        out string value) =>
+        CliCommandArgumentReader.TryReadValue(
+            args,
+            ref index,
+            rejectWhitespace: true,
+            out value);
 
     private static IndexCommandArguments Empty { get; } =
         new(
@@ -224,7 +209,7 @@ internal sealed record IndexCommandArguments(
 
     private sealed class ParseState
     {
-        internal string DirectoryPath { get; set; } = ".";
+        internal string DirectoryPath = ".";
         internal string? OutputPath;
         internal AdrFormat AdrFormat { get; set; } = AdrFormat.Canonical;
         internal string? LifecycleStatuses { get; set; }
@@ -232,7 +217,7 @@ internal sealed record IndexCommandArguments(
         internal string? FilenamePolicy { get; set; }
         internal string? ValidationProfile { get; set; }
         internal bool EnrichedCatalog;
-        internal bool DirectoryAssigned { get; set; }
+        internal bool DirectoryAssigned;
         internal bool AdrFormatAssigned { get; set; }
 
         internal IndexCommandArguments ToArguments() =>

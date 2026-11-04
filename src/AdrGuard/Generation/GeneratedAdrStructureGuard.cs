@@ -149,65 +149,6 @@ internal static class GeneratedAdrStructureGuard
         return heading.Length > 0;
     }
 
-    private static bool TryGetFence(
-        string line,
-        out char marker,
-        out int markerLength)
-    {
-        marker = default;
-        markerLength = 0;
-
-        var indentation = 0;
-        while (indentation < line.Length
-            && line[indentation] == ' ')
-        {
-            indentation++;
-        }
-
-        // CommonMark fenced code blocks may be indented by at most three
-        // spaces. Four or more spaces are indented code, not a fence.
-        if (indentation > 3)
-        {
-            return false;
-        }
-
-        var trimmed = line.AsSpan(indentation);
-        if (trimmed.Length < 3
-            || trimmed[0] is not ('`' or '~'))
-        {
-            return false;
-        }
-
-        marker = trimmed[0];
-
-        while (markerLength < trimmed.Length
-            && trimmed[markerLength] == marker)
-        {
-            markerLength++;
-        }
-
-        if (markerLength < 3)
-        {
-            return false;
-        }
-
-        // CommonMark forbids backticks in the info string of a backtick
-        // fence. If present, this line is ordinary text and must not suppress
-        // structural heading parsing on following lines.
-        return marker != '`'
-            || trimmed[markerLength..].IndexOf('`') < 0;
-    }
-
-    private static bool IsClosingFence(
-        string line,
-        int markerLength)
-    {
-        var trimmed = line.TrimStart();
-
-        return trimmed[markerLength..]
-            .All(char.IsWhiteSpace);
-    }
-
     private static bool TryParseHeading(
         string line,
         out int level,
@@ -292,6 +233,65 @@ internal static class GeneratedAdrStructureGuard
             marker = null;
             length = 0;
             return true;
+        }
+
+        private static bool TryGetFence(
+            string line,
+            out char marker,
+            out int markerLength)
+        {
+            marker = default;
+            markerLength = 0;
+
+            var indentation = 0;
+            while (indentation < line.Length
+                && line[indentation] == ' ')
+            {
+                indentation++;
+            }
+
+            // CommonMark fenced code blocks may be indented by at most three
+            // spaces. Four or more spaces are indented code, not a fence.
+            if (indentation > 3)
+            {
+                return false;
+            }
+
+            var trimmed = line.AsSpan(indentation);
+            if (trimmed.Length < 3
+                || trimmed[0] is not ('`' or '~'))
+            {
+                return false;
+            }
+
+            marker = trimmed[0];
+
+            while (markerLength < trimmed.Length
+                && trimmed[markerLength] == marker)
+            {
+                markerLength++;
+            }
+
+            if (markerLength < 3)
+            {
+                return false;
+            }
+
+            // CommonMark forbids backticks in the info string of a backtick
+            // fence. If present, this line is ordinary text and must not
+            // suppress structural heading parsing on following lines.
+            return marker != '`'
+                || trimmed[markerLength..].IndexOf('`') < 0;
+        }
+
+        private static bool IsClosingFence(
+            string line,
+            int markerLength)
+        {
+            var trimmed = line.TrimStart();
+
+            return trimmed[markerLength..]
+                .All(char.IsWhiteSpace);
         }
     }
 }

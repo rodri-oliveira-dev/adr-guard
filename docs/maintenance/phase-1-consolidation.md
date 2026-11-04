@@ -442,7 +442,8 @@ A Fase 1 estará concluída somente quando todos os itens abaixo tiverem evidên
 
 ## Fechamento da branch
 
-O fechamento de 3 de novembro de 2026 revisou os seis commits da branch
+O fechamento iniciado em 3 e concluído em 4 de novembro de 2026 revisou os
+seis commits da branch
 `refactor/phase-1-consolidation` sobre `main` em
 `4cf208f3ddf9fb14944b68db18aa3548ff4553b6`. A referência remota de `main` foi
 atualizada por HTTPS antes da comparação e permaneceu nesse commit. O recorte
@@ -496,7 +497,7 @@ o diretório é indicado:
 - `dotnet build AdrGuard.slnx --configuration Release --no-restore`: concluído
   com zero avisos e zero erros.
 - `dotnet test --solution AdrGuard.slnx --configuration Release --no-build`:
-  744 aprovados, zero falhos e zero ignorados, incluindo a suíte MCP.
+  747 aprovados, zero falhos e zero ignorados, incluindo a suíte MCP.
 - CLI e MCP foram empacotados com
   `dotnet pack --configuration Release --no-build`, instalados de fontes NuGet
   locais isoladas e inspecionados. As
@@ -517,9 +518,16 @@ o diretório é indicado:
   `scripts/github-action-impact-test.sh` e
   `scripts/github-action-report-test.sh` passaram usando Git Bash explícito.
 - O ADR Guard empacotado validou os oito ADRs de `docs/adr` sem findings.
-- A consulta Sonar da branch retornou zero issues, mas o quality gate respondeu
-  `NOT_COMPUTED` sem condições; isso confirma ausência de análise, não ausência
-  comprovada de findings.
+- A consulta Sonar anterior ao PR retornou zero issues, mas o quality gate
+  respondeu `NOT_COMPUTED` sem condições; isso confirmava ausência de análise,
+  não ausência comprovada de findings. A primeira análise do PR executou de
+  fato e falhou com 76% de cobertura no código novo, 6% de duplicação e quatro
+  findings diretamente relacionados às extrações desta fase. Os ajustes finais
+  consolidaram a leitura comum de argumentos, removeram o sombreamento de
+  `Parse`, aproximaram os helpers de fence do estado que os consome e
+  centralizaram a mensagem de uso repetida. Três regressões determinísticas de
+  contrato foram acrescentadas; a reanálise do PR é o gate final desses
+  ajustes.
 - `git diff --check` foi executado com sucesso antes do commit de fechamento.
 
 Os testes Linux-específicos `github-action-smoke-test.sh` e
@@ -527,8 +535,9 @@ Os testes Linux-específicos `github-action-smoke-test.sh` e
 Windows: o primeiro requer mounts Docker com paths POSIX reais, e o segundo
 isola `PATH` pressupondo utilitários do runner Linux. O teste de review chegou
 ao caso negativo de Python, mas o ambiente Git Bash falhou antes da asserção.
-Esses gates continuam obrigatórios no CI Linux; não foram registrados como
-aprovados localmente.
+Eles não foram registrados como aprovados localmente. O workflow
+`GitHub Action contract` concluiu com sucesso no CI Linux do PR, cobrindo a
+execução no ambiente para o qual esses scripts foram escritos.
 
 ### Findings tratados e pendências conscientes
 
@@ -536,8 +545,11 @@ Os métodos associados aos findings de complexidade de parsing de `check`,
 `baseline`, `index`, `review` e `draft`, ao fluxo de template de `draft`, ao
 loader/parser de template customizado, ao scanner estrutural e à resolução de
 evidência deixaram de concentrar as condicionais apontadas. O estado definitivo
-dos findings depende de nova análise da branch no SonarQube; ausência de análise
-não foi interpretada como fechamento.
+dos findings originais depende da reconciliação histórica no SonarQube;
+ausência de análise não foi interpretada como fechamento. Os quatro findings e
+as duas métricas impeditivas produzidos pela primeira análise do PR foram
+tratados diretamente e permanecem sujeitos à reanálise obrigatória do mesmo
+PR.
 
 Permanecem pendentes, sem regressão conhecida e sem ampliação deste PR:
 
@@ -548,14 +560,11 @@ Permanecem pendentes, sem regressão conhecida e sem ampliação deste PR:
   `AdrReviewPolicyLoader.Validate` somente por um seam coeso;
 - tratar `AdrMarkdownRenderer.RenderTemplate` e os loaders/parsers selecionados
   do Core um domínio por vez;
-- executar nova análise Sonar, reconciliar os findings comprovadamente
-  resolvidos e registrar a justificativa arquitetural dos `S3871` sem tornar
-  exceções internas públicas;
-- executar no CI Linux os dois gates da Action que não são portáveis para o
-  host Windows usado neste fechamento.
+- reconciliar os findings históricos comprovadamente resolvidos e registrar a
+  justificativa arquitetural dos `S3871` sem tornar exceções internas públicas.
 
 Esses itens são dívida de consolidação remanescente, não funcionalidades da
 Fase 2, e devem conservar o mesmo requisito de caracterização antes de qualquer
-extração. Nenhuma regressão diretamente causada pela branch foi encontrada
-durante o fechamento; portanto, além desta atualização de evidências, não foi
-necessário alterar código de produção.
+extração. A primeira análise Sonar do PR encontrou regressões de qualidade
+diretamente causadas pelas extrações da branch. Elas foram corrigidas sem
+alterar contratos públicos; nenhuma funcionalidade da Fase 2 foi incorporada.

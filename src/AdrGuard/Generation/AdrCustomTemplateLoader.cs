@@ -236,7 +236,7 @@ internal static class AdrCustomTemplateLoader
         => new CustomTemplateParser(
             content,
             cultureName,
-            sourcePath).Parse();
+            sourcePath).ParseDefinition();
 
     private sealed class CustomTemplateParser(
         string content,
@@ -249,7 +249,7 @@ internal static class AdrCustomTemplateLoader
         private bool sawTitle;
         private bool sawStatus;
 
-        internal AdrTemplateDefinition Parse()
+        internal AdrTemplateDefinition ParseDefinition()
         {
             var lines = content
                 .Replace("\r\n", "\n", StringComparison.Ordinal)
