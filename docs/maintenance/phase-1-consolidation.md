@@ -312,6 +312,56 @@ contagens: `AdrCustomTemplateLoaderTests` 24/24,
 `AdrReviewRegressionFixtureTests` 14/14, sem falhas ou testes ignorados. O build
 Release concluiu com zero avisos e zero erros.
 
+### Implementação da etapa 2 — parsing de index, review e draft
+
+O terceiro recorte permaneceu no adaptador da CLI e tratou quatro findings de
+manutenibilidade HIGH do snapshot de `main`, sem tocar contratos públicos, Core
+ou MCP:
+
+- o parsing de `index` (finding `AaFbXpZPnKzhk_hT4iL5`, complexidade 64) foi
+  movido para `IndexCommandArguments`, preservando defaults, validação das
+  policies, opções únicas e o catálogo enriquecido;
+- o parsing de `review` (finding `AaFbXpZPnKzhk_hT4iL6`, complexidade 77) foi
+  movido para `ReviewCommandArguments`, mantendo arquivos de contexto
+  repetíveis, dependência entre `--overwrite` e `--output`, policy, formato e
+  target obrigatório;
+- o parsing de `draft` (finding `AaFbXpZPnKzhk_hT4iMD`, complexidade 61) foi
+  movido para `DraftCommandArguments`, mantendo a equivalência entre
+  `--dry-run` e `--preview`, valores default e obrigatoriedade de title/context;
+- a seleção e carga de template antes contida em `RunDraft` (finding
+  `AaFbXpZPnKzhk_hT4iLx`, complexidade 26) foi separada em validação e resolução
+  focadas. Templates continuam validados antes da construção ou invocação do
+  provider.
+
+A consulta autenticada ao SonarQube Cloud em 3 de novembro de 2026 retornou
+zero findings para `refactor/phase-1-consolidation`, porque a branch ainda não
+possui análise publicada, e 68 HIGH/BLOCKER abertos no snapshot antigo de
+`main`. Portanto, os quatro métodos acima deixam de existir ou de concentrar a
+complexidade reportada no código local, mas nenhum finding é declarado fechado
+no Sonar sem uma nova análise.
+
+A revisão de segurança não encontrou vulnerabilidade reproduzível neste
+recorte. A validação continua anterior a I/O e providers; a carga de template
+mantém resolução segura de path, limites, cancelamento e os erros existentes;
+review continua sanitizando diagnósticos com sua security boundary; e nenhum
+fluxo de processo externo, persistência atômica, credencial ou recurso MCP foi
+alterado. As exceções do Core apontadas por `S3871` permanecem `internal`: abrir
+uma API apenas para satisfazer o analisador continuaria incompatível com a ADR
+0008.
+
+Permanecem como próximos recortes da CLI os parsers de `drift` (46) e `impact`
+(44). `AdrMarkdownRenderer.RenderTemplate`, `AdrReviewTextRenderer.Render` e
+os seams selecionados do Core continuam adiados para etapas coesas; findings
+próximos do limite e exceções internas não serão tratados apenas para reduzir
+contadores.
+
+A validação final deste recorte executou as classes de contrato da CLI, index,
+draft, review, security boundary, template customizado, criação e persistência
+atômica. Depois do build Release da solução com zero avisos e zero erros, a
+suíte completa concluiu 744/744 testes, incluindo os testes de arquitetura e do
+MCP. Uma regressão intermediária no estado default de `--culture` foi detectada
+pelos testes de draft, corrigida e revalidada antes da baseline final.
+
 ## Escopo das próximas seis etapas
 
 ### 1. Congelar comportamento e medir seams
