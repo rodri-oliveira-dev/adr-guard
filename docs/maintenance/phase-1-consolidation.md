@@ -526,8 +526,8 @@ o diretório é indicado:
   consolidaram a leitura comum de argumentos, removeram o sombreamento de
   `Parse`, aproximaram os helpers de fence do estado que os consome e
   centralizaram a mensagem de uso repetida. Três regressões determinísticas de
-  contrato foram acrescentadas; a reanálise do PR é o gate final desses
-  ajustes.
+  contrato foram acrescentadas. A reanálise do PR aprovou o quality gate e
+  marcou os quatro findings como `FIXED`/`CLOSED`.
 - `git diff --check` foi executado com sucesso antes do commit de fechamento.
 
 Os testes Linux-específicos `github-action-smoke-test.sh` e
@@ -548,10 +548,11 @@ evidência deixaram de concentrar as condicionais apontadas. O estado definitivo
 dos findings originais depende da reconciliação histórica no SonarQube;
 ausência de análise não foi interpretada como fechamento. Os quatro findings e
 as duas métricas impeditivas produzidos pela primeira análise do PR foram
-tratados diretamente e permanecem sujeitos à reanálise obrigatória do mesmo
-PR.
+tratados diretamente. A reanálise obrigatória do mesmo PR retornou
+`Quality Gate: OK` e confirmou os quatro findings como resolvidos.
 
-Permanecem pendentes, sem regressão conhecida e sem ampliação deste PR:
+Permanecem pendentes, sem regressão de produto conhecida e sem ampliação deste
+PR:
 
 - extrair os parsers de `impact` e `drift`, que ainda estão em
   `CliApplication`; por isso a classe ainda não atende ao critério literal de
@@ -560,6 +561,10 @@ Permanecem pendentes, sem regressão conhecida e sem ampliação deste PR:
   `AdrReviewPolicyLoader.Validate` somente por um seam coeso;
 - tratar `AdrMarkdownRenderer.RenderTemplate` e os loaders/parsers selecionados
   do Core um domínio por vez;
+- estabilizar o descarte do `TemporaryGitRepository` em
+  `GitChangeInventoryTests`: um dos jobs macOS duplicados tentou restaurar os
+  atributos de `.git/objects/maintenance.lock` depois que o Git removeu o
+  arquivo, enquanto o job equivalente do mesmo commit aprovou os 12 testes;
 - reconciliar os findings históricos comprovadamente resolvidos e registrar a
   justificativa arquitetural dos `S3871` sem tornar exceções internas públicas.
 
