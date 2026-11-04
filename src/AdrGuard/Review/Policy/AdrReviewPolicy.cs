@@ -139,39 +139,35 @@ internal static class AdrReviewPolicyLoader
 
         foreach (var rule in definition.Rules)
         {
-            if (rule is null)
-            {
-                throw new InvalidDataException(
-                    "Review policy contains a null rule.");
-            }
+            ValidateRule(rule, names);
+        }
+    }
 
-            if (!IsValidRuleName(rule.Name)
-                || !names.Add(rule.Name))
-            {
-                throw new InvalidDataException(
-                    $"Review policy rule name '{rule.Name}' is invalid or duplicated.");
-            }
+    private static void ValidateRule(AdrReviewPolicyRule? rule, HashSet<string> names)
+    {
+        if (rule is null) throw new InvalidDataException("Review policy contains a null rule.");
+        if (!IsValidRuleName(rule.Name) || !names.Add(rule.Name))
+        {
+            throw new InvalidDataException(
+                $"Review policy rule name '{rule.Name}' is invalid or duplicated.");
+        }
 
-            switch (rule.Type)
-            {
-                case "required-section-content":
-                    if (string.IsNullOrWhiteSpace(rule.Section)
-                        || !string.IsNullOrWhiteSpace(rule.Path))
-                    {
-                        throw new InvalidDataException(
-                            $"Rule '{rule.Name}' requires 'section' and must not define 'path'.");
-                    }
+        if (rule.Type == "required-context-file")
+        {
+            ValidateContextRule(rule);
+            return;
+        }
 
-                    break;
+        if (rule.Type != "required-section-content")
+        {
+            throw new InvalidDataException(
+                $"Rule '{rule.Name}' uses unsupported deterministic type '{rule.Type}'.");
+        }
 
-                case "required-context-file":
-                    ValidateContextRule(rule);
-                    break;
-
-                default:
-                    throw new InvalidDataException(
-                        $"Rule '{rule.Name}' uses unsupported deterministic type '{rule.Type}'.");
-            }
+        if (string.IsNullOrWhiteSpace(rule.Section) || !string.IsNullOrWhiteSpace(rule.Path))
+        {
+            throw new InvalidDataException(
+                $"Rule '{rule.Name}' requires 'section' and must not define 'path'.");
         }
     }
 

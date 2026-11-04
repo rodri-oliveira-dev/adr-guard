@@ -62,45 +62,13 @@ internal static class NewCommand
                 error);
         }
 
-        if (templateName is not null && templateFilePath is not null)
-        {
-            return UsageError(
-                "--template and --template-file are mutually exclusive.",
-                error);
-        }
-
-        if (!string.Equals(cultureName, "en-US", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(cultureName, "pt-BR", StringComparison.OrdinalIgnoreCase))
-        {
-            return UsageError(
-                $"Unsupported template culture '{cultureName}'. Use en-US or pt-BR.",
-                error);
-        }
-
-        cultureName = string.Equals(
+        var validationError = ValidateArguments(
+            title,
+            templateName,
+            templateFilePath,
             cultureName,
-            "pt-BR",
-            StringComparison.OrdinalIgnoreCase)
-            ? "pt-BR"
-            : "en-US";
-
-        if (title.IndexOfAny(['\r', '\n']) >= 0
-            || string.IsNullOrWhiteSpace(AdrSlug.Create(title)))
-        {
-            return UsageError(
-                "ADR title must be one line and contain at least one ASCII letter or digit.",
-                error);
-        }
-
-        if (templateName is not null
-            && !AdrBuiltInTemplates.Names.Contains(
-                templateName,
-                StringComparer.Ordinal))
-        {
-            return UsageError(
-                $"Unknown template '{templateName}'. Use minimal or extended.",
-                error);
-        }
+            out cultureName);
+        if (validationError is not null) return UsageError(validationError, error);
 
         if (!Directory.Exists(directoryPath))
         {
@@ -150,26 +118,37 @@ internal static class NewCommand
         {
             return UsageError(exception.Message, error);
         }
-        catch (InvalidDataException exception)
+        catch (Exception exception) when (exception is InvalidDataException
+            or IOException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or OperationCanceledException)
         {
             return OperationalError(exception, error);
         }
-        catch (IOException exception)
-        {
-            return OperationalError(exception, error);
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            return OperationalError(exception, error);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return OperationalError(exception, error);
-        }
-        catch (OperationCanceledException exception)
-        {
-            return OperationalError(exception, error);
-        }
+    }
+
+    private static string? ValidateArguments(
+        string title,
+        string? templateName,
+        string? templateFilePath,
+        string cultureName,
+        out string normalizedCulture)
+    {
+        normalizedCulture = string.Equals(cultureName, "pt-BR", StringComparison.OrdinalIgnoreCase)
+            ? "pt-BR"
+            : "en-US";
+        if (templateName is not null && templateFilePath is not null)
+            return "--template and --template-file are mutually exclusive.";
+        if (!string.Equals(cultureName, "en-US", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(cultureName, "pt-BR", StringComparison.OrdinalIgnoreCase))
+            return $"Unsupported template culture '{cultureName}'. Use en-US or pt-BR.";
+        if (title.IndexOfAny(['\r', '\n']) >= 0 || string.IsNullOrWhiteSpace(AdrSlug.Create(title)))
+            return "ADR title must be one line and contain at least one ASCII letter or digit.";
+        if (templateName is not null
+            && !AdrBuiltInTemplates.Names.Contains(templateName, StringComparer.Ordinal))
+            return $"Unknown template '{templateName}'. Use minimal or extended.";
+        return null;
     }
 
     private static bool TryParse(
@@ -182,20 +161,7 @@ internal static class NewCommand
         out bool dryRun,
         out string? filenamePolicy)
     {
-        directoryPath = ".";
-        title = string.Empty;
-        templateName = null;
-        templateFilePath = null;
-        cultureName = "en-US";
-        dryRun = false;
-        filenamePolicy = null;
-
-        var directoryAssigned = false;
-        var titleAssigned = false;
-        var templateAssigned = false;
-        var templateFileAssigned = false;
-        var cultureAssigned = false;
-        var dryRunAssigned = false;
+        var state = new NewArgumentState();
 
         for (var index = 1; index < args.Count; index++)
         {
@@ -203,90 +169,96 @@ internal static class NewCommand
 
             if (argument is "--dry-run" or "--preview")
             {
-                if (dryRunAssigned)
-                {
-                    return false;
-                }
-
-                dryRun = true;
-                dryRunAssigned = true;
+                if (!state.TrySetDryRun()) return SetOutputs(state, out directoryPath, out title,
+                    out templateName, out templateFilePath, out cultureName, out dryRun, out filenamePolicy, false);
                 continue;
             }
 
             if (argument is "--title" or "--template" or "--template-file" or "--culture" or "--filename-policy")
             {
-                if (index + 1 >= args.Count)
-                {
-                    return false;
-                }
+                if (index + 1 >= args.Count) return SetOutputs(state, out directoryPath, out title,
+                    out templateName, out templateFilePath, out cultureName, out dryRun, out filenamePolicy, false);
 
                 var value = args[++index];
-                if (string.IsNullOrWhiteSpace(value)
-                    || value.StartsWith('-'))
-                {
-                    return false;
-                }
-
-                switch (argument)
-                {
-                    case "--title":
-                        if (titleAssigned)
-                        {
-                            return false;
-                        }
-
-                        title = value;
-                        titleAssigned = true;
-                        break;
-                    case "--template":
-                        if (templateAssigned)
-                        {
-                            return false;
-                        }
-
-                        templateName = value;
-                        templateAssigned = true;
-                        break;
-                    case "--template-file":
-                        if (templateFileAssigned)
-                        {
-                            return false;
-                        }
-
-                        templateFilePath = value;
-                        templateFileAssigned = true;
-                        break;
-                    case "--culture":
-                        if (cultureAssigned)
-                        {
-                            return false;
-                        }
-
-                        cultureName = value;
-                        cultureAssigned = true;
-                        break;
-                    case "--filename-policy":
-                        if (filenamePolicy is not null) return false;
-                        try { AdrGuard.Validation.AdrFilenamePolicy.Parse(value); }
-                        catch (ArgumentException) { return false; }
-                        filenamePolicy = value;
-                        break;
-                }
+                if (!state.TrySetValue(argument, value)) return SetOutputs(state, out directoryPath, out title,
+                    out templateName, out templateFilePath, out cultureName, out dryRun, out filenamePolicy, false);
 
                 continue;
             }
 
-            if (argument.StartsWith('-')
-                || directoryAssigned)
-            {
-                return false;
-            }
-
-            directoryPath = argument;
-            directoryAssigned = true;
+            if (!state.TrySetDirectory(argument)) return SetOutputs(state, out directoryPath, out title,
+                out templateName, out templateFilePath, out cultureName, out dryRun, out filenamePolicy, false);
         }
 
-        return titleAssigned;
+        return SetOutputs(state, out directoryPath, out title, out templateName, out templateFilePath,
+            out cultureName, out dryRun, out filenamePolicy, state.TitleAssigned);
+    }
+
+    private static bool SetOutputs(
+        NewArgumentState state,
+        out string directoryPath,
+        out string title,
+        out string? templateName,
+        out string? templateFilePath,
+        out string cultureName,
+        out bool dryRun,
+        out string? filenamePolicy,
+        bool result)
+    {
+        directoryPath = state.DirectoryPath;
+        title = state.Title;
+        templateName = state.TemplateName;
+        templateFilePath = state.TemplateFilePath;
+        cultureName = state.CultureName;
+        dryRun = state.DryRun;
+        filenamePolicy = state.FilenamePolicy;
+        return result;
+    }
+
+    private sealed class NewArgumentState
+    {
+        private readonly HashSet<string> assigned = new(StringComparer.Ordinal);
+        internal string DirectoryPath { get; private set; } = ".";
+        internal string Title { get; private set; } = string.Empty;
+        internal string? TemplateName { get; private set; }
+        internal string? TemplateFilePath { get; private set; }
+        internal string CultureName { get; private set; } = "en-US";
+        internal bool DryRun { get; private set; }
+        internal string? FilenamePolicy { get; private set; }
+        internal bool TitleAssigned => assigned.Contains("--title");
+
+        internal bool TrySetDryRun()
+        {
+            if (!assigned.Add("dry-run")) return false;
+            DryRun = true;
+            return true;
+        }
+
+        internal bool TrySetValue(string argument, string value)
+        {
+            if (!assigned.Add(argument) || string.IsNullOrWhiteSpace(value) || value.StartsWith('-'))
+                return false;
+            switch (argument)
+            {
+                case "--title": Title = value; break;
+                case "--template": TemplateName = value; break;
+                case "--template-file": TemplateFilePath = value; break;
+                case "--culture": CultureName = value; break;
+                case "--filename-policy":
+                    try { AdrGuard.Validation.AdrFilenamePolicy.Parse(value); }
+                    catch (ArgumentException) { return false; }
+                    FilenamePolicy = value;
+                    break;
+            }
+            return true;
+        }
+
+        internal bool TrySetDirectory(string argument)
+        {
+            if (argument.StartsWith('-') || !assigned.Add("directory")) return false;
+            DirectoryPath = argument;
+            return true;
+        }
     }
 
     private static int UsageError(string message, TextWriter error)

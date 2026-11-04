@@ -31,55 +31,147 @@ internal static class FitnessManifestLoader
 
         var configuration = AdrGuardConfigurationLoader.Load(root);
         var format = configuration?.AdrFormat == "madr-4" ? AdrFormat.Madr4 : AdrFormat.Canonical;
-        AdrLifecyclePolicy lifecycle;
-        try { lifecycle = AdrLifecyclePolicy.Parse(configuration?.LifecycleStatuses); }
-        catch (ArgumentException exception) { throw new FitnessManifestException(exception.Message, exception); }
+        var lifecycle = ParseLifecycle(configuration?.LifecycleStatuses);
         var ids = new HashSet<string>(StringComparer.Ordinal);
         var rules = new List<FitnessRule>(definition.Rules.Length);
         foreach (var candidate in definition.Rules)
         {
-            if (candidate is null || candidate.Decision is null || candidate.Scope is null || candidate.Check is null || candidate.Evidence is null || candidate.Failure is null)
-                throw new FitnessManifestException("Fitness manifest contains an incomplete rule.");
-            var id = Token(candidate.Id, "rule ID", 128);
-            if (!ids.Add(id) || !System.Text.RegularExpressions.Regex.IsMatch(
-                id,
-                "^[a-z0-9][a-z0-9._-]*$",
-                System.Text.RegularExpressions.RegexOptions.CultureInvariant,
-                TimeSpan.FromMilliseconds(100)))
-                throw new FitnessManifestException($"Fitness rule ID '{id}' is invalid or duplicated.");
-            var decisionPath = Normalize(root, candidate.Decision.Path, ".md", "ADR path");
-            var projects = NormalizeProjects(root, candidate.Scope.Projects);
-            var type = candidate.Check.Type switch
-            {
-                "forbid-project-reference" => FitnessCheckType.ForbidProjectReference,
-                "external-test" => FitnessCheckType.ExternalTest,
-                _ => throw new FitnessManifestException($"Unsupported fitness check type '{candidate.Check.Type ?? "<missing>"}'."),
-            };
-            string? from = null; string? to = null; string? testId = null;
-            if (type == FitnessCheckType.ForbidProjectReference)
-            {
-                from = Normalize(root, candidate.Check.From, ".csproj", "check from path");
-                to = Normalize(root, candidate.Check.To, ".csproj", "check to path");
-                if (candidate.Check.TestId is not null || !projects.Contains(from, PathComparer) || !projects.Contains(to, PathComparer))
-                    throw new FitnessManifestException($"Rule '{id}' must declare exact from/to projects within its scope.");
-                if (candidate.Evidence.Source != "dotnet-project-reference")
-                    throw new FitnessManifestException($"Rule '{id}' has an incompatible evidence source.");
-            }
-            else
-            {
-                testId = Token(candidate.Check.TestId, "external test ID", 256);
-                if (candidate.Check.From is not null || candidate.Check.To is not null || candidate.Evidence.Source != "external-test-report")
-                    throw new FitnessManifestException($"Rule '{id}' has an incompatible external-test contract.");
-            }
-            if (candidate.Failure.OnInconclusive != "unknown" || candidate.Failure.Severity is not ("error" or "warning" or "notice"))
-                throw new FitnessManifestException($"Rule '{id}' has unsupported failure semantics.");
-            if (candidate.Gate is null)
-                throw new FitnessManifestException($"Rule '{id}' must declare whether it gates enforcement.");
-            rules.Add(new FitnessRule(id, ResolveDecision(root, Token(candidate.Decision.StableId, "ADR stable ID", 128), decisionPath, lifecycle, format), projects, type, from, to, testId, candidate.Evidence.Source!, candidate.Failure.Severity, candidate.Gate.Value));
+            rules.Add(CreateRule(root, candidate, ids, lifecycle, format));
         }
 
         return new FitnessManifest(root, Path.GetRelativePath(root, fullPath).Replace(Path.DirectorySeparatorChar, '/'), rules.OrderBy(x => x.Decision.StableId, StringComparer.Ordinal).ThenBy(x => x.Id, StringComparer.Ordinal).ToArray());
     }
+
+    private static AdrLifecyclePolicy ParseLifecycle(string? lifecycleStatuses)
+    {
+        try
+        {
+            return AdrLifecyclePolicy.Parse(lifecycleStatuses);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new FitnessManifestException(exception.Message, exception);
+        }
+    }
+
+    private static FitnessRule CreateRule(
+        string root,
+        RuleDefinition? candidate,
+        HashSet<string> ids,
+        AdrLifecyclePolicy lifecycle,
+        AdrFormat format)
+    {
+        if (candidate?.Decision is null
+            || candidate.Scope is null
+            || candidate.Check is null
+            || candidate.Evidence is null
+            || candidate.Failure is null)
+        {
+            throw new FitnessManifestException("Fitness manifest contains an incomplete rule.");
+        }
+
+        var id = ValidateRuleId(candidate.Id, ids);
+        var decisionPath = Normalize(root, candidate.Decision.Path, ".md", "ADR path");
+        var projects = NormalizeProjects(root, candidate.Scope.Projects);
+        var check = CreateCheck(root, id, projects, candidate.Check, candidate.Evidence.Source);
+        ValidateFailure(id, candidate.Failure, candidate.Gate);
+        var decision = ResolveDecision(
+            root,
+            Token(candidate.Decision.StableId, "ADR stable ID", 128),
+            decisionPath,
+            lifecycle,
+            format);
+        return new FitnessRule(
+            id,
+            decision,
+            projects,
+            check.Type,
+            check.From,
+            check.To,
+            check.TestId,
+            candidate.Evidence.Source!,
+            candidate.Failure.Severity!,
+            candidate.Gate!.Value);
+    }
+
+    private static string ValidateRuleId(string? value, HashSet<string> ids)
+    {
+        var id = Token(value, "rule ID", 128);
+        if (!ids.Add(id)
+            || !System.Text.RegularExpressions.Regex.IsMatch(
+                id,
+                "^[a-z0-9][a-z0-9._-]*$",
+                System.Text.RegularExpressions.RegexOptions.CultureInvariant,
+                TimeSpan.FromMilliseconds(100)))
+        {
+            throw new FitnessManifestException($"Fitness rule ID '{id}' is invalid or duplicated.");
+        }
+
+        return id;
+    }
+
+    private static ParsedCheck CreateCheck(
+        string root,
+        string id,
+        IReadOnlyList<string> projects,
+        CheckDefinition check,
+        string? evidenceSource)
+    {
+        if (check.Type == "external-test")
+        {
+            var testId = Token(check.TestId, "external test ID", 256);
+            if (check.From is not null || check.To is not null || evidenceSource != "external-test-report")
+            {
+                throw new FitnessManifestException(
+                    $"Rule '{id}' has an incompatible external-test contract.");
+            }
+
+            return new ParsedCheck(FitnessCheckType.ExternalTest, null, null, testId);
+        }
+
+        if (check.Type != "forbid-project-reference")
+        {
+            throw new FitnessManifestException(
+                $"Unsupported fitness check type '{check.Type ?? "<missing>"}'.");
+        }
+
+        var from = Normalize(root, check.From, ".csproj", "check from path");
+        var to = Normalize(root, check.To, ".csproj", "check to path");
+        if (check.TestId is not null
+            || !projects.Contains(from, PathComparer)
+            || !projects.Contains(to, PathComparer))
+        {
+            throw new FitnessManifestException(
+                $"Rule '{id}' must declare exact from/to projects within its scope.");
+        }
+
+        if (evidenceSource != "dotnet-project-reference")
+        {
+            throw new FitnessManifestException($"Rule '{id}' has an incompatible evidence source.");
+        }
+
+        return new ParsedCheck(FitnessCheckType.ForbidProjectReference, from, to, null);
+    }
+
+    private static void ValidateFailure(string id, FailureDefinition failure, bool? gate)
+    {
+        if (failure.OnInconclusive != "unknown"
+            || failure.Severity is not ("error" or "warning" or "notice"))
+        {
+            throw new FitnessManifestException($"Rule '{id}' has unsupported failure semantics.");
+        }
+
+        if (gate is null)
+        {
+            throw new FitnessManifestException($"Rule '{id}' must declare whether it gates enforcement.");
+        }
+    }
+
+    private sealed record ParsedCheck(
+        FitnessCheckType Type,
+        string? From,
+        string? To,
+        string? TestId);
 
     private static FitnessDecision ResolveDecision(string root, string stableId, string path, AdrLifecyclePolicy lifecycle, AdrFormat format)
     {

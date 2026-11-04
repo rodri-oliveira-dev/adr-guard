@@ -53,27 +53,8 @@ internal static class DraftCommand
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
 
-        if (title.Contains('\r')
-            || title.Contains('\n'))
-        {
-            error.WriteLine("ADR title must be a single line.");
-            return ExitCodes.UsageError;
-        }
-
-        if (!TryNormalizeCultureName(cultureName, out var normalizedCultureName))
-        {
-            error.WriteLine(
-                $"Invalid culture '{cultureName}'. "
-                + "Use a known .NET globalization culture name such as 'en-US' or 'pt-BR'.");
-            return ExitCodes.UsageError;
-        }
-
-        if (template is not null
-            && !string.Equals(template.CultureName, normalizedCultureName, StringComparison.Ordinal))
-        {
-            error.WriteLine("Selected template culture must match --culture (en-US or pt-BR).");
-            return ExitCodes.UsageError;
-        }
+        var validationError = ValidateInputs(title, cultureName, template, out var normalizedCultureName);
+        if (validationError is not null) { error.WriteLine(validationError); return ExitCodes.UsageError; }
 
         if (!Directory.Exists(directoryPath))
         {
@@ -91,26 +72,7 @@ internal static class DraftCommand
 
         try
         {
-            if (dryRun)
-            {
-                output.WriteLine("Dry-run enabled: the generated ADR will be validated and printed without creating a file.");
-            }
-
-            if (contextFilePaths.Count > 0)
-            {
-                output.WriteLine("Explicit context files that will be sent to the configured provider:");
-
-                foreach (var contextFilePath in contextFilePaths)
-                {
-                    output.WriteLine($"- {Path.GetFullPath(contextFilePath)}");
-                }
-            }
-
-            if (includeExistingAdrs)
-            {
-                output.WriteLine(
-                    $"Existing ADR context enabled: parsed ADR data from '{Path.GetFullPath(directoryPath)}' will be sent to the configured provider.");
-            }
+            WriteContextSummary(output, directoryPath, contextFilePaths, includeExistingAdrs, dryRun);
 
             var service = new AdrGenerationService(provider);
             var result = service
@@ -144,26 +106,50 @@ internal static class DraftCommand
             output.WriteLine($"ADR draft written: {result.FilePath}");
             return ExitCodes.Success;
         }
-        catch (IOException exception)
+        catch (Exception exception) when (exception is IOException
+            or ArgumentException
+            or UnauthorizedAccessException
+            or InvalidOperationException
+            or OperationCanceledException)
         {
             return WriteOperationalError(exception, error);
         }
-        catch (ArgumentException exception)
+    }
+
+    private static string? ValidateInputs(
+        string title,
+        string cultureName,
+        AdrTemplateDefinition? template,
+        out string normalizedCultureName)
+    {
+        normalizedCultureName = string.Empty;
+        if (title.Contains('\r') || title.Contains('\n')) return "ADR title must be a single line.";
+        if (!TryNormalizeCultureName(cultureName, out normalizedCultureName))
+            return $"Invalid culture '{cultureName}'. Use a known .NET globalization culture name such as 'en-US' or 'pt-BR'.";
+        if (template is not null
+            && !string.Equals(template.CultureName, normalizedCultureName, StringComparison.Ordinal))
+            return "Selected template culture must match --culture (en-US or pt-BR).";
+        return null;
+    }
+
+    private static void WriteContextSummary(
+        TextWriter output,
+        string directoryPath,
+        IReadOnlyList<string> contextFilePaths,
+        bool includeExistingAdrs,
+        bool dryRun)
+    {
+        if (dryRun)
+            output.WriteLine("Dry-run enabled: the generated ADR will be validated and printed without creating a file.");
+        if (contextFilePaths.Count > 0)
         {
-            return WriteOperationalError(exception, error);
+            output.WriteLine("Explicit context files that will be sent to the configured provider:");
+            foreach (var contextFilePath in contextFilePaths)
+                output.WriteLine($"- {Path.GetFullPath(contextFilePath)}");
         }
-        catch (UnauthorizedAccessException exception)
-        {
-            return WriteOperationalError(exception, error);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return WriteOperationalError(exception, error);
-        }
-        catch (OperationCanceledException exception)
-        {
-            return WriteOperationalError(exception, error);
-        }
+        if (includeExistingAdrs)
+            output.WriteLine(
+                $"Existing ADR context enabled: parsed ADR data from '{Path.GetFullPath(directoryPath)}' will be sent to the configured provider.");
     }
 
     private static bool TryNormalizeCultureName(

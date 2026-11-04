@@ -64,28 +64,9 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         foreach (var candidate in context.Documents)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var document = candidate.Document;
-            var identifier = Identifier(document);
-            var searchable = string.Join('\n', identifier, document.Title, candidate.Markdown);
-            if (!terms.All(term => searchable.Contains(term, StringComparison.OrdinalIgnoreCase)))
-            {
-                continue;
-            }
-
-            var fields = new List<string>(3);
-            if (terms.Any(term => identifier.Contains(term, StringComparison.OrdinalIgnoreCase))) fields.Add("identifier");
-            if (terms.Any(term => document.Title?.Contains(term, StringComparison.OrdinalIgnoreCase) == true)) fields.Add("title");
-            if (terms.Any(term => candidate.Markdown.Contains(term, StringComparison.OrdinalIgnoreCase))) fields.Add("content");
-            matches.Add(new SearchAdrMatch(
-                Summary(document, context.DocumentFormat),
-                fields,
-                fields.Contains("content", StringComparer.Ordinal)
-                    ? Excerpt(candidate.Markdown, terms)
-                    : null));
-            if (matches.Count == limit)
-            {
-                break;
-            }
+            var match = CreateSearchMatch(candidate, context.DocumentFormat, terms);
+            if (match is not null) matches.Add(match);
+            if (matches.Count == limit) break;
         }
 
         return McpResponseLimit.Ensure(new SearchAdrsResult(
@@ -94,6 +75,31 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
             ExcerptsAreUntrusted: true,
             matches.Count,
             matches));
+    }
+
+    private SearchAdrMatch? CreateSearchMatch(
+        LoadedAdr candidate,
+        AdrFormat format,
+        IReadOnlyList<string> terms)
+    {
+        var document = candidate.Document;
+        var identifier = Identifier(document);
+        var searchable = string.Join('\n', identifier, document.Title, candidate.Markdown);
+        if (!terms.All(term => searchable.Contains(term, StringComparison.OrdinalIgnoreCase))) return null;
+
+        var fields = new List<string>(3);
+        if (terms.Any(term => identifier.Contains(term, StringComparison.OrdinalIgnoreCase)))
+            fields.Add("identifier");
+        if (terms.Any(term => document.Title?.Contains(term, StringComparison.OrdinalIgnoreCase) == true))
+            fields.Add("title");
+        if (terms.Any(term => candidate.Markdown.Contains(term, StringComparison.OrdinalIgnoreCase)))
+            fields.Add("content");
+        return new SearchAdrMatch(
+            Summary(document, format),
+            fields,
+            fields.Contains("content", StringComparer.Ordinal)
+                ? Excerpt(candidate.Markdown, terms)
+                : null);
     }
 
     internal GetAdrRelationshipsResult GetRelationships(

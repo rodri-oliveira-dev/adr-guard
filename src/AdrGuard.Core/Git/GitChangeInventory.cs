@@ -163,42 +163,63 @@ internal static class GitChangeInventoryReader
             var similarity = ParseSimilarity(status);
             if (code is 'R' or 'C')
             {
-                if (index + 1 >= tokens.Length)
-                {
-                    throw new GitOperationException("Git returned an incomplete rename/copy record.");
-                }
-
-                AddBounded(
-                    changes,
-                    new GitChangedPath(
-                        scope,
-                        code == 'R' ? GitChangeKind.Renamed : GitChangeKind.Copied,
-                        ValidateRawPath(tokens[index++]),
-                        ValidateRawPath(tokens[index++]),
-                        similarity));
+                AddRenameOrCopy(changes, tokens, ref index, scope, code, similarity);
                 continue;
             }
 
-            var path = ValidateRawPath(tokens[index++]);
-            var kind = code switch
-            {
-                'A' => GitChangeKind.Added,
-                'M' => GitChangeKind.Modified,
-                'D' => GitChangeKind.Deleted,
-                'T' => GitChangeKind.TypeChanged,
-                'U' => GitChangeKind.Unmerged,
-                _ => throw new GitOperationException(
-                    $"Git returned unsupported change status '{status}'."),
-            };
-            AddBounded(
-                changes,
-                new GitChangedPath(
-                    scope,
-                    kind,
-                    kind == GitChangeKind.Deleted ? path : null,
-                    kind == GitChangeKind.Deleted ? null : path,
-                    null));
+            AddSinglePath(changes, tokens[index++], scope, code, status);
         }
+    }
+
+    private static void AddRenameOrCopy(
+        List<GitChangedPath> changes,
+        string[] tokens,
+        ref int index,
+        GitChangeScope scope,
+        char code,
+        int? similarity)
+    {
+        if (index + 1 >= tokens.Length)
+        {
+            throw new GitOperationException("Git returned an incomplete rename/copy record.");
+        }
+
+        AddBounded(
+            changes,
+            new GitChangedPath(
+                scope,
+                code == 'R' ? GitChangeKind.Renamed : GitChangeKind.Copied,
+                ValidateRawPath(tokens[index++]),
+                ValidateRawPath(tokens[index++]),
+                similarity));
+    }
+
+    private static void AddSinglePath(
+        List<GitChangedPath> changes,
+        string rawPath,
+        GitChangeScope scope,
+        char code,
+        string status)
+    {
+        var path = ValidateRawPath(rawPath);
+        var kind = code switch
+        {
+            'A' => GitChangeKind.Added,
+            'M' => GitChangeKind.Modified,
+            'D' => GitChangeKind.Deleted,
+            'T' => GitChangeKind.TypeChanged,
+            'U' => GitChangeKind.Unmerged,
+            _ => throw new GitOperationException(
+                $"Git returned unsupported change status '{status}'."),
+        };
+        AddBounded(
+            changes,
+            new GitChangedPath(
+                scope,
+                kind,
+                kind == GitChangeKind.Deleted ? path : null,
+                kind == GitChangeKind.Deleted ? null : path,
+                null));
     }
 
     private static int? ParseSimilarity(string status)

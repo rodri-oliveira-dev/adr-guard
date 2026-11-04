@@ -58,68 +58,19 @@ internal static class NewFormCommand
         {
             cancellationToken.ThrowIfCancellationRequested();
             var request = ReadRequest(input, cancellationToken);
-            if (request.RequestedSchemaVersion != SchemaVersion)
-            {
-                return UsageError(
-                    $"Unsupported visual ADR form schema version '{request.RequestedSchemaVersion ?? "<missing>"}'.",
-                    error);
-            }
-
-            if (request.Operation is not ("describe" or "preview" or "create"))
-            {
-                return UsageError("Visual ADR form operation must be describe, preview, or create.", error);
-            }
-
-            if (request.Operation == "describe" && (request.Title is not null || request.Fields is not null))
-            {
-                return UsageError("Visual ADR form describe requests cannot contain title or fields.", error);
-            }
-
-            if (request.Operation != "describe" && (request.Title is null || request.Fields is null))
-            {
-                return UsageError("Visual ADR form preview and create requests require title and fields.", error);
-            }
+            var requestError = ValidateRequest(request);
+            if (requestError is not null) return UsageError(requestError, error);
 
             if (templateFilePath is not null)
             {
-                if (request.Operation != "describe")
-                {
-                    return UsageError(
-                        "Custom templates are not compatible with the visual form. Use the traditional 'new' flow.",
-                        error);
-                }
-
-                WriteResponse(output, new NewFormResponse(
-                    SchemaVersion,
-                    request.Operation,
-                    new NewFormTemplateResponse(
-                        "custom",
-                        Compatible: false,
-                        "custom-template-field-mapping-unavailable",
-                        []),
-                    Path: null,
-                    Markdown: null,
-                    Written: false));
-                return ExitCodes.Success;
+                return WriteCustomTemplateResponse(request.Operation!, output, error);
             }
 
             var resolvedTemplate = templateName ?? AdrBuiltInTemplates.Minimal;
             var fieldDefinitions = AdrFormTemplateCatalog.Describe(resolvedTemplate);
             if (request.Operation == "describe")
             {
-                WriteResponse(output, new NewFormResponse(
-                    SchemaVersion,
-                    request.Operation,
-                    new NewFormTemplateResponse(
-                        resolvedTemplate,
-                        Compatible: true,
-                        Reason: null,
-                        fieldDefinitions
-                            .Select(field => new NewFormFieldResponse(field.Id, field.Required))
-                            .ToArray()),
-                    Path: null,
-                    Markdown: null,
-                    Written: false));
+                WriteDescription(output, request.Operation!, resolvedTemplate, fieldDefinitions);
                 return ExitCodes.Success;
             }
 
@@ -164,7 +115,7 @@ internal static class NewFormCommand
 
             WriteResponse(output, new NewFormResponse(
                 SchemaVersion,
-                request.Operation,
+                request.Operation!,
                 new NewFormTemplateResponse(
                     definition.Name,
                     Compatible: true,
@@ -195,6 +146,59 @@ internal static class NewFormCommand
             return ExitCodes.OperationalError;
         }
     }
+
+    private static string? ValidateRequest(NewFormRequest request)
+    {
+        if (request.RequestedSchemaVersion != SchemaVersion)
+            return $"Unsupported visual ADR form schema version '{request.RequestedSchemaVersion ?? "<missing>"}'.";
+        if (request.Operation is not ("describe" or "preview" or "create"))
+            return "Visual ADR form operation must be describe, preview, or create.";
+        if (request.Operation == "describe" && (request.Title is not null || request.Fields is not null))
+            return "Visual ADR form describe requests cannot contain title or fields.";
+        if (request.Operation != "describe" && (request.Title is null || request.Fields is null))
+            return "Visual ADR form preview and create requests require title and fields.";
+        return null;
+    }
+
+    private static int WriteCustomTemplateResponse(string operation, TextWriter output, TextWriter error)
+    {
+        if (operation != "describe")
+        {
+            return UsageError(
+                "Custom templates are not compatible with the visual form. Use the traditional 'new' flow.",
+                error);
+        }
+
+        WriteResponse(output, new NewFormResponse(
+            SchemaVersion,
+            operation,
+            new NewFormTemplateResponse(
+                "custom",
+                Compatible: false,
+                "custom-template-field-mapping-unavailable",
+                []),
+            Path: null,
+            Markdown: null,
+            Written: false));
+        return ExitCodes.Success;
+    }
+
+    private static void WriteDescription(
+        TextWriter output,
+        string operation,
+        string template,
+        IReadOnlyList<AdrFormFieldDefinition> fields) =>
+        WriteResponse(output, new NewFormResponse(
+            SchemaVersion,
+            operation,
+            new NewFormTemplateResponse(
+                template,
+                Compatible: true,
+                Reason: null,
+                fields.Select(field => new NewFormFieldResponse(field.Id, field.Required)).ToArray()),
+            Path: null,
+            Markdown: null,
+            Written: false));
 
     private static NewFormRequest ReadRequest(
         TextReader input,
@@ -297,61 +301,89 @@ internal static class NewFormCommand
         out string cultureName,
         out string? filenamePolicy)
     {
-        directoryPath = ".";
-        templateName = null;
-        templateFilePath = null;
-        cultureName = "en-US";
-        filenamePolicy = null;
-        var directoryAssigned = false;
-        var formAssigned = false;
-        var cultureAssigned = false;
+        var state = new FormArgumentState();
 
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
             if (argument == "--form")
             {
-                if (formAssigned) return false;
-                formAssigned = true;
+                if (!state.TrySetForm()) return SetOutputs(state, out directoryPath, out templateName,
+                    out templateFilePath, out cultureName, out filenamePolicy, false);
                 continue;
             }
 
             if (argument is "--template" or "--template-file" or "--culture" or "--filename-policy")
             {
-                if (index + 1 >= args.Count) return false;
+                if (index + 1 >= args.Count) return SetOutputs(state, out directoryPath, out templateName,
+                    out templateFilePath, out cultureName, out filenamePolicy, false);
                 var value = args[++index];
-                if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-')) return false;
-                switch (argument)
-                {
-                    case "--template":
-                        if (templateName is not null) return false;
-                        templateName = value;
-                        break;
-                    case "--template-file":
-                        if (templateFilePath is not null) return false;
-                        templateFilePath = value;
-                        break;
-                    case "--culture":
-                        if (cultureAssigned) return false;
-                        cultureName = value;
-                        cultureAssigned = true;
-                        break;
-                    case "--filename-policy":
-                        if (filenamePolicy is not null) return false;
-                        filenamePolicy = value;
-                        break;
-                }
+                if (!state.TrySetValue(argument, value)) return SetOutputs(state, out directoryPath,
+                    out templateName, out templateFilePath, out cultureName, out filenamePolicy, false);
                 continue;
             }
 
-            if (argument.StartsWith('-') || directoryAssigned) return false;
-            directoryPath = argument;
-            directoryAssigned = true;
+            if (!state.TrySetDirectory(argument)) return SetOutputs(state, out directoryPath, out templateName,
+                out templateFilePath, out cultureName, out filenamePolicy, false);
         }
 
-        return formAssigned
-            && !(templateName is not null && templateFilePath is not null)
-            && (templateName is null || AdrBuiltInTemplates.Names.Contains(templateName, StringComparer.Ordinal));
+        var valid = state.FormAssigned
+            && !(state.TemplateName is not null && state.TemplateFilePath is not null)
+            && (state.TemplateName is null
+                || AdrBuiltInTemplates.Names.Contains(state.TemplateName, StringComparer.Ordinal));
+        return SetOutputs(state, out directoryPath, out templateName, out templateFilePath,
+            out cultureName, out filenamePolicy, valid);
+    }
+
+    private static bool SetOutputs(
+        FormArgumentState state,
+        out string directoryPath,
+        out string? templateName,
+        out string? templateFilePath,
+        out string cultureName,
+        out string? filenamePolicy,
+        bool result)
+    {
+        directoryPath = state.DirectoryPath;
+        templateName = state.TemplateName;
+        templateFilePath = state.TemplateFilePath;
+        cultureName = state.CultureName;
+        filenamePolicy = state.FilenamePolicy;
+        return result;
+    }
+
+    private sealed class FormArgumentState
+    {
+        private readonly HashSet<string> assigned = new(StringComparer.Ordinal);
+        internal string DirectoryPath { get; private set; } = ".";
+        internal string? TemplateName { get; private set; }
+        internal string? TemplateFilePath { get; private set; }
+        internal string CultureName { get; private set; } = "en-US";
+        internal string? FilenamePolicy { get; private set; }
+        internal bool FormAssigned => assigned.Contains("--form");
+
+        internal bool TrySetForm() => assigned.Add("--form");
+
+        internal bool TrySetValue(string argument, string value)
+        {
+            if (!assigned.Add(argument) || string.IsNullOrWhiteSpace(value) || value.StartsWith('-'))
+                return false;
+            switch (argument)
+            {
+                case "--template": TemplateName = value; break;
+                case "--template-file": TemplateFilePath = value; break;
+                case "--culture": CultureName = value; break;
+                case "--filename-policy": FilenamePolicy = value; break;
+            }
+            return true;
+        }
+
+        internal bool TrySetDirectory(string argument)
+        {
+            if (argument.StartsWith('-') || !assigned.Add("directory")) return false;
+            DirectoryPath = argument;
+            return true;
+        }
     }
 
     private static int UsageError(string message, TextWriter error)

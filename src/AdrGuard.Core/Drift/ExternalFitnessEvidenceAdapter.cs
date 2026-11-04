@@ -27,38 +27,103 @@ internal static class ExternalFitnessEvidenceAdapter
         foreach (var path in evidencePaths.Order(StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var normalized = NormalizeEvidencePath(root, path);
-            var fullPath = RepositoryPath.ResolveContained(root, normalized, false);
-            var bytes = File.ReadAllBytes(fullPath);
-            if (bytes.Length is 0 or > MaximumEvidenceBytes) throw new FitnessManifestException($"External evidence '{normalized}' is empty or exceeds the {MaximumEvidenceBytes}-byte limit.");
-            EvidenceDefinition definition;
-            try
-            {
-                var json = StrictUtf8.GetString(bytes);
-                using var document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 16 });
-                RejectDuplicates(document.RootElement, "$");
-                definition = JsonSerializer.Deserialize<EvidenceDefinition>(json, JsonOptions) ?? throw new JsonException();
-            }
-            catch (Exception exception) when (exception is JsonException or DecoderFallbackException)
-            { throw new FitnessManifestException($"External evidence '{normalized}' is malformed or contains unsupported properties.", exception); }
-            if (definition.SchemaVersion != "1.0" || definition.Producer is null || definition.Artifact is null || definition.Observations is null)
-                throw new FitnessManifestException($"External evidence '{normalized}' is incomplete or has an unsupported schema version.");
-            if (definition.Observations.Length is < 1 or > MaximumObservations || observations.Count + definition.Observations.Length > MaximumObservations)
-                throw new FitnessManifestException("External evidence observation count exceeds the bounded limit.");
-            var provenance = new ExternalEvidenceProvenance(
-                Token(definition.Producer.Name, "producer name", 128), Token(definition.Producer.Version, "producer version", 64),
-                Token(definition.Artifact.RunId, "run ID", 256), Token(definition.Artifact.Id, "artifact ID", 256), ValidateSha(definition.Artifact.Sha256), normalized);
-            var localIds = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var observation in definition.Observations)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var testId = Token(observation?.TestId, "test ID", 256);
-                if (!localIds.Add(testId)) throw new FitnessManifestException($"External evidence '{normalized}' duplicates test ID '{testId}'.");
-                if (observation!.Status is not ("passed" or "failed" or "skipped" or "error")) throw new FitnessManifestException($"External evidence test '{testId}' has unsupported status '{observation.Status}'.");
-                observations.Add(new(testId, observation.Status!, observation.ObservedAt, provenance));
-            }
+            AddEvidenceFile(root, path, observations, cancellationToken);
         }
         return new ExternalEvidenceSet(observations.OrderBy(x => x.TestId, StringComparer.Ordinal).ThenBy(x => x.Provenance.EvidencePath, StringComparer.Ordinal).ToArray());
+    }
+
+    private static void AddEvidenceFile(
+        string root,
+        string path,
+        List<ExternalObservation> observations,
+        CancellationToken cancellationToken)
+    {
+        var normalized = NormalizeEvidencePath(root, path);
+        var definition = ReadDefinition(root, normalized);
+        ValidateDefinition(definition, normalized, observations.Count);
+        var provenance = CreateProvenance(definition, normalized);
+        AddObservations(definition.Observations!, provenance, normalized, observations, cancellationToken);
+    }
+
+    private static EvidenceDefinition ReadDefinition(string root, string normalized)
+    {
+        var fullPath = RepositoryPath.ResolveContained(root, normalized, false);
+        var bytes = File.ReadAllBytes(fullPath);
+        if (bytes.Length is 0 or > MaximumEvidenceBytes)
+        {
+            throw new FitnessManifestException(
+                $"External evidence '{normalized}' is empty or exceeds the {MaximumEvidenceBytes}-byte limit.");
+        }
+
+        try
+        {
+            var json = StrictUtf8.GetString(bytes);
+            using var document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 16 });
+            RejectDuplicates(document.RootElement, "$");
+            return JsonSerializer.Deserialize<EvidenceDefinition>(json, JsonOptions) ?? throw new JsonException();
+        }
+        catch (Exception exception) when (exception is JsonException or DecoderFallbackException)
+        {
+            throw new FitnessManifestException(
+                $"External evidence '{normalized}' is malformed or contains unsupported properties.",
+                exception);
+        }
+    }
+
+    private static void ValidateDefinition(EvidenceDefinition definition, string normalized, int existingCount)
+    {
+        if (definition.SchemaVersion != "1.0"
+            || definition.Producer is null
+            || definition.Artifact is null
+            || definition.Observations is null)
+        {
+            throw new FitnessManifestException(
+                $"External evidence '{normalized}' is incomplete or has an unsupported schema version.");
+        }
+
+        if (definition.Observations.Length is < 1 or > MaximumObservations
+            || existingCount + definition.Observations.Length > MaximumObservations)
+        {
+            throw new FitnessManifestException("External evidence observation count exceeds the bounded limit.");
+        }
+    }
+
+    private static ExternalEvidenceProvenance CreateProvenance(
+        EvidenceDefinition definition,
+        string normalized) => new(
+            Token(definition.Producer!.Name, "producer name", 128),
+            Token(definition.Producer.Version, "producer version", 64),
+            Token(definition.Artifact!.RunId, "run ID", 256),
+            Token(definition.Artifact.Id, "artifact ID", 256),
+            ValidateSha(definition.Artifact.Sha256),
+            normalized);
+
+    private static void AddObservations(
+        IEnumerable<ObservationDefinition?> definitions,
+        ExternalEvidenceProvenance provenance,
+        string normalized,
+        List<ExternalObservation> observations,
+        CancellationToken cancellationToken)
+    {
+        var localIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var observation in definitions)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var testId = Token(observation?.TestId, "test ID", 256);
+            if (!localIds.Add(testId))
+            {
+                throw new FitnessManifestException(
+                    $"External evidence '{normalized}' duplicates test ID '{testId}'.");
+            }
+
+            if (observation!.Status is not ("passed" or "failed" or "skipped" or "error"))
+            {
+                throw new FitnessManifestException(
+                    $"External evidence test '{testId}' has unsupported status '{observation.Status}'.");
+            }
+
+            observations.Add(new(testId, observation.Status, observation.ObservedAt, provenance));
+        }
     }
 
     internal static IReadOnlyList<FitnessRuleResult> Evaluate(FitnessManifest manifest, ExternalEvidenceSet evidence, DateTimeOffset now, TimeSpan? maximumAge = null)

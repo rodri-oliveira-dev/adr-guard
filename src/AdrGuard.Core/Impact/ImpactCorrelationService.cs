@@ -32,60 +32,14 @@ internal static class ImpactCorrelationService
 
         foreach (var change in inventory.Changes)
         {
-            var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var unknown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var mapping in manifest.Mappings)
-            {
-                foreach (var pattern in mapping.Patterns)
-                {
-                    foreach (var (path, role) in EnumeratePaths(change))
-                    {
-                        if (++evaluations > MaximumMatchEvaluations)
-                        {
-                            throw new ImpactAnalysisException(
-                                $"Impact correlation exceeds the {MaximumMatchEvaluations}-evaluation complexity limit.");
-                        }
-
-                        if (!ImpactPathMatcher.IsMatch(pattern, path))
-                        {
-                            continue;
-                        }
-
-                        var evidence = new ImpactEvidence(
-                            change.Scope,
-                            change.Kind,
-                            role,
-                            path,
-                            pattern,
-                            mapping.Relationship,
-                            mapping.Reason);
-                        var evidenceSet = decisionEvidence[mapping.Decision.StableId];
-                        if (evidenceSet.Add(evidence))
-                        {
-                            totalEvidence++;
-                            if (totalEvidence > MaximumEvidenceEntries
-                                || evidenceSet.Count > MaximumEvidencePerDecision)
-                            {
-                                throw new ImpactAnalysisException(
-                                    "Impact evidence exceeds the bounded report limit; narrow the mapping patterns or change scope.");
-                            }
-                        }
-
-                        if (mapping.Resolution.Kind is ImpactDecisionResolutionKind.Active
-                            or ImpactDecisionResolutionKind.Proposed)
-                        {
-                            matched.Add(mapping.Decision.StableId);
-                        }
-                        else
-                        {
-                            unknown.Add(mapping.Decision.StableId);
-                        }
-                    }
-                }
-            }
-
-            changeMatches.Add(matched);
-            changeUnknownMatches.Add(unknown);
+            var correlation = CorrelateChange(
+                change,
+                manifest.Mappings,
+                decisionEvidence,
+                ref evaluations,
+                ref totalEvidence);
+            changeMatches.Add(correlation.Matched);
+            changeUnknownMatches.Add(correlation.Unknown);
         }
 
         var decisions = manifest.Mappings
@@ -118,6 +72,89 @@ internal static class ImpactCorrelationService
             Array.AsReadOnly(changes),
             coverage);
     }
+
+    private static ChangeCorrelation CorrelateChange(
+        GitChangedPath change,
+        IReadOnlyList<ImpactMapping> mappings,
+        Dictionary<string, HashSet<ImpactEvidence>> decisionEvidence,
+        ref int evaluations,
+        ref int totalEvidence)
+    {
+        var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var unknown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var mapping in mappings)
+        {
+            foreach (var pattern in mapping.Patterns)
+            {
+                foreach (var (path, role) in EnumeratePaths(change))
+                {
+                    EnsureEvaluationLimit(ref evaluations);
+                    if (!ImpactPathMatcher.IsMatch(pattern, path)) continue;
+                    AddEvidence(
+                        change,
+                        mapping,
+                        pattern,
+                        path,
+                        role,
+                        decisionEvidence,
+                        matched,
+                        unknown,
+                        ref totalEvidence);
+                }
+            }
+        }
+
+        return new ChangeCorrelation(matched, unknown);
+    }
+
+    private static void EnsureEvaluationLimit(ref int evaluations)
+    {
+        if (++evaluations > MaximumMatchEvaluations)
+        {
+            throw new ImpactAnalysisException(
+                $"Impact correlation exceeds the {MaximumMatchEvaluations}-evaluation complexity limit.");
+        }
+    }
+
+    private static void AddEvidence(
+        GitChangedPath change,
+        ImpactMapping mapping,
+        string pattern,
+        string path,
+        ImpactEvidencePathRole role,
+        Dictionary<string, HashSet<ImpactEvidence>> decisionEvidence,
+        HashSet<string> matched,
+        HashSet<string> unknown,
+        ref int totalEvidence)
+    {
+        var evidence = new ImpactEvidence(
+            change.Scope,
+            change.Kind,
+            role,
+            path,
+            pattern,
+            mapping.Relationship,
+            mapping.Reason);
+        var evidenceSet = decisionEvidence[mapping.Decision.StableId];
+        if (evidenceSet.Add(evidence))
+        {
+            totalEvidence++;
+            if (totalEvidence > MaximumEvidenceEntries
+                || evidenceSet.Count > MaximumEvidencePerDecision)
+            {
+                throw new ImpactAnalysisException(
+                    "Impact evidence exceeds the bounded report limit; narrow the mapping patterns or change scope.");
+            }
+        }
+
+        var target = mapping.Resolution.Kind is ImpactDecisionResolutionKind.Active
+            or ImpactDecisionResolutionKind.Proposed
+                ? matched
+                : unknown;
+        target.Add(mapping.Decision.StableId);
+    }
+
+    private sealed record ChangeCorrelation(HashSet<string> Matched, HashSet<string> Unknown);
 
     private static ImpactDecisionAssessment BuildDecisionAssessment(
         ImpactMapping mapping,

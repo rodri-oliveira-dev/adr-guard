@@ -83,114 +83,35 @@ internal static class CheckCommand
                 validateMetadata,
                 validationProfile);
             var fullResult = AdrValidator.Validate(documents, null, options);
-            var result = fullResult;
-            IReadOnlySet<string>? changedPaths = null;
-            if (changed)
-            {
-                var changeSet = GitChangeDetector.Detect(
-                    directoryPath,
-                    baseReference!,
-                    cancellationToken);
-                changedPaths = changeSet.CurrentPaths;
-                result = IncrementalValidation.Select(fullResult, changedPaths);
-            }
-
-            DiagnosticBaselineComparison? baseline = null;
-            if (baselinePath is not null)
-            {
-                // Compare the complete current ADR set to the baseline before
-                // filtering unchanged local debt. Otherwise unchanged findings
-                // would be incorrectly classified as resolved.
-                var comparison = DiagnosticBaselineService.Compare(
-                    fullResult,
-                    DiagnosticBaselineService.Load(baselinePath),
-                    directoryPath);
-                baseline = changedPaths is null
-                    ? comparison
-                    : comparison with
-                    {
-                        NewIssues = IncrementalValidation.Select(
-                            new ValidationResult(comparison.NewIssues),
-                            changedPaths).Issues,
-                        ExistingIssues = IncrementalValidation.Select(
-                            new ValidationResult(comparison.ExistingIssues),
-                            changedPaths).Issues,
-                    };
-            }
-
-            switch (format)
-            {
-                case CheckOutputFormat.Json:
-                    CheckReportRenderer.WriteJson(
-                        documents,
-                        result,
-                        directoryPath,
-                        baseline,
-                        diagnosticLocations,
-                        output);
-                    break;
-                case CheckOutputFormat.Sarif:
-                    CheckReportRenderer.WriteSarif(
-                        result,
-                        directoryPath,
-                        baseline,
-                        diagnosticLocations,
-                        output);
-                    break;
-            }
+            var selection = SelectResult(directoryPath, baseReference, changed, fullResult, cancellationToken);
+            var result = selection.Result;
+            var baseline = CompareBaseline(
+                directoryPath,
+                baselinePath,
+                fullResult,
+                selection.ChangedPaths);
+            WriteReport(format, documents, result, directoryPath, baseline, diagnosticLocations, output);
 
             var failingResult = baseline is null
                 ? result
                 : new ValidationResult(baseline.NewIssues);
-            if (format == CheckOutputFormat.Text)
-            {
-                foreach (var warning in failingResult.Issues.Where(issue => issue.Severity == ValidationSeverity.Warning))
-                    error.WriteLine($"{warning.FilePath}: {warning.Code} warning {warning.Message}");
-            }
+            if (format == CheckOutputFormat.Text) WriteWarnings(failingResult, error);
             if (!failingResult.IsValid)
             {
-                if (format == CheckOutputFormat.Text)
-                {
-                    ValidationOutput.WriteIssues(failingResult, error);
-                    if (baseline is not null)
-                    {
-                        error.WriteLine(
-                            $"Baseline: {baseline.NewIssues.Count} new, {baseline.ExistingIssues.Count} existing, {baseline.ResolvedEntries.Count} resolved issue(s).");
-                    }
-                }
+                if (format == CheckOutputFormat.Text) WriteFailures(failingResult, baseline, error);
 
                 return ExitCodes.ValidationFailed;
             }
 
-            if (format == CheckOutputFormat.Text)
-            {
-                output.WriteLine(
-                    baseline is null
-                        ? failingResult.Issues.Any(issue => issue.Severity == ValidationSeverity.Warning)
-                            ? $"Validated {documents.Count} ADR(s): no errors; {failingResult.Issues.Count(issue => issue.Severity == ValidationSeverity.Warning)} warning(s)."
-                            : $"Validated {documents.Count} ADR(s): no issues found."
-                        : $"Validated {documents.Count} ADR(s): no new issues. Baseline: {baseline.ExistingIssues.Count} existing, {baseline.ResolvedEntries.Count} resolved issue(s).");
-            }
+            if (format == CheckOutputFormat.Text) WriteSuccess(documents.Count, failingResult, baseline, output);
 
             return ExitCodes.Success;
         }
-        catch (IOException exception)
-        {
-            return WriteOperationalError(exception, error);
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            return WriteOperationalError(exception, error);
-        }
-        catch (InvalidDataException exception)
-        {
-            return WriteOperationalError(exception, error);
-        }
-        catch (InvalidOperationException exception)
-        {
-            return WriteOperationalError(exception, error);
-        }
-        catch (GitOperationException exception)
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or InvalidDataException
+            or InvalidOperationException
+            or GitOperationException)
         {
             return WriteOperationalError(exception, error);
         }
@@ -200,6 +121,93 @@ internal static class CheckCommand
             return ExitCodes.OperationalError;
         }
     }
+
+    private static ResultSelection SelectResult(
+        string directoryPath,
+        string? baseReference,
+        bool changed,
+        ValidationResult fullResult,
+        CancellationToken cancellationToken)
+    {
+        if (!changed) return new ResultSelection(fullResult, null);
+        var changedPaths = GitChangeDetector.Detect(
+            directoryPath,
+            baseReference!,
+            cancellationToken).CurrentPaths;
+        return new ResultSelection(IncrementalValidation.Select(fullResult, changedPaths), changedPaths);
+    }
+
+    private static DiagnosticBaselineComparison? CompareBaseline(
+        string directoryPath,
+        string? baselinePath,
+        ValidationResult fullResult,
+        IReadOnlySet<string>? changedPaths)
+    {
+        if (baselinePath is null) return null;
+        var comparison = DiagnosticBaselineService.Compare(
+            fullResult,
+            DiagnosticBaselineService.Load(baselinePath),
+            directoryPath);
+        return changedPaths is null
+            ? comparison
+            : comparison with
+            {
+                NewIssues = IncrementalValidation.Select(
+                    new ValidationResult(comparison.NewIssues), changedPaths).Issues,
+                ExistingIssues = IncrementalValidation.Select(
+                    new ValidationResult(comparison.ExistingIssues), changedPaths).Issues,
+            };
+    }
+
+    private static void WriteReport(
+        CheckOutputFormat format,
+        IReadOnlyList<AdrGuard.Model.AdrDocument> documents,
+        ValidationResult result,
+        string directoryPath,
+        DiagnosticBaselineComparison? baseline,
+        bool diagnosticLocations,
+        TextWriter output)
+    {
+        if (format == CheckOutputFormat.Json)
+            CheckReportRenderer.WriteJson(documents, result, directoryPath, baseline, diagnosticLocations, output);
+        else if (format == CheckOutputFormat.Sarif)
+            CheckReportRenderer.WriteSarif(result, directoryPath, baseline, diagnosticLocations, output);
+    }
+
+    private static void WriteWarnings(ValidationResult result, TextWriter error)
+    {
+        foreach (var warning in result.Issues.Where(issue => issue.Severity == ValidationSeverity.Warning))
+            error.WriteLine($"{warning.FilePath}: {warning.Code} warning {warning.Message}");
+    }
+
+    private static void WriteFailures(
+        ValidationResult result,
+        DiagnosticBaselineComparison? baseline,
+        TextWriter error)
+    {
+        ValidationOutput.WriteIssues(result, error);
+        if (baseline is not null)
+            error.WriteLine(
+                $"Baseline: {baseline.NewIssues.Count} new, {baseline.ExistingIssues.Count} existing, {baseline.ResolvedEntries.Count} resolved issue(s).");
+    }
+
+    private static void WriteSuccess(
+        int documentCount,
+        ValidationResult result,
+        DiagnosticBaselineComparison? baseline,
+        TextWriter output)
+    {
+        var warningCount = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Warning);
+        output.WriteLine(baseline is not null
+            ? $"Validated {documentCount} ADR(s): no new issues. Baseline: {baseline.ExistingIssues.Count} existing, {baseline.ResolvedEntries.Count} resolved issue(s)."
+            : warningCount > 0
+                ? $"Validated {documentCount} ADR(s): no errors; {warningCount} warning(s)."
+                : $"Validated {documentCount} ADR(s): no issues found.");
+    }
+
+    private sealed record ResultSelection(
+        ValidationResult Result,
+        IReadOnlySet<string>? ChangedPaths);
 
     private static int WriteOperationalError(
         Exception exception,

@@ -189,6 +189,42 @@ internal static class AdrGuardConfigurationLoader
         string root,
         Dictionary<string, string> values)
     {
+        ValidateSchemaVersion(path, values);
+        var settings = ReadSettings(path, values);
+        ValidateSettings(path, settings);
+
+        try
+        {
+            var normalizedDirectory = RepositoryPath.NormalizeRelative(
+                root,
+                settings.AdrDirectory ?? ".");
+            var normalizedTemplateFile = settings.TemplateFile is null
+                ? null
+                : RepositoryPath.NormalizeRelative(root, settings.TemplateFile);
+
+            return new AdrGuardConfiguration(
+                root,
+                normalizedDirectory,
+                settings.Template,
+                normalizedTemplateFile,
+                settings.AdrFormat,
+                settings.LifecycleStatuses,
+                settings.ConventionalSupersession,
+                settings.FilenamePolicy,
+                settings.PlaceholderPolicy,
+                settings.MetadataPolicy == "validate",
+                settings.ValidationProfile);
+        }
+        catch (Exception exception) when (exception is ArgumentException or IOException)
+        {
+            throw new AdrGuardConfigurationException(
+                $"Configuration '{path}' contains an unsafe path: {exception.Message}",
+                exception);
+        }
+    }
+
+    private static void ValidateSchemaVersion(string path, Dictionary<string, string> values)
+    {
         if (!values.TryGetValue("schema-version", out var schemaVersion))
         {
             throw new AdrGuardConfigurationException(
@@ -200,7 +236,12 @@ internal static class AdrGuardConfigurationLoader
             throw new AdrGuardConfigurationException(
                 $"Configuration '{path}' uses unsupported schema-version '{schemaVersion}'; expected '1'.");
         }
+    }
 
+    private static ConfigurationSettings ReadSettings(
+        string path,
+        Dictionary<string, string> values)
+    {
         values.TryGetValue("adr-directory", out var adrDirectory);
         values.TryGetValue("template", out var template);
         values.TryGetValue("template-file", out var templateFile);
@@ -211,96 +252,120 @@ internal static class AdrGuardConfigurationLoader
         values.TryGetValue("placeholder-policy", out var placeholderPolicy);
         values.TryGetValue("metadata-policy", out var metadataPolicy);
         values.TryGetValue("validation-profile", out var validationProfile);
-        var conventionalSupersession = conventionalSupersessionText switch
-        {
-            null or "false" => false,
-            "true" => true,
-            _ => throw new AdrGuardConfigurationException(
-                $"Configuration '{path}' property 'conventional-supersession' must be 'true' or 'false'."),
-        };
+        return new ConfigurationSettings(
+            adrDirectory,
+            template,
+            templateFile,
+            adrFormat,
+            lifecycleStatuses,
+            ParseConventionalSupersession(path, conventionalSupersessionText),
+            filenamePolicy,
+            placeholderPolicy,
+            metadataPolicy,
+            validationProfile);
+    }
 
-        if (template is not null && templateFile is not null)
+    private static bool ParseConventionalSupersession(string path, string? value) => value switch
+    {
+        null or "false" => false,
+        "true" => true,
+        _ => throw new AdrGuardConfigurationException(
+            $"Configuration '{path}' property 'conventional-supersession' must be 'true' or 'false'."),
+    };
+
+    private static void ValidateSettings(string path, ConfigurationSettings settings)
+    {
+        if (settings.Template is not null && settings.TemplateFile is not null)
         {
             throw new AdrGuardConfigurationException(
                 $"Configuration '{path}' cannot define both 'template' and 'template-file'.");
         }
 
-        if (template is not null && template is not ("minimal" or "extended"))
+        if (settings.Template is not null && settings.Template is not ("minimal" or "extended"))
         {
             throw new AdrGuardConfigurationException(
                 $"Configuration '{path}' property 'template' must be 'minimal' or 'extended'.");
         }
 
-        if (adrFormat is not null && adrFormat is not ("canonical" or "madr-4"))
+        if (settings.AdrFormat is not null && settings.AdrFormat is not ("canonical" or "madr-4"))
         {
             throw new AdrGuardConfigurationException(
                 $"Configuration '{path}' property 'adr-format' must be 'canonical' or 'madr-4'.");
         }
 
-        if (lifecycleStatuses is not null)
-        {
-            try
-            {
-                Validation.AdrLifecyclePolicy.Parse(lifecycleStatuses);
-            }
-            catch (ArgumentException exception)
-            {
-                throw new AdrGuardConfigurationException(
-                    $"Configuration '{path}' property 'lifecycle-statuses' is invalid: {exception.Message}",
-                    exception);
-            }
-        }
+        ValidateLifecycle(path, settings.LifecycleStatuses);
+        ValidateFilenamePolicy(path, settings.FilenamePolicy);
+        ValidatePolicyValues(path, settings);
+    }
 
-        if (filenamePolicy is not null)
+    private static void ValidateLifecycle(string path, string? lifecycleStatuses)
+    {
+        if (lifecycleStatuses is null) return;
+        try
         {
-            try { Validation.AdrFilenamePolicy.Parse(filenamePolicy); }
-            catch (ArgumentException exception)
-            {
-                throw new AdrGuardConfigurationException(
-                    $"Configuration '{path}' property 'filename-policy' is invalid: {exception.Message}", exception);
-            }
+            Validation.AdrLifecyclePolicy.Parse(lifecycleStatuses);
         }
-        if (placeholderPolicy is not null && placeholderPolicy is not ("off" or "warn" or "error"))
-            throw new AdrGuardConfigurationException($"Configuration '{path}' property 'placeholder-policy' must be off, warn, or error.");
-        if (metadataPolicy is not null && metadataPolicy is not ("off" or "validate"))
-            throw new AdrGuardConfigurationException($"Configuration '{path}' property 'metadata-policy' must be off or validate.");
-        try { Validation.AdrValidationOptionsFactory.ParseProfile(validationProfile); }
         catch (ArgumentException exception)
         {
-            throw new AdrGuardConfigurationException($"Configuration '{path}' property 'validation-profile' is invalid: {exception.Message}", exception);
+            throw new AdrGuardConfigurationException(
+                $"Configuration '{path}' property 'lifecycle-statuses' is invalid: {exception.Message}",
+                exception);
+        }
+    }
+
+    private static void ValidateFilenamePolicy(string path, string? filenamePolicy)
+    {
+        if (filenamePolicy is null) return;
+        try
+        {
+            Validation.AdrFilenamePolicy.Parse(filenamePolicy);
+        }
+        catch (ArgumentException exception)
+        {
+            throw new AdrGuardConfigurationException(
+                $"Configuration '{path}' property 'filename-policy' is invalid: {exception.Message}",
+                exception);
+        }
+    }
+
+    private static void ValidatePolicyValues(string path, ConfigurationSettings settings)
+    {
+        if (settings.PlaceholderPolicy is not null
+            && settings.PlaceholderPolicy is not ("off" or "warn" or "error"))
+        {
+            throw new AdrGuardConfigurationException(
+                $"Configuration '{path}' property 'placeholder-policy' must be off, warn, or error.");
+        }
+
+        if (settings.MetadataPolicy is not null && settings.MetadataPolicy is not ("off" or "validate"))
+        {
+            throw new AdrGuardConfigurationException(
+                $"Configuration '{path}' property 'metadata-policy' must be off or validate.");
         }
 
         try
         {
-            var normalizedDirectory = RepositoryPath.NormalizeRelative(
-                root,
-                adrDirectory ?? ".");
-            string? normalizedTemplateFile = null;
-            if (templateFile is not null)
-            {
-                normalizedTemplateFile = RepositoryPath.NormalizeRelative(root, templateFile);
-            }
-
-            return new AdrGuardConfiguration(
-                root,
-                normalizedDirectory,
-                template,
-                normalizedTemplateFile,
-                adrFormat,
-                lifecycleStatuses,
-                conventionalSupersession,
-                filenamePolicy,
-                placeholderPolicy,
-                metadataPolicy == "validate",
-                validationProfile);
+            Validation.AdrValidationOptionsFactory.ParseProfile(settings.ValidationProfile);
         }
-        catch (Exception exception) when (exception is ArgumentException or IOException)
+        catch (ArgumentException exception)
         {
             throw new AdrGuardConfigurationException(
-                $"Configuration '{path}' contains an unsafe path: {exception.Message}",
+                $"Configuration '{path}' property 'validation-profile' is invalid: {exception.Message}",
                 exception);
         }
     }
+
+    private sealed record ConfigurationSettings(
+        string? AdrDirectory,
+        string? Template,
+        string? TemplateFile,
+        string? AdrFormat,
+        string? LifecycleStatuses,
+        bool ConventionalSupersession,
+        string? FilenamePolicy,
+        string? PlaceholderPolicy,
+        string? MetadataPolicy,
+        string? ValidationProfile);
 
     private static AdrGuardConfigurationException Invalid(
         string path,
