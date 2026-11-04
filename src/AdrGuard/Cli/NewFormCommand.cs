@@ -10,6 +10,7 @@ internal static class NewFormCommand
     internal const string SchemaVersion = "1.0";
     internal const int MaximumInputCharacters = 128 * 1024;
     internal const int MaximumFieldCharacters = 32 * 1024;
+    private const string DescribeOperation = "describe";
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -60,17 +61,19 @@ internal static class NewFormCommand
             var request = ReadRequest(input, cancellationToken);
             var requestError = ValidateRequest(request);
             if (requestError is not null) return UsageError(requestError, error);
+            var operation = request.Operation
+                ?? throw new InvalidOperationException("Validated visual form operation is missing.");
 
             if (templateFilePath is not null)
             {
-                return WriteCustomTemplateResponse(request.Operation!, output, error);
+                return WriteCustomTemplateResponse(operation, output, error);
             }
 
             var resolvedTemplate = templateName ?? AdrBuiltInTemplates.Minimal;
             var fieldDefinitions = AdrFormTemplateCatalog.Describe(resolvedTemplate);
-            if (request.Operation == "describe")
+            if (operation == DescribeOperation)
             {
-                WriteDescription(output, request.Operation!, resolvedTemplate, fieldDefinitions);
+                WriteDescription(output, operation, resolvedTemplate, fieldDefinitions);
                 return ExitCodes.Success;
             }
 
@@ -100,7 +103,7 @@ internal static class NewFormCommand
                     directoryPath,
                     title,
                     definition.Template,
-                    dryRun: request.Operation == "preview",
+                    dryRun: operation == "preview",
                     cancellationToken,
                     AdrFilenamePolicy.Parse(filenamePolicyName),
                     values)
@@ -115,7 +118,7 @@ internal static class NewFormCommand
 
             WriteResponse(output, new NewFormResponse(
                 SchemaVersion,
-                request.Operation!,
+                operation,
                 new NewFormTemplateResponse(
                     definition.Name,
                     Compatible: true,
@@ -124,7 +127,7 @@ internal static class NewFormCommand
                         .Select(field => new NewFormFieldResponse(field.Id, field.Required))
                         .ToArray()),
                 result.FilePath,
-                request.Operation == "preview" ? result.Content : null,
+                operation == "preview" ? result.Content : null,
                 result.Written));
             return ExitCodes.Success;
         }
@@ -151,18 +154,18 @@ internal static class NewFormCommand
     {
         if (request.RequestedSchemaVersion != SchemaVersion)
             return $"Unsupported visual ADR form schema version '{request.RequestedSchemaVersion ?? "<missing>"}'.";
-        if (request.Operation is not ("describe" or "preview" or "create"))
+        if (request.Operation is not (DescribeOperation or "preview" or "create"))
             return "Visual ADR form operation must be describe, preview, or create.";
-        if (request.Operation == "describe" && (request.Title is not null || request.Fields is not null))
+        if (request.Operation == DescribeOperation && (request.Title is not null || request.Fields is not null))
             return "Visual ADR form describe requests cannot contain title or fields.";
-        if (request.Operation != "describe" && (request.Title is null || request.Fields is null))
+        if (request.Operation != DescribeOperation && (request.Title is null || request.Fields is null))
             return "Visual ADR form preview and create requests require title and fields.";
         return null;
     }
 
     private static int WriteCustomTemplateResponse(string operation, TextWriter output, TextWriter error)
     {
-        if (operation != "describe")
+        if (operation != DescribeOperation)
         {
             return UsageError(
                 "Custom templates are not compatible with the visual form. Use the traditional 'new' flow.",

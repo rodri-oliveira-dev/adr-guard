@@ -139,14 +139,15 @@ internal static class ReviewCommand
             if (documentStatus is not null) return documentStatus.Value;
             var markdown = prepared!.Markdown;
             var document = prepared.Document;
+            var outputContext = new ReviewOutputContext(format, output, error, securityBoundary);
             var policyStatus = ApplyPolicy(
-                document, contextFilePaths, policyMode, policyFilePath, format,
-                output, error, securityBoundary);
+                document, contextFilePaths, policyMode, policyFilePath, outputContext);
             if (policyStatus is not null) return policyStatus.Value;
 
+            var contextRequest = new ContextPreparationRequest(
+                fullPath, markdown, contextFilePaths, includeExistingAdrs, prepared.Comparison, document);
             var contextStatus = PrepareContext(
-                fullPath, markdown, contextFilePaths, includeExistingAdrs, prepared.Comparison,
-                document, securityBoundary, error, out var securedMaterial, cancellationToken);
+                contextRequest, securityBoundary, error, out var securedMaterial, cancellationToken);
             if (contextStatus is not null) return contextStatus.Value;
             var securedReviewContext = securedMaterial!.Context;
             var securedDocument = securedMaterial.Document;
@@ -169,10 +170,10 @@ internal static class ReviewCommand
                 error, securityBoundary, out var result, cancellationToken);
             if (providerStatus is not null) return providerStatus.Value;
 
-            return WriteReport(
-                securedDocument, securedReviewContext, result!, providerName, model, format,
-                outputPath, fullPath, overwriteOutput, output, diagnosticWriter, error,
-                securityBoundary);
+            return WriteReport(new ReportRequest(
+                    securedDocument, securedReviewContext, result!, providerName, model,
+                    new ReportDestination(format, outputPath, fullPath, overwriteOutput)),
+                output, diagnosticWriter, error, securityBoundary);
         }
         catch (OperationCanceledException)
         {
@@ -249,10 +250,7 @@ internal static class ReviewCommand
         IReadOnlyList<string> contextFilePaths,
         AdrReviewPolicyMode policyMode,
         string? policyFilePath,
-        AdrReviewOutputFormat format,
-        TextWriter output,
-        TextWriter error,
-        AdrReviewSecurityBoundary securityBoundary)
+        ReviewOutputContext outputContext)
     {
         AdrReviewPolicyDefinition policyDefinition;
         try
@@ -262,58 +260,56 @@ internal static class ReviewCommand
         catch (Exception exception) when (
             exception is FileNotFoundException or InvalidDataException or ArgumentException)
         {
-            error.WriteLine(securityBoundary.SanitizeDiagnostic(
+            outputContext.Error.WriteLine(outputContext.SecurityBoundary.SanitizeDiagnostic(
                 $"Invalid review policy: {exception.Message}"));
             return ExitCodes.UsageError;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            error.WriteLine(securityBoundary.SanitizeDiagnostic(
+            outputContext.Error.WriteLine(outputContext.SecurityBoundary.SanitizeDiagnostic(
                 $"Unable to load review policy: {exception.Message}"));
             return ExitCodes.OperationalError;
         }
 
-        var evaluationStatus = EvaluatePolicy(
+        var evaluationResult = EvaluatePolicy(
             document, contextFilePaths, policyDefinition, policyMode, policyFilePath,
-            error, securityBoundary, out var policyEvaluation);
-        if (evaluationStatus is not null) return evaluationStatus.Value;
+            outputContext.Error, outputContext.SecurityBoundary);
+        if (evaluationResult.Status is not null) return evaluationResult.Status.Value;
+        var policyEvaluation = evaluationResult.Evaluation!;
 
         WritePolicyEvaluationIfRequested(
-            policyEvaluation!, policyDefinition, policyMode, policyFilePath, format,
-            output, error, securityBoundary);
-        if (policyMode != AdrReviewPolicyMode.Enforce || !policyEvaluation!.HasViolations)
+            policyEvaluation, policyDefinition, policyMode, policyFilePath, outputContext);
+        if (policyMode != AdrReviewPolicyMode.Enforce || !policyEvaluation.HasViolations)
         {
             return null;
         }
 
-        error.WriteLine(
+        outputContext.Error.WriteLine(
             "Review policy outcome: policy-failed. The review provider was not invoked.");
         return ExitCodes.PolicyFailed;
     }
 
-    private static int? EvaluatePolicy(
+    private static PolicyEvaluationResult EvaluatePolicy(
         AdrDocument document,
         IReadOnlyList<string> contextFilePaths,
         AdrReviewPolicyDefinition policyDefinition,
         AdrReviewPolicyMode policyMode,
         string? policyFilePath,
         TextWriter error,
-        AdrReviewSecurityBoundary securityBoundary,
-        out AdrReviewPolicyEvaluation? evaluation)
+        AdrReviewSecurityBoundary securityBoundary)
     {
         try
         {
-            evaluation = AdrReviewPolicyEvaluator.Evaluate(
+            var evaluation = AdrReviewPolicyEvaluator.Evaluate(
                 document, contextFilePaths, policyDefinition, policyMode, policyFilePath);
-            return null;
+            return new PolicyEvaluationResult(null, evaluation);
         }
         catch (Exception exception) when (
             exception is IOException or UnauthorizedAccessException or ArgumentException)
         {
             error.WriteLine(securityBoundary.SanitizeDiagnostic(
                 $"Unable to evaluate review policy: {exception.Message}"));
-            evaluation = null;
-            return ExitCodes.OperationalError;
+            return new PolicyEvaluationResult(ExitCodes.OperationalError, null);
         }
     }
 
@@ -322,29 +318,25 @@ internal static class ReviewCommand
         AdrReviewPolicyDefinition definition,
         AdrReviewPolicyMode mode,
         string? policyFilePath,
-        AdrReviewOutputFormat format,
-        TextWriter output,
-        TextWriter error,
-        AdrReviewSecurityBoundary securityBoundary)
+        ReviewOutputContext outputContext)
     {
         if (policyFilePath is null && mode != AdrReviewPolicyMode.Enforce)
         {
             return;
         }
 
-        var writer = mode == AdrReviewPolicyMode.Enforce && evaluation.HasViolations
-            ? error
-            : format == AdrReviewOutputFormat.Json ? error : output;
-        WritePolicyEvaluation(evaluation, definition.Rules.Length, writer, securityBoundary);
+        var writer = outputContext.Output;
+        if (mode == AdrReviewPolicyMode.Enforce && evaluation.HasViolations
+            || outputContext.Format == AdrReviewOutputFormat.Json)
+        {
+            writer = outputContext.Error;
+        }
+        WritePolicyEvaluation(
+            evaluation, definition.Rules.Length, writer, outputContext.SecurityBoundary);
     }
 
     private static int? PrepareContext(
-        string fullPath,
-        string markdown,
-        IReadOnlyList<string> contextFilePaths,
-        bool includeExistingAdrs,
-        GitHistoricalFile? comparison,
-        AdrDocument document,
+        ContextPreparationRequest request,
         AdrReviewSecurityBoundary securityBoundary,
         TextWriter error,
         out SecuredReviewMaterial? securedMaterial,
@@ -354,8 +346,8 @@ internal static class ReviewCommand
         try
         {
             reviewContext = AdrReviewContextBuilder.BuildAsync(
-                    fullPath, markdown, contextFilePaths, includeExistingAdrs,
-                    cancellationToken, comparison)
+                    request.FullPath, request.Markdown, request.ContextFilePaths,
+                    request.IncludeExistingAdrs, cancellationToken, request.Comparison)
                 .GetAwaiter()
                 .GetResult();
         }
@@ -373,7 +365,7 @@ internal static class ReviewCommand
         {
             securedMaterial = new SecuredReviewMaterial(
                 securityBoundary.SanitizeContext(reviewContext),
-                securityBoundary.SanitizeDocumentMetadata(document));
+                securityBoundary.SanitizeDocumentMetadata(request.Document));
             return null;
         }
         catch (Exception exception) when (
@@ -443,15 +435,7 @@ internal static class ReviewCommand
     }
 
     private static int WriteReport(
-        AdrDocument document,
-        AdrReviewContext reviewContext,
-        AdrReviewResult result,
-        string providerName,
-        string model,
-        AdrReviewOutputFormat format,
-        string? outputPath,
-        string fullPath,
-        bool overwriteOutput,
+        ReportRequest request,
         TextWriter output,
         TextWriter diagnosticWriter,
         TextWriter error,
@@ -460,20 +444,21 @@ internal static class ReviewCommand
         try
         {
             var report = AdrReviewReportBuilder.Build(
-                document, reviewContext, result,
-                securityBoundary.SanitizeDiagnostic(providerName),
-                securityBoundary.SanitizeDiagnostic(model),
+                request.Document, request.ReviewContext, request.Result,
+                securityBoundary.SanitizeDiagnostic(request.ProviderName),
+                securityBoundary.SanitizeDiagnostic(request.Model),
                 DateTimeOffset.UtcNow);
-            var renderedReport = format switch
+            var renderedReport = request.Destination.Format switch
             {
                 AdrReviewOutputFormat.Json => AdrReviewReportSerializer.Serialize(report),
                 AdrReviewOutputFormat.Text => AdrReviewTextRenderer.Render(report),
                 _ => throw new InvalidOperationException("Unsupported review output format."),
             };
-            var writtenPath = outputPath is null
+            var writtenPath = request.Destination.OutputPath is null
                 ? null
                 : AdrReviewReportFileWriter.Write(
-                    outputPath, renderedReport, format, fullPath, overwriteOutput);
+                    request.Destination.OutputPath, renderedReport, request.Destination.Format,
+                    request.Destination.FullPath, request.Destination.OverwriteOutput);
 
             output.WriteLine(renderedReport);
             if (writtenPath is not null)
@@ -502,6 +487,38 @@ internal static class ReviewCommand
     private sealed record SecuredReviewMaterial(
         AdrReviewContext Context,
         AdrDocument Document);
+
+    private sealed record ReviewOutputContext(
+        AdrReviewOutputFormat Format,
+        TextWriter Output,
+        TextWriter Error,
+        AdrReviewSecurityBoundary SecurityBoundary);
+
+    private sealed record PolicyEvaluationResult(
+        int? Status,
+        AdrReviewPolicyEvaluation? Evaluation);
+
+    private sealed record ContextPreparationRequest(
+        string FullPath,
+        string Markdown,
+        IReadOnlyList<string> ContextFilePaths,
+        bool IncludeExistingAdrs,
+        GitHistoricalFile? Comparison,
+        AdrDocument Document);
+
+    private sealed record ReportRequest(
+        AdrDocument Document,
+        AdrReviewContext ReviewContext,
+        AdrReviewResult Result,
+        string ProviderName,
+        string Model,
+        ReportDestination Destination);
+
+    private sealed record ReportDestination(
+        AdrReviewOutputFormat Format,
+        string? OutputPath,
+        string FullPath,
+        bool OverwriteOutput);
 
     private static void WritePolicyEvaluation(
         AdrReviewPolicyEvaluation evaluation,

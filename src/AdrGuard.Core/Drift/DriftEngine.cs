@@ -5,6 +5,8 @@ namespace AdrGuard.Drift;
 
 internal static class DriftEngine
 {
+    private const string ResolvedState = "resolved";
+
     internal static DriftAnalysis Analyze(FitnessManifest manifest, ExternalEvidenceSet? externalEvidence, DriftSnapshot? baseline, string? commit, DateTimeOffset now, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(manifest);
@@ -17,7 +19,7 @@ internal static class DriftEngine
         var findings = CreateFindings(results, rulesById, baselineByFingerprint);
         AddBaselineFindings(findings, baseline, rulesById);
 
-        var currentFindings = findings.Where(x => x.BaselineState is not ("resolved" or "unresolved-baseline")).ToArray();
+        var currentFindings = findings.Where(x => x.BaselineState is not (ResolvedState or "unresolved-baseline")).ToArray();
         var coverage = new DriftCoverage(currentFindings.Length,
             currentFindings.Count(x => x.Outcome == FitnessOutcome.Pass), currentFindings.Count(x => x.Outcome == FitnessOutcome.Violation),
             currentFindings.Count(x => x.Outcome == FitnessOutcome.Unknown), currentFindings.Count(x => x.Outcome == FitnessOutcome.NotApplicable));
@@ -91,7 +93,7 @@ internal static class DriftEngine
             }
 
             var state = IsResolved(previous, findings, rulesById)
-                ? "resolved"
+                ? ResolvedState
                 : "unresolved-baseline";
             findings.Add(new DriftFinding(
                 previous.Fingerprint,
@@ -101,7 +103,7 @@ internal static class DriftEngine
                 previous.CheckType,
                 previous.Confidence,
                 state,
-                state == "resolved"
+                state == ResolvedState
                     ? "The previously recorded violation is now disproved by complete passing evidence."
                     : "The baseline violation cannot be resolved because current evidence is missing, inconclusive, non-applicable, or the mapping was removed.",
                 []));
@@ -119,7 +121,7 @@ internal static class DriftEngine
 
     internal static DriftSnapshot Snapshot(DriftAnalysis analysis, DateTimeOffset createdAt) => new(
         DriftSnapshot.CurrentSchemaVersion, new(analysis.RulesManifest, analysis.Commit), createdAt,
-        analysis.Findings.Where(x => x.BaselineState is not ("resolved" or "unresolved-baseline")).Select(finding =>
+        analysis.Findings.Where(x => x.BaselineState is not (ResolvedState or "unresolved-baseline")).Select(finding =>
         {
             var parts = finding.Evidence.Count == 0 ? null : finding.Evidence[0];
             return new DriftSnapshotFinding(finding.Fingerprint, finding.RuleId, finding.AdrStableId, Format(finding.Outcome), finding.CheckType, parts?.Subject, parts?.Target, finding.Confidence);

@@ -101,7 +101,7 @@ internal static class AdrMarkdownRenderer
             .Append(values["title"])
             .Append("\n\n## Status\n\nProposed\n");
 
-        foreach (var section in sections) AppendSection(request, section, values, seen, builder);
+        foreach (var section in sections) AppendSection(section, values, seen, builder);
         ValidateRequiredSections(seen);
 
         AdrGenerationContextLimits.ValidateRenderedAdrLength(builder.Length);
@@ -123,12 +123,11 @@ internal static class AdrMarkdownRenderer
             ["guidance-consequences"] = guidance.Consequences,
         };
         if (request.Id is { } id) values["id"] = id.ToString("D4", CultureInfo.InvariantCulture);
-        foreach (var pair in request.Substitutions) AddSubstitution(request, pair, values);
+        foreach (var pair in request.Substitutions) AddSubstitution(pair, values);
         return values;
     }
 
     private static void AddSubstitution(
-        AdrTemplateRenderRequest request,
         KeyValuePair<string, string> pair,
         Dictionary<string, string> values)
     {
@@ -139,26 +138,25 @@ internal static class AdrMarkdownRenderer
         {
             throw new ArgumentException(
                 $"Unsupported or reserved template substitution '{pair.Key}'.",
-                nameof(request));
+                nameof(pair));
         }
 
         values[pair.Key] = NormalizeNewlines(pair.Value);
     }
 
     private static void AppendSection(
-        AdrTemplateRenderRequest request,
         AdrTemplateSection? section,
         Dictionary<string, string> values,
         HashSet<string> seen,
         StringBuilder builder)
     {
-        if (section is null) throw new ArgumentException("Template sections cannot be null.", nameof(request));
+        if (section is null) throw new ArgumentException("Template sections cannot be null.", nameof(section));
         ValidateHeading(section.Heading);
         if (!seen.Add(section.Heading))
             throw new InvalidOperationException($"Duplicate template section '{section.Heading}'.");
         var body = Substitute(
             section.BodyTemplate ?? throw new ArgumentException(
-                "A template section body cannot be null.", nameof(request)),
+                "A template section body cannot be null.", nameof(section)),
             values);
         GeneratedAdrStructureGuard.ValidateTemplateContent(section.Heading, body);
         builder.Append("\n## ").Append(section.Heading).Append("\n\n").Append(body.Trim()).Append('\n');

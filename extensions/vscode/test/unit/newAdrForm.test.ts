@@ -224,7 +224,7 @@ describe('visual ADR form host boundary', () => {
     assert.doesNotMatch(loadList, /executor\.execute|executeCommand|\['check'|\['new'|\['edit'|\['index'/u);
     assert.match(openAdr, /showTextDocument\(vscode\.Uri\.file\(target\.filePath\)/u);
     assert.doesNotMatch(openAdr, /executor\.execute|executeCommand|writeFile|rename|unlink/u);
-    assert.match(listRoutes, /return this\.loadList\(message\.workspace, message\.state\)/u);
+    assert.match(listRoutes, /await this\.loadList\(workspace, state\)/u);
     assert.doesNotMatch(listRoutes, /executor\.execute|executeCommand/u);
   });
 

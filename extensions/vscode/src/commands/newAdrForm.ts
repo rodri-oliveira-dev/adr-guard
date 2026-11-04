@@ -127,76 +127,114 @@ export class NewAdrFormPanel implements vscode.Disposable {
   private async handleSettingsMessage(message: FormMessage): Promise<void> {
     switch (message.type) {
       case 'openSettings':
-        if ((this.screen !== 'list' && this.screen !== 'settings') || this.submission.isActive || message.workspace === undefined) return;
-        this.selectedWorkspace = message.workspace;
-        this.screen = 'settings';
-        await this.post({ type: 'showSettings', settings: await this.settingsFor(workspaceFolder(message.workspace)) });
-        return;
+        return this.openSettings(message);
       case 'cancelSettings':
-        if (this.screen !== 'settings' || this.submission.isActive || this.settingsCheckActive || this.mcpCheckActive) return;
-        this.screen = 'list';
-        if (message.workspace !== undefined) this.selectedWorkspace = message.workspace;
-        await this.post({ type: 'showList', ...(message.state === undefined ? {} : { state: message.state }) });
-        if (this.selectedWorkspace !== undefined) await this.loadList(this.selectedWorkspace, message.state);
-        return;
+        return this.cancelSettings(message);
       case 'saveSettings':
-        if (this.screen !== 'settings' || message.settings === undefined || !this.submission.begin()) return;
-        return this.saveSettings(message.settings, message.state);
+        return this.submitSettings(message);
       case 'checkSettingsInstallation':
-        if (message.workspace !== undefined && !this.settingsCheckActive && this.screen === 'settings') {
-          await this.checkSettingsInstallation(message.workspace);
-        }
-        return;
+        return this.requestSettingsInstallationCheck(message);
       case 'checkMcpConfiguration':
-        if (message.workspace !== undefined && !this.mcpCheckActive && this.screen === 'settings'
-          && message.mcpEnabled !== undefined && message.mcpPath !== undefined) {
-          await this.checkMcpConfiguration(message.workspace, message.mcpEnabled, message.mcpPath);
-        }
-        return;
+        return this.requestMcpConfigurationCheck(message);
       case 'openMcpDocumentation':
         await vscode.env.openExternal(vscode.Uri.parse('https://code.visualstudio.com/docs/copilot/chat/mcp-servers'));
         return;
     }
   }
 
+  private async openSettings(message: FormMessage): Promise<void> {
+    if ((this.screen !== 'list' && this.screen !== 'settings')
+      || this.submission.isActive || message.workspace === undefined) return;
+    this.selectedWorkspace = message.workspace;
+    this.screen = 'settings';
+    await this.post({ type: 'showSettings', settings: await this.settingsFor(workspaceFolder(message.workspace)) });
+  }
+
+  private async cancelSettings(message: FormMessage): Promise<void> {
+    if (this.screen !== 'settings' || this.submission.isActive
+      || this.settingsCheckActive || this.mcpCheckActive) return;
+    this.screen = 'list';
+    if (message.workspace !== undefined) this.selectedWorkspace = message.workspace;
+    await this.post({ type: 'showList', ...(message.state === undefined ? {} : { state: message.state }) });
+    if (this.selectedWorkspace !== undefined) await this.loadList(this.selectedWorkspace, message.state);
+  }
+
+  private async submitSettings(message: FormMessage): Promise<void> {
+    if (this.screen !== 'settings' || message.settings === undefined || !this.submission.begin()) return;
+    await this.saveSettings(message.settings, message.state);
+  }
+
+  private async requestSettingsInstallationCheck(message: FormMessage): Promise<void> {
+    if (message.workspace !== undefined && !this.settingsCheckActive && this.screen === 'settings') {
+      await this.checkSettingsInstallation(message.workspace);
+    }
+  }
+
+  private async requestMcpConfigurationCheck(message: FormMessage): Promise<void> {
+    if (message.workspace !== undefined && !this.mcpCheckActive && this.screen === 'settings'
+      && message.mcpEnabled !== undefined && message.mcpPath !== undefined) {
+      await this.checkMcpConfiguration(message.workspace, message.mcpEnabled, message.mcpPath);
+    }
+  }
+
   private async handleListMessage(message: FormMessage): Promise<void> {
     switch (message.type) {
       case 'newAdr':
-        if (this.submission.isActive) return;
-        this.selectedWorkspace = message.workspace;
-        this.screen = 'form';
-        await this.post({ type: 'showForm', workspace: message.workspace });
-        return;
+        return this.showNewAdrForm(message.workspace);
       case 'showList': case 'cancel':
         return this.showList(message.workspace, message.state);
       case 'selectWorkspace': case 'refreshList':
-        if (this.screen !== 'list' || message.workspace === undefined) return;
-        this.selectedWorkspace = message.workspace;
-        return this.loadList(message.workspace, message.state);
+        return this.refreshList(message.workspace, message.state);
       case 'initializeRepository': case 'checkInstallation':
-        if (this.screen !== 'list' || message.workspace === undefined
-          || message.workspace !== this.selectedWorkspace || this.listActionActive) return;
-        return this.runListAction(message.type, message.workspace, message.state);
+        return this.requestListAction(message);
       case 'openAdr':
-        if (this.screen === 'list' && message.workspace !== undefined && message.relativePath !== undefined) {
-          await this.openAdr(message.workspace, message.relativePath);
-        }
-        return;
+        return this.openListedAdr(message.workspace, message.relativePath);
       case 'editAdr':
-        if (this.screen !== 'list' || message.workspace === undefined || message.relativePath === undefined) return;
-        this.selectedWorkspace = message.workspace;
-        this.screen = 'edit';
-        return this.loadEdit(message.workspace, message.relativePath);
+        return this.editListedAdr(message.workspace, message.relativePath);
       case 'saveEdit':
-        if (this.screen === 'edit' && message.editValues !== undefined && this.submission.begin()) {
-          await this.saveEdit(message.editValues);
-        }
-        return;
+        return this.submitEdit(message.editValues);
       case 'revealCreated':
         if (this.screen !== 'list' || message.workspace === undefined) return;
         await this.post({ type: 'clearListFilters', workspace: message.workspace });
         return this.loadList(message.workspace);
     }
+  }
+
+  private async showNewAdrForm(workspace: string | undefined): Promise<void> {
+    if (this.submission.isActive) return;
+    this.selectedWorkspace = workspace;
+    this.screen = 'form';
+    await this.post({ type: 'showForm', workspace });
+  }
+
+  private async refreshList(workspace: string | undefined, state: ListState | undefined): Promise<void> {
+    if (this.screen !== 'list' || workspace === undefined) return;
+    this.selectedWorkspace = workspace;
+    await this.loadList(workspace, state);
+  }
+
+  private async requestListAction(message: FormMessage): Promise<void> {
+    if (this.screen !== 'list' || message.workspace === undefined
+      || message.workspace !== this.selectedWorkspace || this.listActionActive
+      || (message.type !== 'initializeRepository' && message.type !== 'checkInstallation')) return;
+    await this.runListAction(message.type, message.workspace, message.state);
+  }
+
+  private async openListedAdr(workspace: string | undefined, relativePath: string | undefined): Promise<void> {
+    if (this.screen === 'list' && workspace !== undefined && relativePath !== undefined) {
+      await this.openAdr(workspace, relativePath);
+    }
+  }
+
+  private async editListedAdr(workspace: string | undefined, relativePath: string | undefined): Promise<void> {
+    if (this.screen !== 'list' || workspace === undefined || relativePath === undefined) return;
+    this.selectedWorkspace = workspace;
+    this.screen = 'edit';
+    await this.loadEdit(workspace, relativePath);
+  }
+
+  private async submitEdit(values: EditValues | undefined): Promise<void> {
+    if (this.screen === 'edit' && values !== undefined && this.submission.begin()) await this.saveEdit(values);
   }
 
   private async showList(workspace: string | undefined, state: ListState | undefined): Promise<void> {

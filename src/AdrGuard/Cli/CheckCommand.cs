@@ -198,11 +198,12 @@ internal static class CheckCommand
         TextWriter output)
     {
         var warningCount = result.Issues.Count(issue => issue.Severity == ValidationSeverity.Warning);
-        output.WriteLine(baseline is not null
-            ? $"Validated {documentCount} ADR(s): no new issues. Baseline: {baseline.ExistingIssues.Count} existing, {baseline.ResolvedEntries.Count} resolved issue(s)."
-            : warningCount > 0
-                ? $"Validated {documentCount} ADR(s): no errors; {warningCount} warning(s)."
-                : $"Validated {documentCount} ADR(s): no issues found.");
+        var message = warningCount > 0
+            ? $"Validated {documentCount} ADR(s): no errors; {warningCount} warning(s)."
+            : $"Validated {documentCount} ADR(s): no issues found.";
+        if (baseline is not null)
+            message = $"Validated {documentCount} ADR(s): no new issues. Baseline: {baseline.ExistingIssues.Count} existing, {baseline.ResolvedEntries.Count} resolved issue(s).";
+        output.WriteLine(message);
     }
 
     private sealed record ResultSelection(

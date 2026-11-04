@@ -27,17 +27,14 @@ internal static class ImpactCorrelationService
             StringComparer.OrdinalIgnoreCase);
         var changeMatches = new List<HashSet<string>>(inventory.Changes.Count);
         var changeUnknownMatches = new List<HashSet<string>>(inventory.Changes.Count);
-        var evaluations = 0;
-        var totalEvidence = 0;
+        var accumulator = new CorrelationAccumulator(decisionEvidence);
 
         foreach (var change in inventory.Changes)
         {
             var correlation = CorrelateChange(
                 change,
                 manifest.Mappings,
-                decisionEvidence,
-                ref evaluations,
-                ref totalEvidence);
+                accumulator);
             changeMatches.Add(correlation.Matched);
             changeUnknownMatches.Add(correlation.Unknown);
         }
@@ -76,9 +73,7 @@ internal static class ImpactCorrelationService
     private static ChangeCorrelation CorrelateChange(
         GitChangedPath change,
         IReadOnlyList<ImpactMapping> mappings,
-        Dictionary<string, HashSet<ImpactEvidence>> decisionEvidence,
-        ref int evaluations,
-        ref int totalEvidence)
+        CorrelationAccumulator accumulator)
     {
         var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var unknown = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -88,7 +83,7 @@ internal static class ImpactCorrelationService
             {
                 foreach (var (path, role) in EnumeratePaths(change))
                 {
-                    EnsureEvaluationLimit(ref evaluations);
+                    accumulator.EnsureEvaluationLimit();
                     if (!ImpactPathMatcher.IsMatch(pattern, path)) continue;
                     AddEvidence(
                         change,
@@ -96,24 +91,14 @@ internal static class ImpactCorrelationService
                         pattern,
                         path,
                         role,
-                        decisionEvidence,
                         matched,
                         unknown,
-                        ref totalEvidence);
+                        accumulator);
                 }
             }
         }
 
         return new ChangeCorrelation(matched, unknown);
-    }
-
-    private static void EnsureEvaluationLimit(ref int evaluations)
-    {
-        if (++evaluations > MaximumMatchEvaluations)
-        {
-            throw new ImpactAnalysisException(
-                $"Impact correlation exceeds the {MaximumMatchEvaluations}-evaluation complexity limit.");
-        }
     }
 
     private static void AddEvidence(
@@ -122,10 +107,9 @@ internal static class ImpactCorrelationService
         string pattern,
         string path,
         ImpactEvidencePathRole role,
-        Dictionary<string, HashSet<ImpactEvidence>> decisionEvidence,
         HashSet<string> matched,
         HashSet<string> unknown,
-        ref int totalEvidence)
+        CorrelationAccumulator accumulator)
     {
         var evidence = new ImpactEvidence(
             change.Scope,
@@ -135,11 +119,11 @@ internal static class ImpactCorrelationService
             pattern,
             mapping.Relationship,
             mapping.Reason);
-        var evidenceSet = decisionEvidence[mapping.Decision.StableId];
+        var evidenceSet = accumulator.DecisionEvidence[mapping.Decision.StableId];
         if (evidenceSet.Add(evidence))
         {
-            totalEvidence++;
-            if (totalEvidence > MaximumEvidenceEntries
+            accumulator.TotalEvidence++;
+            if (accumulator.TotalEvidence > MaximumEvidenceEntries
                 || evidenceSet.Count > MaximumEvidencePerDecision)
             {
                 throw new ImpactAnalysisException(
@@ -155,6 +139,23 @@ internal static class ImpactCorrelationService
     }
 
     private sealed record ChangeCorrelation(HashSet<string> Matched, HashSet<string> Unknown);
+
+    private sealed class CorrelationAccumulator(
+        Dictionary<string, HashSet<ImpactEvidence>> decisionEvidence)
+    {
+        private int evaluations;
+        internal Dictionary<string, HashSet<ImpactEvidence>> DecisionEvidence { get; } = decisionEvidence;
+        internal int TotalEvidence { get; set; }
+
+        internal void EnsureEvaluationLimit()
+        {
+            if (++evaluations > MaximumMatchEvaluations)
+            {
+                throw new ImpactAnalysisException(
+                    $"Impact correlation exceeds the {MaximumMatchEvaluations}-evaluation complexity limit.");
+            }
+        }
+    }
 
     private static ImpactDecisionAssessment BuildDecisionAssessment(
         ImpactMapping mapping,

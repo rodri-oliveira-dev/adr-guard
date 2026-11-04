@@ -59,7 +59,7 @@ export function parseNewAdrFormMessage(value: unknown): FormMessage | undefined 
     case 'editAdr': return parseAdrPathMessage(value, true);
     case 'saveEdit': return parseSaveEditMessage(value);
     case 'describe': case 'preview': case 'create': return parseCreationMessage(value);
-    default: return workspaceStateMessageTypes.some((type) => type === value.type)
+    default: return (workspaceStateMessageTypes as readonly string[]).includes(value.type)
       ? parseWorkspaceStateMessage(value)
       : undefined;
   }

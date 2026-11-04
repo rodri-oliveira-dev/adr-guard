@@ -82,26 +82,43 @@ function processBodyLine(
 ): typeof state {
   const trimmed = line.trimStart();
   const fenceMatch = /^(`{3,}|~{3,})/u.exec(trimmed);
-  if (fenceMatch?.[1] !== undefined) {
-    const marker = fenceMatch[1][0] as '`' | '~';
-    if (state.fence === marker) {
-      const withoutFence = { ...state };
-      delete withoutFence.fence;
-      return withoutFence;
-    }
-    return state.fence === undefined ? { ...state, fence: marker } : state;
-  }
+  if (fenceMatch?.[1] !== undefined) return processFence(state, fenceMatch[1][0] as '`' | '~');
   if (state.fence !== undefined) return state;
   const heading = /^(#{1,6})\s+(.+?)\s*#*\s*$/u.exec(trimmed);
-  if (heading?.[1] !== undefined && heading[2] !== undefined) {
-    const title = heading[1].length === 1 && state.title === undefined ? neutralText(heading[2]) : state.title;
-    const section = heading[1].length === 2 ? heading[2].trim().toLowerCase() : undefined;
-    const other = { ...state };
-    delete other.title;
-    delete other.section;
-    return { ...other, ...(title === undefined ? {} : { title }),
-      ...(section === undefined ? {} : { section }) };
-  }
+  if (heading?.[1] !== undefined && heading[2] !== undefined) return processHeading(state, heading[1], heading[2]);
+  return processSectionContent(line, trimmed, state, relationships);
+}
+
+function processFence(
+  state: { title?: string; section?: string; sectionStatus?: string; fence?: '`' | '~' },
+  marker: '`' | '~',
+): typeof state {
+  if (state.fence !== marker) return state.fence === undefined ? { ...state, fence: marker } : state;
+  const withoutFence = { ...state };
+  delete withoutFence.fence;
+  return withoutFence;
+}
+
+function processHeading(
+  state: { title?: string; section?: string; sectionStatus?: string; fence?: '`' | '~' },
+  markers: string,
+  heading: string,
+): typeof state {
+  const title = markers.length === 1 && state.title === undefined ? neutralText(heading) : state.title;
+  const section = markers.length === 2 ? heading.trim().toLowerCase() : undefined;
+  const other = { ...state };
+  delete other.title;
+  delete other.section;
+  return { ...other, ...(title === undefined ? {} : { title }),
+    ...(section === undefined ? {} : { section }) };
+}
+
+function processSectionContent(
+  line: string,
+  trimmed: string,
+  state: { title?: string; section?: string; sectionStatus?: string; fence?: '`' | '~' },
+  relationships: AdrRelationshipMetadata[],
+): typeof state {
   const sectionStatus = state.section === 'status' && state.sectionStatus === undefined
     && trimmed.trim().length > 0 ? neutralText(trimmed) : state.sectionStatus;
   const kind = state.section === undefined ? undefined : relationshipHeadings.get(state.section);

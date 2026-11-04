@@ -8,7 +8,21 @@ namespace AdrGuard.Diagnostics;
 internal static class DoctorDiagnosticService
 {
     private const int GitOutputLimitPerStream = 2 * 1024;
+    private const string RepositoryArea = "Repository";
+    private const string ConfigurationArea = "Configuration";
+    private const string AdrDirectoryArea = "ADR directory";
     private static readonly TimeSpan GitTimeout = TimeSpan.FromSeconds(5);
+    private static readonly string[] ConfigurationProperties =
+    [
+        "conventional-supersession",
+        "template",
+        "adr-format",
+        "lifecycle-statuses",
+        "filename-policy",
+        "placeholder-policy",
+        "metadata-policy",
+        "validation-profile",
+    ];
 
     internal static DoctorReport Run(
         string selectedDirectory,
@@ -58,7 +72,7 @@ internal static class DoctorDiagnosticService
                 return new RepositoryCheck(
                     null,
                     Error(
-                        "Repository",
+                        RepositoryArea,
                         "the selected directory does not exist. Fix: run from an existing repository or pass its directory."));
             }
 
@@ -70,7 +84,7 @@ internal static class DoctorDiagnosticService
                 return new RepositoryCheck(
                     null,
                     Error(
-                        "Repository",
+                        RepositoryArea,
                         "no ADR Guard or Git repository was detected. Fix: run from an existing repository or pass its directory."));
             }
 
@@ -83,11 +97,11 @@ internal static class DoctorDiagnosticService
             return hasGitMarker
                 ? new RepositoryCheck(
                     repositoryRoot,
-                    Ok("Repository", "detected at the selected root (Git worktree)."))
+                    Ok(RepositoryArea, "detected at the selected root (Git worktree)."))
                 : new RepositoryCheck(
                     repositoryRoot,
                     Warning(
-                        "Repository",
+                        RepositoryArea,
                         "ADR Guard configuration was found without a Git marker; Git-based features are unavailable."));
         }
         catch (Exception exception) when (IsPathOrAccessException(exception))
@@ -95,7 +109,7 @@ internal static class DoctorDiagnosticService
             return new RepositoryCheck(
                 null,
                 Error(
-                    "Repository",
+                    RepositoryArea,
                     "the selected directory is inaccessible or unsafe. Fix: run from an existing repository or pass its directory."));
         }
     }
@@ -107,7 +121,7 @@ internal static class DoctorDiagnosticService
             return new ConfigurationCheck(
                 ConfigurationState.NotChecked,
                 null,
-                Warning("Configuration", "not checked because no repository root was identified."));
+                Warning(ConfigurationArea, "not checked because no repository root was identified."));
         }
 
         try
@@ -118,19 +132,19 @@ internal static class DoctorDiagnosticService
                     ConfigurationState.Missing,
                     null,
                     Warning(
-                        "Configuration",
+                        ConfigurationArea,
                         ".adrguard.yml was not found; legacy defaults remain active. Fix: review 'adr-guard init --dry-run' when shared configuration is desired."))
                 : new ConfigurationCheck(
                     ConfigurationState.Valid,
                     configuration,
-                    Ok("Configuration", ".adrguard.yml schema 1 loaded."));
+                    Ok(ConfigurationArea, ".adrguard.yml schema 1 loaded."));
         }
         catch (AdrGuardConfigurationException exception)
         {
             return new ConfigurationCheck(
                 ConfigurationState.Invalid,
                 null,
-                Error("Configuration", DescribeConfigurationFailure(exception)));
+                Error(ConfigurationArea, DescribeConfigurationFailure(exception)));
         }
     }
 
@@ -140,25 +154,25 @@ internal static class DoctorDiagnosticService
     {
         if (repositoryRoot is null)
         {
-            return Warning("ADR directory", "not checked because no repository root was identified.");
+            return Warning(AdrDirectoryArea, "not checked because no repository root was identified.");
         }
 
         if (configuration.State == ConfigurationState.Invalid)
         {
-            return Warning("ADR directory", "not checked because configuration is invalid.");
+            return Warning(AdrDirectoryArea, "not checked because configuration is invalid.");
         }
 
         if (configuration.State == ConfigurationState.Missing)
         {
             return Warning(
-                "ADR directory",
+                AdrDirectoryArea,
                 "the legacy scope is the selected root; no dedicated ADR directory is configured.");
         }
 
         if (configuration.State == ConfigurationState.NotChecked
             || configuration.Configuration is null)
         {
-            return Warning("ADR directory", "not checked because configuration is unavailable.");
+            return Warning(AdrDirectoryArea, "not checked because configuration is unavailable.");
         }
 
         try
@@ -170,7 +184,7 @@ internal static class DoctorDiagnosticService
             if (!Directory.Exists(path))
             {
                 return Error(
-                    "ADR directory",
+                    AdrDirectoryArea,
                     $"{DisplayRelativePath(configuration.Configuration.AdrDirectory)} does not exist. Fix: create or correct the directory inside the repository, or adjust 'adr-directory'.");
             }
 
@@ -180,13 +194,13 @@ internal static class DoctorDiagnosticService
                 allowMissingLeaf: false);
             ProveDirectoryReadable(path);
             return Ok(
-                "ADR directory",
+                AdrDirectoryArea,
                 $"{DisplayRelativePath(configuration.Configuration.AdrDirectory)} exists and is readable.");
         }
         catch (Exception exception) when (IsPathOrAccessException(exception))
         {
             return Error(
-                "ADR directory",
+                AdrDirectoryArea,
                 "the configured directory is inaccessible or unsafe. Fix: create or correct the directory inside the repository, or adjust 'adr-directory'.");
         }
     }
@@ -277,22 +291,10 @@ internal static class DoctorDiagnosticService
             return ".adrguard.yml defines both 'template' and 'template-file'. Fix: keep only one template source.";
         }
 
-        foreach (var property in new[]
-                 {
-                     "conventional-supersession",
-                     "template",
-                     "adr-format",
-                     "lifecycle-statuses",
-                     "filename-policy",
-                     "placeholder-policy",
-                     "metadata-policy",
-                     "validation-profile",
-                 })
+        foreach (var property in ConfigurationProperties.Where(
+                     property => message.Contains($"property '{property}'", StringComparison.Ordinal)))
         {
-            if (message.Contains($"property '{property}'", StringComparison.Ordinal))
-            {
-                return $".adrguard.yml has an invalid value for '{property}'. Fix: use a supported schema 1 value.";
-            }
+            return $".adrguard.yml has an invalid value for '{property}'. Fix: use a supported schema 1 value.";
         }
 
         return ".adrguard.yml could not be read or parsed. Fix: correct the file as a readable schema 1 scalar configuration.";

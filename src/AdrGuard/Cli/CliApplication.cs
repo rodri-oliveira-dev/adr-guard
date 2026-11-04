@@ -405,13 +405,16 @@ internal static class CliApplication
     private static int RunDrift(IReadOnlyList<string> args, TextWriter output, TextWriter error, CancellationToken cancellationToken)
     {
         if (args.Count == 2 && IsHelpOption(args[1])) { output.WriteLine(DriftHelpText); return ExitCodes.Success; }
-        if (!TryParseDriftArguments(args, out var repository, out var rules, out var evidence, out var baseline, out var writeBaseline, out var updateBaseline, out var format, out var policy))
+        if (!TryParseDriftArguments(args, out var arguments))
             return WriteCommandUsageError("drift", error);
-        return DriftCommand.Run(repository, rules, evidence, baseline, writeBaseline, updateBaseline, format, policy, output, error, cancellationToken);
+        return DriftCommand.Run(arguments.Repository, arguments.Rules, arguments.Evidence,
+            arguments.Baseline, arguments.WriteBaseline, arguments.UpdateBaseline,
+            arguments.Format, arguments.Policy, output, error, cancellationToken);
     }
 
-    private static bool TryParseDriftArguments(IReadOnlyList<string> args, out string repository, out string rules, out IReadOnlyList<string> evidence,
-        out string? baseline, out string? writeBaseline, out bool updateBaseline, out DriftOutputFormat format, out DriftPolicy policy)
+    private static bool TryParseDriftArguments(
+        IReadOnlyList<string> args,
+        out DriftArguments arguments)
     {
         var state = new DriftArgumentState();
         for (var index = 1; index < args.Count; index++)
@@ -419,36 +422,41 @@ internal static class CliApplication
             var argument = args[index];
             if (argument == "--update-baseline")
             {
-                if (!state.TrySetUpdateBaseline()) return SetDriftOutputs(state, out repository, out rules,
-                    out evidence, out baseline, out writeBaseline, out updateBaseline, out format, out policy, false);
+                if (!state.TrySetUpdateBaseline()) return FailDriftParse(state, out arguments);
                 continue;
             }
             if (argument is "--rules" or "--evidence" or "--baseline" or "--write-baseline" or "--format" or "--policy")
             {
-                if (index + 1 >= args.Count || !state.TrySetValue(argument, args[++index]))
-                    return SetDriftOutputs(state, out repository, out rules, out evidence, out baseline,
-                        out writeBaseline, out updateBaseline, out format, out policy, false);
+                index++;
+                if (index >= args.Count || !state.TrySetValue(argument, args[index]))
+                    return FailDriftParse(state, out arguments);
                 continue;
             }
             if (!state.TrySetRepository(argument))
-                return SetDriftOutputs(state, out repository, out rules, out evidence, out baseline,
-                    out writeBaseline, out updateBaseline, out format, out policy, false);
+                return FailDriftParse(state, out arguments);
         }
         var valid = state.Rules.Length > 0
             && (!state.UpdateBaseline || state.WriteBaseline is not null)
             && state.Evidence.Count <= ExternalFitnessEvidenceAdapter.MaximumFiles;
-        return SetDriftOutputs(state, out repository, out rules, out evidence, out baseline,
-            out writeBaseline, out updateBaseline, out format, out policy, valid);
+        arguments = state.ToArguments();
+        return valid;
     }
 
-    private static bool SetDriftOutputs(DriftArgumentState state, out string repository, out string rules,
-        out IReadOnlyList<string> evidence, out string? baseline, out string? writeBaseline,
-        out bool updateBaseline, out DriftOutputFormat format, out DriftPolicy policy, bool result)
+    private static bool FailDriftParse(DriftArgumentState state, out DriftArguments arguments)
     {
-        repository = state.Repository; rules = state.Rules; evidence = state.Evidence;
-        baseline = state.Baseline; writeBaseline = state.WriteBaseline; updateBaseline = state.UpdateBaseline;
-        format = state.Format; policy = state.Policy; return result;
+        arguments = state.ToArguments();
+        return false;
     }
+
+    private sealed record DriftArguments(
+        string Repository,
+        string Rules,
+        IReadOnlyList<string> Evidence,
+        string? Baseline,
+        string? WriteBaseline,
+        bool UpdateBaseline,
+        DriftOutputFormat Format,
+        DriftPolicy Policy);
 
     private sealed class DriftArgumentState
     {
@@ -461,8 +469,20 @@ internal static class CliApplication
         internal bool UpdateBaseline { get; private set; }
         internal DriftOutputFormat Format { get; private set; } = DriftOutputFormat.Text;
         internal DriftPolicy Policy { get; private set; } = DriftPolicy.Advisory;
-        internal bool TrySetUpdateBaseline() { if (UpdateBaseline) return false; UpdateBaseline = true; return true; }
-        internal bool TrySetRepository(string value) { if (value.StartsWith('-') || !assigned.Add("repository")) return false; Repository = value; return true; }
+        internal DriftArguments ToArguments() => new(
+            Repository, Rules, Evidence, Baseline, WriteBaseline, UpdateBaseline, Format, Policy);
+        internal bool TrySetUpdateBaseline()
+        {
+            if (UpdateBaseline) return false;
+            UpdateBaseline = true;
+            return true;
+        }
+        internal bool TrySetRepository(string value)
+        {
+            if (value.StartsWith('-') || !assigned.Add("repository")) return false;
+            Repository = value;
+            return true;
+        }
         internal bool TrySetValue(string argument, string value)
         {
             if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-')
@@ -473,8 +493,14 @@ internal static class CliApplication
                 case "--evidence": Evidence.Add(value); break;
                 case "--baseline": Baseline = value; break;
                 case "--write-baseline": WriteBaseline = value; break;
-                case "--format": if (value is not ("text" or "json")) return false; Format = value == "json" ? DriftOutputFormat.Json : DriftOutputFormat.Text; break;
-                case "--policy": if (value is not ("advisory" or "enforce")) return false; Policy = value == "enforce" ? DriftPolicy.Enforce : DriftPolicy.Advisory; break;
+                case "--format":
+                    if (value is not ("text" or "json")) return false;
+                    Format = value == "json" ? DriftOutputFormat.Json : DriftOutputFormat.Text;
+                    break;
+                case "--policy":
+                    if (value is not ("advisory" or "enforce")) return false;
+                    Policy = value == "enforce" ? DriftPolicy.Enforce : DriftPolicy.Advisory;
+                    break;
             }
             return true;
         }
@@ -492,21 +518,16 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        if (!TryParseImpactArguments(
-                args,
-                out var repositoryPath,
-                out var baseReference,
-                out var manifestPath,
-                out var format))
+        if (!TryParseImpactArguments(args, out var arguments))
         {
             return WriteCommandUsageError("impact", error);
         }
 
         return ImpactCommand.Run(
-            repositoryPath,
-            baseReference,
-            manifestPath,
-            format,
+            arguments.RepositoryPath,
+            arguments.BaseReference,
+            arguments.ManifestPath,
+            arguments.Format,
             output,
             error,
             cancellationToken);
@@ -514,10 +535,7 @@ internal static class CliApplication
 
     private static bool TryParseImpactArguments(
         IReadOnlyList<string> args,
-        out string repositoryPath,
-        out string baseReference,
-        out string manifestPath,
-        out ImpactOutputFormat format)
+        out ImpactArguments arguments)
     {
         var state = new ImpactArgumentState();
 
@@ -526,35 +544,31 @@ internal static class CliApplication
             var argument = args[index];
             if (argument is "--base-ref" or "--map" or "--format")
             {
-                if (index + 1 >= args.Count || !state.TrySetValue(argument, args[++index]))
-                    return SetImpactOutputs(state, out repositoryPath, out baseReference,
-                        out manifestPath, out format, false);
+                index++;
+                if (index >= args.Count || !state.TrySetValue(argument, args[index]))
+                    return FailImpactParse(state, out arguments);
                 continue;
             }
 
             if (!state.TrySetRepository(argument))
-                return SetImpactOutputs(state, out repositoryPath, out baseReference,
-                    out manifestPath, out format, false);
+                return FailImpactParse(state, out arguments);
         }
 
-        return SetImpactOutputs(state, out repositoryPath, out baseReference,
-            out manifestPath, out format, state.BaseAssigned && state.MapAssigned);
+        arguments = state.ToArguments();
+        return state.BaseAssigned && state.MapAssigned;
     }
 
-    private static bool SetImpactOutputs(
-        ImpactArgumentState state,
-        out string repositoryPath,
-        out string baseReference,
-        out string manifestPath,
-        out ImpactOutputFormat format,
-        bool result)
+    private static bool FailImpactParse(ImpactArgumentState state, out ImpactArguments arguments)
     {
-        repositoryPath = state.RepositoryPath;
-        baseReference = state.BaseReference;
-        manifestPath = state.ManifestPath;
-        format = state.Format;
-        return result;
+        arguments = state.ToArguments();
+        return false;
     }
+
+    private sealed record ImpactArguments(
+        string RepositoryPath,
+        string BaseReference,
+        string ManifestPath,
+        ImpactOutputFormat Format);
 
     private sealed class ImpactArgumentState
     {
@@ -565,6 +579,8 @@ internal static class CliApplication
         internal ImpactOutputFormat Format { get; private set; } = ImpactOutputFormat.Text;
         internal bool BaseAssigned => assigned.Contains("--base-ref");
         internal bool MapAssigned => assigned.Contains("--map");
+        internal ImpactArguments ToArguments() => new(
+            RepositoryPath, BaseReference, ManifestPath, Format);
 
         internal bool TrySetRepository(string value)
         {

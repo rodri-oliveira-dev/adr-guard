@@ -47,20 +47,20 @@ internal static class NewCommand
             return NewFormCommand.Run(args, input, output, error, cancellationToken);
         }
 
-        if (!TryParse(
-                args,
-                out var directoryPath,
-                out var title,
-                out var templateName,
-                out var templateFilePath,
-                out var cultureName,
-                out var dryRun,
-                out var filenamePolicyName))
+        if (!TryParse(args, out var arguments))
         {
             return UsageError(
                 "Invalid arguments for 'new'. A non-empty --title is required.",
                 error);
         }
+
+        var directoryPath = arguments.DirectoryPath;
+        var title = arguments.Title;
+        var templateName = arguments.TemplateName;
+        var templateFilePath = arguments.TemplateFilePath;
+        var cultureName = arguments.CultureName;
+        var dryRun = arguments.DryRun;
+        var filenamePolicyName = arguments.FilenamePolicy;
 
         var validationError = ValidateArguments(
             title,
@@ -153,15 +153,10 @@ internal static class NewCommand
 
     private static bool TryParse(
         IReadOnlyList<string> args,
-        out string directoryPath,
-        out string title,
-        out string? templateName,
-        out string? templateFilePath,
-        out string cultureName,
-        out bool dryRun,
-        out string? filenamePolicy)
+        out NewArgumentState arguments)
     {
         var state = new NewArgumentState();
+        arguments = state;
 
         for (var index = 1; index < args.Count; index++)
         {
@@ -169,50 +164,22 @@ internal static class NewCommand
 
             if (argument is "--dry-run" or "--preview")
             {
-                if (!state.TrySetDryRun()) return SetOutputs(state, out directoryPath, out title,
-                    out templateName, out templateFilePath, out cultureName, out dryRun, out filenamePolicy, false);
+                if (!state.TrySetDryRun()) return false;
                 continue;
             }
 
             if (argument is "--title" or "--template" or "--template-file" or "--culture" or "--filename-policy")
             {
-                if (index + 1 >= args.Count) return SetOutputs(state, out directoryPath, out title,
-                    out templateName, out templateFilePath, out cultureName, out dryRun, out filenamePolicy, false);
-
-                var value = args[++index];
-                if (!state.TrySetValue(argument, value)) return SetOutputs(state, out directoryPath, out title,
-                    out templateName, out templateFilePath, out cultureName, out dryRun, out filenamePolicy, false);
+                index++;
+                if (index >= args.Count || !state.TrySetValue(argument, args[index])) return false;
 
                 continue;
             }
 
-            if (!state.TrySetDirectory(argument)) return SetOutputs(state, out directoryPath, out title,
-                out templateName, out templateFilePath, out cultureName, out dryRun, out filenamePolicy, false);
+            if (!state.TrySetDirectory(argument)) return false;
         }
 
-        return SetOutputs(state, out directoryPath, out title, out templateName, out templateFilePath,
-            out cultureName, out dryRun, out filenamePolicy, state.TitleAssigned);
-    }
-
-    private static bool SetOutputs(
-        NewArgumentState state,
-        out string directoryPath,
-        out string title,
-        out string? templateName,
-        out string? templateFilePath,
-        out string cultureName,
-        out bool dryRun,
-        out string? filenamePolicy,
-        bool result)
-    {
-        directoryPath = state.DirectoryPath;
-        title = state.Title;
-        templateName = state.TemplateName;
-        templateFilePath = state.TemplateFilePath;
-        cultureName = state.CultureName;
-        dryRun = state.DryRun;
-        filenamePolicy = state.FilenamePolicy;
-        return result;
+        return state.TitleAssigned;
     }
 
     private sealed class NewArgumentState
