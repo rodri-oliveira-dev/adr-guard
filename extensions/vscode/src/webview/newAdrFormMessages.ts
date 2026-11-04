@@ -49,87 +49,128 @@ const maximumValueCharacters = 32 * 1024;
 export function parseNewAdrFormMessage(value: unknown): FormMessage | undefined {
   if (visualFormInputLimit(value) !== undefined) return undefined;
   if (!isRecord(value) || typeof value.type !== 'string') return undefined;
-  if (value.type === 'ready' || value.type === 'traditional') {
-    return Object.keys(value).length === 1 ? { type: value.type } : undefined;
+  switch (value.type) {
+    case 'ready': case 'traditional': return parseTypeOnlyMessage(value);
+    case 'cancel': return parseCancelMessage(value);
+    case 'revealCreated': return parseWorkspaceOnlyMessage(value);
+    case 'saveSettings': return parseSaveSettingsMessage(value);
+    case 'checkMcpConfiguration': return parseMcpConfigurationMessage(value);
+    case 'openAdr': return parseAdrPathMessage(value, false);
+    case 'editAdr': return parseAdrPathMessage(value, true);
+    case 'saveEdit': return parseSaveEditMessage(value);
+    case 'describe': case 'preview': case 'create': return parseCreationMessage(value);
+    default: return workspaceStateMessageTypes.some((type) => type === value.type)
+      ? parseWorkspaceStateMessage(value)
+      : undefined;
   }
-  if (value.type === 'cancel') {
-    if (Object.keys(value).length === 1) return { type: value.type };
-    if (!isWorkspaceMessage(value, true) || (value.state !== undefined && !isListState(value.state))) return undefined;
-    return { type: value.type, workspace: value.workspace,
-      ...(value.state === undefined ? {} : { state: value.state }) };
-  }
-  if (value.type === 'revealCreated') {
-    return isWorkspaceMessage(value) ? { type: value.type, workspace: value.workspace } : undefined;
-  }
-  if (value.type === 'saveSettings') {
-    const settings = parseVisualSettingsValues(value.settings);
-    if (settings === undefined || (value.state !== undefined && !isListState(value.state))
-      || Object.keys(value).some((key) => !['type', 'settings', 'state'].includes(key))) return undefined;
-    return { type: value.type, settings, ...(value.state === undefined ? {} : { state: value.state }) };
-  }
-  if (value.type === 'checkMcpConfiguration') {
-    if (!isBoundedString(value.workspace, 4096) || typeof value.mcpEnabled !== 'boolean'
-      || !isBoundedString(value.mcpPath, 4096)
-      || (value.mcpPath.trim().length > 0 && !isSafeMcpServerPath(value.mcpPath.trim()))
-      || Object.keys(value).some((key) => !['type', 'workspace', 'mcpEnabled', 'mcpPath'].includes(key))) return undefined;
-    return { type: value.type, workspace: value.workspace, mcpEnabled: value.mcpEnabled, mcpPath: value.mcpPath };
-  }
-  if (value.type === 'newAdr' || value.type === 'selectWorkspace' || value.type === 'showList'
-    || value.type === 'openSettings' || value.type === 'cancelSettings'
-    || value.type === 'checkSettingsInstallation'
-    || value.type === 'openMcpDocumentation'
-    || value.type === 'refreshList' || value.type === 'initializeRepository' || value.type === 'checkInstallation') {
-    if (!isWorkspaceMessage(value, true) || (value.state !== undefined && !isListState(value.state))) return undefined;
-    return { type: value.type, workspace: value.workspace, ...(value.state === undefined ? {} : { state: value.state }) };
-  }
-  if (value.type === 'openAdr') {
-    if (!isBoundedString(value.workspace, 4096) || !isBoundedString(value.relativePath, 4096)
-      || !isSafeRelativeFile(value.relativePath)
-      || Object.keys(value).some((key) => !['type', 'workspace', 'relativePath'].includes(key))) return undefined;
-    return { type: value.type, workspace: value.workspace, relativePath: value.relativePath };
-  }
-  if (value.type === 'editAdr') {
-    if (!isBoundedString(value.workspace, 4096) || !isBoundedString(value.relativePath, 4096)
-      || !isSafeRelativeFile(value.relativePath) || (value.state !== undefined && !isListState(value.state))
-      || Object.keys(value).some((key) => !['type', 'workspace', 'relativePath', 'state'].includes(key))) return undefined;
-    return { type: value.type, workspace: value.workspace, relativePath: value.relativePath,
-      ...(value.state === undefined ? {} : { state: value.state }) };
-  }
-  if (value.type === 'saveEdit') {
-    if (!isEditValues(value.editValues)
-      || Object.keys(value).some((key) => key !== 'type' && key !== 'editValues')) return undefined;
-    return { type: value.type, editValues: value.editValues };
-  }
-  if (value.type !== 'describe' && value.type !== 'preview' && value.type !== 'create') return undefined;
-  if (!isFormValues(value.values) || Object.keys(value).some((key) => key !== 'type' && key !== 'values')) return undefined;
-  return { type: value.type, values: value.values };
 }
 
 export function visualFormInputLimit(value: unknown): 'creation' | 'edit' | undefined {
   if (!isRecord(value) || typeof value.type !== 'string') return undefined;
   try {
-    if ((value.type === 'describe' || value.type === 'preview' || value.type === 'create') && isRecord(value.values)) {
-      const input = JSON.stringify({
-        schemaVersion: newAdrFormSchemaVersion,
-        operation: value.type,
-        ...(value.type === 'describe' ? {} : { title: value.values.title, fields: value.values.fields }),
-      });
-      return typeof input === 'string' && input.length > newAdrFormMaximumInputCharacters ? 'creation' : undefined;
-    }
+    if (isCreationInput(value)) return exceedsCreationLimit(value) ? 'creation' : undefined;
     if (value.type === 'saveEdit' && isRecord(value.editValues)) {
-      const input = JSON.stringify({
-        schemaVersion: editFormSchemaVersion,
-        operation: 'save',
-        fingerprint: value.editValues.fingerprint,
-        title: value.editValues.title,
-        fields: value.editValues.fields,
-      });
-      return typeof input === 'string' && input.length > editFormMaximumInputCharacters ? 'edit' : undefined;
+      return exceedsEditLimit(value.editValues) ? 'edit' : undefined;
     }
   } catch {
     return value.type === 'saveEdit' ? 'edit' : 'creation';
   }
   return undefined;
+}
+
+const workspaceStateMessageTypes = [
+  'newAdr', 'selectWorkspace', 'showList', 'openSettings', 'cancelSettings',
+  'checkSettingsInstallation', 'openMcpDocumentation', 'refreshList',
+  'initializeRepository', 'checkInstallation',
+] as const;
+
+function parseTypeOnlyMessage(value: Record<string, unknown>): FormMessage | undefined {
+  return Object.keys(value).length === 1
+    ? { type: value.type as 'ready' | 'traditional' }
+    : undefined;
+}
+
+function parseCancelMessage(value: Record<string, unknown>): FormMessage | undefined {
+  if (Object.keys(value).length === 1) return { type: 'cancel' };
+  if (!isWorkspaceMessage(value, true) || !optionalListState(value.state)) return undefined;
+  const state = value.state as ListState | undefined;
+  return { type: 'cancel', workspace: value.workspace,
+    ...(state === undefined ? {} : { state }) };
+}
+
+function parseWorkspaceOnlyMessage(value: Record<string, unknown>): FormMessage | undefined {
+  return isWorkspaceMessage(value) ? { type: 'revealCreated', workspace: value.workspace } : undefined;
+}
+
+function parseWorkspaceStateMessage(value: Record<string, unknown>): FormMessage | undefined {
+  if (!isWorkspaceMessage(value, true) || !optionalListState(value.state)) return undefined;
+  const state = value.state as ListState | undefined;
+  return { type: value.type as typeof workspaceStateMessageTypes[number], workspace: value.workspace,
+    ...(state === undefined ? {} : { state }) };
+}
+
+function parseSaveSettingsMessage(value: Record<string, unknown>): FormMessage | undefined {
+  const settings = parseVisualSettingsValues(value.settings);
+  if (settings === undefined || !optionalListState(value.state)
+    || !hasOnlyKeys(value, ['type', 'settings', 'state'])) return undefined;
+  const state = value.state as ListState | undefined;
+  return { type: 'saveSettings', settings,
+    ...(state === undefined ? {} : { state }) };
+}
+
+function parseMcpConfigurationMessage(value: Record<string, unknown>): FormMessage | undefined {
+  if (!isBoundedString(value.workspace, 4096) || typeof value.mcpEnabled !== 'boolean'
+    || !isBoundedString(value.mcpPath, 4096)
+    || (value.mcpPath.trim().length > 0 && !isSafeMcpServerPath(value.mcpPath.trim()))
+    || !hasOnlyKeys(value, ['type', 'workspace', 'mcpEnabled', 'mcpPath'])) return undefined;
+  return { type: 'checkMcpConfiguration', workspace: value.workspace,
+    mcpEnabled: value.mcpEnabled, mcpPath: value.mcpPath };
+}
+
+function parseAdrPathMessage(value: Record<string, unknown>, allowState: boolean): FormMessage | undefined {
+  if (!isBoundedString(value.workspace, 4096) || !isBoundedString(value.relativePath, 4096)
+    || !isSafeRelativeFile(value.relativePath) || (allowState && !optionalListState(value.state))
+    || !hasOnlyKeys(value, ['type', 'workspace', 'relativePath', ...(allowState ? ['state'] : [])])) return undefined;
+  return { type: value.type as 'openAdr' | 'editAdr', workspace: value.workspace,
+    relativePath: value.relativePath, ...(value.state === undefined ? {} : { state: value.state as ListState }) };
+}
+
+function parseSaveEditMessage(value: Record<string, unknown>): FormMessage | undefined {
+  return isEditValues(value.editValues) && hasOnlyKeys(value, ['type', 'editValues'])
+    ? { type: 'saveEdit', editValues: value.editValues }
+    : undefined;
+}
+
+function parseCreationMessage(value: Record<string, unknown>): FormMessage | undefined {
+  return isFormValues(value.values) && hasOnlyKeys(value, ['type', 'values'])
+    ? { type: value.type as 'describe' | 'preview' | 'create', values: value.values }
+    : undefined;
+}
+
+function optionalListState(value: unknown): boolean {
+  return value === undefined || isListState(value);
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  return Object.keys(value).every((key) => keys.includes(key));
+}
+
+function isCreationInput(value: Record<string, unknown>): boolean {
+  return (value.type === 'describe' || value.type === 'preview' || value.type === 'create')
+    && isRecord(value.values);
+}
+
+function exceedsCreationLimit(value: Record<string, unknown>): boolean {
+  const values = value.values as Record<string, unknown>;
+  const input = JSON.stringify({ schemaVersion: newAdrFormSchemaVersion, operation: value.type,
+    ...(value.type === 'describe' ? {} : { title: values.title, fields: values.fields }) });
+  return typeof input === 'string' && input.length > newAdrFormMaximumInputCharacters;
+}
+
+function exceedsEditLimit(editValues: Record<string, unknown>): boolean {
+  const input = JSON.stringify({ schemaVersion: editFormSchemaVersion, operation: 'save',
+    fingerprint: editValues.fingerprint, title: editValues.title, fields: editValues.fields });
+  return typeof input === 'string' && input.length > editFormMaximumInputCharacters;
 }
 
 function isEditValues(value: unknown): value is EditValues {

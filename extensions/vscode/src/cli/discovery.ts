@@ -39,28 +39,34 @@ export class CliDiscovery {
 
   public async find(options: CliDiscoveryOptions): Promise<CliExecutable> {
     const configuredPath = options.configuredPath?.trim();
-    if (configuredPath) {
-      const platform = options.platform ?? process.platform;
-      if (!isSafeConfiguredExecutablePath(configuredPath, platform)) {
-        throw new CliDiscoveryError(
-          'The configured ADR Guard executable path must be an absolute local path.',
-          'invalid-configured-path',
-        );
-      }
+    if (configuredPath) return this.findConfigured(configuredPath, options.platform ?? process.platform);
 
-      try {
-        return {
-          path: await this.validateExecutable(configuredPath, options.platform),
-          source: 'configured',
-        };
-      } catch (error: unknown) {
-        throw new CliDiscoveryError(
-          `The configured ADR Guard executable is unavailable or inaccessible: ${errorMessage(error)}`,
-          'invalid-configured-path',
-        );
-      }
+    const executable = await this.findOnPath(options);
+    if (executable !== undefined) return executable;
+    throw new CliDiscoveryError(
+      'ADR Guard was not found. Configure adrGuard.cli.path with a trusted absolute executable path or install the CLI on the workspace extension host PATH.',
+      'not-found',
+    );
+  }
+
+  private async findConfigured(configuredPath: string, platform: NodeJS.Platform): Promise<CliExecutable> {
+    if (!isSafeConfiguredExecutablePath(configuredPath, platform)) {
+      throw new CliDiscoveryError(
+        'The configured ADR Guard executable path must be an absolute local path.',
+        'invalid-configured-path',
+      );
     }
+    try {
+      return { path: await this.validateExecutable(configuredPath, platform), source: 'configured' };
+    } catch (error: unknown) {
+      throw new CliDiscoveryError(
+        `The configured ADR Guard executable is unavailable or inaccessible: ${errorMessage(error)}`,
+        'invalid-configured-path',
+      );
+    }
+  }
 
+  private async findOnPath(options: CliDiscoveryOptions): Promise<CliExecutable | undefined> {
     const platform = options.platform ?? process.platform;
     const delimiter = platform === 'win32' ? ';' : ':';
     const executableNames = platform === 'win32' ? ['adr-guard.exe'] : ['adr-guard'];
@@ -82,11 +88,7 @@ export class CliDiscovery {
         }
       }
     }
-
-    throw new CliDiscoveryError(
-      'ADR Guard was not found. Configure adrGuard.cli.path with a trusted absolute executable path or install the CLI on the workspace extension host PATH.',
-      'not-found',
-    );
+    return undefined;
   }
 
   private async validateExecutable(candidate: string, platform = process.platform): Promise<string> {

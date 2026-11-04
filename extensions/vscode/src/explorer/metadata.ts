@@ -40,37 +40,12 @@ export function parseAdrDisplayMetadata(
   const id = rawId === undefined ? undefined : normalizeAdrId(rawId);
   const lines = markdown.split(/\r?\n/u);
   const frontMatter = parseFrontMatter(lines);
-  let title: string | undefined;
-  let section: string | undefined;
-  let sectionStatus: string | undefined;
-  let fence: '`' | '~' | undefined;
-  const relationships: AdrRelationshipMetadata[] = [];
-
-  for (const line of lines) {
-    const trimmed = line.trimStart();
-    const fenceMatch = /^(`{3,}|~{3,})/u.exec(trimmed);
-    if (fenceMatch?.[1] !== undefined) {
-      const marker = fenceMatch[1][0] as '`' | '~';
-      fence = fence === undefined ? marker : fence === marker ? undefined : fence;
-      continue;
-    }
-    if (fence !== undefined) continue;
-    const heading = /^(#{1,6})\s+(.+?)\s*#*\s*$/u.exec(trimmed);
-    if (heading?.[1] !== undefined && heading[2] !== undefined) {
-      if (heading[1].length === 1 && title === undefined) title = neutralText(heading[2]);
-      section = heading[1].length === 2 ? heading[2].trim().toLowerCase() : undefined;
-      continue;
-    }
-    if (section === 'status' && sectionStatus === undefined && trimmed.trim().length > 0) {
-      sectionStatus = neutralText(trimmed);
-    }
-    const kind = section === undefined ? undefined : relationshipHeadings.get(section);
-    if (kind !== undefined) relationships.push(...parseMarkdownLinks(line, kind));
-  }
+  const parsed = parseDocumentBody(lines);
+  const relationships = [...parsed.relationships];
 
   const status = format === 'madr-4'
-    ? frontMatter.get('status') ?? sectionStatus
-    : sectionStatus;
+    ? frontMatter.get('status') ?? parsed.sectionStatus
+    : parsed.sectionStatus;
   const date = frontMatter.get('date');
   const statusTarget = format === 'madr-4'
     ? /^superseded\s+by\s+ADR-([0-9]{4})$/iu.exec(status ?? '')?.[1]
@@ -81,11 +56,57 @@ export function parseAdrDisplayMetadata(
 
   return {
     ...(id === undefined ? {} : { id }),
-    ...(title === undefined ? {} : { title }),
+    ...(parsed.title === undefined ? {} : { title: parsed.title }),
     ...(status === undefined ? {} : { status }),
     ...(date === undefined ? {} : { date }),
     relationships: deduplicateRelationships(relationships),
   };
+}
+
+function parseDocumentBody(lines: readonly string[]): {
+  readonly title?: string;
+  readonly sectionStatus?: string;
+  readonly relationships: readonly AdrRelationshipMetadata[];
+} {
+  let state: { title?: string; section?: string; sectionStatus?: string; fence?: '`' | '~' } = {};
+  const relationships: AdrRelationshipMetadata[] = [];
+  for (const line of lines) state = processBodyLine(line, state, relationships);
+  return { ...(state.title === undefined ? {} : { title: state.title }),
+    ...(state.sectionStatus === undefined ? {} : { sectionStatus: state.sectionStatus }), relationships };
+}
+
+function processBodyLine(
+  line: string,
+  state: { title?: string; section?: string; sectionStatus?: string; fence?: '`' | '~' },
+  relationships: AdrRelationshipMetadata[],
+): typeof state {
+  const trimmed = line.trimStart();
+  const fenceMatch = /^(`{3,}|~{3,})/u.exec(trimmed);
+  if (fenceMatch?.[1] !== undefined) {
+    const marker = fenceMatch[1][0] as '`' | '~';
+    if (state.fence === marker) {
+      const withoutFence = { ...state };
+      delete withoutFence.fence;
+      return withoutFence;
+    }
+    return state.fence === undefined ? { ...state, fence: marker } : state;
+  }
+  if (state.fence !== undefined) return state;
+  const heading = /^(#{1,6})\s+(.+?)\s*#*\s*$/u.exec(trimmed);
+  if (heading?.[1] !== undefined && heading[2] !== undefined) {
+    const title = heading[1].length === 1 && state.title === undefined ? neutralText(heading[2]) : state.title;
+    const section = heading[1].length === 2 ? heading[2].trim().toLowerCase() : undefined;
+    const other = { ...state };
+    delete other.title;
+    delete other.section;
+    return { ...other, ...(title === undefined ? {} : { title }),
+      ...(section === undefined ? {} : { section }) };
+  }
+  const sectionStatus = state.section === 'status' && state.sectionStatus === undefined
+    && trimmed.trim().length > 0 ? neutralText(trimmed) : state.sectionStatus;
+  const kind = state.section === undefined ? undefined : relationshipHeadings.get(state.section);
+  if (kind !== undefined) relationships.push(...parseMarkdownLinks(line, kind));
+  return { ...state, ...(sectionStatus === undefined ? {} : { sectionStatus }) };
 }
 
 function parseFrontMatter(lines: readonly string[]): Map<string, string> {
