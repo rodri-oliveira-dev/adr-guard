@@ -83,7 +83,7 @@ internal sealed record McpServerOptions(
     }
 }
 
-internal sealed class McpServerConfigurationException : Exception
+public sealed class McpServerConfigurationException : Exception
 {
     internal McpServerConfigurationException(string message)
         : base(message)

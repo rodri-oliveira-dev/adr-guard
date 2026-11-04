@@ -45,7 +45,7 @@ internal static class EditFormCommand
         {
             var parsedRequest = ReadRequest(input, cancellationToken);
             var request = parsedRequest.Request;
-            if (request.SchemaVersion != SchemaVersion || request.Operation is not ("load" or "save"))
+            if (request.RequestedSchemaVersion != SchemaVersion || request.Operation is not ("load" or "save"))
                 return UsageError("ADR edit schema version must be 1.0 and operation must be load or save.", error);
             var expectedProperties = request.Operation == "load"
                 ? LoadProperties
@@ -231,10 +231,27 @@ internal static class EditFormCommand
     private static void WriteResponse<TResponse>(TextWriter output, TResponse response) =>
         output.WriteLine(JsonSerializer.Serialize(response, JsonOptions));
 
-    private sealed record EditFormRequest(string? SchemaVersion, string? Operation, string? Fingerprint, string? Title, Dictionary<string, string>? Fields);
+    private sealed record EditFormRequest(
+        [property: JsonPropertyName("schemaVersion")] string? RequestedSchemaVersion,
+        string? Operation,
+        string? Fingerprint,
+        string? Title,
+        Dictionary<string, string>? Fields);
     private sealed record ParsedEditFormRequest(EditFormRequest Request, HashSet<string> Properties);
-    private sealed record EditLoadResponse(string SchemaVersion, string Operation, string Format, string Path, string Fingerprint, string Title, IReadOnlyList<EditFieldResponse> Fields, bool Written);
-    private sealed record EditSaveResponse(string SchemaVersion, string Operation, string Fingerprint, bool Written);
+    private sealed record EditLoadResponse(
+        [property: JsonPropertyName("schemaVersion")] string ResponseSchemaVersion,
+        string Operation,
+        string Format,
+        string Path,
+        string Fingerprint,
+        string Title,
+        IReadOnlyList<EditFieldResponse> Fields,
+        bool Written);
+    private sealed record EditSaveResponse(
+        [property: JsonPropertyName("schemaVersion")] string ResponseSchemaVersion,
+        string Operation,
+        string Fingerprint,
+        bool Written);
     private sealed record EditFieldResponse(string Id, string Label, string Kind, bool Required, string Value, IReadOnlyList<string>? Options);
     private sealed record EditArguments(string FilePath, string? AdrDirectory, AdrFormat Format, string? LifecycleStatuses, bool ConventionalSupersession, string? FilenamePolicy, string? PlaceholderPolicy, bool ValidateMetadata, string? ValidationProfile)
     {

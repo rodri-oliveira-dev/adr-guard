@@ -44,7 +44,7 @@ internal static class AdrEditService
         filePath = source.FilePath;
         var layout = MarkdownLayout.Parse(source.Text, options);
         Validate(filePath, adrDirectory, source.Text, options, cancellationToken);
-        return layout.ToDocument(filePath, source.Fingerprint);
+        return layout.ToDocument(filePath, source.ContentFingerprint);
     }
 
     internal static AdrEditDocument Save(
@@ -63,7 +63,7 @@ internal static class AdrEditService
         var source = ReadSource(filePath, cancellationToken);
         filePath = source.FilePath;
         if (!CryptographicOperations.FixedTimeEquals(
-                Encoding.ASCII.GetBytes(source.Fingerprint),
+                Encoding.ASCII.GetBytes(source.ContentFingerprint),
                 Encoding.ASCII.GetBytes(expectedFingerprint)))
         {
             throw new AdrEditConflictException();
@@ -93,13 +93,13 @@ internal static class AdrEditService
         if (replacements.Count == 0)
         {
             ResolveAdrDirectory(filePath, adrDirectory);
-            return layout.ToDocument(filePath, source.Fingerprint);
+            return layout.ToDocument(filePath, source.ContentFingerprint);
         }
         var updated = Apply(source.Text, replacements);
         ValidateUpdate(filePath, adrDirectory, source.Text, updated, options, cancellationToken);
         Persist(filePath, source, updated, cancellationToken);
         var saved = ReadSource(filePath, cancellationToken);
-        return MarkdownLayout.Parse(saved.Text, options).ToDocument(filePath, saved.Fingerprint, written: true);
+        return MarkdownLayout.Parse(saved.Text, options).ToDocument(filePath, saved.ContentFingerprint, written: true);
     }
 
     private static SourceDocument ReadSource(string filePath, CancellationToken cancellationToken)
@@ -290,7 +290,7 @@ internal static class AdrEditService
 
     private static string Fingerprint(ReadOnlySpan<byte> bytes) => Convert.ToHexString(SHA256.HashData(bytes));
 
-    private sealed record SourceDocument(string FilePath, byte[] Bytes, string Text, bool HasBom, string Fingerprint);
+    private sealed record SourceDocument(string FilePath, byte[] Bytes, string Text, bool HasBom, string ContentFingerprint);
     private sealed record TextReplacement(int Start, int Length, string Value);
 
     private sealed class MarkdownLayout
@@ -478,7 +478,7 @@ internal static class AdrEditService
     private sealed record LayoutField(string Id, string Label, string Kind, bool Required, int Start, int Length, string Value, IReadOnlyList<string>? Options, char? QuoteDelimiter);
 }
 
-internal sealed class AdrEditValidationException : Exception
+public sealed class AdrEditValidationException : Exception
 {
     internal AdrEditValidationException(ValidationResult result)
         : base(string.Join(Environment.NewLine, result.Issues.Select(issue => $"{issue.Code}: {issue.Message}"))) =>

@@ -58,10 +58,10 @@ internal static class NewFormCommand
         {
             cancellationToken.ThrowIfCancellationRequested();
             var request = ReadRequest(input, cancellationToken);
-            if (request.SchemaVersion != SchemaVersion)
+            if (request.RequestedSchemaVersion != SchemaVersion)
             {
                 return UsageError(
-                    $"Unsupported visual ADR form schema version '{request.SchemaVersion ?? "<missing>"}'.",
+                    $"Unsupported visual ADR form schema version '{request.RequestedSchemaVersion ?? "<missing>"}'.",
                     error);
             }
 
@@ -362,13 +362,13 @@ internal static class NewFormCommand
     }
 
     private sealed record NewFormRequest(
-        string? SchemaVersion,
+        [property: JsonPropertyName("schemaVersion")] string? RequestedSchemaVersion,
         string? Operation,
         string? Title,
         Dictionary<string, string?>? Fields);
 
     private sealed record NewFormResponse(
-        string SchemaVersion,
+        [property: JsonPropertyName("schemaVersion")] string ResponseSchemaVersion,
         string Operation,
         NewFormTemplateResponse Template,
         string? Path,

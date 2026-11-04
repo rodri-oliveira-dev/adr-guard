@@ -1,6 +1,6 @@
 namespace AdrGuard.Configuration;
 
-internal sealed class AdrGuardConfigurationException : Exception
+public sealed class AdrGuardConfigurationException : Exception
 {
     internal AdrGuardConfigurationException(string message)
         : base(message)

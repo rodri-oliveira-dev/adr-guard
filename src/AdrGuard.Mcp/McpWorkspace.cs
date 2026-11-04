@@ -21,7 +21,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
     {
         var context = LoadContext(cancellationToken);
         var adrs = context.Documents
-            .Select(document => Summary(document.Document, context.Format))
+            .Select(document => Summary(document.Document, context.DocumentFormat))
             .ToArray();
         return McpResponseLimit.Ensure(new ListAdrsResult("1.0", adrs.Length, adrs));
     }
@@ -32,7 +32,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         var document = ResolveDocument(context, identifier);
         return McpResponseLimit.Ensure(new GetAdrResult(
             "1.0",
-            Summary(document.Document, context.Format),
+            Summary(document.Document, context.DocumentFormat),
             ContentIsUntrusted: true,
             document.Markdown));
     }
@@ -77,7 +77,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
             if (terms.Any(term => document.Title?.Contains(term, StringComparison.OrdinalIgnoreCase) == true)) fields.Add("title");
             if (terms.Any(term => candidate.Markdown.Contains(term, StringComparison.OrdinalIgnoreCase))) fields.Add("content");
             matches.Add(new SearchAdrMatch(
-                Summary(document, context.Format),
+                Summary(document, context.DocumentFormat),
                 fields,
                 fields.Contains("content", StringComparer.Ordinal)
                     ? Excerpt(candidate.Markdown, terms)
@@ -180,7 +180,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         var configuration = context.Configuration;
         var effectiveProfile = validationProfile ?? configuration?.ValidationProfile ?? "legacy";
         var policy = new ValidationPolicyResult(
-            Format(context.Format),
+            Format(context.DocumentFormat),
             effectiveProfile,
             context.ValidationOptions.ConventionalSupersession,
             configuration?.FilenamePolicy ?? "canonical",
@@ -452,7 +452,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         List<AdrRelationshipResult> output)
     {
         const string prefix = "superseded by ADR-";
-        if (context.Format != AdrFormat.Madr4
+        if (context.DocumentFormat != AdrFormat.Madr4
             || source.Status?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) != true
             || !int.TryParse(source.Status[prefix.Length..].Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var id)
             || id <= 0)
@@ -554,7 +554,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
 
     private sealed record WorkspaceContext(
         AdrGuardConfiguration? Configuration,
-        AdrFormat Format,
+        AdrFormat DocumentFormat,
         AdrValidationOptions ValidationOptions,
         IReadOnlyList<LoadedAdr> Documents);
 }
