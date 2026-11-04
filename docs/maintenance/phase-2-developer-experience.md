@@ -560,6 +560,87 @@ Limitações e pendências desta execução:
   correção de produto, alteração de contrato, refactor ou funcionalidade
   adicional nesta validação.
 
+### Validação final e prontidão do Pull Request
+
+A validação final foi executada em 4 de novembro de 2026 na branch
+`feat/phase-2-developer-experience`. A base remota `origin/main` permaneceu em
+`d59b958830daecd24f49e1610945e74f69cf3888`; o diff funcional validado estava
+no commit `487aa572df627618aab9ec332f6d371b9cf7ed98`, seis commits à frente e sem
+commits divergentes de `main`. O worktree estava limpo antes da validação.
+
+Resultados executados a partir da raiz do repositório:
+
+- `dotnet restore AdrGuard.slnx`: passou, com todos os projetos restaurados ou
+  atualizados.
+- `dotnet build AdrGuard.slnx --configuration Release --no-restore`: passou
+  com `0` warnings e `0` erros.
+- `dotnet test --solution AdrGuard.slnx --configuration Release --no-build`:
+  `Passed: 762, Failed: 0, Skipped: 0`, incluindo as suítes CLI/Core e MCP.
+- Recortes MTP/xUnit v3 repetidos em Release: `DoctorCommandIntegrationTests`
+  (`12/0/0`), `DriftCommandIntegrationTests` (`8/0/0`),
+  `CliArgumentContractTests` (`32/0/0`), `CheckReportIntegrationTests`
+  (`9/0/0`), `ConfigurationProcessIntegrationTests` (`15/0/0`) e
+  `McpServerIntegrationTests` (`3/0/0`). Os recortes confirmam help e comandos,
+  argumentos, streams, exits, configuração, JSON/SARIF, drift e o protocolo
+  read-only do MCP sem alterar seus contratos.
+- `scripts/github-action-impact-test.sh`,
+  `scripts/github-action-drift-test.sh`,
+  `scripts/github-action-report-test.sh`,
+  `scripts/github-action-docs-test.sh` e
+  `scripts/github-marketplace-readiness-test.sh`: passaram. Esses testes
+  confirmaram os modos anteriores, os exits `0`, `2`, `3` e `4` de drift,
+  validação de paths e inputs, mounts/read-only, ausência de credenciais,
+  reporting limitado e escaping de conteúdo hostil.
+- `scripts/github-action-security-test.sh 1.9.0`: passou contra a imagem
+  pública no digest
+  `sha256:6e21eedd232b2b2858611c8876ba06b52098986336de1461c5d950b7582f4ae9`.
+- `scripts/github-action-fixtures.sh .tmp/phase2-action-contract` seguido de
+  `scripts/github-action-contract-test.sh 1.9.0
+  .tmp/phase2-action-contract`: passou contra a imagem publicada. As fixtures
+  temporárias foram removidas depois da execução.
+- Em `website`, `npm ci`, `npm run validate` e
+  `npm run test:spelling`: passaram. A validação sincronizou 78 documentos,
+  produziu `0` diagnósticos Astro, executou `6` testes, gerou 118 páginas,
+  verificou 46 rotas bilíngues, links, SEO, HTML e 55 arquivos de ortografia
+  sem issues. A sincronização não produziu diff adicional.
+- `git diff --check`: passou depois do ajuste documental final.
+
+Revisão final de compatibilidade e segurança:
+
+- `doctor` é aditivo, somente leitura e mantém os exits existentes: `0` para
+  relatório sem erros, `2` para uso inválido e `3` para diagnóstico operacional
+  inconclusivo ou com erros. Não altera JSON/SARIF nem defaults de comandos
+  anteriores.
+- O modo `drift` da Action é aditivo e delega decisão à CLI/Core. Paths são
+  canonicalizados antes do container; regras, baseline e até 20 evidências
+  permanecem arquivos JSON explícitos dentro do workspace. O container usa
+  filesystem read-only, capabilities removidas e rede desabilitada, sem
+  encaminhar secrets ou oferecer escrita de baseline.
+- O renderer de summary valida schema `1.0`, shape, duplicatas e limites antes
+  de emitir Markdown; falha de reporting não substitui o exit original da CLI.
+- Não houve mudança de versão, dependência, permissão de workflow, contrato
+  MCP/VS Code, publicação ou funcionalidade da Fase 3. CodeQL, Dependency
+  Review, NuGet Audit, actionlint, zizmor, Hadolint e Trivy não foram
+  enfraquecidos pelo diff.
+
+Limitações e pendências finais:
+
+- `scripts/github-action-smoke-test.sh 1.9.0` confirmou `check`, `index` e as
+  rejeições anteriores, mas não completou no Windows. Depois de impedir a
+  conversão indevida de `/workspace` pelo MSYS, o Git Bash ainda não criou o
+  symlink Linux usado pelo caso de escape e o wrapper recebeu um diretório
+  interno válido. O job Linux do Pull Request deve completar esse gate.
+- `actionlint`, `shellcheck` e `zizmor` não estavam instalados localmente e não
+  foram baixados implicitamente. Os workflows pinados de segurança devem
+  executar esses gates no Pull Request, junto com os jobs hospedados da Action.
+- A extensão VS Code não foi repetida porque nenhum arquivo ou contrato da
+  extensão foi alterado. O MCP foi coberto pela suíte completa e pelo recorte
+  de integração, embora seu source também não tenha mudado.
+- A issue #209 permanece aberta e **não está integralmente concluída**. O
+  walkthrough do mantenedor não substitui observação independente com ao
+  menos três participantes consentidos; validação visual independente do VS
+  Code, tempos/intervenções e evidência de adoção continuam pendentes.
+
 ## Critérios de conclusão
 
 - A issue #209 possui relatório conciso e roteiro reproduzível com dois
