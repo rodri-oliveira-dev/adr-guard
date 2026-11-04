@@ -267,7 +267,8 @@ internal static class CliApplication
         IAdrGenerationProvider? generationProvider = null,
         Func<HttpClient>? httpClientFactory = null,
         Func<string, string?>? environmentVariableReader = null,
-        IAdrReviewProvider? reviewProvider = null) =>
+        IAdrReviewProvider? reviewProvider = null,
+        string? invocationDirectory = null) =>
         RunCore(
             args,
             TextReader.Null,
@@ -277,7 +278,8 @@ internal static class CliApplication
             httpClientFactory,
             environmentVariableReader,
             reviewProvider,
-            default);
+            default,
+            invocationDirectory);
 
     internal static int Run(
         IReadOnlyList<string> args,
@@ -297,7 +299,8 @@ internal static class CliApplication
             httpClientFactory,
             environmentVariableReader,
             reviewProvider,
-            cancellationToken);
+            cancellationToken,
+            null);
 
     internal static int Run(
         IReadOnlyList<string> args,
@@ -314,7 +317,8 @@ internal static class CliApplication
             null,
             null,
             null,
-            cancellationToken);
+            cancellationToken,
+            null);
 
     private static int RunCore(
         IReadOnlyList<string> args,
@@ -325,7 +329,8 @@ internal static class CliApplication
         Func<HttpClient>? httpClientFactory,
         Func<string, string?>? environmentVariableReader,
         IAdrReviewProvider? reviewProvider,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? invocationDirectory)
     {
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(input);
@@ -349,7 +354,7 @@ internal static class CliApplication
         {
             var configuration = args[0] == "init"
                 ? null
-                : AdrGuardConfigurationLoader.Load(Directory.GetCurrentDirectory());
+                : AdrGuardConfigurationLoader.Load(invocationDirectory ?? Directory.GetCurrentDirectory());
             effectiveArgs = ConfigurationArguments.Apply(args, configuration);
         }
         catch (AdrGuardConfigurationException exception)

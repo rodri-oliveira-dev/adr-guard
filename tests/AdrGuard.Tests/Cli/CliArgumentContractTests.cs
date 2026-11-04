@@ -36,6 +36,8 @@ public sealed class CliArgumentContractTests
         },
         { "baseline", ["baseline"] },
         { "baseline", ["baseline", "--output"] },
+        { "baseline", ["baseline", "--output", ""] },
+        { "baseline", ["baseline", "--output", "   "] },
         { "baseline", ["baseline", "--output", "baseline.json", "--update", "--update"] },
         {
             "baseline",
@@ -102,7 +104,7 @@ public sealed class CliArgumentContractTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = CliApplication.Run(arguments, output, error);
+        var exitCode = RunInIsolatedDirectory(arguments, output, error);
 
         Assert.Equal(ExitCodes.UsageError, exitCode);
         Assert.Equal(string.Empty, output.ToString());
@@ -121,7 +123,7 @@ public sealed class CliArgumentContractTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = CliApplication.Run([command, "--help"], output, error);
+        var exitCode = RunInIsolatedDirectory([command, "--help"], output, error);
 
         Assert.Equal(ExitCodes.Success, exitCode);
         Assert.StartsWith($"Usage:\n  adr-guard {command} ", output.ToString());
@@ -134,7 +136,7 @@ public sealed class CliArgumentContractTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = CliApplication.Run(
+        var exitCode = RunInIsolatedDirectory(
             ["draft", "--title", "Title", "--context", "Context", "--template", "unknown"],
             output,
             error);
@@ -153,7 +155,7 @@ public sealed class CliArgumentContractTests
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = CliApplication.Run(
+        var exitCode = RunInIsolatedDirectory(
             [
                 "review",
                 "missing.md",
@@ -174,5 +176,26 @@ public sealed class CliArgumentContractTests
             + Environment.NewLine
             + $"Run 'adr-guard review --help' for usage.{Environment.NewLine}",
             error.ToString());
+    }
+
+    private static int RunInIsolatedDirectory(
+        IReadOnlyList<string> arguments,
+        TextWriter output,
+        TextWriter error)
+    {
+        var directory = Directory.CreateTempSubdirectory("adr-guard-cli-contract-");
+
+        try
+        {
+            return CliApplication.Run(
+                arguments,
+                output,
+                error,
+                invocationDirectory: directory.FullName);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
     }
 }

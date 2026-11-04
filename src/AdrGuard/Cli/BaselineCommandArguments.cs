@@ -68,7 +68,8 @@ internal sealed record BaselineCommandArguments(
         ParseState state)
     {
         if (state.OutputPath is not null
-            || !TryReadValue(args, ref index, out var value))
+            || !TryReadValue(args, ref index, out var value)
+            || string.IsNullOrWhiteSpace(value))
         {
             return false;
         }
