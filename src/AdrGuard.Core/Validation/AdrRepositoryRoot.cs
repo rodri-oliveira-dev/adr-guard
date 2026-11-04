@@ -14,16 +14,9 @@ internal static class AdrRepositoryRoot
 
         // An explicit ADR directory may be selected from outside the repository
         // or from a nested working directory. Prefer the nearest repository marker.
-        for (var current = new DirectoryInfo(checkedDirectory);
-             current is not null;
-             current = current.Parent)
+        if (TryResolve(checkedDirectory, out var repositoryRoot))
         {
-            if (File.Exists(Path.Combine(current.FullName, AdrGuardConfigurationFile.Name))
-                || Directory.Exists(Path.Combine(current.FullName, ".git"))
-                || File.Exists(Path.Combine(current.FullName, ".git")))
-            {
-                return current.FullName;
-            }
+            return repositoryRoot;
         }
 
         // Preserve existing invocations from a repository without marker files.
@@ -35,5 +28,25 @@ internal static class AdrRepositoryRoot
             && !relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
             && !relative.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal);
         return isWithinInvocation ? invocationRoot : checkedDirectory;
+    }
+
+    internal static bool TryResolve(string directoryPath, out string repositoryRoot)
+    {
+        var checkedDirectory = Path.GetFullPath(directoryPath);
+        for (var current = new DirectoryInfo(checkedDirectory);
+             current is not null;
+             current = current.Parent)
+        {
+            if (File.Exists(Path.Combine(current.FullName, AdrGuardConfigurationFile.Name))
+                || Directory.Exists(Path.Combine(current.FullName, ".git"))
+                || File.Exists(Path.Combine(current.FullName, ".git")))
+            {
+                repositoryRoot = current.FullName;
+                return true;
+            }
+        }
+
+        repositoryRoot = string.Empty;
+        return false;
     }
 }

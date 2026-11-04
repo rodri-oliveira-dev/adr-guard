@@ -67,6 +67,8 @@ adr-guard index docs/adr
 
 `check` validates the ADR set. `index` validates again and creates or updates `docs/adr/README.md`; `new` does not update the index automatically. Read the [first ADR tutorial](docs/guides/getting-started.md) for the complete workflow.
 
+The current development branch also includes the unpublished, read-only `adr-guard doctor [repository]` command for local CLI, repository, configuration, ADR-directory, .NET, and optional Git diagnostics. It never applies fixes or accesses the network. See the [CLI reference](docs/cli-reference.md#diagnose-a-local-environment) and verify a later release before using it from automation; it is not included in the published CLI 1.9.0 package.
+
 ## Choose the right structure
 
 | Option | Use it when | Product boundary |

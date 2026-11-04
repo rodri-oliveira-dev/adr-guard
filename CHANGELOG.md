@@ -6,6 +6,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
+- Add the source-only `adr-guard doctor [repository]` command for ordered, read-only local diagnostics of the CLI, repository, strict configuration, ADR directory, .NET runtime, and optional Git availability, with actionable text and stable exit semantics. It is not yet part of a published artifact.
 - Harden the container supply chain by moving the pinned build and runtime bases to the official .NET Alpine variants, retaining the bounded Git dependency and non-root execution while removing a vulnerable transitive Perl package chain.
 
 ## [1.9.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0) — 2026-10-20

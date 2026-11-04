@@ -13,6 +13,7 @@ This table mirrors the command dispatcher and built-in `--help`. Specialized gui
 | Command | Required inputs and principal options | Writes / external effects | Exit contract |
 | --- | --- | --- | --- |
 | `init [repository]` | Optional ADR directory, template, workflow generation, `--dry-run`, `--overwrite` | Writes configuration/template/workflow only when explicitly requested; dry run does not write | `0`, `2`, `3` |
+| `doctor [repository]` | Optional repository directory; no other options | Read-only local diagnostics; one bounded `git --version` probe; no network, provider, installation, or fix | `0` without errors, `2`, `3` |
 | `check [directory]` | Text/JSON/SARIF, ADR format, lifecycle/supersession, filename/placeholder/metadata/profile policy, optional changed/base ref and diagnostic baseline | Read-only; local Git read for `--changed` | `0` valid, `1` findings, `2`, `3` |
 | `baseline [directory] --output <file>` | Validation policy options; `--update` required to replace | Creates or explicitly replaces one versioned baseline | `0`, `2`, `3` |
 | `index [directory]` | Optional output, validation policy, `--catalog enriched` | Writes deterministic standard index or enriched catalog only after validation | `0`, `1`, `2`, `3` |
@@ -36,6 +37,21 @@ adr-guard init [repository] [--adr-directory <path>]
 `repository` defaults to the invocation directory. Managed paths must be relative, stay inside that repository, and cannot traverse symbolic links/reparse points. `--dry-run` reports the exact planned files without writing. Repeating the same command does not rewrite unchanged files. Existing files cause an operational error unless `--overwrite` explicitly authorizes replacement.
 
 `--github-actions` writes `.github/workflows/adr-guard.yml` with `contents: read`, no provider credentials, and no write permission.
+
+## Diagnose a local environment
+
+> Source availability: `doctor` is implemented on the current development branch and is not part of the published CLI 1.9.0 artifacts described above. Verify a later release before depending on it from automation.
+
+```text
+adr-guard doctor [repository]
+adr-guard doctor --help
+```
+
+`repository` defaults to the invocation directory. The command reports six checks in stable order: CLI identity, repository detection, strict `.adrguard.yml` configuration, the effective ADR directory, the current .NET runtime, and the optional local Git executable. Each line begins with `OK`, `WARNING`, or `ERROR`, includes a short diagnosis, and provides `Fix:` guidance when there is a safe manual action. A final summary counts each severity.
+
+The command is local and read-only. It does not read ADR contents, inspect provider credentials, access the network or Git remotes, install tools, create files/directories, or apply fixes. Configuration uses the same strict 64 KiB schema 1 loader and contained-path protections as other commands. Git detection invokes only a bounded local `git --version` probe with no shell.
+
+Warnings, including missing optional Git or absent configuration with legacy defaults, return `0`. Any `ERROR` returns operational exit `3`; invalid arguments return `2` on stderr. Paths in the report are limited to `.`, `.adrguard.yml`, and validated repository-relative paths; absolute paths and raw local process errors are not emitted.
 
 ## Configuration
 

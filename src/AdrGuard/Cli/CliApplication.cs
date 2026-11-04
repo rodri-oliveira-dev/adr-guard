@@ -26,6 +26,7 @@ internal static class CliApplication
 
         Usage:
           adr-guard init [repository] [options]
+          adr-guard doctor [repository]
           adr-guard check [directory] [--format text|json|sarif] [--diagnostic-locations] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>] [--changed --base-ref <ref>] [--baseline <file>]
           adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
           adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>] [--catalog enriched]
@@ -39,6 +40,7 @@ internal static class CliApplication
 
         Commands:
           init     Initialize ADR Guard configuration in an existing repository.
+          doctor   Diagnose the local repository and tool environment without changing them.
           check    Validate ADR files. Defaults to the current directory.
           baseline Generate or explicitly update a versioned diagnostic baseline.
           index    Validate ADR files and generate an index. Defaults to README.md.
@@ -352,7 +354,7 @@ internal static class CliApplication
         IReadOnlyList<string> effectiveArgs;
         try
         {
-            var configuration = args[0] == "init"
+            var configuration = args[0] is "init" or "doctor"
                 ? null
                 : AdrGuardConfigurationLoader.Load(invocationDirectory ?? Directory.GetCurrentDirectory());
             effectiveArgs = ConfigurationArguments.Apply(args, configuration);
@@ -366,6 +368,13 @@ internal static class CliApplication
         return effectiveArgs[0] switch
         {
             "init" => InitCommand.Run(effectiveArgs, output, error),
+            "doctor" => DoctorCommand.Run(
+                effectiveArgs,
+                GetVersion(),
+                invocationDirectory ?? Directory.GetCurrentDirectory(),
+                output,
+                error,
+                cancellationToken),
             "check" => RunCheck(effectiveArgs, output, error, cancellationToken),
             "baseline" => RunBaseline(effectiveArgs, output, error, cancellationToken),
             "index" => RunIndex(effectiveArgs, output, error),
