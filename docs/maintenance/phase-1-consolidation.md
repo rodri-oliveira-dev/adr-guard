@@ -439,3 +439,123 @@ A Fase 1 estará concluída somente quando todos os itens abaixo tiverem evidên
   portal.
 - O diff final não contiver funcionalidade, mudança de contrato ou versão fora
   do escopo aprovado.
+
+## Fechamento da branch
+
+O fechamento de 3 de novembro de 2026 revisou os seis commits da branch
+`refactor/phase-1-consolidation` sobre `main` em
+`4cf208f3ddf9fb14944b68db18aa3548ff4553b6`. A referência remota de `main` foi
+atualizada por HTTPS antes da comparação e permaneceu nesse commit. O recorte
+está apto a revisão em Pull Request, mas não satisfaz literalmente todos os
+critérios ambiciosos do plano original; os desvios abaixo permanecem
+explicitamente fora do ajuste final para evitar uma refatoração tardia e sem a
+mesma caracterização dos recortes concluídos.
+
+### Resultado por componente
+
+- CLI: os parsers tipados de `check`, `baseline`, `index`, `review` e `draft`
+  foram extraídos, e a seleção/carga de template de `draft` foi separada da
+  execução. Ajuda, defaults, precedência de validação, streams e exit codes
+  permaneceram no adaptador.
+- Geração e templates: leitura limitada, decode, parsing e validação de
+  template customizado formam etapas explícitas; o scanner estrutural mantém o
+  estado de fences e os mesmos limites de headings.
+- Review: a resolução de evidência foi decomposta em operações puras sem
+  aceitar novas fontes, paths ou inferências. O schema `1.0`, o caráter
+  consultivo e a security boundary não foram alterados.
+- Documentação e distribuição: o estado realmente publicado de CLI, MCP,
+  extensão e Action foi reconciliado em inglês e pt-BR. Nenhuma versão,
+  release, tag ou pacote publicado foi alterado.
+- Core, MCP, extensão e Action: não houve mudança de regra compartilhada nem
+  de código de runtime nessas superfícies. Elas foram validadas como
+  consumidoras dos contratos preservados.
+
+### Compatibilidade confirmada
+
+- Os comandos e argumentos existentes, os exit codes `0` a `4`, mensagens de
+  uso e ordem de falha permaneceram cobertos pela suíte completa e pelos testes
+  de caracterização adicionados.
+- JSON, SARIF, fingerprints, schema de review, sete ferramentas MCP e contratos
+  estritos consumidos pela extensão permaneceram sem alteração.
+- Os templates Minimal, Extended e Custom em en-US/pt-BR foram exercitados a
+  partir do pacote instalado; renderização, `check`, `index`, ausência de
+  overwrite e determinismo permaneceram compatíveis.
+- O pacote da CLI continuou contendo Core e excluindo MCP; o pacote MCP
+  continuou contendo Core e excluindo a CLI. As versões permaneceram CLI
+  `1.9.0`, MCP source `1.0.1` e extensão `1.1.0`.
+- Os testes novos usam somente argumentos e strings determinísticos em memória,
+  `StringWriter` e parsers locais. Eles não dependem de rede, credenciais,
+  relógio, arquivos do usuário ou ordem de execução.
+
+### Evidências de validação final
+
+Todos os comandos abaixo foram executados da raiz do repositório, salvo quando
+o diretório é indicado:
+
+- `dotnet restore AdrGuard.slnx`: concluído com sucesso.
+- `dotnet build AdrGuard.slnx --configuration Release --no-restore`: concluído
+  com zero avisos e zero erros.
+- `dotnet test --solution AdrGuard.slnx --configuration Release --no-build`:
+  744 aprovados, zero falhos e zero ignorados, incluindo a suíte MCP.
+- CLI e MCP foram empacotados com
+  `dotnet pack --configuration Release --no-build`, instalados de fontes NuGet
+  locais isoladas e inspecionados. As
+  regressões do pacote instalado para templates/CLI e documentação de review
+  passaram; o pacote MCP instalado concluiu 22 testes, todos aprovados.
+- Em `extensions/vscode`, `npm ci --ignore-scripts`, `npm run lint`,
+  `npm run typecheck`, `npm run build`, `npm run test:readme-images`,
+  `npm run test:unit` e `npm run test:integration` passaram. A suíte unitária
+  teve 115 testes
+  aprovados, zero falhos e um ignorado por condição de plataforma; as suítes
+  extension-host tiveram 17 testes aprovados.
+- Em `website`, `npm ci --ignore-scripts`, `npm run sync:docs`,
+  `npm run validate` e `npm run test:spelling` passaram. Foram sincronizados 78
+  documentos, executados seis testes, construídas 118 páginas, verificadas 46
+  rotas bilíngues, links em 118 arquivos HTML e SEO em 116 páginas; Astro e
+  spelling terminaram sem findings.
+- `scripts/github-action-docs-test.sh`,
+  `scripts/github-action-impact-test.sh` e
+  `scripts/github-action-report-test.sh` passaram usando Git Bash explícito.
+- O ADR Guard empacotado validou os oito ADRs de `docs/adr` sem findings.
+- A consulta Sonar da branch retornou zero issues, mas o quality gate respondeu
+  `NOT_COMPUTED` sem condições; isso confirma ausência de análise, não ausência
+  comprovada de findings.
+- `git diff --check` foi executado com sucesso antes do commit de fechamento.
+
+Os testes Linux-específicos `github-action-smoke-test.sh` e
+`github-action-review-test.sh` não puderam ser concluídos integralmente no host
+Windows: o primeiro requer mounts Docker com paths POSIX reais, e o segundo
+isola `PATH` pressupondo utilitários do runner Linux. O teste de review chegou
+ao caso negativo de Python, mas o ambiente Git Bash falhou antes da asserção.
+Esses gates continuam obrigatórios no CI Linux; não foram registrados como
+aprovados localmente.
+
+### Findings tratados e pendências conscientes
+
+Os métodos associados aos findings de complexidade de parsing de `check`,
+`baseline`, `index`, `review` e `draft`, ao fluxo de template de `draft`, ao
+loader/parser de template customizado, ao scanner estrutural e à resolução de
+evidência deixaram de concentrar as condicionais apontadas. O estado definitivo
+dos findings depende de nova análise da branch no SonarQube; ausência de análise
+não foi interpretada como fechamento.
+
+Permanecem pendentes, sem regressão conhecida e sem ampliação deste PR:
+
+- extrair os parsers de `impact` e `drift`, que ainda estão em
+  `CliApplication`; por isso a classe ainda não atende ao critério literal de
+  conter somente roteamento e adaptação;
+- decompor `ReviewCommand` e `AdrReviewTextRenderer`, e avaliar
+  `AdrReviewPolicyLoader.Validate` somente por um seam coeso;
+- tratar `AdrMarkdownRenderer.RenderTemplate` e os loaders/parsers selecionados
+  do Core um domínio por vez;
+- executar nova análise Sonar, reconciliar os findings comprovadamente
+  resolvidos e registrar a justificativa arquitetural dos `S3871` sem tornar
+  exceções internas públicas;
+- executar no CI Linux os dois gates da Action que não são portáveis para o
+  host Windows usado neste fechamento.
+
+Esses itens são dívida de consolidação remanescente, não funcionalidades da
+Fase 2, e devem conservar o mesmo requisito de caracterização antes de qualquer
+extração. Nenhuma regressão diretamente causada pela branch foi encontrada
+durante o fechamento; portanto, além desta atualização de evidências, não foi
+necessário alterar código de produção.
