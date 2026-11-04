@@ -176,6 +176,159 @@ deve ser isolado e preservar comportamento antes de uma mudança de produto.
 4. Atualizar a referência da CLI e onboarding nos dois idiomas apenas quando o
    comportamento observável mudar.
 
+#### Contrato planejado de `adr-guard doctor`
+
+Esta etapa define o contrato antes da implementação. O comando será um
+diagnóstico local, determinístico, somente leitura e independente de providers:
+
+```text
+adr-guard doctor [repository]
+adr-guard doctor --help
+```
+
+`repository` será um único diretório opcional e usará o diretório de invocação
+por padrão. O argumento é necessário para que pessoas, a extensão VS Code e
+clientes de automação possam diagnosticar explicitamente o mesmo workspace. A
+primeira versão não terá `--format`, JSON, correção automática, descoberta de
+rede, instalação de ferramentas nem outras opções. `-h` e `--help` serão os
+únicos argumentos alternativos ao diretório.
+
+##### Encaixe na arquitetura existente
+
+- `CliApplication` deverá incluir `doctor` no help e no dispatch, delegando a
+  execução a um handler `DoctorCommand`, como os demais comandos da pasta
+  `Cli`. O handler adaptará resultados para texto e exit code; regras de path,
+  configuração e identificação reutilizáveis permanecerão no Core.
+- `doctor` deverá ser roteado, como `init`, antes de
+  `AdrGuardConfigurationLoader.Load` e `ConfigurationArguments.Apply`. O
+  handler carregará a configuração explicitamente para poder relatar uma
+  `.adrguard.yml` inválida em vez de ser interrompido pelo preflight global.
+- O carregamento manterá o parser estrito, o limite de 64 KiB, a rejeição de
+  symlink/reparse point e a normalização confinada de `RepositoryPath` já
+  existentes. O comando não criará um segundo parser de configuração.
+- A versão virá da mesma identidade usada por `adr-guard --version`. A
+  identificação do repositório reconhecerá o marcador local `.git` como
+  diretório ou arquivo de worktree e poderá reutilizar a resolução de raiz
+  existente, sem consultar remotes ou alterar o Git.
+
+##### Checks, severidade e recuperação
+
+Os checks aparecerão sempre nesta ordem. Cada linha começará com `OK`,
+`WARNING` ou `ERROR`, seguida do nome estável do check, uma mensagem curta e,
+quando houver ação segura, `Fix: <correção sugerida>`.
+
+| Check | `OK` | `WARNING` | `ERROR` e correção |
+| --- | --- | --- | --- |
+| CLI | A versão informacional atual foi obtida. | Não aplicável. | Falha inesperada ao obter a própria identidade impede concluir o diagnóstico. |
+| Repository | A raiz selecionada existe, pode ser lida e possui marcador `.git`. | A raiz possui `.adrguard.yml`, mas não marcador Git; fluxos básicos continuam disponíveis, enquanto recursos baseados em Git não. | Diretório inexistente/inacessível ou nenhuma raiz ADR Guard/Git identificável. `Fix`: executar em um repositório existente ou informar seu diretório. |
+| Configuration | `.adrguard.yml` schema 1 foi carregada e seus paths são seguros. | Arquivo ausente; os defaults legados continuam válidos. `Fix`: revisar `adr-guard init --dry-run` quando configuração compartilhada for desejada. | Arquivo ilegível, grande demais, malformado, com schema/propriedade/valor incompatível ou path inseguro. `Fix`: corrigir a causa limitada informada na `.adrguard.yml`; o comando nunca a regrava. |
+| ADR directory | O diretório efetivo existe, é legível, está contido na raiz e não atravessa symlink/reparse point. | Sem configuração, o escopo legado é a raiz selecionada; informar que nenhum diretório dedicado foi configurado. | Diretório configurado ausente, inacessível ou inseguro. `Fix`: criar/corrigir o diretório dentro da raiz ou ajustar `adr-directory`. |
+| .NET runtime | O runtime que já hospeda a CLI é identificado localmente. | Não aplicável na primeira versão. | Falha inesperada de introspecção impede concluir o diagnóstico. |
+| Git | Um executável Git local responde a uma consulta limitada de versão. | Git ausente, incompatível, excedeu o tempo/saída ou não pôde ser iniciado. `Fix`: instalar/corrigir Git somente se forem usados `--changed`, `impact`, `drift` ou comparações Git. | Não aplicável: Git é opcional para `init`, `new`, `check` completo e `index`. |
+
+Um check dependente que não puder ser executado usará `WARNING`, dirá qual
+pré-requisito o bloqueou e não inferirá sucesso. Por exemplo, configuração
+inválida produz `ERROR Configuration` e `WARNING ADR directory: not checked
+because configuration is invalid`. A ausência de providers, chaves, extensão
+VS Code, servidor MCP ou acesso à rede não será inspecionada: nenhum deles é
+pré-requisito do fluxo offline básico.
+
+##### Streams e exit codes
+
+- Um relatório concluído é gravado no `stdout`, termina com contagens de
+  `OK`, `WARNING` e `ERROR` e retorna `0` quando não há `ERROR`, inclusive com
+  um ou mais warnings.
+- Um relatório concluído com pelo menos um `ERROR` retorna
+  `ExitCodes.OperationalError` (`3`). Estado local inválido não será convertido
+  em sucesso, validação ADR (`1`) nem policy (`4`).
+- Argumento extra, opção desconhecida, help combinado com outro argumento ou
+  mais de um diretório retorna `ExitCodes.UsageError` (`2`) no `stderr`, com a
+  mesma forma `Invalid arguments` e hint de help dos comandos atuais.
+- Falha que impeça produzir um relatório confiável também retorna `3` no
+  `stderr`. Resultados parciais não serão apresentados como conclusivos.
+
+##### Exemplos textuais
+
+Repositório pronto, com Git opcional indisponível:
+
+```text
+ADR Guard doctor
+OK CLI: 1.9.0
+OK Repository: detected at the selected root (Git worktree).
+OK Configuration: .adrguard.yml schema 1 loaded.
+OK ADR directory: docs/adr exists and is readable.
+OK .NET runtime: 10.0.x
+WARNING Git: executable not available. Fix: install Git only for Git-based commands.
+Summary: 5 OK, 1 WARNING, 0 ERROR
+```
+
+Execução fora de um repositório retorna `3`:
+
+```text
+ADR Guard doctor
+OK CLI: 1.9.0
+ERROR Repository: no ADR Guard or Git repository was detected. Fix: run from an existing repository or pass its directory.
+WARNING Configuration: not checked because no repository root was identified.
+WARNING ADR directory: not checked because no repository root was identified.
+OK .NET runtime: 10.0.x
+OK Git: 2.x available.
+Summary: 3 OK, 2 WARNING, 1 ERROR
+```
+
+Configuração inválida também retorna `3`, sem imprimir o path absoluto:
+
+```text
+ERROR Configuration: .adrguard.yml line 2 has unknown property 'adrs'. Fix: use supported schema 1 top-level scalar properties.
+WARNING ADR directory: not checked because configuration is invalid.
+```
+
+Os exemplos fixam a forma e a semântica, não os valores de versão. A
+implementação deverá preservar a ordem e pontuação verificadas pelos testes,
+sem transformar o texto em novo contrato JSON implícito.
+
+##### Limites de segurança
+
+- Não acessar rede, remotes, providers, package feeds, variáveis de credencial,
+  conteúdo de ADRs ou arquivos fora da raiz selecionada; não executar hooks,
+  instalar ferramentas, criar diretórios nem gravar arquivos.
+- Canonicalizar a raiz antes das leituras, confinar paths configurados e rejeitar
+  escapes e symlinks/reparse points conforme as regras existentes.
+- Se Git for consultado, usar apenas argumentos literais com shell desabilitado,
+  stdin fechado, timeout máximo de 5 segundos e no máximo 4 KiB combinados de
+  stdout/stderr. Não encaminhar mensagens arbitrárias do Git sem sanitização.
+- Nunca imprimir paths absolutos, diretórios de perfil, remotes, nomes de usuário,
+  ambiente ou credenciais. Exibir somente `.`, `.adrguard.yml` e paths relativos
+  já validados dentro da raiz. Remover controles, normalizar quebras de linha e
+  limitar cada mensagem antes de renderizar dados locais não confiáveis.
+- Não testar permissão de escrita criando arquivos temporários. O diagnóstico
+  afirma apenas existência e leitura que realmente conseguiu comprovar.
+
+##### Casos de teste para a etapa de implementação
+
+1. Help global lista `doctor`; `doctor --help` retorna `0` sem carregar uma
+   configuração inválida; argumentos desconhecidos/duplicados retornam `2` com
+   diagnóstico exato no `stderr`.
+2. Repositório Git saudável, worktree com `.git` em arquivo e raiz ADR Guard sem
+   Git produzem estados determinísticos, sem revelar path absoluto.
+3. Execução fora de repositório, raiz inexistente e raiz inacessível cobrem a
+   diferença entre `ERROR` relatável e falha que impede concluir o relatório.
+4. Configuração ausente, válida, malformada, grande demais, ilegível, em
+   symlink, com schema incompatível e com `adr-directory` inseguro preserva os
+   limites e diagnósticos do loader atual.
+5. Diretório ADR existente, ausente, inacessível e atravessando reparse point
+   cobre `OK`/`ERROR` sem abrir ou interpretar seus arquivos Markdown.
+6. Git disponível, ausente, com exit não zero, timeout e saída excessiva gera
+   apenas `OK`/`WARNING`; fakes locais comprovam que nenhum comando de rede,
+   hook ou escrita foi executado.
+7. Relatórios somente com `OK`, com warnings e com errors validam ordem,
+   resumo, separação stdout/stderr e exits `0`/`3` sem usar `1` ou `4`.
+8. Paths e mensagens hostis com controle, quebra de linha, delimitador de
+   workflow e texto semelhante a segredo são limitados/sanitizados e nunca
+   ecoam valores de ambiente.
+
+Esses testes serão adicionados somente junto da implementação. Esta etapa não
+adiciona stubs, testes pendentes nem altera o build.
+
 ### 3. Integrar `drift` à GitHub Action
 
 1. Definir o contrato aditivo de inputs para manifest de regras, lista limitada
