@@ -64,6 +64,15 @@ grep -Eq '^  provider:' "${ROOT_DIR}/action.yml"
 grep -Eq '^  model:' "${ROOT_DIR}/action.yml"
 grep -Eq '^  base-ref:' "${ROOT_DIR}/action.yml"
 grep -Eq '^  impact-map:' "${ROOT_DIR}/action.yml"
+grep -Eq '^  drift-rules:' "${ROOT_DIR}/action.yml"
+grep -Eq '^  drift-policy:' "${ROOT_DIR}/action.yml"
+grep -Eq '^  drift-baseline:' "${ROOT_DIR}/action.yml"
+grep -Eq '^  drift-evidence:' "${ROOT_DIR}/action.yml"
+
+if grep -Eq '^[[:space:]]+(drift-write-baseline|drift-update-baseline|script|command-line):' "${ROOT_DIR}/action.yml"; then
+  echo "The Action must not expose drift writes or arbitrary command execution." >&2
+  exit 1
+fi
 
 grep -Fq 'apk add --no-cache git=2.54.0-r0' "${ROOT_DIR}/Dockerfile"
 grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"

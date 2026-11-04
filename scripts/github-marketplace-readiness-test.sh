@@ -7,7 +7,7 @@ MARKETPLACE_EN="${ROOT_DIR}/docs/github-marketplace.md"
 MARKETPLACE_PT="${ROOT_DIR}/docs/github-marketplace.pt-BR.md"
 
 expected_name="ADR Guard - Architecture Decision Validator"
-expected_description="Validate, index, review, or inspect the impact of Architecture Decision Records (ADRs) with safe GitHub reporting."
+expected_description="Validate, index, review, analyze impact, or verify ADR-backed architectural drift with safe GitHub reporting."
 
 if [[ "${REPOSITORY_VISIBILITY:-}" != "public" ]]; then
   echo "GitHub Marketplace publication requires a public repository; got '${REPOSITORY_VISIBILITY:-<unknown>}'." >&2

@@ -15,6 +15,10 @@ review_policy="${ADR_GUARD_REVIEW_POLICY:-advisory}"
 review_policy_file="${ADR_GUARD_REVIEW_POLICY_FILE:-}"
 impact_base_ref="${ADR_GUARD_IMPACT_BASE_REF:-}"
 impact_map="${ADR_GUARD_IMPACT_MAP:-}"
+drift_rules="${ADR_GUARD_DRIFT_RULES:-}"
+drift_policy="${ADR_GUARD_DRIFT_POLICY:-advisory}"
+drift_baseline="${ADR_GUARD_DRIFT_BASELINE:-}"
+drift_evidence="${ADR_GUARD_DRIFT_EVIDENCE:-}"
 event_name="${ADR_GUARD_EVENT_NAME:-${GITHUB_EVENT_NAME:-}}"
 repository="${ADR_GUARD_REPOSITORY:-${GITHUB_REPOSITORY:-}}"
 pr_head_repository="${ADR_GUARD_PR_HEAD_REPOSITORY:-}"
@@ -89,14 +93,14 @@ if [[ -z "${GITHUB_WORKSPACE:-}" || ! -d "${GITHUB_WORKSPACE}" ]]; then
 fi
 
 if [[ -z "${command}" ]]; then
-  usage_error "The 'command' input must not be empty. Allowed values: check, index, review, impact."
+  usage_error "The 'command' input must not be empty. Allowed values: check, index, review, impact, drift."
 fi
 
 case "${command}" in
-  check|index|review|impact)
+  check|index|review|impact|drift)
     ;;
   *)
-    usage_error "Unsupported command '${command}'. Allowed values: check, index, review, impact."
+    usage_error "Unsupported command '${command}'. Allowed values: check, index, review, impact, drift."
     ;;
 esac
 
@@ -107,7 +111,10 @@ resolved_path=""
 resolved_review_target=""
 resolved_review_policy_file=""
 resolved_impact_map=""
+resolved_drift_rules=""
+resolved_drift_baseline=""
 declare -a resolved_review_context_files=()
+declare -a resolved_drift_evidence=()
 
 if [[ "${command}" == "review" ]]; then
   case "${event_name}" in
@@ -224,6 +231,59 @@ elif [[ "${command}" == "impact" ]]; then
   if ! command -v python3 >/dev/null 2>&1; then
     operational_error "Python 3 is required for bounded architecture impact summary rendering."
   fi
+elif [[ "${command}" == "drift" ]]; then
+  if [[ -z "${drift_rules}" ]]; then
+    usage_error "The 'drift-rules' input is required when command is 'drift'."
+  fi
+
+  case "${drift_policy}" in
+    advisory|enforce)
+      ;;
+    *)
+      usage_error "The 'drift-policy' input must be 'advisory' or 'enforce'."
+      ;;
+  esac
+
+  resolve_inside_workspace "${drift_rules}" "The 'drift-rules' input"
+  resolved_drift_rules="${RESOLVED_INPUT_PATH}"
+  if [[ ! -f "${resolved_drift_rules}" || "${resolved_drift_rules,,}" != *.json ]]; then
+    usage_error "The 'drift-rules' input must resolve to a JSON file."
+  fi
+
+  if [[ -n "${drift_baseline}" ]]; then
+    resolve_inside_workspace "${drift_baseline}" "The 'drift-baseline' input"
+    resolved_drift_baseline="${RESOLVED_INPUT_PATH}"
+    if [[ ! -f "${resolved_drift_baseline}" || "${resolved_drift_baseline,,}" != *.json ]]; then
+      usage_error "The 'drift-baseline' input must resolve to a JSON file."
+    fi
+  fi
+
+  if [[ -n "${drift_evidence}" ]]; then
+    while IFS= read -r evidence_path || [[ -n "${evidence_path}" ]]; do
+      evidence_path="${evidence_path%$'\r'}"
+      [[ -z "${evidence_path}" ]] && continue
+
+      if (( ${#resolved_drift_evidence[@]} >= 20 )); then
+        usage_error "The 'drift-evidence' input accepts at most 20 files."
+      fi
+
+      resolve_inside_workspace "${evidence_path}" "Each 'drift-evidence' entry"
+      if [[ ! -f "${RESOLVED_INPUT_PATH}" || "${RESOLVED_INPUT_PATH,,}" != *.json ]]; then
+        usage_error "Drift evidence '${evidence_path}' must resolve to a JSON file."
+      fi
+
+      for existing_evidence in "${resolved_drift_evidence[@]}"; do
+        if [[ "${existing_evidence}" == "${RESOLVED_INPUT_PATH}" ]]; then
+          usage_error "The 'drift-evidence' input must not contain duplicate files."
+        fi
+      done
+      resolved_drift_evidence+=("${RESOLVED_INPUT_PATH}")
+    done <<< "${drift_evidence}"
+  fi
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    operational_error "Python 3 is required for bounded architecture drift summary rendering."
+  fi
 else
   if [[ -z "${adr_path}" ]]; then
     usage_error "The 'path' input must not be empty."
@@ -271,6 +331,12 @@ if [[ "${command}" == "impact" ]] && ! docker run --rm --pull=never --read-only 
     --cap-drop=ALL --security-opt=no-new-privileges --network=none \
     "${image}" impact --help >/dev/null 2>&1; then
   operational_error "ADR Guard image '${image}' does not expose the required impact CLI contract. Select an Action/runtime release that supports impact."
+fi
+
+if [[ "${command}" == "drift" ]] && ! docker run --rm --pull=never --read-only \
+    --cap-drop=ALL --security-opt=no-new-privileges --network=none \
+    "${image}" drift --help >/dev/null 2>&1; then
+  operational_error "ADR Guard image '${image}' does not expose the required drift CLI contract. Select an Action/runtime release that supports drift."
 fi
 
 echo "Running ADR Guard ${version}: ${command} using ${image}."
@@ -330,6 +396,29 @@ elif [[ "${command}" == "impact" ]]; then
     --map "${resolved_impact_map#"${workspace}/"}"
     --format json
   )
+elif [[ "${command}" == "drift" ]]; then
+  docker_args+=(--network=none)
+  cli_args=(
+    drift
+    /workspace
+    --rules "${resolved_drift_rules#"${workspace}/"}"
+    --policy "${drift_policy}"
+    --format json
+  )
+
+  if [[ -n "${resolved_drift_baseline}" ]]; then
+    cli_args+=(
+      --baseline
+      "${resolved_drift_baseline#"${workspace}/"}"
+    )
+  fi
+
+  for evidence_file in "${resolved_drift_evidence[@]}"; do
+    cli_args+=(
+      --evidence
+      "${evidence_file#"${workspace}/"}"
+    )
+  done
 else
   container_target="/workspace${resolved_review_target#"${workspace}"}"
 
@@ -428,6 +517,11 @@ elif [[ "${command}" == "impact" ]]; then
   if ! python3 "$(dirname "${BASH_SOURCE[0]}")/github-action-impact-report.py" \
       "${status}" "${stdout_log}"; then
     echo "::warning::ADR Guard architecture impact reporting failed; inspect the raw CLI log." >&2
+  fi
+elif [[ "${command}" == "drift" ]]; then
+  if ! python3 "$(dirname "${BASH_SOURCE[0]}")/github-action-drift-report.py" \
+      "${status}" "${stdout_log}"; then
+    echo "::warning::ADR Guard architecture drift reporting failed; inspect the raw CLI log." >&2
   fi
 else
   if ! bash "$(dirname "${BASH_SOURCE[0]}")/github-action-report.sh"     "${status}" "${workspace}" "${resolved_path}" "${stderr_log}" "${command}"; then

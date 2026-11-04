@@ -2,16 +2,16 @@
 
 > **Publication status:** the reusable Action is published, and the compatibility tag `v1` is published and moving. The public `v1` line supports `check`, `index`, and opt-in `review` since `v1.1.6`; `new` and `draft` remain CLI/container-only workflows. The [GitHub Marketplace listing](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) was independently reachable without authentication on 2026-10-09.
 
-> **Impact release status:** the `impact` inputs are available from the coordinated public v1.5.0 / `@v1` runtime. The `drift` CLI command introduced in v1.6.0 does not add Action inputs. On 2026-11-03, the moving `v1` compatibility tag and exact `v1.9.0` tag were verified at the same release commit.
+> **Impact and drift release status:** the `impact` inputs are available from the coordinated public v1.5.0 / `@v1` runtime. `drift` Action inputs are implemented only in the current development source and are not available from the published `@v1` or exact `v1.9.0` Action. Pin a reviewed source commit plus `version: 1.9.0` only for development evaluation; verify a later coordinated release before treating this as a published Action contract. On 2026-11-03, the moving `v1` compatibility tag and exact `v1.9.0` tag were verified at the same release commit.
 
-ADR Guard's composite Action runs the published ADR Guard container. Consumers do not need the .NET SDK. They need a Linux runner with Docker and must check out the repository first; opt-in `review` additionally requires Python 3 on the runner for safe summary/annotation rendering.
+ADR Guard's composite Action runs the selected published ADR Guard container. Consumers do not need the .NET SDK. They need a Linux runner with Docker and must check out the repository first; `review`, `impact`, and source-only `drift` additionally require Python 3 on the runner for bounded summary rendering.
 
 ## Inputs
 
 | Input | Default | Accepted values |
 | --- | --- | --- |
 | `path` | `docs/adr` | Repository-relative ADR directory inside `GITHUB_WORKSPACE`. Absolute paths, missing directories, `..` traversal, and symlink escapes are rejected. |
-| `command` | `check` | `check`, `index`, explicit `review`, or explicit `impact`. |
+| `command` | `check` | `check`, `index`, explicit `review`, explicit `impact`, or source-only explicit `drift`. |
 | `version` | empty | Optional exact runtime image version in `X.Y.Z` or `vX.Y.Z` form. Required when the Action source is pinned by commit SHA or branch. |
 | `review-target` | empty | Repository-relative ADR Markdown file; required for `review`. |
 | `provider` | empty | Review provider; required for `review`. |
@@ -23,8 +23,12 @@ ADR Guard's composite Action runs the published ADR Guard container. Consumers d
 | `policy-file` | empty | Deterministic policy JSON; required with `policy: enforce`. |
 | `base-ref` | empty | Explicit Git base reference; required for `impact`. The checkout must contain enough history to calculate a merge base. |
 | `impact-map` | empty | Repository-relative ADR-to-code mapping JSON; required for `impact`. Traversal and symlink escapes are rejected. |
+| `drift-rules` | empty | Repository-relative architecture fitness rules JSON; required for `drift`. |
+| `drift-policy` | `advisory` | `advisory` or deterministic `enforce`; applies only to `drift`. |
+| `drift-baseline` | empty | Optional repository-relative existing drift baseline JSON. The Action never creates or updates it. |
+| `drift-evidence` | empty | Optional newline-delimited repository-relative external evidence JSON files; at most 20 distinct files. |
 
-The CLI exit contract is preserved: `0` success, `1` ADR validation failure, `2` usage/input error, `3` operational/provider failure, and `4` deterministic review-policy failure.
+The CLI exit contract is preserved: `0` success or a conclusive advisory result, `1` ADR validation failure, `2` usage/input error, `3` operational/provider failure or inconclusive drift, and `4` deterministic policy failure from review or enforced drift.
 
 Provider-backed review is optional and does not alter the default `check` behavior. See [GitHub Action AI review](github-action-review.md) for credentials, trusted events, summaries, annotations, and fork/`pull_request_target` restrictions.
 
@@ -52,6 +56,36 @@ steps:
 The Action validates that the selected runtime image exposes the `impact` CLI contract. An older exact image pin fails as an operational error instead of falling back to `latest`. Missing history or a disconnected base also returns exit code `3`; affected or unmapped changes still return `0` because the report is advisory.
 
 The stable JSON remains in the raw, workflow-command-suspended log. If a retained JSON artifact is required, run the same exact-version container explicitly with the checkout mounted read-only, redirect `impact --format json` to `${RUNNER_TEMP}/adr-impact.json`, and then opt in to `actions/upload-artifact` in the consumer workflow. The Action does not create or upload an artifact implicitly. See [the complete read-only example](examples/github-action-impact.yml).
+
+### Architectural drift verification (development source only)
+
+The source Action adapts the existing `adr-guard drift` CLI contract; it does not implement a second fitness-rule engine. The checkout is mounted read-only, networking is disabled, inputs are validated inside `GITHUB_WORKSPACE`, and no credentials or GitHub tokens are forwarded. The selected image is probed for `drift --help` before consumer data is mounted.
+
+```yaml
+permissions:
+  contents: read
+
+steps:
+  - uses: actions/checkout@v7
+    with:
+      persist-credentials: false
+
+  - name: Verify ADR-backed architecture rules
+    uses: rodri-oliveira-dev/adr-guard@<commit-sha>
+    with:
+      version: 1.9.0
+      command: drift
+      drift-rules: .adrguard-fitness.json
+      drift-policy: enforce
+      # drift-baseline: drift-baseline.json
+      # drift-evidence: |
+      #   evidence/unit-tests.json
+      #   evidence/integration-tests.json
+```
+
+`drift-policy` defaults to `advisory`. A conclusive pass or advisory/baselined violation returns `0`; an invalid Action/CLI input returns `2`; missing or inconclusive evidence remains `unknown` and returns `3`; enforce returns `4` only when the CLI identifies a new gate-enabled deterministic static violation. The bounded summary labels pass, violation, and unknown but never recomputes policy or turns uncertainty into compliance. The original CLI exit always wins, including if summary rendering fails.
+
+`drift-baseline` is read-only. Baseline creation and replacement remain explicit owner operations through the CLI and are deliberately not exposed by the Action. `drift-evidence` accepts up to 20 existing JSON files, one repository-relative path per line. Traversal, absolute paths, duplicates, non-JSON files, missing files, and symlink escapes are rejected before Docker execution. See the [source-only workflow example](examples/github-action-drift.yml) and [architectural drift guide](guides/architectural-drift.md).
 
 ## Pull-request validation
 
@@ -188,7 +222,7 @@ To make ADR validation mandatory before merge, first run the workflow at least o
 
 If the Action reports exit code `2`, check the `path`, `command`, and version/ref combination. Paths must remain inside the checkout.
 
-Exit code `3` means an operational failure such as Docker being unavailable, the selected image being unavailable, or Python 3 being unavailable for opt-in `review`. The supported environment is a Linux runner with a working Docker daemon; `review` additionally requires Python 3.
+Exit code `3` means an operational failure such as Docker being unavailable, the selected image being unavailable, Python 3 being unavailable for bounded `review`/`impact`/`drift` reporting, or a valid drift result remaining inconclusive. The supported environment is a Linux runner with a working Docker daemon.
 
 For `index`, the runner must be non-root because the Action deliberately refuses to execute the writable container as UID 0.
 

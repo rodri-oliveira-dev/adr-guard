@@ -84,7 +84,7 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 
 | Integration | Use | Guide |
 | --- | --- | --- |
-| GitHub Action | Validate, index, or explicitly run AI review/architecture impact analysis on supported Linux runners | [Consumer guide](docs/github-action.md) |
+| GitHub Action | Validate, index, or explicitly run AI review/architecture impact; current development source also adapts read-only drift verification | [Consumer guide](docs/github-action.md) |
 | VS Code | Visual ADR management, architecture/governance workflows, commands, Problems diagnostics, and ADR Explorer through a compatible installed CLI | [Extension guide](extensions/vscode/README.md) |
 | MCP server | Give compatible agents structured, read-only access to ADR discovery, validation, impact, and drift tools | [MCP overview](docs/mcp.md) |
 | Containers | Run the same versioned CLI from GHCR or Docker Hub | [Container and supply-chain guide](docs/container.md) |
@@ -113,7 +113,7 @@ See the [extension source and installation guide](extensions/vscode/README.md) a
 
 Structured ADR creation and editing are implemented for trusted visual clients such as the VS Code extension. A compatible CLI from the 1.7.0 line exposes `new <directory> --form` and `edit <file> --form` as versioned JSON stdin/stdout contracts; they are not interactive terminal forms. The traditional `new --title` workflow remains the human-facing command-line path, including constrained custom templates. See the [creation guide](docs/creation.md), [CLI contract reference](docs/cli-reference.md), and [extension guide](extensions/vscode/README.md). Confirm that both the CLI and extension versions providing the visual forms have been published before relying on them.
 
-The [GitHub Marketplace Action](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) and [Visual Studio Marketplace extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) are published. The moving `@v1` tag is published and supports `check`, `index`, opt-in `review` since v1.1.6, and opt-in `impact` since v1.5.0. In v1.6.0, `drift` is provided through the CLI/direct-container workflow, alongside `new` and `draft`; it is not a composite Action mode. The extension does not bundle the CLI.
+The [GitHub Marketplace Action](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) and [Visual Studio Marketplace extension](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) are published. The moving `@v1` tag is published and supports `check`, `index`, opt-in `review` since v1.1.6, and opt-in `impact` since v1.5.0. The current development source adds `drift` as a read-only composite Action adapter, but this input contract is not yet published on `@v1` or `v1.9.0`; the published line still requires CLI/direct-container drift. The extension does not bundle the CLI.
 
 The independent MCP `1.0.0` release can be installed with `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0`. Its authenticated GitHub Packages backfill remains a separate manual distribution step; NuGet.org is the recommended source. See [MCP configuration](docs/mcp-configuration.md), [available tools](docs/mcp-tools.md), [VS Code integration](extensions/vscode/README.md#mcp-integration), and [security and permissions](docs/mcp-security.md).
 

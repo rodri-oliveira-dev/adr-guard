@@ -13,21 +13,24 @@ Repita `--evidence caminho.json` para artefatos externos explícitos. Use `--wri
 
 ## Receita de CI
 
-O contrato atual da Action composta permanece intencionalmente inalterado. Instale a .NET Tool em um passo comum de privilégio mínimo e execute drift diretamente; nenhum secret ou permissão de escrita é necessário.
+O código-fonte de desenvolvimento atual adiciona um modo `drift` somente leitura à Action composta. Esse contrato da Action ainda não está publicado em `@v1` nem em `v1.9.0`; fixe um commit revisado do source e uma imagem publicada de runtime exata somente para avaliação de desenvolvimento. Nenhum secret ou permissão de escrita é necessário.
 
 ```yaml
 permissions:
   contents: read
 steps:
-  - uses: actions/checkout@v6
-  - uses: actions/setup-dotnet@v5
+  - uses: actions/checkout@v7
     with:
-      dotnet-version: 10.0.x
-  - run: dotnet tool install --global RodriOliveira.AdrGuard --version 1.6.0
-  - run: adr-guard drift . --rules .adrguard-fitness.json --policy enforce --format json
+      persist-credentials: false
+  - uses: rodri-oliveira-dev/adr-guard@<commit-sha>
+    with:
+      version: 1.9.0
+      command: drift
+      drift-rules: .adrguard-fitness.json
+      drift-policy: enforce
 ```
 
-Este exemplo requer o ADR Guard v1.6.0 no NuGet.org. Confirme que a release coordenada foi publicada antes de executar o workflow; o merge do PR de implementação não publica o pacote por si só. O comando `drift` não faz chamadas de rede nem lê credenciais de provedores.
+A Action solicita o relatório JSON da CLI, preserva os exits `0`, `2`, `3` e `4` e grava um summary limitado sem tomar uma nova decisão de policy. `drift-baseline` opcional lê um snapshot existente; `drift-evidence`, separado por linhas, aceita no máximo 20 arquivos JSON explícitos. Criação/atualização de baseline continua sendo uma operação deliberada pela CLI direta. Confirme uma release coordenada da Action antes de substituir `<commit-sha>` por uma tag de release. Consulte o [guia da Action](../github-action.pt-BR.md#verificação-de-drift-arquitetural-somente-no-source-de-desenvolvimento) e o [exemplo completo disponível no source](../examples/github-action-drift.yml).
 
 ## Limites
 

@@ -13,21 +13,24 @@ Use `--evidence path.json` repeatedly for explicit external artifacts. Use `--wr
 
 ## CI recipe
 
-The current composite Action contract is intentionally unchanged. Install the .NET Tool in a normal least-privilege step and invoke drift directly; no secret or write permission is required.
+The current development source adds a read-only `drift` mode to the composite Action. This Action contract is not yet published on `@v1` or `v1.9.0`; pin a reviewed source commit and an exact published runtime image only for development evaluation. No secret or write permission is required.
 
 ```yaml
 permissions:
   contents: read
 steps:
-  - uses: actions/checkout@v6
-  - uses: actions/setup-dotnet@v5
+  - uses: actions/checkout@v7
     with:
-      dotnet-version: 10.0.x
-  - run: dotnet tool install --global RodriOliveira.AdrGuard --version 1.6.0
-  - run: adr-guard drift . --rules .adrguard-fitness.json --policy enforce --format json
+      persist-credentials: false
+  - uses: rodri-oliveira-dev/adr-guard@<commit-sha>
+    with:
+      version: 1.9.0
+      command: drift
+      drift-rules: .adrguard-fitness.json
+      drift-policy: enforce
 ```
 
-This example requires ADR Guard v1.6.0 from NuGet.org. Confirm that the coordinated release is published before running the workflow; merging the implementation PR alone does not publish a package. The `drift` command performs no network calls and reads no provider credentials.
+The Action requests the CLI JSON report, preserves exits `0`, `2`, `3`, and `4`, and writes a bounded summary without making a new policy decision. Optional `drift-baseline` reads an existing snapshot; newline-delimited `drift-evidence` accepts at most 20 explicit JSON files. Baseline creation/update remains a deliberate direct CLI operation. Confirm a coordinated Action release before replacing `<commit-sha>` with a release tag. See the [Action guide](../github-action.md#architectural-drift-verification-development-source-only) and [complete source-only example](../examples/github-action-drift.yml).
 
 ## Limits
 

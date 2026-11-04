@@ -2,16 +2,16 @@
 
 > **Status da publicação:** a Action reutilizável está publicada, e a tag de compatibilidade `v1` está publicada e é móvel. A linha pública `v1` suporta `check`, `index` e `review` opt-in desde a `v1.1.6`; `new` e `draft` continuam fluxos exclusivos de CLI/container. A [listagem no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) foi acessada de forma independente e sem autenticação em 09/10/2026.
 
-> **Status da release de impact:** os inputs de `impact` estão disponíveis no runtime público coordenado v1.5.0 / `@v1`. O comando CLI `drift`, introduzido na v1.6.0, não adiciona inputs à Action. Em 03/11/2026, a tag móvel de compatibilidade `v1` e a tag exata `v1.9.0` foram verificadas no mesmo commit da release.
+> **Status das releases de impact e drift:** os inputs de `impact` estão disponíveis no runtime público coordenado v1.5.0 / `@v1`. Os inputs de `drift` na Action existem apenas no código-fonte de desenvolvimento atual e não estão disponíveis pela Action publicada `@v1` nem pela tag exata `v1.9.0`. Para avaliação de desenvolvimento, fixe um commit revisado do source e `version: 1.9.0`; confirme uma release coordenada posterior antes de tratar isso como contrato publicado da Action. Em 03/11/2026, a tag móvel de compatibilidade `v1` e a tag exata `v1.9.0` foram verificadas no mesmo commit da release.
 
-A composite Action do ADR Guard executa o container publicado do ADR Guard. O consumidor não precisa do .NET SDK. É necessário um runner Linux com Docker e checkout prévio do repositório; o `review` opt-in também exige Python 3 no runner para renderização segura de summary/annotations.
+A composite Action do ADR Guard executa o container publicado selecionado do ADR Guard. O consumidor não precisa do .NET SDK. É necessário um runner Linux com Docker e checkout prévio do repositório; `review`, `impact` e `drift` disponível apenas no source também exigem Python 3 no runner para renderização limitada de summaries.
 
 ## Inputs
 
 | Input | Padrão | Valores aceitos |
 | --- | --- | --- |
 | `path` | `docs/adr` | Diretório de ADRs relativo ao repositório, dentro de `GITHUB_WORKSPACE`. Paths absolutos, diretórios inexistentes, traversal com `..` e escapes por symlink são rejeitados. |
-| `command` | `check` | `check`, `index`, `review` explícito ou `impact` explícito. |
+| `command` | `check` | `check`, `index`, `review` explícito, `impact` explícito ou `drift` explícito disponível apenas no source. |
 | `version` | vazio | Versão exata opcional da imagem de runtime no formato `X.Y.Z` ou `vX.Y.Z`. Obrigatória quando o source da Action é fixado por SHA de commit ou branch. |
 | `review-target` | vazio | Arquivo Markdown do ADR relativo ao repositório; obrigatório para `review`. |
 | `provider` | vazio | Provider de revisão; obrigatório para `review`. |
@@ -23,8 +23,12 @@ A composite Action do ADR Guard executa o container publicado do ADR Guard. O co
 | `policy-file` | vazio | JSON de policy determinística; obrigatório com `policy: enforce`. |
 | `base-ref` | vazio | Referência Git base explícita; obrigatória para `impact`. O checkout precisa conter histórico suficiente para calcular o merge base. |
 | `impact-map` | vazio | JSON de mapeamento ADR-código relativo ao repositório; obrigatório para `impact`. Traversal e escapes por symlink são rejeitados. |
+| `drift-rules` | vazio | JSON de regras de fitness arquitetural relativo ao repositório; obrigatório para `drift`. |
+| `drift-policy` | `advisory` | `advisory` ou `enforce` determinístico; aplica-se somente a `drift`. |
+| `drift-baseline` | vazio | Baseline de drift existente e opcional, relativo ao repositório. A Action nunca o cria nem atualiza. |
+| `drift-evidence` | vazio | Arquivos JSON opcionais de evidência externa, relativos ao repositório e separados por linha; no máximo 20 arquivos distintos. |
 
-O contrato de exit codes do CLI é preservado: `0` sucesso, `1` falha de validação de ADR, `2` erro de uso/input, `3` falha operacional/provider e `4` falha de policy determinística de review.
+O contrato de exit codes do CLI é preservado: `0` sucesso ou resultado advisory conclusivo, `1` falha de validação de ADR, `2` erro de uso/input, `3` falha operacional/provider ou drift inconclusivo e `4` falha de policy determinística de review ou drift em enforce.
 
 A revisão com provider é opcional e não altera o comportamento padrão do `check`. Consulte [Revisão por IA na GitHub Action](github-action-review.pt-BR.md) para credenciais, eventos confiáveis, summaries, annotations e restrições de fork/`pull_request_target`.
 
@@ -52,6 +56,36 @@ steps:
 A Action valida se a imagem de runtime selecionada expõe o contrato CLI de `impact`. Uma imagem exata antiga falha como erro operacional, sem fallback para `latest`. Histórico ausente ou base desconectada também retorna exit code `3`; alterações afetadas ou não mapeadas retornam `0`, pois o relatório é consultivo.
 
 O JSON estável permanece no log bruto protegido contra workflow commands. Se for necessário reter um artifact JSON, execute explicitamente o container da mesma versão exata com checkout somente leitura, redirecione `impact --format json` para `${RUNNER_TEMP}/adr-impact.json` e faça opt-in de `actions/upload-artifact` no workflow consumidor. A Action não cria nem envia artifacts implicitamente. Consulte o [exemplo completo somente leitura](examples/github-action-impact.yml).
+
+### Verificação de drift arquitetural (somente no source de desenvolvimento)
+
+A Action no código-fonte adapta o contrato existente de `adr-guard drift`; ela não implementa um segundo motor de regras de fitness. O checkout é montado como somente leitura, a rede fica desabilitada, os inputs são validados dentro de `GITHUB_WORKSPACE` e nenhuma credencial ou token do GitHub é encaminhado. A imagem selecionada é sondada com `drift --help` antes da montagem dos dados do consumidor.
+
+```yaml
+permissions:
+  contents: read
+
+steps:
+  - uses: actions/checkout@v7
+    with:
+      persist-credentials: false
+
+  - name: Verificar regras arquiteturais ligadas a ADRs
+    uses: rodri-oliveira-dev/adr-guard@<commit-sha>
+    with:
+      version: 1.9.0
+      command: drift
+      drift-rules: .adrguard-fitness.json
+      drift-policy: enforce
+      # drift-baseline: drift-baseline.json
+      # drift-evidence: |
+      #   evidence/unit-tests.json
+      #   evidence/integration-tests.json
+```
+
+`drift-policy` usa `advisory` por padrão. Um pass conclusivo ou uma violação advisory/já presente no baseline retorna `0`; input inválido da Action/CLI retorna `2`; evidência ausente ou inconclusiva permanece `unknown` e retorna `3`; enforce retorna `4` somente quando a CLI identifica uma violação estática determinística, nova e habilitada para gate. O summary limitado rotula pass, violation e unknown, mas nunca recalcula policy nem transforma incerteza em conformidade. O exit original da CLI sempre prevalece, inclusive quando a renderização do summary falha.
+
+`drift-baseline` é somente leitura. Criação e substituição de baseline continuam operações explícitas do responsável pela CLI e deliberadamente não são expostas pela Action. `drift-evidence` aceita até 20 arquivos JSON existentes, um path relativo ao repositório por linha. Traversal, paths absolutos, duplicatas, arquivos não JSON, arquivos ausentes e escapes por symlink são rejeitados antes da execução do Docker. Consulte o [exemplo de workflow disponível no source](examples/github-action-drift.yml) e o [guia de drift arquitetural](guides/architectural-drift.pt-BR.md).
 
 ## Validação de pull request
 
@@ -188,7 +222,7 @@ Para tornar a validação de ADR obrigatória antes do merge, execute o workflow
 
 Se a Action retornar exit code `2`, confira `path`, `command` e a combinação de versão/ref. Os paths precisam permanecer dentro do checkout.
 
-Exit code `3` indica falha operacional, como Docker indisponível, imagem selecionada inexistente ou ausência de Python 3 no `review` opt-in. O ambiente suportado é runner Linux com daemon Docker funcional; `review` também exige Python 3.
+Exit code `3` indica falha operacional, como Docker indisponível, imagem selecionada inexistente, ausência de Python 3 para reporting limitado de `review`/`impact`/`drift`, ou um resultado válido de drift que permaneceu inconclusivo. O ambiente suportado é runner Linux com daemon Docker funcional.
 
 No `index`, o runner precisa ser non-root porque a Action recusa deliberadamente executar o container gravável como UID 0.
 
