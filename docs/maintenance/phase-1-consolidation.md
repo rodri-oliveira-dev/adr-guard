@@ -213,10 +213,33 @@ e páginas específicas apontam para ela em vez de reproduzir toda a matriz.
    comandos de teste devem usar Microsoft.Testing.Platform/xUnit v3 conforme a
    skill `run-tests`; não usar filtros VSTest.
 
-Nesta etapa documental não há alteração executável, portanto não é necessário
-rodar testes .NET. A validação proporcional inclui sincronização e validação do
-portal, checks bilíngues de documentação e versões, verificação de links,
-revisão do diff e `git diff --check`.
+Na criação inicial deste plano não havia alteração executável, portanto a
+validação daquele commit foi somente documental. As etapas de implementação
+seguem a baseline .NET proporcional definida acima.
+
+### Cobertura de caracterização adicionada na etapa 1
+
+Os testes adicionados antes das extrações estruturais protegem os seguintes
+comportamentos observáveis sem alterar a produção:
+
+- parsing de `check`, `baseline`, `index`, `impact`, `drift`, `review` e `draft`
+  para valor ausente, opção duplicada, positional duplicado, valor inválido e
+  combinação dependente inválida, incluindo stderr exato, stdout vazio e exit
+  code `2`;
+- ajuda específica de `baseline`, `impact` e `drift` antes da validação de
+  argumentos obrigatórios, com stdout e exit code `0`;
+- precedência da validação de template de `draft` sobre a seleção obrigatória
+  de provider e da exigência de policy file de `review` sobre qualquer acesso ao
+  ADR alvo;
+- aceitação de headings ATX e Setext como dados quando contidos em fences
+  Markdown fechadas durante o rendering de templates, mantendo o ADR resultante
+  validável.
+
+A cobertura preexistente continua sendo a evidência para os contratos de
+JSON/SARIF do `check`, JSON do `review`, templates Minimal/Extended/Custom,
+persistência atômica, falhas de provider e os exit codes `1`, `3` e `4`. Não
+foram adicionados testes MCP porque esta etapa não altera o Core compartilhado
+nem revelou lacuna no contrato read-only do servidor.
 
 ## Escopo das próximas seis etapas
 

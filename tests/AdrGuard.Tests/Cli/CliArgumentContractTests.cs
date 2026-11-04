@@ -1,0 +1,116 @@
+using AdrGuard.Cli;
+using Xunit;
+
+namespace AdrGuard.Tests.Cli;
+
+public sealed class CliArgumentContractTests
+{
+    public static TheoryData<string, string[]> InvalidCommandArguments => new()
+    {
+        { "check", ["check", "--format"] },
+        { "check", ["check", "--format", "json", "--format", "sarif"] },
+        { "check", ["check", "first", "second"] },
+        { "check", ["check", "--changed"] },
+        { "check", ["check", "--base-ref", "main"] },
+        { "baseline", ["baseline"] },
+        { "baseline", ["baseline", "--output"] },
+        { "baseline", ["baseline", "--output", "baseline.json", "--update", "--update"] },
+        { "index", ["index", "--catalog", "basic"] },
+        { "index", ["index", "--output", "README.md", "--output", "index.md"] },
+        { "impact", ["impact", "--base-ref", "main"] },
+        { "impact", ["impact", "--map", ".adrguard-impact.json"] },
+        { "impact", ["impact", "first", "second", "--base-ref", "main", "--map", "map.json"] },
+        { "drift", ["drift", "--rules", "rules.json", "--update-baseline"] },
+        { "drift", ["drift", "--rules", "rules.json", "--format", "sarif"] },
+        { "drift", ["drift", "--rules", "rules.json", "--policy", "enforce", "--policy", "advisory"] },
+        { "review", ["review", "first.md", "second.md", "--provider", "openai", "--model", "test"] },
+        { "review", ["review", "first.md", "--provider", "openai", "--provider", "gemini", "--model", "test"] },
+        { "review", ["review", "first.md", "--provider", "openai", "--model", "test", "--overwrite"] },
+        { "draft", ["draft", "--title", "First", "--context", "Context", "--title", "Second"] },
+        { "draft", ["draft", "first", "second", "--title", "Title", "--context", "Context"] },
+        { "draft", ["draft", "--title", "Title", "--context", "Context", "--dry-run", "--preview"] },
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidCommandArguments))]
+    public void InvalidCommandShapesPreserveUsageExitAndExactDiagnostic(
+        string command,
+        string[] arguments)
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = CliApplication.Run(arguments, output, error);
+
+        Assert.Equal(ExitCodes.UsageError, exitCode);
+        Assert.Equal(string.Empty, output.ToString());
+        Assert.Equal(
+            $"Invalid arguments for '{command}'.{Environment.NewLine}"
+            + $"Run 'adr-guard {command} --help' for usage.{Environment.NewLine}",
+            error.ToString());
+    }
+
+    [Theory]
+    [InlineData("baseline")]
+    [InlineData("impact")]
+    [InlineData("drift")]
+    public void CommandSpecificHelpBypassesRequiredArguments(string command)
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = CliApplication.Run([command, "--help"], output, error);
+
+        Assert.Equal(ExitCodes.Success, exitCode);
+        Assert.StartsWith($"Usage:\n  adr-guard {command} ", output.ToString());
+        Assert.Equal(string.Empty, error.ToString());
+    }
+
+    [Fact]
+    public void DraftTemplateValidationPrecedesProviderRequirements()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = CliApplication.Run(
+            ["draft", "--title", "Title", "--context", "Context", "--template", "unknown"],
+            output,
+            error);
+
+        Assert.Equal(ExitCodes.UsageError, exitCode);
+        Assert.Equal(string.Empty, output.ToString());
+        Assert.Equal(
+            $"Unknown template 'unknown'. Use minimal or extended.{Environment.NewLine}"
+            + $"Run 'adr-guard draft --help' for usage.{Environment.NewLine}",
+            error.ToString());
+    }
+
+    [Fact]
+    public void ReviewEnforcementRequirementsPrecedeTargetAccess()
+    {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = CliApplication.Run(
+            [
+                "review",
+                "missing.md",
+                "--provider",
+                "openai",
+                "--model",
+                "test",
+                "--policy",
+                "enforce",
+            ],
+            output,
+            error);
+
+        Assert.Equal(ExitCodes.UsageError, exitCode);
+        Assert.Equal(string.Empty, output.ToString());
+        Assert.Equal(
+            "'review --policy enforce' requires --policy-file with explicit deterministic rules."
+            + Environment.NewLine
+            + $"Run 'adr-guard review --help' for usage.{Environment.NewLine}",
+            error.ToString());
+    }
+}
