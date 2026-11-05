@@ -1,0 +1,83 @@
+name: Bug report
+description: Report reproducible incorrect behavior in ADR Guard.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a defect. Check existing issues first.
+        Never include credentials, private ADR contents, API keys, or unsanitized logs.
+        For security vulnerabilities, follow [SECURITY.md](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/SECURITY.md) instead of opening a public issue.
+  - type: checkboxes
+    id: existing
+    attributes:
+      label: Existing reports
+      options:
+        - label: I searched existing issues for a duplicate.
+          required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      description: Choose the component where you observe the problem.
+      options:
+        - CLI (.NET Tool)
+        - Core (shared validation and contracts)
+        - GitHub Action
+        - MCP Server
+        - VS Code Extension
+        - Container image
+        - Agent Skills
+        - Other / Unsure
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or Action ref
+      description: Include the published version, commit SHA, or Action ref (for example, @v1). State if testing an unreleased build.
+      placeholder: "CLI 1.x, MCP 1.x, VS Code 1.x, @v1, or commit SHA"
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, .NET SDK/runtime, editor version, runner, or container platform as relevant.
+      placeholder: "Ubuntu 24.04, .NET 10, GitHub-hosted runner"
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Provide a minimal, sanitized reproduction, including the command or workflow when relevant.
+      placeholder: |
+        1. Start with ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Describe what should happen.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include diagnostic text or CLI exit code (0 success, 1 findings, 2 usage, 3 operational, 4 policy) if available.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized logs, configuration, or screenshots
+      description: Include only the minimum relevant evidence. Remove paths, tokens, private ADR text, and identifiable data.
+      placeholder: "Sanitized command output, a redacted workflow fragment, or screenshots"
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Public report safety
+      options:
+        - label: This report does not disclose a vulnerability or confidential information.
+          required: true
