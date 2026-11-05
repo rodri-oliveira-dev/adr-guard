@@ -93,7 +93,7 @@ module.exports = async function syncSonar({github, context, core}) {
     return `${existingBody.slice(0, startIndex)}${nextManagedBody}${existingBody.slice(suffixStart)}`;
   }
   
-  function extractManagedSonarIssueKey(githubIssue) {
+  function extractManagedSonarIssueMetadata(githubIssue) {
     // issues.listForRepo also returns pull requests.
     if (githubIssue.pull_request) {
       return null;
@@ -118,7 +118,14 @@ module.exports = async function syncSonar({github, context, core}) {
   
     const managedSection = body.slice(startIndex, endIndex + syncEnd.length);
     const match = managedSection.match(/<!--\s*sonar-issue-key:([^\s>]+)\s*-->/);
-    return match?.[1] ?? null;
+    if (!match) {
+      return null;
+    }
+
+    // Preserve legacy issues without project provenance, but never infer
+    // ownership of a different Sonar project from a missing finding.
+    const projectMatch = managedSection.match(/<!--\s*sonar-project-key:([^\s>]+)\s*-->/);
+    return {sonarKey: match[1], projectMarker: projectMatch?.[1] ?? null};
   }
   
   async function ensureLabel() {
@@ -241,20 +248,31 @@ module.exports = async function syncSonar({github, context, core}) {
   );
   
   const existingBySonarKey = new Map();
-  
+  const duplicateManagedIssues = [];
+  const projectByIssueNumber = new Map();
+  const currentProjectMarker = encodeURIComponent(projectKey);
+
   for (const githubIssue of repositoryIssues) {
-    const sonarKey = extractManagedSonarIssueKey(githubIssue);
-    if (!sonarKey) {
+    const metadata = extractManagedSonarIssueMetadata(githubIssue);
+    if (!metadata) {
       continue;
     }
-  
+
+    const {sonarKey, projectMarker} = metadata;
+    // Different projects must never participate in this reconciliation.
+    if (projectMarker && projectMarker !== currentProjectMarker) {
+      continue;
+    }
+
+    projectByIssueNumber.set(githubIssue.number, projectMarker);
     if (existingBySonarKey.has(sonarKey)) {
       core.warning(
         `Multiple workflow-managed GitHub issues reference Sonar issue ${sonarKey}. Keeping #${existingBySonarKey.get(sonarKey).number}.`,
       );
+      duplicateManagedIssues.push([sonarKey, githubIssue]);
       continue;
     }
-  
+
     existingBySonarKey.set(sonarKey, githubIssue);
   }
   
@@ -343,6 +361,7 @@ module.exports = async function syncSonar({github, context, core}) {
     const managedLines = [
       syncStart,
       `<!-- sonar-issue-key:${issue.key} -->`,
+      `<!-- sonar-project-key:${currentProjectMarker} -->`,
       "> Sincronizada automaticamente do SonarQube Cloud. Enquanto o finding permanecer **OPEN** com impacto **HIGH** ou **BLOCKER**, esta issue representa o mesmo problema.",
       "",
       "## Summary",
@@ -497,23 +516,45 @@ module.exports = async function syncSonar({github, context, core}) {
   
   // Only bot-authored issues with valid managed markers may be closed.
   // Disappearing from this result does not prove the code defect was fixed.
-  for (const [sonarKey, existing] of existingBySonarKey) {
+  for (const [sonarKey, existing] of [...existingBySonarKey, ...duplicateManagedIssues]) {
     if (sonarIssueKeys.has(sonarKey) || existing.state !== "open") {
       continue;
     }
 
-    await github.rest.issues.createComment({
+    // Legacy issues are migrated on a positive finding match, not closed
+    // from absence alone. Existing issues of another project were excluded.
+    if (projectByIssueNumber.get(existing.number) !== currentProjectMarker) {
+      core.warning(
+        `Keeping legacy managed issue #${existing.number} open: Sonar project provenance is unknown.`,
+      );
+      continue;
+    }
+
+    const closureMarker = `<!-- sonar-closure:${currentProjectMarker}:${encodeURIComponent(sonarKey)} -->`;
+    const comments = await github.paginate(github.rest.issues.listComments, {
       owner,
       repo,
       issue_number: existing.number,
-      body:
-        "Automatic Sonar reconciliation: this finding is no longer returned " +
-        "as **OPEN** with **HIGH/BLOCKER** impact on the " +
-        markdownInline(defaultBranch) + " branch. " +
-        "Closing this managed issue; if the same Sonar key qualifies again, " +
-        "the synchronizer will reopen it. This does not independently " +
-        "establish that the code defect was fixed.",
+      per_page: 100,
     });
+    const alreadyCommented = comments.some(
+      (comment) => comment.user?.login === workflowAuthor &&
+        typeof comment.body === "string" && comment.body.includes(closureMarker),
+    );
+    if (!alreadyCommented) {
+      await github.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number: existing.number,
+        body:
+          "Automatic Sonar reconciliation: this finding is no longer returned " +
+          "as **OPEN** with **HIGH/BLOCKER** impact on the " +
+          markdownInline(defaultBranch) + " branch. " +
+          "Closing this managed issue; if the same Sonar key qualifies again, " +
+          "the synchronizer will reopen it. This does not independently " +
+          "establish that the code defect was fixed.\n\n" + closureMarker,
+      });
+    }
     await github.rest.issues.update({
       owner,
       repo,
