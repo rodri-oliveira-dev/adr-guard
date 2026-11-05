@@ -98,6 +98,21 @@ run_documented_example extended "Adotar Redis" 0001-adotar-redis.md --template e
 run_documented_example custom "Adopt Cache" 0001-adopt-cache.md --template-file "${ROOT}/docs/examples/templates/team.en-US.md" --culture en-US
 run_documented_example custom-pt-BR "Adotar Cache" 0001-adotar-cache.md --template-file "${ROOT}/docs/examples/templates/team.pt-BR.md" --culture pt-BR
 
+run_documented_madr_example() {
+  local name="$1"
+  local title="$2"
+  local fixture="$3"
+  shift 3
+  local output_dir="${TMP}/documented-${name}"
+  mkdir -p "${output_dir}"
+  assert_code 0 "${BIN}" new "${output_dir}" --title "${title}" --adr-format madr-4 "$@"
+  cmp "${output_dir}/${fixture}" "${ROOT}/docs/examples/generated/${name}/${fixture}"
+  assert_code 0 "${BIN}" check "${output_dir}" --adr-format madr-4
+  assert_code 0 "${BIN}" check "${ROOT}/docs/examples/generated/${name}" --adr-format madr-4
+}
+run_documented_madr_example madr-4 "Adopt PostgreSQL" 0001-adopt-postgresql.md --culture en-US
+run_documented_madr_example madr-4-pt-BR "Adotar PostgreSQL" 0001-adotar-postgresql.md --culture pt-BR
+
 # Documentation parity and live-reference guard: root entrypoints route readers
 # to the focused guides instead of duplicating their operational contracts.
 grep -Fq 'docs/index.md' "${ROOT}/README.md"
@@ -140,6 +155,6 @@ for language in en pt-BR; do
   assert_code 0 "${BIN}" check "${ROOT}/docs/examples/redis-cache/madr-4/${language}" --adr-format madr-4
 done
 
-echo 'Documented EN/pt-BR Minimal, Extended and Custom outputs match installed CLI exactly and pass check.'
+echo 'Documented EN/pt-BR Minimal, Extended, Custom, and MADR outputs match installed CLI exactly and pass check.'
 
 echo 'Installed .NET Tool template/CLI/check/index regression passed (no AI credentials).'

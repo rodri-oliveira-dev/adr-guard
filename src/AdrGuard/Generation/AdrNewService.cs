@@ -23,7 +23,7 @@ internal sealed class AdrNewService
             persistence ?? new AtomicAdrDraftFilePersistence());
     }
 
-    internal async Task<AdrNewOutcome> CreateAsync(
+    internal Task<AdrNewOutcome> CreateAsync(
         string directoryPath,
         string title,
         AdrTemplateDefinition template,
@@ -32,9 +32,60 @@ internal sealed class AdrNewService
         AdrFilenamePolicy? filenamePolicy = null,
         IReadOnlyDictionary<string, string>? substitutions = null)
     {
+        ArgumentNullException.ThrowIfNull(template);
+
+        return CreateCoreAsync(
+                directoryPath,
+                title,
+                dryRun,
+                filenamePolicy,
+                AdrFormat.Canonical,
+                id => AdrMarkdownRenderer.RenderTemplate(
+                    new AdrTemplateRenderRequest(
+                        title,
+                        template,
+                        substitutions ?? new Dictionary<string, string>(),
+                        Id: id)),
+                cancellationToken);
+    }
+
+    internal Task<AdrNewOutcome> CreateMadrAsync(
+        string directoryPath,
+        string title,
+        MadrTemplateDefinition template,
+        bool dryRun,
+        CancellationToken cancellationToken,
+        AdrFilenamePolicy? filenamePolicy = null,
+        IReadOnlyDictionary<string, string>? substitutions = null)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+
+        return CreateCoreAsync(
+                directoryPath,
+                title,
+                dryRun,
+                filenamePolicy,
+                AdrFormat.Madr4,
+                _ => MadrMarkdownRenderer.RenderTemplate(
+                    new MadrTemplateRenderRequest(
+                        title,
+                        template,
+                        substitutions ?? new Dictionary<string, string>())),
+                cancellationToken);
+    }
+
+    private async Task<AdrNewOutcome> CreateCoreAsync(
+        string directoryPath,
+        string title,
+        bool dryRun,
+        AdrFilenamePolicy? filenamePolicy,
+        AdrFormat format,
+        Func<int, string> renderForId,
+        CancellationToken cancellationToken)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
-        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(renderForId);
 
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -51,7 +102,12 @@ internal sealed class AdrNewService
             cancellationToken)
             .Select(policy.NormalizeIdentity).ToArray();
         var existingValidation = AdrValidator.Validate(
-            documents, null, new AdrValidationOptions(AdrFormat.Canonical, FilenamePolicy: filenamePolicy));
+            documents,
+            null,
+            new AdrValidationOptions(
+                format,
+                RepositoryRoot: AdrRepositoryRoot.Resolve(directoryPath),
+                FilenamePolicy: filenamePolicy));
 
         if (!existingValidation.IsValid)
         {
@@ -76,23 +132,16 @@ internal sealed class AdrNewService
                 $"ADR file already exists: '{previewPath}'.");
         }
 
-        string RenderForId(int id) =>
-            AdrMarkdownRenderer.RenderTemplate(
-                new AdrTemplateRenderRequest(
-                    title,
-                    template,
-                    substitutions ?? new Dictionary<string, string>(),
-                    Id: id));
-
         var previewId = AdrIdAllocator.NextId(documents);
-        var previewContent = RenderForId(previewId);
+        var previewContent = renderForId(previewId);
         var preview = AdrCreationService.Prepare(
             directoryPath,
             title,
             previewContent,
             documents,
             cancellationToken,
-            filenamePolicy);
+            filenamePolicy,
+            format);
 
         if (dryRun || !preview.ValidationResult.IsValid)
         {
@@ -106,10 +155,11 @@ internal sealed class AdrNewService
         var persisted = await _creation.PersistRenderedAsync(
                 directoryPath,
                 title,
-                RenderForId,
+                renderForId,
                 previewPath,
                 filenamePolicy,
-                cancellationToken)
+                cancellationToken,
+                format)
             .ConfigureAwait(false);
 
         return new AdrNewOutcome(

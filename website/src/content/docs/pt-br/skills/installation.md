@@ -87,6 +87,6 @@ O diretório de ADRs deve existir. Com autorização, o agente pode executar `ne
 | A skill é reconhecida, mas o comando `adr-guard` não existe | Instale ou restaure a .NET Tool independente e execute `adr-guard --version`. |
 | A CLI rejeita um ADR | Verifique `.adrguard.yml`, seções canônicas, formato e diagnósticos reais; veja [validação](../catalog/#adr-guard-validate). |
 | A revisão com IA pede credenciais | Defina provedor e modelo e autorize o envio de contexto. Não há escolha automática de provedor. |
-| MADR 4.0 não corresponde ao template gerado | MADR é escrito separadamente e validado com `--adr-format madr-4`; `new` não gera arquivos MADR. |
+| MADR 4.0 não corresponde ao formato selecionado | As CLIs publicadas validam MADR com `--adr-format madr-4`. A geração nativa por `new --adr-format madr-4` existe somente no código de desenvolvimento da Fase 3 até uma release posterior; confira o `--help` do comando instalado em vez de inferir disponibilidade. |
 
 Próximos passos: [catálogo](../catalog/), [exemplos](../examples/) e [limites de segurança](../security-and-governance/).

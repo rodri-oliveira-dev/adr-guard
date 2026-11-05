@@ -155,7 +155,7 @@ grep -Fq 'ADR_GUARD_BIN="${PWD}/.release-tools/adr-guard" bash scripts/template-
   exit 1
 }
 
-# Feature releases 1.1.0, 1.3.0, 1.5.0, 1.6.0, 1.8.0, 1.9.0, and 1.10.0 use curated notes; other releases
+# Feature releases 1.1.0, 1.3.0, 1.5.0, 1.6.0, 1.8.0, 1.9.0, 1.10.0, and 1.11.0 use curated notes; other releases
 # retain generated notes, and all tags remain immutable.
 grep -Fq 'ref: ${{ needs.build-and-pack.outputs.validated-sha }}' <<<"${release_block}"
 grep -Fq 'release_notes=(--generate-notes)' <<<"${release_block}"
@@ -174,6 +174,8 @@ grep -Fq 'bash scripts/render-release-notes.sh docs/releases/v1.9.0.md "$rendere
 grep -Fq 'release_notes=(--notes-file "$rendered_notes")' <<<"${release_block}"
 grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.10.0 ]]; then' <<<"${release_block}"
 grep -Fq 'bash scripts/render-release-notes.sh docs/releases/v1.10.0.md "$rendered_notes"' <<<"${release_block}"
+grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.11.0 ]]; then' <<<"${release_block}"
+grep -Fq 'bash scripts/render-release-notes.sh docs/releases/v1.11.0.md "$rendered_notes"' <<<"${release_block}"
 grep -Fq 'bash scripts/render-release-notes.sh "$notes" artifacts/mcp/RELEASE_NOTES.md' "${MCP_WORKFLOW}"
 grep -Fq -- '--notes-file artifacts/mcp/RELEASE_NOTES.md' "${MCP_WORKFLOW}"
 test -s "${ROOT_DIR}/docs/releases/v1.1.0.md"
@@ -190,6 +192,8 @@ test -s "${ROOT_DIR}/docs/releases/v1.9.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.9.0.pt-BR.md"
 test -s "${ROOT_DIR}/docs/releases/v1.10.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.10.0.pt-BR.md"
+test -s "${ROOT_DIR}/docs/releases/v1.11.0.md"
+test -s "${ROOT_DIR}/docs/releases/v1.11.0.pt-BR.md"
 
 bash -n "${RELEASE_NOTES_RENDERER}"
 notes_fixture="$(mktemp -d)"
@@ -199,6 +203,8 @@ for notes in \
   "${ROOT_DIR}/docs/releases/v1.9.0.pt-BR.md" \
   "${ROOT_DIR}/docs/releases/v1.10.0.md" \
   "${ROOT_DIR}/docs/releases/v1.10.0.pt-BR.md" \
+  "${ROOT_DIR}/docs/releases/v1.11.0.md" \
+  "${ROOT_DIR}/docs/releases/v1.11.0.pt-BR.md" \
   "${ROOT_DIR}/docs/releases/mcp-v1.0.1.md" \
   "${ROOT_DIR}/docs/releases/mcp-v1.0.1.pt-BR.md"; do
   rendered_notes="${notes_fixture}/$(basename "${notes}")"
@@ -210,6 +216,10 @@ for notes in \
   ! grep -Eiq 'candidate|candidata|not published|não está publicad' "${rendered_notes}"
   ! grep -Fq '## Post-publication checklist' "${rendered_notes}"
   ! grep -Fq '## Checklist pós-publicação' "${rendered_notes}"
+  ! grep -Fq 'After merge' "${rendered_notes}"
+  ! grep -Fq 'Depois do merge' "${rendered_notes}"
+  ! grep -Fq 'manually dispatch **Release**' "${rendered_notes}"
+  ! grep -Fq 'disparar manualmente **Release**' "${rendered_notes}"
 done
 
 rendered_v110_en="${notes_fixture}/v1.10.0-content.md"
@@ -218,10 +228,21 @@ bash "${RELEASE_NOTES_RENDERER}" "${ROOT_DIR}/docs/releases/v1.10.0.md" "${rende
 bash "${RELEASE_NOTES_RENDERER}" "${ROOT_DIR}/docs/releases/v1.10.0.pt-BR.md" "${rendered_v110_pt}"
 grep -Fq '## Highlights' "${rendered_v110_en}"
 grep -Fq '## Compatibility' "${rendered_v110_en}"
-grep -Fq '## Distribution prepared by this release' "${rendered_v110_en}"
+grep -Fq '## Distribution completed by this release' "${rendered_v110_en}"
 grep -Fq '## Principais mudanças' "${rendered_v110_pt}"
 grep -Fq '## Compatibilidade' "${rendered_v110_pt}"
-grep -Fq '## Distribuição preparada por esta release' "${rendered_v110_pt}"
+grep -Fq '## Distribuição concluída por esta release' "${rendered_v110_pt}"
+
+rendered_v111_en="${notes_fixture}/v1.11.0-content.md"
+rendered_v111_pt="${notes_fixture}/v1.11.0.pt-BR-content.md"
+bash "${RELEASE_NOTES_RENDERER}" "${ROOT_DIR}/docs/releases/v1.11.0.md" "${rendered_v111_en}"
+bash "${RELEASE_NOTES_RENDERER}" "${ROOT_DIR}/docs/releases/v1.11.0.pt-BR.md" "${rendered_v111_pt}"
+grep -Fq '## Highlights' "${rendered_v111_en}"
+grep -Fq '## Compatibility' "${rendered_v111_en}"
+grep -Fq '## Distribution' "${rendered_v111_en}"
+grep -Fq '## Principais mudanças' "${rendered_v111_pt}"
+grep -Fq '## Compatibilidade' "${rendered_v111_pt}"
+grep -Fq '## Distribuição' "${rendered_v111_pt}"
 
 printf '%s\n' '# Missing markers' > "${notes_fixture}/missing-markers.md"
 if bash "${RELEASE_NOTES_RENDERER}" "${notes_fixture}/missing-markers.md" "${notes_fixture}/missing-rendered.md" >/dev/null 2>&1; then

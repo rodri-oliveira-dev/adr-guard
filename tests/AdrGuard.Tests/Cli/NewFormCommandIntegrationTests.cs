@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using AdrGuard.Cli;
+using AdrGuard.Generation;
 using AdrGuard.Processes;
 using Xunit;
 
@@ -36,6 +37,163 @@ public sealed class NewFormCommandIntegrationTests
             Assert.True(response.RootElement.GetProperty("template").GetProperty("compatible").GetBoolean());
             Assert.Equal(expectedFields, response.RootElement.GetProperty("template").GetProperty("fields").GetArrayLength());
             Assert.Empty(Directory.EnumerateFiles(root));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Theory]
+    [InlineData("minimal", "en-US", 3)]
+    [InlineData("minimal", "pt-BR", 3)]
+    [InlineData("extended", "en-US", 6)]
+    [InlineData("extended", "pt-BR", 6)]
+    public void MadrDescribePreservesSchemaOneAndReturnsFormatSpecificFields(
+        string template,
+        string culture,
+        int expectedFields)
+    {
+        var root = CreateDirectory();
+        try
+        {
+            var result = Run(
+                root,
+                Request("describe"),
+                "--adr-format", "madr-4",
+                "--template", template,
+                "--culture", culture);
+
+            Assert.Equal(ExitCodes.Success, result.Code);
+            using var response = JsonDocument.Parse(result.Output);
+            Assert.Equal("1.0", response.RootElement.GetProperty("schemaVersion").GetString());
+            var templateResponse = response.RootElement.GetProperty("template");
+            Assert.Equal(template, templateResponse.GetProperty("name").GetString());
+            Assert.Equal(expectedFields, templateResponse.GetProperty("fields").GetArrayLength());
+            (string Id, bool Required)[] expectedFieldContracts = template == "minimal"
+                ? [("context", true), ("optionsConsidered", true), ("decision", true)]
+                :
+                [
+                    ("context", true),
+                    ("decisionDrivers", false),
+                    ("optionsConsidered", true),
+                    ("decision", true),
+                    ("consequences", false),
+                    ("references", false),
+                ];
+            Assert.Equal(
+                expectedFieldContracts,
+                templateResponse.GetProperty("fields").EnumerateArray()
+                    .Select(field => (
+                        field.GetProperty("id").GetString()!,
+                        field.GetProperty("required").GetBoolean()))
+                    .ToArray());
+            Assert.Empty(Directory.EnumerateFileSystemEntries(root));
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void MadrPreviewAndCreateUseSchemaOneRendererAndExplicitCheckAcceptsOutput()
+    {
+        var root = CreateDirectory();
+        const string fields = """
+            {
+              "context": "Orders need durable asynchronous processing.",
+              "decisionDrivers": "Durability and operability",
+              "optionsConsidered": "* Keep synchronous processing\n* Adopt a managed queue",
+              "decision": "Propose the managed queue because it satisfies the drivers.",
+              "consequences": "Operations must monitor retries.",
+              "references": "See the operations runbook."
+            }
+            """;
+        try
+        {
+            var preview = Run(
+                root,
+                Request("preview", "Adopt a queue", fields),
+                "--adr-format", "madr-4",
+                "--template", "extended");
+            Assert.Equal(ExitCodes.Success, preview.Code);
+            Assert.Empty(Directory.EnumerateFileSystemEntries(root));
+            using var previewJson = JsonDocument.Parse(preview.Output);
+            Assert.Equal("1.0", previewJson.RootElement.GetProperty("schemaVersion").GetString());
+            var markdown = previewJson.RootElement.GetProperty("markdown").GetString();
+            Assert.Contains("### Consequences\n\nOperations must monitor retries.", markdown, StringComparison.Ordinal);
+            Assert.Contains(
+                "Propose the managed queue because it satisfies the drivers.",
+                markdown,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "[EDIT",
+                markdown,
+                StringComparison.Ordinal);
+
+            var create = Run(
+                root,
+                Request("create", "Adopt a queue", fields),
+                "--adr-format", "madr-4",
+                "--template", "extended");
+            Assert.Equal(ExitCodes.Success, create.Code);
+            using var createJson = JsonDocument.Parse(create.Output);
+            var path = Assert.IsType<string>(createJson.RootElement.GetProperty("path").GetString());
+            Assert.Equal(markdown, File.ReadAllText(path));
+            Assert.True(createJson.RootElement.GetProperty("written").GetBoolean());
+            Assert.False(createJson.RootElement.TryGetProperty("markdown", out _));
+
+            using var checkOutput = new StringWriter();
+            using var checkError = new StringWriter();
+            var checkCode = CliApplication.Run(
+                ["check", root, "--adr-format", "madr-4"],
+                checkOutput,
+                checkError,
+                TestContext.Current.CancellationToken);
+            Assert.Equal(ExitCodes.Success, checkCode);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void MadrExtendedFormOmitsEmptyOptionalSectionsAndRejectsUnversionedFieldIds()
+    {
+        var root = CreateDirectory();
+        const string fields = """
+            {
+              "context": "Context.",
+              "decisionDrivers": "",
+              "optionsConsidered": "* Option A",
+              "decision": "Propose option A.",
+              "consequences": "",
+              "references": ""
+            }
+            """;
+        try
+        {
+            var preview = Run(
+                root,
+                Request("preview", "Choose A", fields),
+                "--adr-format", "madr-4",
+                "--template", "extended");
+            Assert.Equal(ExitCodes.Success, preview.Code);
+            using var response = JsonDocument.Parse(preview.Output);
+            var markdown = response.RootElement.GetProperty("markdown").GetString();
+            Assert.DoesNotContain("## Decision Drivers", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("### Consequences", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("## More Information", markdown, StringComparison.Ordinal);
+
+            const string unversionedFields = """{"contextAndProblemStatement":"Context","consideredOptions":"* A","decisionOutcome":"Choose A"}""";
+            var rejected = Run(
+                root,
+                Request("preview", "Choose A", unversionedFields),
+                "--adr-format", "madr-4");
+            Assert.Equal(ExitCodes.UsageError, rejected.Code);
+            Assert.Empty(Directory.EnumerateFileSystemEntries(root));
         }
         finally
         {
@@ -124,6 +282,11 @@ public sealed class NewFormCommandIntegrationTests
         {
             var missing = Path.Combine(root, "team-template.md");
             var result = Run(root, Request("describe"), "--template-file", missing);
+            var madrResult = Run(
+                root,
+                Request("describe"),
+                "--adr-format", "madr-4",
+                "--template-file", missing);
 
             Assert.Equal(ExitCodes.Success, result.Code);
             using var response = JsonDocument.Parse(result.Output);
@@ -131,6 +294,9 @@ public sealed class NewFormCommandIntegrationTests
             Assert.Equal("custom", template.GetProperty("name").GetString());
             Assert.False(template.GetProperty("compatible").GetBoolean());
             Assert.Equal("custom-template-field-mapping-unavailable", template.GetProperty("reason").GetString());
+            Assert.Equal(ExitCodes.Success, madrResult.Code);
+            using var madrResponse = JsonDocument.Parse(madrResult.Output);
+            Assert.False(madrResponse.RootElement.GetProperty("template").GetProperty("compatible").GetBoolean());
             Assert.Empty(Directory.EnumerateFiles(root));
         }
         finally
@@ -210,10 +376,39 @@ public sealed class NewFormCommandIntegrationTests
                 decision = "Decision",
                 consequences = "Consequences",
             });
+            var oversizedMadrField = JsonSerializer.Serialize(new
+            {
+                context = new string(
+                    'x',
+                    AdrGenerationContextLimits.MaximumGeneratedFieldCharacters + 1),
+                optionsConsidered = "* Option A",
+                decision = "Propose option A.",
+            });
+            var unclosedMadrFence = JsonSerializer.Serialize(new
+            {
+                context = "```text\nunclosed",
+                optionsConsidered = "* Option A",
+                decision = "Propose option A.",
+            });
 
             Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", "Title", unsupportedField)).Code);
             Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", "Title", missingRequiredField)).Code);
             Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", "Title", oversizedField)).Code);
+            Assert.Equal(
+                ExitCodes.UsageError,
+                Run(
+                    root,
+                    Request("preview", "Title", oversizedMadrField),
+                    "--adr-format", "madr-4").Code);
+            var invalidMadrFence = Run(
+                root,
+                Request("preview", "Title", unclosedMadrFence),
+                "--adr-format", "madr-4");
+            Assert.Equal(ExitCodes.UsageError, invalidMadrFence.Code);
+            Assert.Contains(
+                "close every Markdown code fence",
+                invalidMadrFence.Error,
+                StringComparison.Ordinal);
             Assert.Equal(
                 ExitCodes.UsageError,
                 Run(root, Request("preview", "Title", """{"context":"Con\u0000text","decision":"Decision","consequences":"Consequences"}""")).Code);
@@ -232,10 +427,30 @@ public sealed class NewFormCommandIntegrationTests
             Assert.Equal(
                 ExitCodes.UsageError,
                 Run(root, Request("create", "Title", validFields), "--template-file", Path.Combine(root, "template.md")).Code);
+            var invalidMadrCustom = Run(
+                root,
+                Request("preview", "Title", validFields),
+                "--adr-format", "madr-4",
+                "--template-file", Path.Combine(root, "template.md"));
+            Assert.Equal(ExitCodes.UsageError, invalidMadrCustom.Code);
+            Assert.Contains(
+                "cannot be combined with --adr-format madr-4",
+                invalidMadrCustom.Error,
+                StringComparison.Ordinal);
+            var invalidMadrCustomCreate = Run(
+                root,
+                Request("create", "Title", validFields),
+                "--adr-format", "madr-4",
+                "--template-file", Path.Combine(root, "template.md"));
+            Assert.Equal(ExitCodes.UsageError, invalidMadrCustomCreate.Code);
+            Assert.Contains(
+                "cannot be combined with --adr-format madr-4",
+                invalidMadrCustomCreate.Error,
+                StringComparison.Ordinal);
             Assert.Equal(
                 ExitCodes.OperationalError,
                 Run(root, new string('x', NewFormCommand.MaximumInputCharacters + 1)).Code);
-            Assert.Empty(Directory.EnumerateFiles(root));
+            Assert.Empty(Directory.EnumerateFileSystemEntries(root));
         }
         finally
         {

@@ -144,4 +144,32 @@ public sealed class AdrMarkdownParserTests
         Assert.Single(document.Sections);
         Assert.Equal("Context", document.Sections[0].Heading);
     }
+
+    [Theory]
+    [InlineData("- ```text", "  ```")]
+    [InlineData("1. ~~~text", "   ~~~")]
+    public void ParseSupportsFencedCodeBlocksInsideListItems(
+        string openingFence,
+        string closingFence)
+    {
+        var markdown = $"""
+            # Decision
+
+            ## Context
+
+            {openingFence}
+              ## Not a section
+            {closingFence}
+
+            ## Decision
+
+            Use the real section.
+            """;
+
+        var document = AdrMarkdownParser.Parse("0001-decision.md", markdown);
+
+        Assert.Equal(2, document.Sections.Count);
+        Assert.DoesNotContain(document.Sections, section => section.Heading == "Not a section");
+        Assert.Contains("## Not a section", document.Sections[0].Content, StringComparison.Ordinal);
+    }
 }

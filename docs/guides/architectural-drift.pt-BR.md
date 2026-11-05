@@ -13,7 +13,7 @@ Repita `--evidence caminho.json` para artefatos externos explícitos. Use `--wri
 
 ## Receita de CI
 
-O código-fonte de desenvolvimento atual adiciona um modo `drift` somente leitura à Action composta. Esse contrato da Action ainda não está publicado em `@v1` nem em `v1.9.0`; fixe um commit revisado do source e uma imagem publicada de runtime exata somente para avaliação de desenvolvimento. Nenhum secret ou permissão de escrita é necessário.
+A Action composta publica o modo `drift` somente leitura em `@v1` e na versão exata `v1.10.0`. Nenhum secret ou permissão de escrita é necessário.
 
 ```yaml
 permissions:
@@ -24,7 +24,7 @@ steps:
       persist-credentials: false
   - uses: rodri-oliveira-dev/adr-guard@<commit-sha>
     with:
-      version: 1.9.0
+      version: 1.10.0
       command: drift
       drift-rules: .adrguard-fitness.json
       drift-policy: enforce

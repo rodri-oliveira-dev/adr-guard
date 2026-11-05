@@ -38,7 +38,8 @@ internal static class NewFormCommand
                 out var templateName,
                 out var templateFilePath,
                 out var cultureName,
-                out var filenamePolicyName))
+                out var filenamePolicyName,
+                out var format))
         {
             return UsageError("Invalid arguments for the visual ADR form contract.", error);
         }
@@ -59,6 +60,7 @@ internal static class NewFormCommand
                 templateFilePath,
                 cultureName,
                 filenamePolicyName,
+                format,
                 input,
                 output,
                 error,
@@ -101,6 +103,7 @@ internal static class NewFormCommand
         string? templateFilePath,
         string cultureName,
         string? filenamePolicyName,
+        AdrFormat format,
         TextReader input,
         TextWriter output,
         TextWriter error,
@@ -115,11 +118,18 @@ internal static class NewFormCommand
 
         if (templateFilePath is not null)
         {
+            if (operation != DescribeOperation && format == AdrFormat.Madr4)
+            {
+                return UsageError(
+                    "Custom --template-file content is canonical and cannot be combined with --adr-format madr-4.",
+                    error);
+            }
+
             return WriteCustomTemplateResponse(operation, output, error);
         }
 
         var resolvedTemplate = templateName ?? AdrBuiltInTemplates.Minimal;
-        var fieldDefinitions = AdrFormTemplateCatalog.Describe(resolvedTemplate);
+        var fieldDefinitions = AdrFormTemplateCatalog.Describe(resolvedTemplate, format);
         if (operation == DescribeOperation)
         {
             WriteDescription(output, operation, resolvedTemplate, fieldDefinitions);
@@ -132,7 +142,10 @@ internal static class NewFormCommand
             return ExitCodes.OperationalError;
         }
 
-        var values = ValidateFields(request, fieldDefinitions);
+        var maximumFieldCharacters = format == AdrFormat.Madr4
+            ? AdrGenerationContextLimits.MaximumGeneratedFieldCharacters
+            : MaximumFieldCharacters;
+        var values = ValidateFields(request, fieldDefinitions, maximumFieldCharacters);
         var title = request.Title?.Trim() ?? string.Empty;
         if (title.Length is 0 or > 512
             || title.IndexOfAny(['\r', '\n']) >= 0
@@ -143,21 +156,46 @@ internal static class NewFormCommand
                 error);
         }
 
-        var definition = AdrFormTemplateCatalog.Get(
-            resolvedTemplate,
-            cultureName,
-            values);
-        var result = new AdrNewService()
-            .CreateAsync(
-                directoryPath,
-                title,
-                definition.Template,
-                dryRun: operation == "preview",
-                cancellationToken,
-                AdrFilenamePolicy.Parse(filenamePolicyName),
-                values)
-            .GetAwaiter()
-            .GetResult();
+        var service = new AdrNewService();
+        var filenamePolicy = AdrFilenamePolicy.Parse(filenamePolicyName);
+        AdrNewOutcome result;
+        IReadOnlyList<AdrFormFieldDefinition> responseFields;
+        if (format == AdrFormat.Madr4)
+        {
+            var definition = AdrFormTemplateCatalog.GetMadr(
+                resolvedTemplate,
+                cultureName,
+                values);
+            result = service.CreateMadrAsync(
+                    directoryPath,
+                    title,
+                    definition.Template,
+                    dryRun: operation == "preview",
+                    cancellationToken,
+                    filenamePolicy,
+                    definition.Substitutions)
+                .GetAwaiter()
+                .GetResult();
+            responseFields = definition.Fields;
+        }
+        else
+        {
+            var definition = AdrFormTemplateCatalog.Get(
+                resolvedTemplate,
+                cultureName,
+                values);
+            result = service.CreateAsync(
+                    directoryPath,
+                    title,
+                    definition.Template,
+                    dryRun: operation == "preview",
+                    cancellationToken,
+                    filenamePolicy,
+                    values)
+                .GetAwaiter()
+                .GetResult();
+            responseFields = definition.Fields;
+        }
 
         if (!result.ValidationResult.IsValid)
         {
@@ -169,10 +207,10 @@ internal static class NewFormCommand
             SchemaVersion,
             operation,
             new NewFormTemplateResponse(
-                definition.Name,
+                resolvedTemplate,
                 Compatible: true,
                 Reason: null,
-                definition.Fields
+                responseFields
                     .Select(field => new NewFormFieldResponse(field.Id, field.Required))
                     .ToArray()),
             result.FilePath,
@@ -265,7 +303,8 @@ internal static class NewFormCommand
 
     private static Dictionary<string, string> ValidateFields(
         NewFormRequest request,
-        IReadOnlyList<AdrFormFieldDefinition> definitions)
+        IReadOnlyList<AdrFormFieldDefinition> definitions,
+        int maximumFieldCharacters)
     {
         if (request.Fields is null)
         {
@@ -282,7 +321,7 @@ internal static class NewFormCommand
         foreach (var field in definitions)
         {
             var value = request.Fields.GetValueOrDefault(field.Id) ?? string.Empty;
-            if (value.Length > MaximumFieldCharacters || value.Contains('\0'))
+            if (value.Length > maximumFieldCharacters || value.Contains('\0'))
             {
                 throw new ArgumentException(
                     $"Visual ADR form field '{field.Id}' is invalid or exceeds the size limit.");
@@ -333,7 +372,8 @@ internal static class NewFormCommand
         out string? templateName,
         out string? templateFilePath,
         out string cultureName,
-        out string? filenamePolicy)
+        out string? filenamePolicy,
+        out AdrFormat format)
     {
         var state = new FormArgumentState();
 
@@ -341,12 +381,12 @@ internal static class NewFormCommand
         {
             if (!TryApplyArgument(args, ref index, state))
                 return SetOutputs(state, out directoryPath, out templateName, out templateFilePath,
-                    out cultureName, out filenamePolicy, false);
+                    out cultureName, out filenamePolicy, out format, false);
         }
 
         var valid = IsValid(state);
         return SetOutputs(state, out directoryPath, out templateName, out templateFilePath,
-            out cultureName, out filenamePolicy, valid);
+            out cultureName, out filenamePolicy, out format, valid);
     }
 
     private static bool TryApplyArgument(
@@ -356,7 +396,8 @@ internal static class NewFormCommand
     {
         var argument = args[index];
         if (argument == "--form") return state.TrySetForm();
-        if (argument is not ("--template" or "--template-file" or "--culture" or "--filename-policy"))
+        if (argument is not ("--template" or "--template-file" or "--culture"
+            or "--filename-policy" or "--adr-format"))
             return state.TrySetDirectory(argument);
         if (index + 1 >= args.Count) return false;
         return state.TrySetValue(argument, args[++index]);
@@ -375,6 +416,7 @@ internal static class NewFormCommand
         out string? templateFilePath,
         out string cultureName,
         out string? filenamePolicy,
+        out AdrFormat format,
         bool result)
     {
         directoryPath = state.DirectoryPath;
@@ -382,6 +424,7 @@ internal static class NewFormCommand
         templateFilePath = state.TemplateFilePath;
         cultureName = state.CultureName;
         filenamePolicy = state.FilenamePolicy;
+        format = state.Format;
         return result;
     }
 
@@ -393,6 +436,7 @@ internal static class NewFormCommand
         internal string? TemplateFilePath { get; private set; }
         internal string CultureName { get; private set; } = "en-US";
         internal string? FilenamePolicy { get; private set; }
+        internal AdrFormat Format { get; private set; } = AdrFormat.Canonical;
         internal bool FormAssigned => assigned.Contains("--form");
 
         internal bool TrySetForm() => assigned.Add("--form");
@@ -406,6 +450,15 @@ internal static class NewFormCommand
                 case "--template": TemplateName = value; break;
                 case "--template-file": TemplateFilePath = value; break;
                 case "--culture": CultureName = value; break;
+                case "--adr-format":
+                    Format = value switch
+                    {
+                        "canonical" => AdrFormat.Canonical,
+                        "madr-4" => AdrFormat.Madr4,
+                        _ => (AdrFormat)(-1),
+                    };
+                    if (!Enum.IsDefined(Format)) return false;
+                    break;
                 case "--filename-policy": FilenamePolicy = value; break;
             }
             return true;

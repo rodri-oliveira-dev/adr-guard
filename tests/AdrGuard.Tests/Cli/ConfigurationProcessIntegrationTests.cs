@@ -28,6 +28,49 @@ public sealed class ConfigurationProcessIntegrationTests
     }
 
     [Fact]
+    public async Task MadrFormatConfiguresNewAndExplicitCanonicalOverridesIt()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            var configuredDirectory = Path.Combine(root, "records");
+            var explicitDirectory = Path.Combine(root, "canonical");
+            Directory.CreateDirectory(configuredDirectory);
+            Directory.CreateDirectory(explicitDirectory);
+            File.WriteAllText(
+                Path.Combine(root, ".adrguard.yml"),
+                "schema-version: 1\nadr-directory: records\nadr-format: madr-4\n");
+
+            var configured = await RunProcessAsync(root, "new", "--title", "Configured decision");
+            Assert.Equal(ExitCodes.Success, configured.ExitCode);
+            Assert.StartsWith(
+                "---\nstatus: \"proposed\"\n---",
+                File.ReadAllText(Path.Combine(configuredDirectory, "0001-configured-decision.md")),
+                StringComparison.Ordinal);
+            Assert.Equal(ExitCodes.Success, (await RunProcessAsync(root, "check")).ExitCode);
+
+            var explicitCanonical = await RunProcessAsync(
+                root,
+                "new", "canonical", "--title", "Explicit decision",
+                "--adr-format", "canonical");
+            Assert.Equal(ExitCodes.Success, explicitCanonical.ExitCode);
+            Assert.Contains(
+                "## Status\n\nProposed",
+                File.ReadAllText(Path.Combine(explicitDirectory, "0001-explicit-decision.md")),
+                StringComparison.Ordinal);
+            Assert.Equal(
+                ExitCodes.Success,
+                (await RunProcessAsync(
+                    root,
+                    "check", "canonical", "--adr-format", "canonical")).ExitCode);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
     public async Task ConventionalSupersessionCanBeEnabledByRepositoryConfiguration()
     {
         var root = CreateTempDirectory();

@@ -39,6 +39,7 @@ internal static class ConfigurationArguments
             case "new":
                 AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
                 AddTemplateIfMissing(configured, configuration);
+                AddAdrFormatIfMissing(configured, configuration);
                 AddFilenamePolicyIfMissing(configured, configuration);
                 break;
             case "draft":

@@ -1,6 +1,6 @@
 # GitHub Action security model
 
-ADR Guard's reusable GitHub Action keeps deterministic ADR validation as its default, supports explicit index generation, and exposes AI-assisted `review` only as an opt-in operation. Read-only `drift` is available in the released Action `@v1.10.0` and the moving `@v1` reference (currently `v1.10.0`), but not in `@v1.9.0`. The Action invokes the selected GHCR container and does not expose the AI-assisted `draft` command.
+ADR Guard's reusable GitHub Action keeps deterministic ADR validation as its default, supports explicit index generation, and exposes AI-assisted `review` only as an opt-in operation. Read-only `drift` is available in the released Action `@v1.10.0` and the moving `@v1` reference (currently `v1.10.0`), but not in `@v1.9.0`. The Action invokes the selected GHCR container and does not expose `new`, native MADR generation, or the AI-assisted `draft` command.
 
 ## Minimal permissions
 

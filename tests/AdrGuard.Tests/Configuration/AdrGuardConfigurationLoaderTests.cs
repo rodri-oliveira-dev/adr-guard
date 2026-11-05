@@ -72,7 +72,7 @@ public sealed class AdrGuardConfigurationLoaderTests
             "docs/decisions",
             "extended",
             null,
-            null);
+            "madr-4");
 
         var configured = ConfigurationArguments.Apply(
             ["new", "--title", "Configured"],
@@ -80,6 +80,8 @@ public sealed class AdrGuardConfigurationLoaderTests
         Assert.Equal(configuration.AdrDirectoryPath, configured[1]);
         Assert.Contains("--template", configured);
         Assert.Contains("extended", configured);
+        Assert.Contains("--adr-format", configured);
+        Assert.Contains("madr-4", configured);
 
         var configuredEdit = ConfigurationArguments.Apply(
             ["edit", "docs/decisions/0001-choice.md", "--form"],
@@ -90,6 +92,7 @@ public sealed class AdrGuardConfigurationLoaderTests
         var explicitArgs = new[]
         {
             "new", "custom/adrs", "--title", "Explicit", "--template", "minimal",
+            "--adr-format", "canonical",
         };
         Assert.Equal(explicitArgs, ConfigurationArguments.Apply(explicitArgs, configuration));
 

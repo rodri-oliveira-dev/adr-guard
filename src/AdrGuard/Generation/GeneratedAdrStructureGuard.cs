@@ -1,3 +1,5 @@
+using AdrGuard.Parsing;
+
 namespace AdrGuard.Generation;
 
 internal static class GeneratedAdrStructureGuard
@@ -27,10 +29,22 @@ internal static class GeneratedAdrStructureGuard
         string? content) =>
         ValidateField(sectionName, content, rejectAllHeadings: true);
 
+    internal static void ValidateMadrTemplateContent(
+        string sectionName,
+        string? content) =>
+        ValidateField(
+            sectionName,
+            content,
+            rejectAllHeadings: true,
+            maximumRejectedHeadingLevel: 3,
+            rejectUnclosedFence: true);
+
     private static void ValidateField(
         string fieldName,
         string? content,
-        bool rejectAllHeadings = false)
+        bool rejectAllHeadings = false,
+        int maximumRejectedHeadingLevel = 2,
+        bool rejectUnclosedFence = false)
     {
         if (string.IsNullOrEmpty(content))
         {
@@ -64,7 +78,8 @@ internal static class GeneratedAdrStructureGuard
                     fieldName,
                     rejectAllHeadings,
                     level,
-                    heading);
+                    heading,
+                    maximumRejectedHeadingLevel);
                 previousUnfencedLine = null;
                 continue;
             }
@@ -72,6 +87,12 @@ internal static class GeneratedAdrStructureGuard
             previousUnfencedLine = string.IsNullOrWhiteSpace(line)
                 ? null
                 : line;
+        }
+
+        if (rejectUnclosedFence && fenceTracker.IsInsideFence)
+        {
+            throw new ArgumentException(
+                $"Template content in the {fieldName} section must close every Markdown code fence.");
         }
     }
 
@@ -94,21 +115,27 @@ internal static class GeneratedAdrStructureGuard
         string fieldName,
         bool rejectAllHeadings,
         int level,
-        string heading)
+        string heading,
+        int maximumRejectedHeadingLevel)
     {
         if (level != 1
             && (level != 2
                 || (!rejectAllHeadings
-                    && !CanonicalLevelTwoHeadings.Contains(heading))))
+                    && !CanonicalLevelTwoHeadings.Contains(heading)))
+            && (!rejectAllHeadings
+                || level > maximumRejectedHeadingLevel))
         {
             return;
         }
 
         if (rejectAllHeadings)
         {
+            var levels = maximumRejectedHeadingLevel == 2
+                ? "level-one or level-two"
+                : $"level-one through level-{maximumRejectedHeadingLevel}";
             throw new InvalidOperationException(
                 $"Template content in the {fieldName} section must not define "
-                + "level-one or level-two Markdown headings.");
+                + $"{levels} Markdown headings.");
         }
 
         throw new InvalidOperationException(
@@ -154,9 +181,22 @@ internal static class GeneratedAdrStructureGuard
         out int level,
         out string heading)
     {
-        var trimmed = line.TrimStart();
         level = 0;
         heading = string.Empty;
+        var indentation = 0;
+
+        while (indentation < line.Length
+            && line[indentation] == ' ')
+        {
+            indentation++;
+        }
+
+        if (indentation > 3)
+        {
+            return false;
+        }
+
+        var trimmed = line[indentation..];
 
         while (level < trimmed.Length
             && trimmed[level] == '#')
@@ -210,6 +250,7 @@ internal static class GeneratedAdrStructureGuard
         {
             if (!TryGetFence(
                     line,
+                    allowListMarker: marker is null,
                     out var candidateMarker,
                     out var candidateLength))
             {
@@ -237,6 +278,7 @@ internal static class GeneratedAdrStructureGuard
 
         private static bool TryGetFence(
             string line,
+            bool allowListMarker,
             out char marker,
             out int markerLength)
         {
@@ -258,6 +300,12 @@ internal static class GeneratedAdrStructureGuard
             }
 
             var trimmed = line.AsSpan(indentation);
+            if (allowListMarker
+                && MarkdownListMarker.TryConsume(trimmed, out var contentOffset))
+            {
+                trimmed = trimmed[contentOffset..];
+            }
+
             if (trimmed.Length < 3
                 || trimmed[0] is not ('`' or '~'))
             {

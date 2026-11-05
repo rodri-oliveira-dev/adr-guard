@@ -6,8 +6,19 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
-No changes have been assigned to a later release.
+## [1.11.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.11.0) — prepared 2026-11-05, not yet published
 
+### Added
+
+- Add native, opt-in MADR 4.0 generation to `adr-guard new`, including schema `1.0` structured-form discovery, side-effect-free preview, atomic creation, configuration precedence, and the existing filename policies. Canonical generation remains the default; custom templates remain canonical-only.
+
+### Compatibility and publication
+
+- Preserve the schema `1.0` `new --form` envelope and reuse its published field IDs for MADR without silently expanding the contract.
+- Preserve canonical output byte-for-byte, existing CLI exits `0`–`4`, atomic writes, and concurrent ID allocation.
+- CLI `1.10.0` remains the currently published package. CLI `1.11.0`, its containers, and matching exact/moving Action tags are prepared but unavailable until the manual `Release` workflow succeeds after merge.
+- MCP `1.0.1` was published independently on NuGet.org and GitHub Releases; VS Code `1.1.1` remains an independently versioned source candidate. Neither component is published by the CLI workflow.
+- Full candidate notes: [English](docs/releases/v1.11.0.md) · [Português](docs/releases/v1.11.0.pt-BR.md).
 ## [1.10.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0) — 2026-11-05
 
 ### Added
@@ -21,10 +32,10 @@ No changes have been assigned to a later release.
 - Harden the container supply chain by using the official .NET Alpine build/runtime images, retaining bounded Git support and non-root execution while removing a vulnerable transitive Perl package chain.
 
 ### Compatibility and publication
-- CLI `1.10.0` is published in the [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0) with coordinated container and GitHub Action support. Exact Action tag `v1.10.0` and moving major tag `v1` expose the read-only `drift` contract; older `v1.9.0` does not.
+- CLI `1.10.0` was published to NuGet.org, GitHub Packages, [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0), GHCR, and Docker Hub. Exact Action tag `v1.10.0` and moving major tag `v1` expose the read-only `drift` contract; older `v1.9.0` does not.
 - Preserve CLI exits `0`–`4`, existing JSON/SARIF schemas, deterministic ordering/fingerprints, and all pre-existing commands and arguments. `doctor` is additive.
 - MCP `1.0.1` was released independently on 2026-11-05 in [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.1), preserving its seven read-only `stdio` tools and direct `AdrGuard.Core` dependency. VS Code `1.1.1` remains a separately versioned source candidate; neither component is published by the CLI release workflow.
-- Release notes: [English](docs/releases/v1.10.0.md) · [Português](docs/releases/v1.10.0.pt-BR.md).
+- Full release notes: [English](docs/releases/v1.10.0.md) · [Português](docs/releases/v1.10.0.pt-BR.md).
 
 ## [1.9.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0) — 2026-10-20
 

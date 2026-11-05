@@ -18,7 +18,7 @@ The format controls how you express a decision; the **decision category** descri
 | Minimal | Focused, lower-risk choices | Context, decision, consequences | Generated and validated as canonical | Keep the choice precise despite the shorter record |
 | Extended | High-impact or multi-option choices | Drivers, alternatives, outcome, consequences | Generated and validated as canonical | Extended is **not** MADR |
 | Custom | Organization-specific canonical structure | Depends on the template | `new --template-file` with invariant structural requirements | Arbitrary Markdown is not automatically valid |
-| MADR 4.0 | Teams already standardized on MADR | Drivers, options, outcome, pros/cons | Opt-in validation with `--adr-format madr-4` | Validate separately from canonical ADR sets; automatic MADR generation is not claimed |
+| MADR 4.0 | Teams already standardized on MADR | Drivers, options, outcome, pros/cons | Opt-in generation and validation with `new --adr-format madr-4` in the prepared CLI 1.11.0 candidate | Keep it separate from canonical ADR sets; native generation is not published yet |
 
 :::caution[Do not mix validation contracts]
 Choose one format for each validation set. Canonical and MADR headings have different contracts and should not be mixed in the same invocation.

@@ -164,7 +164,11 @@ internal static class AdrMarkdownParser
         internal List<AdrSection> Sections { get; } = [];
         internal string? Title { get; private set; }
 
-        private static bool TryGetFence(string line, out char marker, out int markerLength)
+        private static bool TryGetFence(
+            string line,
+            bool allowListMarker,
+            out char marker,
+            out int markerLength)
         {
             marker = default;
             markerLength = 0;
@@ -172,6 +176,10 @@ internal static class AdrMarkdownParser
             while (indentation < line.Length && line[indentation] == ' ') indentation++;
             if (indentation >= 4) return false;
             var trimmed = line.AsSpan(indentation);
+            if (allowListMarker && MarkdownListMarker.TryConsume(trimmed, out var contentOffset))
+            {
+                trimmed = trimmed[contentOffset..];
+            }
             if (trimmed.Length < 3 || trimmed[0] is not ('`' or '~')) return false;
             marker = trimmed[0];
             while (markerLength < trimmed.Length && trimmed[markerLength] == marker) markerLength++;
@@ -263,7 +271,14 @@ internal static class AdrMarkdownParser
 
         private bool HandleFence(string line)
         {
-            if (!TryGetFence(line, out var marker, out var markerLength)) return false;
+            if (!TryGetFence(
+                    line,
+                    allowListMarker: fenceMarker is null,
+                    out var marker,
+                    out var markerLength))
+            {
+                return false;
+            }
             if (fenceMarker is null)
             {
                 fenceMarker = marker;

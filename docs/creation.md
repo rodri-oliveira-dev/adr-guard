@@ -8,6 +8,8 @@ The default filename remains `NNNN-kebab-case.md`. Repository configuration may 
 
 > Structured visual creation and editing are implemented for the CLI 1.7.0 line and require a separately versioned compatible VS Code extension. Confirm publication of both artifacts before relying on the visual forms; implementation in this branch does not make them available in NuGet or the Visual Studio Marketplace.
 
+> Native MADR 4.0 generation is prepared for CLI 1.11.0 and is not yet available in published packages or images. CLI 1.10.0 remains the published baseline.
+
 ## Quick start — no AI, account, API key, or network required
 
 Run from the repository root with **v1.1.0 or newer** of the published `adr-guard` command installed or on your `PATH`. The destination directory **must already exist**. The default template is `minimal` and the default guidance culture is `en-US`.
@@ -21,7 +23,7 @@ adr-guard index docs/adr
 
 The first command writes `docs/adr/NNNN-adopt-redis.md`, where `NNNN` is the next available ID after the **highest existing ID**, not the first gap. On an empty directory this is `0001-adopt-redis.md`. `new` does **not** update `docs/adr/README.md`; `check` validates the ADR set and `index` creates or refreshes its deterministic README only after validation. `index` does not overwrite ADR files. Re-running `new` with the same title after a successful creation allocates a new ID; concurrent creators of the same title sharing the same preview path instead produce an explicit conflict, never a silent overwrite.
 
-## Choose Minimal, Extended, or Custom
+## Choose Minimal, Extended, Custom, or MADR 4.0
 
 ```bash
 adr-guard new docs/adr --title "Adopt Redis" --template minimal --culture en-US
@@ -29,9 +31,13 @@ adr-guard new docs/adr --title "Adotar Redis" --template extended --culture pt-B
 adr-guard new docs/adr --title "Adopt Cache" --template-file docs/examples/templates/team.en-US.md --culture en-US
 adr-guard new docs/adr --title "Try Redis" --template extended --preview
 adr-guard new docs/adr --title "Try Redis" --template extended --dry-run
+adr-guard new docs/madr --title "Adopt PostgreSQL" --adr-format madr-4
+adr-guard new docs/madr --title "Adopt a queue" --adr-format madr-4 --template extended --preview
 ```
 
 Only `minimal` and `extended` are built-in names (case-sensitive). `minimal` creates the canonical `Context`, `Decision`, `Consequences` sections; `extended` also adds decision drivers, alternatives, rationale, consequences, risks, and references. `--culture` controls **instructional prose** only and accepts `en-US` or `pt-BR`. Even in Portuguese, the canonical Markdown section names **`Status`, `Context`, `Decision`, `Consequences`** and the generated status **`Proposed`** remain in English so the existing validator can read them.
+
+`--adr-format madr-4` selects the native MADR renderer. Its minimal template emits `Context and Problem Statement`, `Considered Options`, and `Decision Outcome`; extended adds the supported optional MADR sections. The fixed front matter is `status: "proposed"`, never approval. An explicit format overrides repository `adr-format`; omitting both preserves canonical output. Custom templates remain canonical-only and cannot be combined with MADR generation.
 
 A custom source is **one explicitly selected local UTF-8 `.md` file**, at most **65,536 bytes** (64 KiB including an optional UTF-8 BOM). Relative `--template-file` paths resolve from the directory where the command is launched, not from `docs/adr`. Put reusable templates **outside the ADR destination** so `check` does not interpret them as candidate ADR files. An explicit `--template` and `--template-file` are mutually exclusive, even when `--template minimal` is specified. Files are never discovered recursively. Missing, inaccessible, oversized, malformed, or non-UTF-8 files are rejected before an ADR is saved. See the [exact custom file grammar and placeholder rules](custom-templates.md) and a [ready-to-copy custom template](examples/templates/team.en-US.md).
 
@@ -45,15 +51,19 @@ These examples are **actual validator-compliant starting drafts**, with instruct
 - [Extended, Portuguese guidance: `0001-adotar-redis.md`](examples/generated/extended/0001-adotar-redis.md)
 - [Custom, English: `0001-adopt-cache.md`](examples/generated/custom/0001-adopt-cache.md) from [`team.en-US.md`](examples/templates/team.en-US.md)
 - [Custom, Portuguese: `0001-adotar-cache.md`](examples/generated/custom-pt-BR/0001-adotar-cache.md) from [`team.pt-BR.md`](examples/templates/team.pt-BR.md)
+- [MADR 4.0, English: `0001-adopt-postgresql.md`](examples/generated/madr-4/0001-adopt-postgresql.md)
+- [MADR 4.0, Portuguese guidance: `0001-adotar-postgresql.md`](examples/generated/madr-4-pt-BR/0001-adotar-postgresql.md)
 
 ```bash
 adr-guard check docs/examples/generated/minimal
 adr-guard check docs/examples/generated/extended
 adr-guard check docs/examples/generated/custom
 adr-guard check docs/examples/generated/custom-pt-BR
+adr-guard check docs/examples/generated/madr-4 --adr-format madr-4
+adr-guard check docs/examples/generated/madr-4-pt-BR --adr-format madr-4
 ```
 
-The repository CI generates the four examples independently with the **installed packaged tool**, compares their content byte-for-byte and runs these validation commands. Do not place all four samples in the same ADR directory: they each use ID `0001` intentionally.
+The repository contract test generates the six examples independently with the **installed packaged tool**, compares their content byte-for-byte and runs these validation commands. Do not place all samples in the same ADR directory: they each use ID `0001` intentionally.
 
 ## Custom source grammar and placeholders
 
@@ -66,6 +76,8 @@ Unknown or malformed placeholder syntax, duplicate structural headings and attem
 ## Visual-form adapter contract
 
 `adr-guard new <directory> --form` is a bounded integration contract for trusted UI adapters, implemented for CLI 1.7.0. It is not an interactive terminal form: it reads one schema `1.0` JSON document from stdin and writes one schema `1.0` JSON response on stdout. Its `describe`, `preview`, and `create` operations support only the native `minimal` and `extended` templates. Preview uses the same renderer as creation but never writes or reserves an ID; create reallocates and persists atomically. A configured `template-file` is reported as incompatible so the adapter can offer the traditional flow without silently changing templates.
+
+The JSON envelope remains schema `1.0`; `--adr-format` stays outside the payload. MADR reuses published IDs for existing clients: required `context`, `optionsConsidered`, and `decision` map to the three required MADR sections; extended adds optional `decisionDrivers`, `consequences`, and `references` (`More Information`). Distinct form fields for Confirmation or detailed option analysis require a future schema version; traditional extended generation already includes their editable guidance.
 
 Requests use `schemaVersion` and `operation`; `preview` and `create` also require `title` plus the string-valued `fields` object returned by the description, while `describe` accepts no non-null form content. Responses contain `schemaVersion`, `operation`, `template` (`name`, `compatible`, optional `reason`, and ordered `fields`), `written`, and optional `path`/`markdown`. Unknown/duplicate properties, unsupported field IDs, NULs, excessive depth/size, missing required fields, and schema versions other than `1.0` fail closed. Form content is never accepted in command-line arguments or operational logs.
 
@@ -83,7 +95,7 @@ The separately versioned [VS Code extension](../extensions/vscode/README.md) use
 
 The same creation path is shared between offline `new` and AI `draft`: cooperating writers running as the **same OS user on the same host** serialize ID allocation under a cross-session named mutex whose identity resolves directory symlink aliases and case aliases on Windows/macOS; the selected template is re-rendered with the **final allocated ID** while holding that lock, validated, written to a temporary file and atomically promoted without overwriting a destination. Failure/cancellation cleans up temporary files; retry may reuse an uncommitted ID. External non-cooperating writers and different hosts sharing the same filesystem require additional coordination.
 
-The public exit-code contract is `0` success, `1` ADR validation failure, `2` invalid CLI usage (e.g., conflicting template options, unknown template/culture, missing title), `3` operational error (e.g., missing ADR directory, absent/malformed template file, I/O, ID exhaustion or cancellation). Existing invalid ADRs cause code `1` and no new file. On a successful creation, the status is **Proposed**, never an automatic architectural approval; a reviewer must replace instructional text and check the reasoning and trade-offs before accepting a decision. ADR Guard validates **structure**, not technical merit or a native MADR/alternative format.
+The public exit-code contract is `0` success, `1` ADR validation failure, `2` invalid CLI usage (e.g., conflicting template options, unknown template/culture, missing title), `3` operational error (e.g., missing ADR directory, absent/malformed template file, I/O, ID exhaustion or cancellation). Existing invalid ADRs cause code `1` and no new file. On a successful creation, the canonical status is **Proposed** and MADR metadata is **`proposed`**, never automatic architectural approval; a reviewer must replace instructional text and check the reasoning and trade-offs before accepting a decision. ADR Guard validates **structure**, not technical merit.
 
 ## Optional AI-assisted draft and distributions
 

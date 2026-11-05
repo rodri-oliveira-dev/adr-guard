@@ -2,7 +2,7 @@
 
 > **Status da publicação:** a Action reutilizável está publicada, e a tag de compatibilidade `v1` está publicada e é móvel. A linha pública `v1` suporta `check`, `index` e `review` opt-in desde a `v1.1.6`; `new` e `draft` continuam fluxos exclusivos de CLI/container. A [listagem no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) foi acessada de forma independente e sem autenticação em 09/10/2026.
 
-> **Status das releases de impact e drift:** os inputs de `impact` estão disponíveis no runtime público coordenado v1.5.0 / `@v1`. Os inputs de `drift` estão disponíveis na Action publicada `@v1.10.0` e na referência móvel `@v1` (atualmente em `v1.10.0`); a versão anterior `@v1.9.0` não os expõe. Verifique a referência selecionada e a versão correspondente do container antes do uso.
+> **Status das releases de impact e drift:** os inputs de `impact` estão disponíveis no runtime público coordenado v1.5.0 / `@v1`. Os inputs de `drift` estão disponíveis na Action publicada `@v1.10.0` e na referência móvel `@v1` (atualmente em `v1.10.0`); a versão anterior `@v1.9.0` não os expõe. A CLI `1.11.0` é uma candidata não publicada; a geração MADR nativa é um comando da CLI e não é exposta pela Action. Verifique a referência selecionada e a versão correspondente do container antes do uso.
 
 A composite Action do ADR Guard executa o container publicado selecionado do ADR Guard. O consumidor não precisa do .NET SDK. É necessário um runner Linux com Docker e checkout prévio do repositório; `review`, `impact` e `drift` somente leitura também exigem Python 3 no runner para renderização limitada de summaries.
 
