@@ -7,6 +7,7 @@ const repositoryRoot = path.resolve(extensionRoot, '..', '..');
 const c8 = path.join(extensionRoot, 'node_modules', 'c8', 'bin', 'c8.js');
 const reportDirectory = path.join(repositoryRoot, 'artifacts', 'coverage', 'sonar', 'vscode');
 const tests = path.join(extensionRoot, 'out', 'test', 'unit', '*.test.js');
+const scriptTests = path.join(extensionRoot, 'test', 'unit', '*.test.mjs');
 
 const result = spawnSync(process.execPath, [
   c8,
@@ -16,6 +17,7 @@ const result = spawnSync(process.execPath, [
   process.execPath,
   '--test',
   tests,
+  scriptTests,
 ], {
   cwd: repositoryRoot,
   encoding: 'utf8',

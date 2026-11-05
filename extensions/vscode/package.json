@@ -368,7 +368,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "compile:tests": "tsc -p tsconfig.test.json",
     "build": "node esbuild.mjs",
-    "test:unit": "npm run compile:tests && node --test \"out/test/unit/*.test.js\"",
+    "test:unit": "npm run compile:tests && node --test \"out/test/unit/*.test.js\" \"test/unit/*.test.mjs\"",
     "test:coverage": "npm run compile:tests && node scripts/collect-sonar-coverage.mjs",
     "test:integration": "npm run compile:tests && npm run build && vscode-test && node scripts/run-untrusted-tests.mjs",
     "test": "npm run test:unit && npm run test:integration",
