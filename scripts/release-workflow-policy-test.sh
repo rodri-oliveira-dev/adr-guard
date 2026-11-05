@@ -212,6 +212,17 @@ for notes in \
   ! grep -Fq '## Checklist pós-publicação' "${rendered_notes}"
 done
 
+rendered_v110_en="${notes_fixture}/v1.10.0-content.md"
+rendered_v110_pt="${notes_fixture}/v1.10.0.pt-BR-content.md"
+bash "${RELEASE_NOTES_RENDERER}" "${ROOT_DIR}/docs/releases/v1.10.0.md" "${rendered_v110_en}"
+bash "${RELEASE_NOTES_RENDERER}" "${ROOT_DIR}/docs/releases/v1.10.0.pt-BR.md" "${rendered_v110_pt}"
+grep -Fq '## Highlights' "${rendered_v110_en}"
+grep -Fq '## Compatibility' "${rendered_v110_en}"
+grep -Fq '## Distribution prepared by this release' "${rendered_v110_en}"
+grep -Fq '## Principais mudanças' "${rendered_v110_pt}"
+grep -Fq '## Compatibilidade' "${rendered_v110_pt}"
+grep -Fq '## Distribuição preparada por esta release' "${rendered_v110_pt}"
+
 printf '%s\n' '# Missing markers' > "${notes_fixture}/missing-markers.md"
 if bash "${RELEASE_NOTES_RENDERER}" "${notes_fixture}/missing-markers.md" "${notes_fixture}/missing-rendered.md" >/dev/null 2>&1; then
   echo 'Release notes renderer must reject sources without candidate-only markers.' >&2

@@ -11,6 +11,8 @@ The VS Code extension is versioned independently from the ADR Guard CLI and GitH
 5. When the run succeeds, open its **Summary → Artifacts** section and download `adr-guard-vscode-<version>` (a ZIP archive containing `adr-guard-<version>.vsix`). The package is retained for **21 days** from the workflow run, subject to the repository's maximum artifact retention setting.
 6. Extract the ZIP and install the `.vsix` in VS Code using **Extensions: Install from VSIX...**, or run `code --install-extension adr-guard-<version>.vsix`.
 
+During packaging, `npm run package:vsix` renders neutral package-version text into the bundled README files and changelog, then restores the source documents. This keeps the branch documentation explicit that the candidate is not published while preventing that temporary preparation status from remaining inside the final VSIX.
+
 The [VS Code Extension CI](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/vscode-extension.yml) also uploads a VSIX artifact with a version derived from the manifest and a 21-day retention period whenever its checks run. For the most recently packaged version, select the latest **successful** run for the intended branch and verify the version displayed in the artifact name.
 
 ## Distribution and safety controls
