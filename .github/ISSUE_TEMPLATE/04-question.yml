@@ -1,0 +1,55 @@
+name: Question or integration help
+description: Ask about installation, configuration, usage, or integration.
+title: "[Question]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before asking, review the [getting started guide](https://rodri-oliveira-dev.github.io/adr-guard/) and [SUPPORT.md](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/SUPPORT.md).
+        For reproducible software failures use the **Bug report** form. For vulnerabilities use the private reporting instructions in [SECURITY.md](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/SECURITY.md).
+        Do not paste tokens, private ADR content, credentials, or unsanitized logs.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component or integration
+      options:
+        - CLI (.NET Tool)
+        - GitHub Action / CI
+        - MCP Server / agent client
+        - VS Code Extension
+        - Container image
+        - Agent Skills
+        - ADR formats / validation
+        - Other / Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Explain what you are trying to accomplish and where you need guidance.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or Action ref
+      description: Include versions of the relevant components if known.
+      placeholder: "CLI 1.x, MCP 1.x, VS Code 1.x, @v1"
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What have you tried?
+      description: Include relevant commands or sanitized configuration and the results.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Environment, documentation links, or related issues.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Public report safety
+      options:
+        - label: I have removed confidential information from this report.
+          required: true

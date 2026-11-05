@@ -2,16 +2,16 @@
 
 > **Status da publicação:** a Action reutilizável está publicada, e a tag de compatibilidade `v1` está publicada e é móvel. A linha pública `v1` suporta `check`, `index` e `review` opt-in desde a `v1.1.6`; `new` e `draft` continuam fluxos exclusivos de CLI/container. A [listagem no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) foi acessada de forma independente e sem autenticação em 09/10/2026.
 
-> **Status das releases de impact e drift:** os inputs de `impact` e `drift` somente leitura estão disponíveis no runtime público coordenado `v1.10.0` / `@v1`. A CLI `1.11.0` é uma candidata não publicada; a geração MADR nativa é um comando da CLI e não é exposta pela Action.
+> **Status das releases de impact e drift:** os inputs de `impact` estão disponíveis no runtime público coordenado v1.5.0 / `@v1`. Os inputs de `drift` estão disponíveis na Action publicada `@v1.10.0` e na referência móvel `@v1` (atualmente em `v1.10.0`); a versão anterior `@v1.9.0` não os expõe. A CLI `1.11.0` é uma candidata não publicada; a geração MADR nativa é um comando da CLI e não é exposta pela Action. Verifique a referência selecionada e a versão correspondente do container antes do uso.
 
-A composite Action do ADR Guard executa o container publicado selecionado do ADR Guard. O consumidor não precisa do .NET SDK. É necessário um runner Linux com Docker e checkout prévio do repositório; `review`, `impact` e `drift` disponível apenas no source também exigem Python 3 no runner para renderização limitada de summaries.
+A composite Action do ADR Guard executa o container publicado selecionado do ADR Guard. O consumidor não precisa do .NET SDK. É necessário um runner Linux com Docker e checkout prévio do repositório; `review`, `impact` e `drift` somente leitura também exigem Python 3 no runner para renderização limitada de summaries.
 
 ## Inputs
 
 | Input | Padrão | Valores aceitos |
 | --- | --- | --- |
 | `path` | `docs/adr` | Diretório de ADRs relativo ao repositório, dentro de `GITHUB_WORKSPACE`. Paths absolutos, diretórios inexistentes, traversal com `..` e escapes por symlink são rejeitados. |
-| `command` | `check` | `check`, `index`, `review` explícito, `impact` explícito ou `drift` explícito disponível apenas no source. |
+| `command` | `check` | `check`, `index`, `review` explícito, `impact` explícito ou `drift` explícito. |
 | `version` | vazio | Versão exata opcional da imagem de runtime no formato `X.Y.Z` ou `vX.Y.Z`. Obrigatória quando o source da Action é fixado por SHA de commit ou branch. |
 | `review-target` | vazio | Arquivo Markdown do ADR relativo ao repositório; obrigatório para `review`. |
 | `provider` | vazio | Provider de revisão; obrigatório para `review`. |
@@ -57,9 +57,9 @@ A Action valida se a imagem de runtime selecionada expõe o contrato CLI de `imp
 
 O JSON estável permanece no log bruto protegido contra workflow commands. Se for necessário reter um artifact JSON, execute explicitamente o container da mesma versão exata com checkout somente leitura, redirecione `impact --format json` para `${RUNNER_TEMP}/adr-impact.json` e faça opt-in de `actions/upload-artifact` no workflow consumidor. A Action não cria nem envia artifacts implicitamente. Consulte o [exemplo completo somente leitura](examples/github-action-impact.yml).
 
-### Verificação de drift arquitetural (somente no source de desenvolvimento)
+### Verificação de drift arquitetural (v1.10.0+)
 
-A Action no código-fonte adapta o contrato existente de `adr-guard drift`; ela não implementa um segundo motor de regras de fitness. O checkout é montado como somente leitura, a rede fica desabilitada, os inputs são validados dentro de `GITHUB_WORKSPACE` e nenhuma credencial ou token do GitHub é encaminhado. A imagem selecionada é sondada com `drift --help` antes da montagem dos dados do consumidor.
+A Action publicada adapta o contrato existente de `adr-guard drift`; ela não implementa um segundo motor de regras de fitness. O checkout é montado como somente leitura, a rede fica desabilitada, os inputs são validados dentro de `GITHUB_WORKSPACE` e nenhuma credencial ou token do GitHub é encaminhado. A imagem selecionada é sondada com `drift --help` antes da montagem dos dados do consumidor.
 
 ```yaml
 permissions:
@@ -71,9 +71,8 @@ steps:
       persist-credentials: false
 
   - name: Verificar regras arquiteturais ligadas a ADRs
-    uses: rodri-oliveira-dev/adr-guard@<commit-sha>
+    uses: rodri-oliveira-dev/adr-guard@v1.10.0
     with:
-      version: 1.10.0
       command: drift
       drift-rules: .adrguard-fitness.json
       drift-policy: enforce
@@ -85,7 +84,7 @@ steps:
 
 `drift-policy` usa `advisory` por padrão. Um pass conclusivo ou uma violação advisory/já presente no baseline retorna `0`; input inválido da Action/CLI retorna `2`; evidência ausente ou inconclusiva permanece `unknown` e retorna `3`; enforce retorna `4` somente quando a CLI identifica uma violação estática determinística, nova e habilitada para gate. O summary limitado rotula pass, violation e unknown, mas nunca recalcula policy nem transforma incerteza em conformidade. O exit original da CLI sempre prevalece, inclusive quando a renderização do summary falha.
 
-`drift-baseline` é somente leitura. Criação e substituição de baseline continuam operações explícitas do responsável pela CLI e deliberadamente não são expostas pela Action. `drift-evidence` aceita até 20 arquivos JSON existentes, um path relativo ao repositório por linha. Traversal, paths absolutos, duplicatas, arquivos não JSON, arquivos ausentes e escapes por symlink são rejeitados antes da execução do Docker. Consulte o [exemplo de workflow disponível no source](examples/github-action-drift.yml) e o [guia de drift arquitetural](guides/architectural-drift.pt-BR.md).
+`drift-baseline` é somente leitura. Criação e substituição de baseline continuam operações explícitas do responsável pela CLI e deliberadamente não são expostas pela Action. `drift-evidence` aceita até 20 arquivos JSON existentes, um path relativo ao repositório por linha. Traversal, paths absolutos, duplicatas, arquivos não JSON, arquivos ausentes e escapes por symlink são rejeitados antes da execução do Docker. Consulte o [exemplo de workflow publicado](examples/github-action-drift.yml) e o [guia de drift arquitetural](guides/architectural-drift.pt-BR.md).
 
 ## Validação de pull request
 

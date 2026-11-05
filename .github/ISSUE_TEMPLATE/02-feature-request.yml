@@ -1,0 +1,73 @@
+name: Feature request
+description: Propose a product enhancement or new capability.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Explain the user problem before proposing an implementation.
+        ADR Guard validates documented decisions; it does not approve architecture or infer compliance without evidence.
+        Check existing issues and [documentation](https://rodri-oliveira-dev.github.io/adr-guard/) before filing.
+  - type: checkboxes
+    id: existing
+    attributes:
+      label: Existing proposals
+      options:
+        - label: I searched existing issues and documentation for this capability.
+          required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - CLI (.NET Tool)
+        - Core (shared validation and contracts)
+        - GitHub Action
+        - MCP Server
+        - VS Code Extension
+        - Container image
+        - Agent Skills
+        - Cross-component
+        - Other / Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Who needs this, in what workflow, and what limitation exists today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe observable behavior rather than implementation details.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List outcomes that would demonstrate that the request is implemented correctly.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: contracts
+    attributes:
+      label: Compatibility and contract implications
+      description: Note any effects on CLI arguments or exit codes, JSON/SARIF schemas, Action inputs, MCP tools, VS Code contracts, or existing ADRs.
+      placeholder: "None known, or describe affected contracts and migration needs."
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives or workarounds
+      description: What have you tried or considered?
+  - type: textarea
+    id: references
+    attributes:
+      label: Additional context
+      description: Links, example workflows, or related issues. Do not include secrets or private ADRs.

@@ -1,0 +1,41 @@
+title: "[Discussion] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Open conversations about Architecture Decision Records, architectural governance, and the ADR Guard ecosystem belong here.
+        For a specific question, prefer **Q&A**; for early feature brainstorming, prefer **Ideas**; for reproducible bugs, use [Issues](https://github.com/rodri-oliveira-dev/adr-guard/issues/new/choose).
+        Keep proprietary information, credentials, private ADR text, and vulnerability details out of public discussions.
+  - type: dropdown
+    id: topic
+    attributes:
+      label: Discussion topic
+      options:
+        - ADR writing and decision lifecycle
+        - Architecture governance and team adoption
+        - Validation and documentation quality
+        - Architectural drift and impact analysis
+        - Developer experience / tooling
+        - Ecosystem / collaboration
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Explain the scenario, observation, or topic you want to discuss.
+    validations:
+      required: true
+  - type: textarea
+    id: conversation
+    attributes:
+      label: What would you like to discuss?
+      description: Share your perspective and invite constructive input from the community.
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References or further reading
+      description: Optional public resources, documentation pages, or related conversations.

@@ -87,8 +87,12 @@ for compatibility in "${COMPAT_EN}" "${COMPAT_PT}"; do
   grep -Fq "\`v${cli_release_version}\`" "${compatibility}"
   grep -Fq "\`v1\`" "${compatibility}"
   cli_row="$(grep -F '| CLI / .NET Tool |' "${compatibility}")"
+  # Both languages may use either publication label, but the version must
+  # match the most recent published heading in CHANGELOG.md.
   if ! grep -Fq "**Published:** \`${cli_release_version}\`" <<< "${cli_row}" \
-    && ! grep -Fq "**Publicado:** \`${cli_release_version}\`" <<< "${cli_row}"; then
+    && ! grep -Fq "**Released:** \`${cli_release_version}\`" <<< "${cli_row}" \
+    && ! grep -Fq "**Publicado:** \`${cli_release_version}\`" <<< "${cli_row}" \
+    && ! grep -Fq "**Lançada:** \`${cli_release_version}\`" <<< "${cli_row}"; then
     echo "CLI publication status does not match the published release in: ${compatibility}" >&2
     exit 1
   fi
@@ -121,19 +125,40 @@ for input in path command version review-target provider model endpoint context-
   }
 done
 
+# The drift example must use the released Action contract rather than an
+# obsolete exact image version. The latest published CLI release comes from
+# CHANGELOG.md, so no release number is hardcoded in the assertion.
 for drift_document in "${GUIDE_EN}" "${GUIDE_PT}" "${EXAMPLE_DRIFT}"; do
   grep -Fq 'command: drift' "${drift_document}"
   grep -Fq 'drift-rules: .adrguard-fitness.json' "${drift_document}"
   grep -Fq 'drift-policy: enforce' "${drift_document}"
   grep -Fq 'contents: read' "${drift_document}"
-  grep -Fq 'version: 1.10.0' "${drift_document}"
+  grep -Fq "uses: rodri-oliveira-dev/adr-guard@v${cli_release_version}" "${drift_document}" || {
+    echo "Drift example must reference the latest published Action: ${drift_document}" >&2
+    exit 1
+  }
 done
-grep -Fiq 'development' "${GUIDE_EN}"
-grep -Fiq 'desenvolvimento' "${GUIDE_PT}"
+# Both compatibility matrices must describe the same released Action contract.
 action_row_en="$(grep -F '| GitHub Action |' "${COMPAT_EN}")"
 action_row_pt="$(grep -F '| GitHub Action |' "${COMPAT_PT}")"
-grep -Fq '**Published:** current `v1` and `v1.10.0`' <<< "${action_row_en}"
-grep -Fq '**Publicado:** `v1` e `v1.10.0` atuais' <<< "${action_row_pt}"
+grep -Fq "**Published:**" <<< "${action_row_en}" || {
+  echo "English compatibility matrix must mark the Action as published." >&2
+  exit 1
+}
+grep -Fq "**Publicado:**" <<< "${action_row_pt}" || {
+  echo "pt-BR compatibility matrix must mark the Action as published." >&2
+  exit 1
+}
+for action_row in "${action_row_en}" "${action_row_pt}"; do
+  grep -Fq "\`v${cli_release_version}\`" <<< "${action_row}" || {
+    echo "Action compatibility matrix must reference the latest published release v${cli_release_version}." >&2
+    exit 1
+  }
+  grep -Fq '`drift`' <<< "${action_row}" || {
+    echo "Action compatibility matrix must document the drift command." >&2
+    exit 1
+  }
+done
 if grep -Eiq 'pull_request_target|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|secrets\.|write-baseline|update-baseline' "${EXAMPLE_DRIFT}"; then
   echo "Drift example must remain read-only, unprivileged, and secretless." >&2
   exit 1

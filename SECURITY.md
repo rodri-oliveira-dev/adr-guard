@@ -25,7 +25,9 @@ Please include privately:
 
 ## GitHub Action security model
 
-The reusable Action supports deterministic `check` and `index`, opt-in advisory or policy-enforced `review`, and opt-in advisory `impact`. It does not expose `new`, `draft`, `baseline`, or `drift` as Action commands. Review credentials are accepted only through the caller step environment after review is selected explicitly; they are never Action inputs.
+The reusable Action supports deterministic `check` and `index`, opt-in advisory or policy-enforced `review`, opt-in advisory `impact`, and explicit, read-only architectural `drift` verification. The `drift` adapter uses repository-local rules, an optional existing baseline, and explicitly supplied evidence; it does not run evidence producers or create or update baselines. The Action does not expose `new`, `draft`, or `baseline` as commands. Review credentials are accepted only through the caller step environment after review is selected explicitly; they are never Action inputs.
+
+**Version boundary:** `drift` is included in the released Action `@v1.10.0` and in the moving `@v1` reference (currently pointing to `v1.10.0`). It is **not** included in the older `@v1.9.0` release. Source changes and compatibility tags should not be assumed to have the same contract; verify the selected Action ref and the [compatibility matrix](docs/compatibility.md).
 
 Its runtime hardening, token model, workspace write boundaries, anonymous GHCR pull policy, version pinning, and annotation escaping are documented in:
 
@@ -34,7 +36,7 @@ Its runtime hardening, token model, workspace write boundaries, anonymous GHCR p
 
 ## Secret handling
 
-Never place provider API keys or repository secrets in ADR Markdown, workflow inputs, issue reports, or command-line arguments. `check`, `index`, and `impact` do not require provider credentials. For explicit `review`, supply only the selected provider variable through the caller step environment as documented; the Action validates the provider-specific environment before forwarding it to the isolated container.
+Never place provider API keys or repository secrets in ADR Markdown, workflow inputs, issue reports, or command-line arguments. `check`, `index`, `impact`, and read-only `drift` do not require provider credentials. For explicit `review`, supply only the selected provider variable through the caller step environment as documented; the Action validates the provider-specific environment before forwarding it to the isolated container.
 
 ## Disclosure
 

@@ -16,13 +16,11 @@ jobs:
         with:
           persist-credentials: false
 
-      # Development-only source example. Replace <commit-sha> with a reviewed
-      # commit that contains drift Action support until a coordinated release
-      # publishes the same contract on an exact tag and the moving @v1 tag.
+      # Drift is available from the coordinated Action/CLI v1.10.0 release.
+      # Pin the exact Action tag to keep source and container versions aligned.
       - name: Verify ADR-backed architecture rules
-        uses: rodri-oliveira-dev/adr-guard@<commit-sha>
+        uses: rodri-oliveira-dev/adr-guard@v1.10.0
         with:
-          version: 1.10.0
           command: drift
           drift-rules: .adrguard-fitness.json
           drift-policy: enforce

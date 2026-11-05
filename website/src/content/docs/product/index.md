@@ -14,7 +14,7 @@ ADR Guard keeps architecture judgment with people while automating repeatable do
 | [CLI](./cli/) | You need the complete local command surface | Runs locally with explicit arguments and configuration |
 | [GitHub Action](./github-action/) | Pull requests should validate or review ADR changes | Runs in GitHub Actions with workflow permissions and pinned inputs |
 | [VS Code extension](./vscode-extension/) · [Visual guide](./vscode-visual-guide/) | Contributors want visual ADR creation/editing, explorer, commands, and diagnostics in the editor | Workspace-hosted; trusted local file workspaces only; invokes an existing compatible CLI |
-| [MCP server](./mcp/) | Compatible agents need structured, read-only ADR Guard tools | MCP 1.0.0 published on NuGet.org and the MCP Registry; 1.0.1 is an unpublished candidate; one bounded repository per `stdio` process |
+| [MCP server](./mcp/) | Compatible agents need structured, read-only ADR Guard tools | MCP 1.0.1 published on NuGet.org and GitHub Releases; checked-in Registry manifest remains at 1.0.0; one bounded repository per `stdio` process |
 | [Container](./containers/) | You want an isolated, reproducible CLI runtime | Mount only required files and pass configuration deliberately |
 | [Agent Skills](../skills/) | You want a coding agent to guide ADR decisions and CLI workflows | Portable agent instructions; no bundled CLI or automatic architectural approval |
 
@@ -43,7 +43,7 @@ Drafting and review send selected context to the configured provider. Provider o
 
 ## MCP status
 
-The standalone MCP 1.0.0 server is published on NuGet.org and the MCP Registry, and the optional provider is published in VS Code extension 1.1.0. The server exposes seven read-only tools over `stdio` and is installed separately from the extension. CLI 1.10.0 is published on NuGet.org and GitHub Releases; CLI 1.11.0 and MCP 1.0.1 remain unpublished source candidates. Do not treat source, a release, or workflow artifacts as proof of availability in another registry.
+The standalone MCP 1.0.1 server is published on NuGet.org and GitHub Releases, while the checked-in MCP Registry manifest remains at 1.0.0; the optional provider is published in VS Code extension 1.1.0. The server exposes seven read-only tools over `stdio` and is installed separately from the extension. CLI 1.10.0 is published on NuGet.org and GitHub Releases; CLI 1.11.0 remains an unpublished source candidate. Do not treat source, a release, or workflow artifacts as proof of availability in another registry.
 
 Use the [MCP overview](./mcp/), [configuration guide](./mcp-configuration/), [available tools](./mcp-tools/), and [security model](./mcp-security/) for the implemented contract and local-development instructions.
 

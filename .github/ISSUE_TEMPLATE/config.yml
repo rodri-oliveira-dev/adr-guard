@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Community Q&A and discussions
+    url: https://github.com/rodri-oliveira-dev/adr-guard/discussions
+    about: Ask for help, discuss ideas, and showcase how you use ADR Guard.
+  - name: Security vulnerability reporting
+    url: https://github.com/rodri-oliveira-dev/adr-guard/blob/main/SECURITY.md
+    about: Report vulnerabilities privately. Do not disclose exploit details in a public issue.
+  - name: ADR Guard documentation
+    url: https://rodri-oliveira-dev.github.io/adr-guard/
+    about: Browse the guides, component references, and examples before opening an issue.
