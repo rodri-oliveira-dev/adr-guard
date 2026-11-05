@@ -13,6 +13,7 @@ Choose the most appropriate channel:
 - [GitHub Discussions](https://github.com/rodri-oliveira-dev/adr-guard/discussions): usage questions, early-stage ideas, and examples of how you use ADR Guard.
 - [GitHub Issues](https://github.com/rodri-oliveira-dev/adr-guard/issues/new/choose): reproducible bugs, scoped feature requests, and documentation improvements.
 - [SUPPORT.md](SUPPORT.md): help with installation, configuration, and integration.
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md): expectations for respectful participation and private conduct concerns.
 - [SECURITY.md](SECURITY.md): **private** vulnerability reporting. Never disclose an unpatched security issue in a public issue, discussion, or pull request.
 
 Search existing issues and discussions before opening a new one. For significant changes, describe the problem and proposed behavior in an issue or discussion before investing in an implementation.
