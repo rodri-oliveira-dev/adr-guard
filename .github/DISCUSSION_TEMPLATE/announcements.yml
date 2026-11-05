@@ -1,0 +1,48 @@
+title: "[Announcement] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Maintainer announcements for ADR Guard releases, compatibility notices, changes, and community milestones.
+        Publish only information that has been verified. Distinguish released artifacts from work prepared in source or unreleased candidates.
+        CLI, MCP, VS Code, container, and Action distribution channels have independent versioning and availability.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Announcement type
+      options:
+        - Release published
+        - Compatibility or migration notice
+        - Documentation / community update
+        - Planned change / deprecation
+        - Other project announcement
+    validations:
+      required: true
+  - type: textarea
+    id: summary
+    attributes:
+      label: Announcement
+      description: What changed or is planned? Distinguish current facts from future plans.
+    validations:
+      required: true
+  - type: input
+    id: components
+    attributes:
+      label: Components and versions
+      description: Name the affected channels and exact published or candidate versions when applicable.
+      placeholder: "CLI 1.x released; MCP 1.x candidate; Action @v1 unchanged"
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact and compatibility
+      description: Who is affected? Are any configuration, installation, or migration steps required?
+  - type: textarea
+    id: action
+    attributes:
+      label: Recommended action
+      description: Optional steps readers should take, or questions on which feedback is wanted.
+  - type: textarea
+    id: sources
+    attributes:
+      label: Official links and verification
+      description: Link to releases, changelogs, docs, compatibility matrix, or verified workflows.
