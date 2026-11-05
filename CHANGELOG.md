@@ -6,7 +6,9 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
-No changes have been assigned to a later release.
+### Added
+
+- Add native, opt-in MADR 4.0 generation to `adr-guard new`, including schema `1.0` structured-form discovery, side-effect-free preview, atomic creation, configuration precedence, and the existing filename policies. Canonical generation remains the default; custom templates remain canonical-only.
 
 ## [1.10.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0) — prepared 2026-11-05, not yet published
 

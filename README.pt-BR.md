@@ -76,7 +76,7 @@ A candidata preparada da CLI 1.10.0 inclui o comando somente leitura `adr-guard 
 | Minimal | Contexto, escolha, justificativa e consequências centrais bastam | Gerado por `new`/`draft`; validação canônica |
 | Extended | Opções, direcionadores, riscos ou impacto entre equipes precisam estar explícitos | Gerado por `new`/`draft`; validação canônica; **não é MADR** |
 | Custom | A equipe precisa de perguntas ou seções canônicas adicionais | Um arquivo local estrito via `--template-file`; não aceita Markdown arbitrário |
-| MADR 4.0 | A equipe escolhe deliberadamente a estrutura externa MADR | Escrito separadamente; `--adr-format madr-4` opcional; sem gerador MADR no `new` |
+| MADR 4.0 | A equipe escolhe deliberadamente a estrutura externa MADR | Geração nativa por `new --adr-format madr-4` nesta branch de desenvolvimento; o canônico continua padrão; ainda não publicado |
 
 Consulte a [matriz de seleção](docs/decision-design/choosing-a-template.pt-BR.md), os [exemplos completos](docs/examples/README.pt-BR.md), o [contrato Custom](docs/custom-templates.pt-BR.md) e o [guia MADR](docs/madr-4.pt-BR.md).
 

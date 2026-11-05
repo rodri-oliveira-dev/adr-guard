@@ -17,7 +17,7 @@ This table mirrors the command dispatcher and built-in `--help`. Specialized gui
 | `check [directory]` | Text/JSON/SARIF, ADR format, lifecycle/supersession, filename/placeholder/metadata/profile policy, optional changed/base ref and diagnostic baseline | Read-only; local Git read for `--changed` | `0` valid, `1` findings, `2`, `3` |
 | `baseline [directory] --output <file>` | Validation policy options; `--update` required to replace | Creates or explicitly replaces one versioned baseline | `0`, `2`, `3` |
 | `index [directory]` | Optional output, validation policy, `--catalog enriched` | Writes deterministic standard index or enriched catalog only after validation | `0`, `1`, `2`, `3` |
-| `new [directory]` | Human flow requires `--title`; structured flow requires `--form`; template/culture/filename options | Preview is read-only; create writes one `Proposed` ADR atomically | `0`, `1`, `2`, `3` |
+| `new [directory]` | Human flow requires `--title`; structured flow requires `--form`; ADR format/template/culture/filename options | Preview is read-only; create writes one proposed canonical or MADR ADR atomically | `0`, `1`, `2`, `3` |
 | `edit <adr-file> --form` | Schema `1.0` stdin request plus format/policy options and optional ADR directory | `load` is read-only; fingerprint-checked `save` atomically updates only the selected ADR | `0`, `1`, `2`, `3` |
 | `draft [directory]` | Title, context, provider, model; optional endpoint/files/existing ADRs/template/culture/preview | Calls the selected provider; preview does not write, create writes one `Proposed` ADR | `0`, `1`, `2`, `3` |
 | `review <adr-file>` | Provider/model; optional compare ref, context, deterministic policy, text/JSON/output | Provider call; ADR remains read-only; report file only with explicit `--output` | `0`, `1`, `2`, `3`, `4` |
@@ -79,12 +79,13 @@ Precedence is:
 2. `.adrguard.yml` value.
 3. The command's legacy default.
 
-Configured ADR directories apply when the positional directory is omitted from `check`, `index`, `new`, and `draft`. Configured templates apply only when `new`/`draft` do not receive an explicit template option. `review` continues to require an explicit target.
+Configured ADR directories apply when the positional directory is omitted from `check`, `index`, `new`, and `draft`. Configured templates apply only when `new`/`draft` do not receive an explicit template option. Configured `adr-format` now applies to `new`; explicit `--adr-format` wins and omission preserves `canonical`. `review` continues to require an explicit target.
 
 ## Create an ADR through a structured client
 
 ```text
 adr-guard new <directory> --form
+  [--adr-format canonical|madr-4]
   [--template minimal|extended | --template-file <path>]
   [--culture en-US|pt-BR] [--filename-policy <policy>]
 ```
@@ -93,11 +94,25 @@ adr-guard new <directory> --form
 
 The supported operations are:
 
-- `describe`: returns the selected template name, compatibility, and ordered field IDs with their required state. The native `minimal` template exposes required `context`, `decision`, and `consequences` fields. `extended` adds optional `decisionDrivers`, `optionsConsidered`, `rationale`, `positiveConsequences`, `negativeConsequences`, `risks`, and `references`.
+- `describe`: returns the selected template name, compatibility, and ordered field IDs with their required state. Canonical `minimal` exposes required `context`, `decision`, and `consequences`; canonical `extended` adds its existing optional fields. To preserve schema `1.0` clients, MADR reuses published IDs: required `context`, `optionsConsidered`, and `decision` map to `Context and Problem Statement`, `Considered Options`, and `Decision Outcome`; extended also exposes optional `decisionDrivers`, `consequences`, and `references` (`More Information`).
 - `preview`: requires `title` and the described string-valued `fields`; it validates and returns the prospective `path` and exact `markdown` with `written: false`, without writing, updating the index, or reserving an ID.
 - `create`: accepts the same content, reallocates the final ID under the creation lock, validates, and persists atomically. Its response returns the final `path` and `written: true`; it does not return the Markdown body.
 
-Only the native `minimal` and `extended` canonical templates can be mapped to structured fields. When `--template-file` is selected, `describe` returns `compatible: false` with reason `custom-template-field-mapping-unavailable`; `preview` and `create` reject that combination. Use the traditional creation flow for custom templates. `--culture` accepts `en-US` or `pt-BR` guidance, and filename policies remain the same as for traditional `new`.
+The native `minimal` and `extended` canonical and MADR templates can be mapped to structured fields without changing the schema `1.0` envelope; format selection remains a CLI/configuration concern outside JSON. Clients must call `describe` for the selected format instead of assuming field IDs. When `--template-file` is selected, `describe` returns `compatible: false` with reason `custom-template-field-mapping-unavailable`; `preview` and `create` reject that combination. Custom templates remain canonical-only. `--culture` accepts `en-US` or `pt-BR` guidance, and filename policies remain the same as for traditional `new`.
+
+The schema `1.0` MADR form intentionally omits distinct fields for `Confirmation` and `Pros and Cons of the Options`; traditional extended generation still includes editable guidance for those sections. Adding new field IDs that existing clients reject would require a new form schema version rather than a silent `1.0` change.
+
+Traditional creation uses the same format selection:
+
+```text
+adr-guard new <directory> --title <title>
+  [--adr-format canonical|madr-4]
+  [--template minimal|extended | --template-file <path>]
+  [--culture en-US|pt-BR] [--filename-policy <policy>]
+  [--dry-run|--preview]
+```
+
+`canonical` remains the default. MADR output starts with `status: "proposed"` and passes the MADR validator before persistence. `--template-file` cannot be combined with `madr-4`.
 
 ```json
 {"schemaVersion":"1.0","operation":"describe"}

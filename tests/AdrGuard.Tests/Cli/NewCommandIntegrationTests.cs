@@ -16,6 +16,7 @@ public sealed class NewCommandIntegrationTests
         Assert.Contains("--template-file", output, StringComparison.Ordinal);
         Assert.Contains("--culture", output, StringComparison.Ordinal);
         Assert.Contains("--filename-policy", output, StringComparison.Ordinal);
+        Assert.Contains("--adr-format", output, StringComparison.Ordinal);
         Assert.Contains("--preview", output, StringComparison.Ordinal);
         Assert.Equal(string.Empty, error);
 
@@ -23,6 +24,136 @@ public sealed class NewCommandIntegrationTests
         Assert.Equal(ExitCodes.Success, general.Code);
         Assert.Contains("adr-guard new", general.Output, StringComparison.Ordinal);
         Assert.Contains("adr-guard draft", general.Output, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("minimal", "en-US")]
+    [InlineData("minimal", "pt-BR")]
+    [InlineData("extended", "en-US")]
+    [InlineData("extended", "pt-BR")]
+    public void MadrTemplatesCreateDocumentsAcceptedByExplicitMadrCheck(
+        string templateName,
+        string culture)
+    {
+        var directory = CreateDirectory();
+        try
+        {
+            var created = Run(
+                "new", directory, "--title", "Adopt Cache",
+                "--adr-format", "madr-4", "--template", templateName,
+                "--culture", culture);
+
+            Assert.Equal(ExitCodes.Success, created.Code);
+            Assert.Equal(string.Empty, created.Error);
+            var path = Path.Combine(directory, "0001-adopt-cache.md");
+            var markdown = File.ReadAllText(path);
+            Assert.StartsWith("---\nstatus: \"proposed\"\n---\n", markdown, StringComparison.Ordinal);
+            Assert.Contains("## Context and Problem Statement", markdown, StringComparison.Ordinal);
+            Assert.Contains("## Considered Options", markdown, StringComparison.Ordinal);
+            Assert.Contains("## Decision Outcome", markdown, StringComparison.Ordinal);
+            Assert.Equal(
+                templateName == "extended",
+                markdown.Contains("## Decision Drivers", StringComparison.Ordinal));
+
+            var check = Run("check", directory, "--adr-format", "madr-4");
+            Assert.Equal(ExitCodes.Success, check.Code);
+            Assert.Equal(string.Empty, check.Error);
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Theory]
+    [InlineData("--preview")]
+    [InlineData("--dry-run")]
+    public void MadrPreviewHasNoFilesystemOrReservationSideEffects(string previewOption)
+    {
+        var directory = CreateDirectory();
+        try
+        {
+            var result = Run(
+                "new", directory, "--title", "Adopt Redis",
+                "--adr-format", "madr-4", previewOption);
+
+            Assert.Equal(ExitCodes.Success, result.Code);
+            Assert.Contains("## Decision Outcome", result.Output, StringComparison.Ordinal);
+            Assert.Empty(Directory.EnumerateFileSystemEntries(directory));
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public void MadrCreationPreservesFilenamePoliciesAndRejectsCustomTemplates()
+    {
+        var directory = CreateDirectory();
+        var templateDirectory = CreateDirectory();
+        try
+        {
+            var created = Run(
+                "new", directory, "--title", "Adopt Redis",
+                "--adr-format", "madr-4", "--filename-policy", "unnumbered");
+            Assert.Equal(ExitCodes.Success, created.Code);
+            Assert.True(File.Exists(Path.Combine(directory, "adopt-redis.md")));
+
+            var custom = Path.Combine(templateDirectory, "custom.md");
+            File.Copy(Fixture("custom-template.en-US.md"), custom);
+            var rejected = Run(
+                "new", directory, "--title", "Adopt Kafka",
+                "--adr-format", "madr-4", "--template-file", custom);
+            Assert.Equal(ExitCodes.UsageError, rejected.Code);
+            Assert.Contains("canonical", rejected.Error, StringComparison.OrdinalIgnoreCase);
+            Assert.Single(Directory.GetFiles(directory, "*.md"));
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+            DeleteDirectory(templateDirectory);
+        }
+    }
+
+    [Fact]
+    public async Task ConcurrentMadrCreatorsAllocateDistinctIdsAndRemainValid()
+    {
+        var directory = CreateDirectory();
+        try
+        {
+            var first = Task.Run(
+                () => Run(
+                    "new", directory, "--title", "Adopt Redis",
+                    "--adr-format", "madr-4"),
+                TestContext.Current.CancellationToken);
+            var second = Task.Run(
+                () => Run(
+                    "new", directory, "--title", "Adopt Kafka",
+                    "--adr-format", "madr-4"),
+                TestContext.Current.CancellationToken);
+
+            var results = await Task.WhenAll(first, second);
+            Assert.All(results, result => Assert.Equal(ExitCodes.Success, result.Code));
+            Assert.Equal(
+                ["0001", "0002"],
+                Directory.GetFiles(directory, "*.md")
+                    .Select(path => Path.GetFileName(path)[..4])
+                    .Order(StringComparer.Ordinal)
+                    .ToArray());
+            Assert.Equal(
+                ExitCodes.Success,
+                Run("check", directory, "--adr-format", "madr-4").Code);
+            Assert.DoesNotContain(
+                Directory.EnumerateFiles(directory),
+                path => Path.GetFileName(path).Contains("lock", StringComparison.OrdinalIgnoreCase)
+                    || Path.GetFileName(path).Contains("reservation", StringComparison.OrdinalIgnoreCase)
+                    || path.EndsWith(".tmp", StringComparison.Ordinal));
+        }
+        finally
+        {
+            DeleteDirectory(directory);
+        }
     }
 
     [Theory]
@@ -173,6 +304,7 @@ public sealed class NewCommandIntegrationTests
             ["new", "--title", "Hello\n## Decision"],
             ["new", "--title", "Use Redis", "--template", "unknown"],
             ["new", "--title", "Use Redis", "--culture", "fr-FR"],
+            ["new", "--title", "Use Redis", "--adr-format", "unknown"],
             ["new", "--title", "Use Redis", "--template", "extended", "--template-file", "custom.md"],
             ["new", "--title", "Use Redis", "--title", "Again"],
             ["new", "--title", "Use Redis", "--dry-run", "--preview"],

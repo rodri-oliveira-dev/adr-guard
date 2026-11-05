@@ -17,7 +17,7 @@ Esta tabela espelha o dispatcher e o `--help` embutido. Os guias especializados 
 | `check [diretório]` | Texto/JSON/SARIF, formato, lifecycle/supersession, políticas de nome/placeholder/metadados/perfil, changed/base ref e baseline opcionais | Somente leitura; lê Git local com `--changed` | `0` válido, `1` achados, `2`, `3` |
 | `baseline [diretório] --output <arquivo>` | Opções de política; `--update` obrigatório para substituir | Cria ou substitui explicitamente um baseline versionado | `0`, `2`, `3` |
 | `index [diretório]` | Saída e política opcionais; `--catalog enriched` | Grava índice padrão determinístico ou catálogo enriquecido somente após validação | `0`, `1`, `2`, `3` |
-| `new [diretório]` | Fluxo humano exige `--title`; fluxo estruturado exige `--form`; opções de template/cultura/nome | Prévia não grava; criação persiste uma ADR `Proposed` atomicamente | `0`, `1`, `2`, `3` |
+| `new [diretório]` | Fluxo humano exige `--title`; fluxo estruturado exige `--form`; opções de formato/template/cultura/nome | Prévia não grava; criação persiste uma ADR canônica ou MADR proposta atomicamente | `0`, `1`, `2`, `3` |
 | `edit <arquivo-adr> --form` | Requisição stdin schema `1.0`, opções de formato/política e diretório ADR opcional | `load` é somente leitura; `save` com fingerprint atualiza atomicamente apenas a ADR selecionada | `0`, `1`, `2`, `3` |
 | `draft [diretório]` | Título, contexto, provider e modelo; endpoint/arquivos/ADRs/template/cultura/prévia opcionais | Chama o provider; prévia não grava; criação persiste uma ADR `Proposed` | `0`, `1`, `2`, `3` |
 | `review <arquivo-adr>` | Provider/modelo; ref comparativa, contexto, política determinística, texto/JSON/saída opcionais | Chama o provider; ADR permanece somente leitura; relatório em arquivo apenas com `--output` | `0`, `1`, `2`, `3`, `4` |
@@ -79,12 +79,13 @@ A precedência é:
 2. Valor de `.adrguard.yml`.
 3. Default legado do comando.
 
-O diretório configurado é aplicado quando o argumento posicional é omitido em `check`, `index`, `new` e `draft`. O template configurado é aplicado somente quando `new`/`draft` não recebem opção explícita. `review` continua exigindo target explícito.
+O diretório configurado é aplicado quando o argumento posicional é omitido em `check`, `index`, `new` e `draft`. O template configurado é aplicado somente quando `new`/`draft` não recebem opção explícita. `adr-format` configurado agora vale para `new`; `--adr-format` explícito prevalece e a omissão preserva `canonical`. `review` continua exigindo target explícito.
 
 ## Criar uma ADR por um cliente estruturado
 
 ```text
 adr-guard new <diretório> --form
+  [--adr-format canonical|madr-4]
   [--template minimal|extended | --template-file <caminho>]
   [--culture en-US|pt-BR] [--filename-policy <política>]
 ```
@@ -93,11 +94,25 @@ adr-guard new <diretório> --form
 
 As operações aceitas são:
 
-- `describe`: retorna nome, compatibilidade e IDs ordenados dos campos do template, indicando os obrigatórios. O template nativo `minimal` expõe `context`, `decision` e `consequences` obrigatórios. `extended` acrescenta `decisionDrivers`, `optionsConsidered`, `rationale`, `positiveConsequences`, `negativeConsequences`, `risks` e `references` opcionais.
+- `describe`: retorna nome, compatibilidade e IDs ordenados dos campos do template, indicando os obrigatórios. O `minimal` canônico expõe `context`, `decision` e `consequences`; o `extended` canônico acrescenta os campos opcionais existentes. Para preservar clientes schema `1.0`, MADR reutiliza IDs publicados: `context`, `optionsConsidered` e `decision` obrigatórios mapeiam para `Context and Problem Statement`, `Considered Options` e `Decision Outcome`; extended também expõe `decisionDrivers`, `consequences` e `references` (`More Information`) opcionais.
 - `preview`: exige `title` e os `fields` de strings descritos; valida e retorna `path` provável, `markdown` exato e `written: false`, sem gravar, atualizar o índice ou reservar ID.
 - `create`: recebe o mesmo conteúdo, realoca o ID definitivo sob o lock de criação, valida e persiste atomicamente. A resposta retorna o `path` final e `written: true`, sem devolver o corpo Markdown.
 
-Somente os templates canônicos nativos `minimal` e `extended` podem ser mapeados para campos estruturados. Com `--template-file`, `describe` retorna `compatible: false` e o motivo `custom-template-field-mapping-unavailable`; `preview` e `create` rejeitam essa combinação. Use a criação tradicional para templates personalizados. `--culture` aceita instruções `en-US` ou `pt-BR`, e as políticas de nome permanecem iguais às de `new` tradicional.
+Os templates nativos `minimal` e `extended`, canônicos ou MADR, podem ser mapeados para campos estruturados sem alterar o envelope schema `1.0`; a seleção de formato continua sendo assunto de CLI/configuração fora do JSON. Clientes devem chamar `describe` para o formato selecionado, sem presumir IDs. Com `--template-file`, `describe` retorna `compatible: false` e o motivo `custom-template-field-mapping-unavailable`; `preview` e `create` rejeitam essa combinação. Templates personalizados continuam exclusivamente canônicos. `--culture` aceita instruções `en-US` ou `pt-BR`, e as políticas de nome permanecem iguais às de `new` tradicional.
+
+O formulário MADR schema `1.0` omite intencionalmente campos distintos para `Confirmation` e `Pros and Cons of the Options`; a geração extended tradicional ainda inclui orientação editável nessas seções. Adicionar IDs novos que clientes existentes rejeitam exigiria uma nova versão do schema de formulário, não uma mudança silenciosa em `1.0`.
+
+A criação tradicional usa a mesma seleção de formato:
+
+```text
+adr-guard new <diretório> --title <título>
+  [--adr-format canonical|madr-4]
+  [--template minimal|extended | --template-file <caminho>]
+  [--culture en-US|pt-BR] [--filename-policy <política>]
+  [--dry-run|--preview]
+```
+
+`canonical` continua sendo o padrão. A saída MADR começa com `status: "proposed"` e passa pelo validador MADR antes da persistência. `--template-file` não pode ser combinado com `madr-4`.
 
 ```json
 {"schemaVersion":"1.0","operation":"describe"}

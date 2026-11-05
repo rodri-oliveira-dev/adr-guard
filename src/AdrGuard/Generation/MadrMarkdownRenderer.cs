@@ -97,27 +97,48 @@ internal static class MadrMarkdownRenderer
         var expected = template.Name == AdrBuiltInTemplates.Minimal
             ? MinimalStructure
             : ExtendedStructure;
-        if (sections.Count != expected.Count)
+        if (sections.Count > expected.Count)
         {
             throw new InvalidOperationException(
                 "The MADR template definition is malformed.");
         }
 
-        for (var index = 0; index < expected.Count; index++)
+        var expectedIndex = 0;
+        foreach (var section in sections)
         {
-            var section = sections[index];
-            var required = expected[index];
-            if (section is null
-                || section.Level != required.Level
-                || section.Heading != required.Heading
-                || section.FieldId != required.FieldId
+            while (expectedIndex < expected.Count
+                && !Matches(section, expected[expectedIndex]))
+            {
+                expectedIndex++;
+            }
+
+            if (expectedIndex >= expected.Count
                 || string.IsNullOrWhiteSpace(section.Guidance))
             {
                 throw new InvalidOperationException(
                     "The MADR template definition is malformed.");
             }
+
+            expectedIndex++;
+        }
+
+        foreach (var required in MinimalStructure)
+        {
+            if (!sections.Any(section => Matches(section, required)))
+            {
+                throw new InvalidOperationException(
+                    "The MADR template definition is missing a required section.");
+            }
         }
     }
+
+    private static bool Matches(
+        MadrTemplateSection? section,
+        (int Level, string Heading, string FieldId) expected) =>
+        section is not null
+        && section.Level == expected.Level
+        && section.Heading == expected.Heading
+        && section.FieldId == expected.FieldId;
 
     private static IReadOnlyList<(int Level, string Heading, string FieldId)> MinimalStructure { get; } =
     [

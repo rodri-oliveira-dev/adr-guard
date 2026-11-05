@@ -1,4 +1,5 @@
 using AdrGuard.Generation;
+using AdrGuard.Validation;
 
 namespace AdrGuard.Cli;
 
@@ -6,15 +7,17 @@ internal static class NewCommand
 {
     internal const string HelpText = """
         Usage:
-          adr-guard new [adr-directory] --title <title> [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>] [--dry-run|--preview]
-          adr-guard new [adr-directory] --form [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>]
+          adr-guard new [adr-directory] --title <title> [--adr-format canonical|madr-4] [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>] [--dry-run|--preview]
+          adr-guard new [adr-directory] --form [--adr-format canonical|madr-4] [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>]
 
         Create a Proposed ADR offline. The directory defaults to the current directory.
         The default template is minimal and the default culture is en-US.
+        The ADR format defaults to canonical; select MADR 4.0 with --adr-format madr-4.
         Filename policies are canonical, unnumbered, adr-prefix, or numeric:1..9.
         A custom --template-file is resolved relative to the invocation working directory.
         --template and --template-file are mutually exclusive.
         Custom templates must be valid UTF-8 Markdown, at most 65536 bytes.
+        Custom templates remain canonical and cannot be combined with --adr-format madr-4.
         --form reads a bounded schema 1.0 JSON request from stdin and writes a
         schema 1.0 JSON response. Supported operations are describe, preview,
         and create. Custom templates are described as incompatible so callers
@@ -61,12 +64,14 @@ internal static class NewCommand
         var cultureName = arguments.CultureName;
         var dryRun = arguments.DryRun;
         var filenamePolicyName = arguments.FilenamePolicy;
+        var format = arguments.Format;
 
         var validationError = ValidateArguments(
             title,
             templateName,
             templateFilePath,
             cultureName,
+            format,
             out cultureName);
         if (validationError is not null) return UsageError(validationError, error);
 
@@ -80,22 +85,31 @@ internal static class NewCommand
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var template = AdrTemplateSelection.Resolve(
-                templateName,
-                templateFilePath,
-                cultureName,
-                cancellationToken: cancellationToken);
-
-            var result = new AdrNewService()
-                .CreateAsync(
-                    directoryPath,
-                    title,
-                    template,
-                    dryRun,
-                    cancellationToken,
-                    AdrGuard.Validation.AdrFilenamePolicy.Parse(filenamePolicyName))
-                .GetAwaiter()
-                .GetResult();
+            var service = new AdrNewService();
+            var filenamePolicy = AdrFilenamePolicy.Parse(filenamePolicyName);
+            var result = format == AdrFormat.Madr4
+                ? service.CreateMadrAsync(
+                        directoryPath,
+                        title,
+                        MadrBuiltInTemplates.Get(templateName, cultureName),
+                        dryRun,
+                        cancellationToken,
+                        filenamePolicy)
+                    .GetAwaiter()
+                    .GetResult()
+                : service.CreateAsync(
+                        directoryPath,
+                        title,
+                        AdrTemplateSelection.Resolve(
+                            templateName,
+                            templateFilePath,
+                            cultureName,
+                            cancellationToken: cancellationToken),
+                        dryRun,
+                        cancellationToken,
+                        filenamePolicy)
+                    .GetAwaiter()
+                    .GetResult();
 
             if (!result.ValidationResult.IsValid)
             {
@@ -133,6 +147,7 @@ internal static class NewCommand
         string? templateName,
         string? templateFilePath,
         string cultureName,
+        AdrFormat format,
         out string normalizedCulture)
     {
         normalizedCulture = string.Equals(cultureName, "pt-BR", StringComparison.OrdinalIgnoreCase)
@@ -140,6 +155,8 @@ internal static class NewCommand
             : "en-US";
         if (templateName is not null && templateFilePath is not null)
             return "--template and --template-file are mutually exclusive.";
+        if (format == AdrFormat.Madr4 && templateFilePath is not null)
+            return "Custom --template-file content is canonical and cannot be combined with --adr-format madr-4.";
         if (!string.Equals(cultureName, "en-US", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(cultureName, "pt-BR", StringComparison.OrdinalIgnoreCase))
             return $"Unsupported template culture '{cultureName}'. Use en-US or pt-BR.";
@@ -179,7 +196,7 @@ internal static class NewCommand
     {
         if (argument is "--dry-run" or "--preview") return state.TrySetDryRun();
         if (argument is not ("--title" or "--template" or "--template-file"
-            or "--culture" or "--filename-policy")) return state.TrySetDirectory(argument);
+            or "--culture" or "--filename-policy" or "--adr-format")) return state.TrySetDirectory(argument);
         if (index >= args.Count) return false;
         return state.TrySetValue(argument, args[index++]);
     }
@@ -194,6 +211,7 @@ internal static class NewCommand
         internal string CultureName { get; private set; } = "en-US";
         internal bool DryRun { get; private set; }
         internal string? FilenamePolicy { get; private set; }
+        internal AdrFormat Format { get; private set; } = AdrFormat.Canonical;
         internal bool TitleAssigned => assigned.Contains("--title");
 
         internal bool TrySetDryRun()
@@ -213,8 +231,17 @@ internal static class NewCommand
                 case "--template": TemplateName = value; break;
                 case "--template-file": TemplateFilePath = value; break;
                 case "--culture": CultureName = value; break;
+                case "--adr-format":
+                    Format = value switch
+                    {
+                        "canonical" => AdrFormat.Canonical,
+                        "madr-4" => AdrFormat.Madr4,
+                        _ => (AdrFormat)(-1),
+                    };
+                    if (!Enum.IsDefined(Format)) return false;
+                    break;
                 case "--filename-policy":
-                    try { AdrGuard.Validation.AdrFilenamePolicy.Parse(value); }
+                    try { AdrFilenamePolicy.Parse(value); }
                     catch (ArgumentException) { return false; }
                     FilenamePolicy = value;
                     break;

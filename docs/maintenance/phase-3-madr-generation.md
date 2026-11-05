@@ -1,5 +1,19 @@
 # Phase 3: geração nativa de ADRs MADR 4.0
 
+## Estado da implementação
+
+Concluído nesta branch de desenvolvimento:
+
+- renderer MADR separado e templates nativos `minimal`/`extended`;
+- integração com `new`, configuração e `new --form` schema `1.0`;
+- preview/dry-run sem escrita ou reserva, criação atômica e concorrência;
+- validação pelo mesmo `AdrFormat.Madr4` antes da persistência;
+- regressões canônicas, testes MADR e documentação bilíngue.
+
+O recurso ainda não está publicado. Templates customizados continuam
+canônicos, o schema do formulário permanece `1.0`, e o grafo não faz parte
+desta fase.
+
 ## Objetivo e limites
 
 Preparar a geração offline de ADRs no subconjunto MADR 4.0 já aceito pelo
@@ -121,19 +135,18 @@ desconhecidos e formato de resposta. O formato será selecionado somente por
 propriedade `format` ao JSON.
 
 Para `canonical`, `describe` e os campos atuais permanecem idênticos. Para
-`madr-4`, `describe` usará os mesmos nomes de template (`minimal` ou
-`extended`) e anunciará os campos:
+`madr-4`, `describe` usa os mesmos nomes de template (`minimal` ou `extended`)
+e reutiliza IDs já publicados no schema `1.0`, evitando quebrar clientes que
+validam o conjunto fechado de campos:
 
 | Campo | `minimal` | `extended` |
 | --- | --- | --- |
-| `contextAndProblemStatement` | obrigatório | obrigatório |
+| `context` | obrigatório | obrigatório |
 | `decisionDrivers` | ausente | opcional |
-| `consideredOptions` | obrigatório | obrigatório |
-| `decisionOutcome` | obrigatório | obrigatório |
+| `optionsConsidered` | obrigatório | obrigatório |
+| `decision` | obrigatório | obrigatório |
 | `consequences` | ausente | opcional |
-| `confirmation` | ausente | opcional |
-| `prosAndConsOfOptions` | ausente | opcional |
-| `moreInformation` | ausente | opcional |
+| `references` | ausente | opcional |
 
 Isso preserva a forma do schema `1.0` e permite que consumidores usem o fluxo
 existente `describe -> preview/create`. Um consumidor que não passa nem recebe
@@ -141,6 +154,13 @@ configuração MADR continua observando exatamente o catálogo canônico. Previe
 e create devem usar a mesma definição e produzir conteúdo idêntico, exceto
 pelos campos de resposta já condicionais. `--template-file` continuará sendo
 descrito como incompatível com o formulário.
+
+O mapeamento interno é `context` -> `Context and Problem Statement`,
+`optionsConsidered` -> `Considered Options`, `decision` -> `Decision Outcome`
+e `references` -> `More Information`. Campos distintos para `Confirmation` e
+`Pros and Cons of the Options` exigiriam novos IDs rejeitados por clientes
+schema `1.0`; essa ampliação deve usar uma futura versão do contrato, não uma
+mudança silenciosa.
 
 ## Plano de alteração
 
