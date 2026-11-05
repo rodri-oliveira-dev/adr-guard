@@ -150,11 +150,11 @@ grep -Fq "**Publicado:**" <<< "${action_row_pt}" || {
   exit 1
 }
 for action_row in "${action_row_en}" "${action_row_pt}"; do
-  grep -Fq "`v${cli_release_version}`" <<< "${action_row}" || {
+  grep -Fq "\`v${cli_release_version}\`" <<< "${action_row}" || {
     echo "Action compatibility matrix must reference the latest published release v${cli_release_version}." >&2
     exit 1
   }
-  grep -Fq "`drift`" <<< "${action_row}" || {
+  grep -Fq '`drift`' <<< "${action_row}" || {
     echo "Action compatibility matrix must document the drift command." >&2
     exit 1
   }
