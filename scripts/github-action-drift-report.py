@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 MAX_REPORT_BYTES = 4 * 1024 * 1024
+MAX_JSON_DEPTH = 128
 MAX_RULES = 1_000
 MAX_FINDINGS = 2_000
 MAX_EVIDENCE = 10_000
@@ -54,6 +55,28 @@ def code_span(value: str) -> str:
     fence = "`" * (longest_run + 1)
     padding = " " if value.startswith("`") or value.endswith("`") else ""
     return f"{fence}{padding}{markdown(value)}{padding}{fence}"
+
+
+def ensure_json_depth(value: str) -> None:
+    depth = 0
+    in_string = False
+    escaped = False
+    for character in value:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+        elif character == '"':
+            in_string = True
+        elif character in "[{":
+            depth += 1
+            if depth > MAX_JSON_DEPTH:
+                fail("drift JSON nesting exceeds the parser depth limit")
+        elif character in "]}":
+            depth -= 1
 
 
 def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -200,8 +223,10 @@ def main() -> int:
     else:
         if report_path.stat().st_size > MAX_REPORT_BYTES:
             fail("drift JSON exceeds the reporting byte limit")
+        report_text = report_path.read_text(encoding="utf-8")
+        ensure_json_depth(report_text)
         try:
-            report = json.loads(report_path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+            report = json.loads(report_text, object_pairs_hook=unique_object)
         except RecursionError:
             fail("drift JSON nesting exceeds the parser depth limit")
         policy, counts, rows, unresolved_baseline = validate_report(report)
