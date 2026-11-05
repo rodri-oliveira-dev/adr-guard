@@ -1,0 +1,54 @@
+title: "[Idea] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this category to explore possible directions before proposing tracked product work.
+        For a scoped, actionable change with acceptance criteria, use the [feature request issue form](https://github.com/rodri-oliveira-dev/adr-guard/issues/new/choose).
+        ADR Guard provides deterministic validation and advisory analysis; architectural decisions and approvals stay human-owned.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area does this idea concern?
+      options:
+        - ADR authoring and lifecycle
+        - Deterministic validation and governance
+        - Architecture impact and drift
+        - CLI / Core
+        - GitHub Action / CI
+        - MCP Server / AI integrations
+        - VS Code Extension
+        - Agent Skills
+        - Documentation / learning
+        - Cross-component / Other
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What need have you identified, and who would benefit?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Proposed direction
+      description: Describe an idea to discuss, not necessarily a finished implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoffs
+    attributes:
+      label: Alternatives, trade-offs, and risks
+      description: Consider usability, deterministic behavior, existing contracts, and compatibility when relevant.
+  - type: textarea
+    id: feedback
+    attributes:
+      label: What feedback would help?
+      description: What specific questions should the community explore?
+  - type: textarea
+    id: references
+    attributes:
+      label: Related references
+      description: Docs, examples, or related issues/discussions. Remove private context and secrets.
