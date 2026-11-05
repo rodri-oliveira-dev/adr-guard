@@ -31,7 +31,7 @@ jobs:
         with:
           node-version: "24"
       - name: Test Sonar automation
-        run: node --test scripts/tests/sonar-quality-sync.test.cjs scripts/tests/sonar-quality-gate.test.cjs
+        run: node --test scripts/tests/sonar-quality-sync.test.cjs scripts/tests/sonar-quality-gate.test.cjs scripts/tests/sonar-analysis-config.test.cjs
 
   analysis:
     name: Sonar analysis and coverage
@@ -105,7 +105,7 @@ jobs:
             /d:sonar.host.url="${SONAR_HOST_URL}" \
             /d:sonar.cs.vscoveragexml.reportsPaths="artifacts/coverage/sonar/coverage.xml" \
             /d:sonar.javascript.lcov.reportPaths="artifacts/coverage/sonar/vscode/lcov.info" \
-            /d:sonar.exclusions="tests/**,benchmarks/**,website/**,scripts/**,skills/**,**/bin/**,**/obj/**,**/*.g.cs,**/*.generated.cs" \
+            /d:sonar.exclusions="tests/**,benchmarks/**,website/**,scripts/**,skills/**,artifacts/**,**/bin/**,**/obj/**,**/*.g.cs,**/*.generated.cs" \
             /d:sonar.coverage.exclusions="tests/**,benchmarks/**,eng/**,website/**,scripts/**,skills/**,**/*.g.cs,**/*.generated.cs" \
             /d:sonar.qualitygate.wait="${IS_PR}" \
             /d:sonar.qualitygate.timeout=300
