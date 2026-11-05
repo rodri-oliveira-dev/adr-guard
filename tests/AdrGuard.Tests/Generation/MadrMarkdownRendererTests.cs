@@ -123,7 +123,7 @@ public sealed class MadrMarkdownRendererTests
     [InlineData("~~~text\nunclosed")]
     public void UnclosedCodeFencesAreRejectedPerMadrField(string content)
     {
-        var error = Assert.Throws<InvalidOperationException>(
+        var error = Assert.Throws<ArgumentException>(
             () => Render(
                 "Adopt Redis",
                 "minimal",
@@ -133,19 +133,36 @@ public sealed class MadrMarkdownRendererTests
         Assert.Contains("close every Markdown code fence", error.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void ClosedCodeFencesRemainValidMadrFieldContent()
+    [Theory]
+    [InlineData("```markdown\n## Example heading\n```")]
+    [InlineData("- ```markdown\n  ## Example heading\n  ```")]
+    [InlineData("1. ~~~markdown\n   ## Example heading\n   ~~~")]
+    public void ClosedCodeFencesRemainValidMadrFieldContent(string content)
     {
         var markdown = Render(
             "Adopt Redis",
             "minimal",
             "en-US",
-            RequiredSubstitutions("```markdown\n## Example heading\n```"));
+            RequiredSubstitutions(content));
 
-        Assert.Contains("```markdown\n## Example heading\n```", markdown, StringComparison.Ordinal);
+        Assert.Contains(content, markdown, StringComparison.Ordinal);
         Assert.True(AdrValidator.Validate(
             [AdrMarkdownParser.Parse("0001-adopt-redis.md", markdown)],
             AdrFormat.Madr4).IsValid);
+    }
+
+    [Fact]
+    public void IndentedCodeThatLooksLikeAHeadingRemainsValidMadrFieldContent()
+    {
+        const string content = "Example:\n\n    ### Installation\n    command";
+
+        var markdown = Render(
+            "Adopt Redis",
+            "minimal",
+            "en-US",
+            RequiredSubstitutions(content));
+
+        Assert.Contains(content, markdown, StringComparison.Ordinal);
     }
 
     [Fact]

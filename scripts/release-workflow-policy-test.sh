@@ -216,6 +216,10 @@ for notes in \
   ! grep -Eiq 'candidate|candidata|not published|não está publicad' "${rendered_notes}"
   ! grep -Fq '## Post-publication checklist' "${rendered_notes}"
   ! grep -Fq '## Checklist pós-publicação' "${rendered_notes}"
+  ! grep -Fq 'After merge' "${rendered_notes}"
+  ! grep -Fq 'Depois do merge' "${rendered_notes}"
+  ! grep -Fq 'manually dispatch **Release**' "${rendered_notes}"
+  ! grep -Fq 'disparar manualmente **Release**' "${rendered_notes}"
 done
 
 rendered_v110_en="${notes_fixture}/v1.10.0-content.md"
@@ -235,10 +239,10 @@ bash "${RELEASE_NOTES_RENDERER}" "${ROOT_DIR}/docs/releases/v1.11.0.md" "${rende
 bash "${RELEASE_NOTES_RENDERER}" "${ROOT_DIR}/docs/releases/v1.11.0.pt-BR.md" "${rendered_v111_pt}"
 grep -Fq '## Highlights' "${rendered_v111_en}"
 grep -Fq '## Compatibility' "${rendered_v111_en}"
-grep -Fq '## Distribution prepared by this release' "${rendered_v111_en}"
+grep -Fq '## Distribution' "${rendered_v111_en}"
 grep -Fq '## Principais mudanças' "${rendered_v111_pt}"
 grep -Fq '## Compatibilidade' "${rendered_v111_pt}"
-grep -Fq '## Distribuição preparada por esta release' "${rendered_v111_pt}"
+grep -Fq '## Distribuição' "${rendered_v111_pt}"
 
 printf '%s\n' '# Missing markers' > "${notes_fixture}/missing-markers.md"
 if bash "${RELEASE_NOTES_RENDERER}" "${notes_fixture}/missing-markers.md" "${notes_fixture}/missing-rendered.md" >/dev/null 2>&1; then

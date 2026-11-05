@@ -89,7 +89,7 @@ internal static class GeneratedAdrStructureGuard
 
         if (rejectUnclosedFence && fenceTracker.IsInsideFence)
         {
-            throw new InvalidOperationException(
+            throw new ArgumentException(
                 $"Template content in the {fieldName} section must close every Markdown code fence.");
         }
     }
@@ -179,9 +179,22 @@ internal static class GeneratedAdrStructureGuard
         out int level,
         out string heading)
     {
-        var trimmed = line.TrimStart();
         level = 0;
         heading = string.Empty;
+        var indentation = 0;
+
+        while (indentation < line.Length
+            && line[indentation] == ' ')
+        {
+            indentation++;
+        }
+
+        if (indentation > 3)
+        {
+            return false;
+        }
+
+        var trimmed = line[indentation..];
 
         while (level < trimmed.Length
             && trimmed[level] == '#')
@@ -235,6 +248,7 @@ internal static class GeneratedAdrStructureGuard
         {
             if (!TryGetFence(
                     line,
+                    allowListMarker: marker is null,
                     out var candidateMarker,
                     out var candidateLength))
             {
@@ -262,6 +276,7 @@ internal static class GeneratedAdrStructureGuard
 
         private static bool TryGetFence(
             string line,
+            bool allowListMarker,
             out char marker,
             out int markerLength)
         {
@@ -283,6 +298,12 @@ internal static class GeneratedAdrStructureGuard
             }
 
             var trimmed = line.AsSpan(indentation);
+            if (allowListMarker
+                && TryConsumeListMarker(trimmed, out var contentOffset))
+            {
+                trimmed = trimmed[contentOffset..];
+            }
+
             if (trimmed.Length < 3
                 || trimmed[0] is not ('`' or '~'))
             {
@@ -307,6 +328,48 @@ internal static class GeneratedAdrStructureGuard
             // suppress structural heading parsing on following lines.
             return marker != '`'
                 || trimmed[markerLength..].IndexOf('`') < 0;
+        }
+
+        private static bool TryConsumeListMarker(
+            ReadOnlySpan<char> line,
+            out int contentOffset)
+        {
+            contentOffset = 0;
+
+            if (line.Length >= 2
+                && line[0] is '-' or '+' or '*'
+                && char.IsWhiteSpace(line[1]))
+            {
+                contentOffset = 2;
+            }
+            else
+            {
+                var digitCount = 0;
+                while (digitCount < line.Length
+                    && digitCount < 9
+                    && char.IsAsciiDigit(line[digitCount]))
+                {
+                    digitCount++;
+                }
+
+                if (digitCount == 0
+                    || digitCount + 1 >= line.Length
+                    || line[digitCount] is not ('.' or ')')
+                    || !char.IsWhiteSpace(line[digitCount + 1]))
+                {
+                    return false;
+                }
+
+                contentOffset = digitCount + 2;
+            }
+
+            while (contentOffset < line.Length
+                && char.IsWhiteSpace(line[contentOffset]))
+            {
+                contentOffset++;
+            }
+
+            return true;
         }
 
         private static bool IsClosingFence(

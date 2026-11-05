@@ -164,7 +164,11 @@ internal static class AdrMarkdownParser
         internal List<AdrSection> Sections { get; } = [];
         internal string? Title { get; private set; }
 
-        private static bool TryGetFence(string line, out char marker, out int markerLength)
+        private static bool TryGetFence(
+            string line,
+            bool allowListMarker,
+            out char marker,
+            out int markerLength)
         {
             marker = default;
             markerLength = 0;
@@ -172,10 +176,55 @@ internal static class AdrMarkdownParser
             while (indentation < line.Length && line[indentation] == ' ') indentation++;
             if (indentation >= 4) return false;
             var trimmed = line.AsSpan(indentation);
+            if (allowListMarker && TryConsumeListMarker(trimmed, out var contentOffset))
+            {
+                trimmed = trimmed[contentOffset..];
+            }
             if (trimmed.Length < 3 || trimmed[0] is not ('`' or '~')) return false;
             marker = trimmed[0];
             while (markerLength < trimmed.Length && trimmed[markerLength] == marker) markerLength++;
             return markerLength >= 3;
+        }
+
+        private static bool TryConsumeListMarker(
+            ReadOnlySpan<char> line,
+            out int contentOffset)
+        {
+            contentOffset = 0;
+            if (line.Length >= 2
+                && line[0] is '-' or '+' or '*'
+                && char.IsWhiteSpace(line[1]))
+            {
+                contentOffset = 2;
+            }
+            else
+            {
+                var digitCount = 0;
+                while (digitCount < line.Length
+                    && digitCount < 9
+                    && char.IsAsciiDigit(line[digitCount]))
+                {
+                    digitCount++;
+                }
+
+                if (digitCount == 0
+                    || digitCount + 1 >= line.Length
+                    || line[digitCount] is not ('.' or ')')
+                    || !char.IsWhiteSpace(line[digitCount + 1]))
+                {
+                    return false;
+                }
+
+                contentOffset = digitCount + 2;
+            }
+
+            while (contentOffset < line.Length
+                && char.IsWhiteSpace(line[contentOffset]))
+            {
+                contentOffset++;
+            }
+
+            return true;
         }
 
         private static bool IsClosingFence(string line, int markerLength)
@@ -263,7 +312,14 @@ internal static class AdrMarkdownParser
 
         private bool HandleFence(string line)
         {
-            if (!TryGetFence(line, out var marker, out var markerLength)) return false;
+            if (!TryGetFence(
+                    line,
+                    allowListMarker: fenceMarker is null,
+                    out var marker,
+                    out var markerLength))
+            {
+                return false;
+            }
             if (fenceMarker is null)
             {
                 fenceMarker = marker;

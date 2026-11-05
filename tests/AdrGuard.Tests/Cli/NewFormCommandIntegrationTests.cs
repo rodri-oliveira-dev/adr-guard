@@ -128,7 +128,7 @@ public sealed class NewFormCommandIntegrationTests
                 markdown,
                 StringComparison.Ordinal);
             Assert.DoesNotContain(
-                "[EDIT: Replace this guidance with the proposed outcome",
+                "[EDIT",
                 markdown,
                 StringComparison.Ordinal);
 
@@ -384,6 +384,12 @@ public sealed class NewFormCommandIntegrationTests
                 optionsConsidered = "* Option A",
                 decision = "Propose option A.",
             });
+            var unclosedMadrFence = JsonSerializer.Serialize(new
+            {
+                context = "```text\nunclosed",
+                optionsConsidered = "* Option A",
+                decision = "Propose option A.",
+            });
 
             Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", "Title", unsupportedField)).Code);
             Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", "Title", missingRequiredField)).Code);
@@ -394,6 +400,15 @@ public sealed class NewFormCommandIntegrationTests
                     root,
                     Request("preview", "Title", oversizedMadrField),
                     "--adr-format", "madr-4").Code);
+            var invalidMadrFence = Run(
+                root,
+                Request("preview", "Title", unclosedMadrFence),
+                "--adr-format", "madr-4");
+            Assert.Equal(ExitCodes.UsageError, invalidMadrFence.Code);
+            Assert.Contains(
+                "close every Markdown code fence",
+                invalidMadrFence.Error,
+                StringComparison.Ordinal);
             Assert.Equal(
                 ExitCodes.UsageError,
                 Run(root, Request("preview", "Title", """{"context":"Con\u0000text","decision":"Decision","consequences":"Consequences"}""")).Code);
