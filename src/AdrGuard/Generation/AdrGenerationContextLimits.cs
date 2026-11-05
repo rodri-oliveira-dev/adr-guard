@@ -67,6 +67,23 @@ internal static class AdrGenerationContextLimits
             $"Rendered ADR exceeds the {MaximumRenderedAdrCharacters}-character safety limit.");
     }
 
+    internal static void ValidateTemplateField(
+        string fieldName,
+        string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
+        ArgumentNullException.ThrowIfNull(value);
+
+        if (value.Length <= MaximumGeneratedFieldCharacters)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            $"ADR template field '{fieldName}' exceeds the "
+            + $"{MaximumGeneratedFieldCharacters}-character safety limit.");
+    }
+
     internal static void ValidateComposedContext(
         string composedContext)
     {

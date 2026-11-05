@@ -27,10 +27,20 @@ internal static class GeneratedAdrStructureGuard
         string? content) =>
         ValidateField(sectionName, content, rejectAllHeadings: true);
 
+    internal static void ValidateMadrTemplateContent(
+        string sectionName,
+        string? content) =>
+        ValidateField(
+            sectionName,
+            content,
+            rejectAllHeadings: true,
+            maximumRejectedHeadingLevel: 3);
+
     private static void ValidateField(
         string fieldName,
         string? content,
-        bool rejectAllHeadings = false)
+        bool rejectAllHeadings = false,
+        int maximumRejectedHeadingLevel = 2)
     {
         if (string.IsNullOrEmpty(content))
         {
@@ -64,7 +74,8 @@ internal static class GeneratedAdrStructureGuard
                     fieldName,
                     rejectAllHeadings,
                     level,
-                    heading);
+                    heading,
+                    maximumRejectedHeadingLevel);
                 previousUnfencedLine = null;
                 continue;
             }
@@ -94,21 +105,27 @@ internal static class GeneratedAdrStructureGuard
         string fieldName,
         bool rejectAllHeadings,
         int level,
-        string heading)
+        string heading,
+        int maximumRejectedHeadingLevel)
     {
         if (level != 1
             && (level != 2
                 || (!rejectAllHeadings
-                    && !CanonicalLevelTwoHeadings.Contains(heading))))
+                    && !CanonicalLevelTwoHeadings.Contains(heading)))
+            && (!rejectAllHeadings
+                || level > maximumRejectedHeadingLevel))
         {
             return;
         }
 
         if (rejectAllHeadings)
         {
+            var levels = maximumRejectedHeadingLevel == 2
+                ? "level-one or level-two"
+                : $"level-one through level-{maximumRejectedHeadingLevel}";
             throw new InvalidOperationException(
                 $"Template content in the {fieldName} section must not define "
-                + "level-one or level-two Markdown headings.");
+                + $"{levels} Markdown headings.");
         }
 
         throw new InvalidOperationException(

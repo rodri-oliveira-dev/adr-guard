@@ -274,11 +274,11 @@ internal static class AdrMarkdownRenderer
         builder.Append(value);
     }
 
-    private static string NormalizeNewlines(string text) =>
+    internal static string NormalizeNewlines(string text) =>
         text.Replace("\r\n", "\n", StringComparison.Ordinal)
             .Replace('\r', '\n');
 
-    private static string EscapeInlineMarkdown(string text)
+    internal static string EscapeInlineMarkdown(string text)
     {
         var builder = new StringBuilder(text.Length);
 

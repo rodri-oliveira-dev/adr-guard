@@ -63,7 +63,8 @@ internal sealed class AdrCreationService
         string content,
         IReadOnlyList<AdrDocument> documents,
         CancellationToken cancellationToken,
-        AdrFilenamePolicy? filenamePolicy = null)
+        AdrFilenamePolicy? filenamePolicy = null,
+        AdrFormat format = AdrFormat.Canonical)
     {
         ArgumentNullException.ThrowIfNull(content);
         cancellationToken.ThrowIfCancellationRequested();
@@ -76,7 +77,7 @@ internal sealed class AdrCreationService
         var validation = AdrValidator.Validate(
             documents.Append(candidate).ToArray(),
             null,
-            new AdrValidationOptions(AdrFormat.Canonical, FilenamePolicy: filenamePolicy));
+            new AdrValidationOptions(format, FilenamePolicy: filenamePolicy));
 
         cancellationToken.ThrowIfCancellationRequested();
         return new AdrCreationResult(filePath, validation);
@@ -124,7 +125,8 @@ internal sealed class AdrCreationService
         Func<int, string> renderForId,
         string previewPath,
         AdrFilenamePolicy? filenamePolicy,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        AdrFormat format = AdrFormat.Canonical)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
         ArgumentException.ThrowIfNullOrWhiteSpace(previewPath);
@@ -139,6 +141,7 @@ internal sealed class AdrCreationService
                 renderForId,
                 previewPath,
                 filenamePolicy,
+                format,
                 cancellationToken),
             CancellationToken.None);
     }
@@ -149,6 +152,7 @@ internal sealed class AdrCreationService
         Func<int, string> renderForId,
         string previewPath,
         AdrFilenamePolicy? filenamePolicy,
+        AdrFormat format,
         CancellationToken cancellationToken)
     {
         using var mutex = new Mutex(
@@ -197,7 +201,7 @@ internal sealed class AdrCreationService
                 cancellationToken)
                 .Select(policy.NormalizeIdentity).ToArray();
             var existingValidation = AdrValidator.Validate(
-                documents, null, new AdrValidationOptions(AdrFormat.Canonical, FilenamePolicy: filenamePolicy));
+                documents, null, new AdrValidationOptions(format, FilenamePolicy: filenamePolicy));
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -218,7 +222,8 @@ internal sealed class AdrCreationService
                 content,
                 documents,
                 cancellationToken,
-                filenamePolicy);
+                filenamePolicy,
+                format);
 
             if (!candidate.ValidationResult.IsValid)
             {
