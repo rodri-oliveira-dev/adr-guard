@@ -10,6 +10,7 @@ function createFake() {
   const updated = [];
   const commented = [];
   const requested = [];
+  const controls = {failCloseOnce: false};
   const github = {
     rest: {
       repos: { get: async () => ({data: {default_branch: 'main'}}) },
@@ -24,15 +25,22 @@ function createFake() {
           return {data: issue};
         },
         update: async (args) => {
+          if (args.state === 'closed' && controls.failCloseOnce) {
+            controls.failCloseOnce = false;
+            throw new Error('Simulated GitHub close failure');
+          }
           const issue = issues.find(x => x.number === args.issue_number);
           Object.assign(issue, Object.fromEntries(Object.entries(args).filter(([, value]) => value !== undefined)));
           updated.push(args);
           return {data: issue};
         },
         createComment: async (args) => {
-          commented.push(args);
+          commented.push({...args, user: {login: 'github-actions[bot]'}});
           return {data: {}};
         },
+        listComments: async ({issue_number}) => ({
+          data: commented.filter(comment => comment.issue_number === issue_number)
+        }),
         addLabels: async (args) => {
           const issue = issues.find(x => x.number === args.issue_number);
           issue.labels = args.labels;
@@ -40,11 +48,11 @@ function createFake() {
         }
       }
     },
-    paginate: async () => [...issues]
+    paginate: async (route, args) => (await route(args)).data
   };
   const summary = {addHeading() {return this;}, addTable() {return this;}, async write() {}};
   const core = {setSecret() {}, info() {}, warning() {}, summary};
-  return {github, core, issues, created, updated, commented, requested};
+  return {github, core, issues, created, updated, commented, requested, controls};
 }
 
 async function exercise(apiIssues, fake, ok = true, options = {}) {
@@ -97,6 +105,7 @@ test('creates a high-impact issue with stable provenance, without closing it', {
   await exercise([finding], fake);
   assert.equal(fake.created.length, 1);
   assert.match(fake.issues[0].body, /sonar-issue-key:SONAR-A/);
+  assert.match(fake.issues[0].body, /sonar-project-key:test_project/);
   assert.match(fake.issues[0].body, /sonar-sync:start/);
   assert.equal(fake.issues[0].state, 'open');
 });
@@ -201,4 +210,89 @@ test('fails closed on malformed or duplicate finding keys', {concurrency: false}
   );
   assert.equal(fake.issues[0].state, 'open');
   assert.equal(fake.commented.length, 0);
+});
+
+
+test('keeps unverified legacy managed issues open and migrates them after a positive match', {concurrency: false}, async () => {
+  const fake = createFake();
+  const legacyMarker = '<!-- sonar-sync:start -->\n<!-- sonar-issue-key:SONAR-A -->\n<!-- sonar-sync:end -->';
+  fake.issues.push({
+    number: 75, state: 'open', title: 'Legacy issue', body: legacyMarker,
+    user: {login: 'github-actions[bot]'}, labels: ['Sonar Quality Issues']
+  });
+  await exercise([], fake);
+  assert.equal(fake.issues[0].state, 'open');
+  assert.equal(fake.commented.length, 0);
+  await exercise([finding], fake);
+  assert.match(fake.issues[0].body, /sonar-project-key:test_project/);
+  assert.equal(fake.created.length, 0);
+  await exercise([], fake);
+  assert.equal(fake.issues[0].state, 'closed');
+  assert.equal(fake.commented.length, 1);
+});
+
+test('never closes issues managed for a different Sonar project', {concurrency: false}, async () => {
+  const fake = createFake();
+  const marker = '<!-- sonar-sync:start -->\n<!-- sonar-issue-key:SONAR-A -->\n<!-- sonar-project-key:other_project -->\n<!-- sonar-sync:end -->';
+  fake.issues.push({
+    number: 80, state: 'open', title: 'Another project', body: marker,
+    user: {login: 'github-actions[bot]'}, labels: ['Sonar Quality Issues']
+  });
+  await exercise([], fake);
+  assert.equal(fake.issues[0].state, 'open');
+  await exercise([finding], fake);
+  assert.equal(fake.created.length, 1);
+  assert.equal(fake.issues[0].title, 'Another project');
+  assert.equal(fake.commented.length, 0);
+});
+
+test('closes duplicate bot-managed issues when their finding disappears', {concurrency: false}, async () => {
+  const fake = createFake();
+  await exercise([finding], fake);
+  fake.issues.push({...fake.issues[0], number: 90, labels: ['Sonar Quality Issues']});
+  await exercise([], fake);
+  assert.equal(fake.issues[0].state, 'closed');
+  assert.equal(fake.issues[1].state, 'closed');
+  assert.equal(fake.commented.length, 2);
+  await exercise([], fake);
+  assert.equal(fake.commented.length, 2);
+});
+
+test('does not repeat a closure comment after a failed GitHub close', {concurrency: false}, async () => {
+  const fake = createFake();
+  await exercise([finding], fake);
+  fake.controls.failCloseOnce = true;
+  await assert.rejects(exercise([], fake), /Simulated GitHub close failure/);
+  assert.equal(fake.issues[0].state, 'open');
+  assert.equal(fake.commented.length, 1);
+  assert.match(fake.commented[0].body, /sonar-closure:test_project:SONAR-A/);
+  await exercise([], fake);
+  assert.equal(fake.issues[0].state, 'closed');
+  assert.equal(fake.commented.length, 1);
+});
+
+test('keeps findings from a valid second Sonar page open', {concurrency: false}, async () => {
+  const fake = createFake();
+  const pageOne = Array.from({length: 500}, (_, index) => ({...finding, key: `SONAR-${index}`}));
+  const lateFinding = {...finding, key: 'SONAR-LATE'};
+  await exercise([...pageOne, lateFinding], fake);
+  await exercise([...pageOne, lateFinding], fake);
+  assert.ok(fake.requested.some(url => url.searchParams.get('p') === '2'));
+  const lateIssue = fake.issues.find(issue => /sonar-issue-key:SONAR-LATE/.test(issue.body));
+  assert.equal(lateIssue.state, 'open');
+  assert.equal(fake.commented.length, 0);
+});
+
+test('fails closed on missing, empty and non-textual finding keys', {concurrency: false}, async () => {
+  for (const malformed of [
+    {...finding, key: undefined},
+    {...finding, key: ''},
+    {...finding, key: 42}
+  ]) {
+    const fake = createFake();
+    await exercise([finding], fake);
+    await assert.rejects(exercise([malformed], fake), /missing or duplicate finding key/);
+    assert.equal(fake.issues[0].state, 'open');
+    assert.equal(fake.commented.length, 0);
+  }
 });
