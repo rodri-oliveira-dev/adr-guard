@@ -150,7 +150,7 @@ dotnet build AdrGuard.slnx --no-restore
 dotnet test AdrGuard.slnx --no-build
 ```
 
-Issues and focused pull requests are welcome. Use the [issue tracker](https://github.com/rodri-oliveira-dev/adr-guard/issues) for proposals and reproducible bugs, [SUPPORT.md](SUPPORT.md) for support, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+Issues and focused pull requests are welcome. Use the [issue tracker](https://github.com/rodri-oliveira-dev/adr-guard/issues) for scoped proposals and reproducible bugs, [GitHub Discussions](https://github.com/rodri-oliveira-dev/adr-guard/discussions) for questions, early ideas, and showcases, [SUPPORT.md](SUPPORT.md) for support guidance, and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 
 ## Releases and license
 

@@ -1,0 +1,47 @@
+title: "[Question] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask the ADR Guard community for installation, configuration, or integration help.
+        Check the [documentation](https://rodri-oliveira-dev.github.io/adr-guard/) and existing discussions first.
+        For reproducible defects, open a [bug report](https://github.com/rodri-oliveira-dev/adr-guard/issues/new/choose).
+        Never post API keys, access tokens, credentials, private ADR content, or unsanitized logs. Report vulnerabilities privately using [SECURITY.md](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/SECURITY.md).
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component or integration
+      options:
+        - CLI (.NET Tool)
+        - GitHub Action / CI
+        - MCP Server / AI agent client
+        - VS Code Extension
+        - Container image
+        - Agent Skills
+        - ADR formats and validation
+        - Other / Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to accomplish?
+      description: Describe the task or workflow and what guidance you need.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version and environment
+      description: Relevant published version, Action ref, OS, editor, or runner, when known.
+      placeholder: "CLI 1.x, VS Code 1.x, @v1, Ubuntu, Windows..."
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Share relevant sanitized commands, settings, links to docs, or observed results.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add links to examples or related issues. Do not share secrets or private ADRs.

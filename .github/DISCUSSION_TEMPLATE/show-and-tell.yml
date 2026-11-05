@@ -1,0 +1,53 @@
+title: "[Show and tell] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share how you use ADR Guard in real repositories, teams, or learning projects.
+        Public examples and sanitized snippets are welcome. Never include credentials, private ADRs, or proprietary architecture details.
+        A showcase is not evidence of certified compliance or architectural approval.
+  - type: dropdown
+    id: integration
+    attributes:
+      label: What are you showcasing?
+      options:
+        - CLI workflow / ADR governance
+        - GitHub Action / CI integration
+        - MCP Server / agent workflow
+        - VS Code Extension
+        - Container / automation
+        - Agent Skills
+        - Team adoption / documentation practice
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: project
+    attributes:
+      label: Project or context
+      description: Introduce the repository, workflow, or team scenario. Share only public or sanitized details.
+    validations:
+      required: true
+  - type: textarea
+    id: implementation
+    attributes:
+      label: How did you use ADR Guard?
+      description: Explain the integration, commands, setup, and workflow decisions.
+    validations:
+      required: true
+  - type: textarea
+    id: lessons
+    attributes:
+      label: Outcomes and lessons learned
+      description: What worked, what was difficult, and what would you do differently?
+  - type: input
+    id: link
+    attributes:
+      label: Public example or demo
+      description: Optional link to a public repository, article, demo, or recording.
+      placeholder: "https://github.com/..."
+  - type: textarea
+    id: feedback
+    attributes:
+      label: What would you like feedback on?
+      description: Optional questions for the community.
