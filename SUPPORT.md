@@ -11,6 +11,10 @@ For reproducible bugs, documentation problems, feature requests, and integration
 - **Documentation improvement:** missing or incorrect documentation, examples, and translations.
 - **Question or integration help:** installation, configuration, and usage questions that are not reproducible defects.
 
+For community conversations, visit [GitHub Discussions](https://github.com/rodri-oliveira-dev/adr-guard/discussions): **Q&A** for support and usage questions, **Ideas** for early proposals, **Show and Tell** for public examples, **General** for architecture practice, and **Announcements** for maintainer updates. Use issues for actionable, trackable defects or work; the issue question form is still available for cases needing focused investigation.
+
+Discussion category forms are stored in `.github/DISCUSSION_TEMPLATE/`. Their filenames must match the configured category slugs, and they become active after merge into the default branch. Do not disclose vulnerabilities publicly; use [SECURITY.md](SECURITY.md).
+
 The issue forms ask for relevant details. Before opening an issue, prepare:
 
 - component and version (CLI, MCP, or VS Code extension) or Action ref;
