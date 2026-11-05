@@ -193,23 +193,29 @@ internal static class EditFormCommand
         var state = new EditArgumentState();
         for (var index = 1; index < args.Count; index++)
         {
-            var argument = args[index];
-            if (argument is "--form" or "--conventional-supersession" or "--validate-metadata")
+            if (!TryApplyArgument(args, ref index, state))
             {
-                if (!state.TryAddFlag(argument)) { result = EditArguments.Empty; return false; }
-                continue;
+                result = EditArguments.Empty;
+                return false;
             }
-            if (argument is "--adr-directory" or "--adr-format" or "--lifecycle-statuses" or "--filename-policy" or "--placeholder-policy" or "--validation-profile")
-            {
-                if (index + 1 >= args.Count) { result = EditArguments.Empty; return false; }
-                var value = args[++index];
-                if (!state.TryAddValue(argument, value)) { result = EditArguments.Empty; return false; }
-                continue;
-            }
-            if (!state.TrySetFilePath(argument)) { result = EditArguments.Empty; return false; }
         }
         result = state.ToArguments();
         return state.Form && !string.IsNullOrWhiteSpace(state.FilePath);
+    }
+
+    private static bool TryApplyArgument(
+        IReadOnlyList<string> args,
+        ref int index,
+        EditArgumentState state)
+    {
+        var argument = args[index];
+        if (argument is "--form" or "--conventional-supersession" or "--validate-metadata")
+            return state.TryAddFlag(argument);
+        if (argument is not ("--adr-directory" or "--adr-format" or "--lifecycle-statuses"
+            or "--filename-policy" or "--placeholder-policy" or "--validation-profile"))
+            return state.TrySetFilePath(argument);
+        if (index + 1 >= args.Count) return false;
+        return state.TryAddValue(argument, args[++index]);
     }
 
     private static int UsageError(string message, TextWriter error)

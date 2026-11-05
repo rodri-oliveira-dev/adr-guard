@@ -43,93 +43,26 @@ internal static class NewFormCommand
             return UsageError("Invalid arguments for the visual ADR form contract.", error);
         }
 
-        if (!string.Equals(cultureName, "en-US", StringComparison.OrdinalIgnoreCase)
-            && !string.Equals(cultureName, "pt-BR", StringComparison.OrdinalIgnoreCase))
+        if (!TryNormalizeCulture(cultureName, out var normalizedCulture))
         {
             return UsageError(
                 $"Unsupported template culture '{cultureName}'. Use en-US or pt-BR.",
                 error);
         }
-
-        cultureName = string.Equals(cultureName, "pt-BR", StringComparison.OrdinalIgnoreCase)
-            ? "pt-BR"
-            : "en-US";
+        cultureName = normalizedCulture;
 
         try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var request = ReadRequest(input, cancellationToken);
-            var requestError = ValidateRequest(request);
-            if (requestError is not null) return UsageError(requestError, error);
-            var operation = request.Operation
-                ?? throw new InvalidOperationException("Validated visual form operation is missing.");
-
-            if (templateFilePath is not null)
-            {
-                return WriteCustomTemplateResponse(operation, output, error);
-            }
-
-            var resolvedTemplate = templateName ?? AdrBuiltInTemplates.Minimal;
-            var fieldDefinitions = AdrFormTemplateCatalog.Describe(resolvedTemplate);
-            if (operation == DescribeOperation)
-            {
-                WriteDescription(output, operation, resolvedTemplate, fieldDefinitions);
-                return ExitCodes.Success;
-            }
-
-            if (!Directory.Exists(directoryPath))
-            {
-                error.WriteLine($"ADR directory does not exist: '{directoryPath}'.");
-                return ExitCodes.OperationalError;
-            }
-
-            var values = ValidateFields(request, fieldDefinitions);
-            var title = request.Title?.Trim() ?? string.Empty;
-            if (title.Length is 0 or > 512
-                || title.IndexOfAny(['\r', '\n']) >= 0
-                || string.IsNullOrWhiteSpace(AdrSlug.Create(title)))
-            {
-                return UsageError(
-                    "ADR title must be one line and contain at least one ASCII letter or digit.",
-                    error);
-            }
-
-            var definition = AdrFormTemplateCatalog.Get(
-                resolvedTemplate,
+            return Execute(
+                directoryPath,
+                templateName,
+                templateFilePath,
                 cultureName,
-                values);
-            var result = new AdrNewService()
-                .CreateAsync(
-                    directoryPath,
-                    title,
-                    definition.Template,
-                    dryRun: operation == "preview",
-                    cancellationToken,
-                    AdrFilenamePolicy.Parse(filenamePolicyName),
-                    values)
-                .GetAwaiter()
-                .GetResult();
-
-            if (!result.ValidationResult.IsValid)
-            {
-                ValidationOutput.WriteIssues(result.ValidationResult, error);
-                return ExitCodes.ValidationFailed;
-            }
-
-            WriteResponse(output, new NewFormResponse(
-                SchemaVersion,
-                operation,
-                new NewFormTemplateResponse(
-                    definition.Name,
-                    Compatible: true,
-                    Reason: null,
-                    definition.Fields
-                        .Select(field => new NewFormFieldResponse(field.Id, field.Required))
-                        .ToArray()),
-                result.FilePath,
-                operation == "preview" ? result.Content : null,
-                result.Written));
-            return ExitCodes.Success;
+                filenamePolicyName,
+                input,
+                output,
+                error,
+                cancellationToken);
         }
         catch (JsonException exception)
         {
@@ -148,6 +81,104 @@ internal static class NewFormCommand
             error.WriteLine($"Unable to create ADR from the visual form: {exception.Message}");
             return ExitCodes.OperationalError;
         }
+    }
+
+    private static bool TryNormalizeCulture(string cultureName, out string normalizedCulture)
+    {
+        if (string.Equals(cultureName, "pt-BR", StringComparison.OrdinalIgnoreCase))
+        {
+            normalizedCulture = "pt-BR";
+            return true;
+        }
+
+        normalizedCulture = "en-US";
+        return string.Equals(cultureName, normalizedCulture, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static int Execute(
+        string directoryPath,
+        string? templateName,
+        string? templateFilePath,
+        string cultureName,
+        string? filenamePolicyName,
+        TextReader input,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var request = ReadRequest(input, cancellationToken);
+        var requestError = ValidateRequest(request);
+        if (requestError is not null) return UsageError(requestError, error);
+        var operation = request.Operation
+            ?? throw new InvalidOperationException("Validated visual form operation is missing.");
+
+        if (templateFilePath is not null)
+        {
+            return WriteCustomTemplateResponse(operation, output, error);
+        }
+
+        var resolvedTemplate = templateName ?? AdrBuiltInTemplates.Minimal;
+        var fieldDefinitions = AdrFormTemplateCatalog.Describe(resolvedTemplate);
+        if (operation == DescribeOperation)
+        {
+            WriteDescription(output, operation, resolvedTemplate, fieldDefinitions);
+            return ExitCodes.Success;
+        }
+
+        if (!Directory.Exists(directoryPath))
+        {
+            error.WriteLine($"ADR directory does not exist: '{directoryPath}'.");
+            return ExitCodes.OperationalError;
+        }
+
+        var values = ValidateFields(request, fieldDefinitions);
+        var title = request.Title?.Trim() ?? string.Empty;
+        if (title.Length is 0 or > 512
+            || title.IndexOfAny(['\r', '\n']) >= 0
+            || string.IsNullOrWhiteSpace(AdrSlug.Create(title)))
+        {
+            return UsageError(
+                "ADR title must be one line and contain at least one ASCII letter or digit.",
+                error);
+        }
+
+        var definition = AdrFormTemplateCatalog.Get(
+            resolvedTemplate,
+            cultureName,
+            values);
+        var result = new AdrNewService()
+            .CreateAsync(
+                directoryPath,
+                title,
+                definition.Template,
+                dryRun: operation == "preview",
+                cancellationToken,
+                AdrFilenamePolicy.Parse(filenamePolicyName),
+                values)
+            .GetAwaiter()
+            .GetResult();
+
+        if (!result.ValidationResult.IsValid)
+        {
+            ValidationOutput.WriteIssues(result.ValidationResult, error);
+            return ExitCodes.ValidationFailed;
+        }
+
+        WriteResponse(output, new NewFormResponse(
+            SchemaVersion,
+            operation,
+            new NewFormTemplateResponse(
+                definition.Name,
+                Compatible: true,
+                Reason: null,
+                definition.Fields
+                    .Select(field => new NewFormFieldResponse(field.Id, field.Required))
+                    .ToArray()),
+            result.FilePath,
+            operation == "preview" ? result.Content : null,
+            result.Written));
+        return ExitCodes.Success;
     }
 
     private static string? ValidateRequest(NewFormRequest request)
@@ -308,35 +339,34 @@ internal static class NewFormCommand
 
         for (var index = 1; index < args.Count; index++)
         {
-            var argument = args[index];
-            if (argument == "--form")
-            {
-                if (!state.TrySetForm()) return SetOutputs(state, out directoryPath, out templateName,
-                    out templateFilePath, out cultureName, out filenamePolicy, false);
-                continue;
-            }
-
-            if (argument is "--template" or "--template-file" or "--culture" or "--filename-policy")
-            {
-                if (index + 1 >= args.Count) return SetOutputs(state, out directoryPath, out templateName,
-                    out templateFilePath, out cultureName, out filenamePolicy, false);
-                var value = args[++index];
-                if (!state.TrySetValue(argument, value)) return SetOutputs(state, out directoryPath,
-                    out templateName, out templateFilePath, out cultureName, out filenamePolicy, false);
-                continue;
-            }
-
-            if (!state.TrySetDirectory(argument)) return SetOutputs(state, out directoryPath, out templateName,
-                out templateFilePath, out cultureName, out filenamePolicy, false);
+            if (!TryApplyArgument(args, ref index, state))
+                return SetOutputs(state, out directoryPath, out templateName, out templateFilePath,
+                    out cultureName, out filenamePolicy, false);
         }
 
-        var valid = state.FormAssigned
-            && !(state.TemplateName is not null && state.TemplateFilePath is not null)
-            && (state.TemplateName is null
-                || AdrBuiltInTemplates.Names.Contains(state.TemplateName, StringComparer.Ordinal));
+        var valid = IsValid(state);
         return SetOutputs(state, out directoryPath, out templateName, out templateFilePath,
             out cultureName, out filenamePolicy, valid);
     }
+
+    private static bool TryApplyArgument(
+        IReadOnlyList<string> args,
+        ref int index,
+        FormArgumentState state)
+    {
+        var argument = args[index];
+        if (argument == "--form") return state.TrySetForm();
+        if (argument is not ("--template" or "--template-file" or "--culture" or "--filename-policy"))
+            return state.TrySetDirectory(argument);
+        if (index + 1 >= args.Count) return false;
+        return state.TrySetValue(argument, args[++index]);
+    }
+
+    private static bool IsValid(FormArgumentState state) =>
+        state.FormAssigned
+        && !(state.TemplateName is not null && state.TemplateFilePath is not null)
+        && (state.TemplateName is null
+            || AdrBuiltInTemplates.Names.Contains(state.TemplateName, StringComparer.Ordinal));
 
     private static bool SetOutputs(
         FormArgumentState state,
