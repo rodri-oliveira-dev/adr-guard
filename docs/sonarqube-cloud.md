@@ -31,12 +31,12 @@ The workflow does **not** upload coverage to Codecov or publish public coverage/
 
 [`sonar-quality-issues.yml`](../.github/workflows/sonar-quality-issues.yml) can run on Mondays or manually from `main`, **only when `SONAR_CI_ENABLED=true`**. It queries OPEN findings with HIGH/BLOCKER software-quality impact and synchronizes issues with label `Sonar Quality Issues`.
 
-- Each finding uses its stable Sonar issue key and a bounded, machine-managed Markdown section. A GitHub issue is recognized as managed **only when it is bot-authored and carries valid markers**.
-- Existing managed issues are updated idempotently, preserving text outside managed markers; disappeared/resolved findings are **not automatically closed**.
-- Sonar API/auth failures cause the workflow to fail rather than silently claiming no findings. Never run this workflow with sample credentials against the production issue tracker.
+- Each finding uses its stable Sonar issue key and a bounded, machine-managed Markdown section. A GitHub issue is recognized as managed **only when it is bot-authored and carries valid markers**. Newly managed issues also include a Sonar project-key marker, so switching `SONAR_PROJECT_KEY` never closes findings from another project.
+- Managed issues are updated idempotently, preserving text outside managed markers. After a complete, validated default-branch Sonar result, bot-managed issues for the configured Sonar project whose findings are no longer OPEN with HIGH/BLOCKER impact are closed with an explanatory comment. Duplicate managed issues for the same absent key are also closed; a closure marker prevents repeated automated comments after a partial GitHub API failure. The same canonical issue is reopened if its Sonar key qualifies again. Legacy issues with no Sonar project marker are **not automatically closed** unless a current-project finding is seen and updates their managed section with validated provenance.
+- Sonar API/auth failures, incomplete pages, or inconsistent pagination stop reconciliation before any GitHub Issue changes. A missing finding does not necessarily mean its underlying code defect was fixed. Never run this workflow with sample credentials against the production issue tracker.
 - A disabled workflow makes no GitHub Issue changes. Manual notes and manually authored issues are not overwritten.
 
-Offline test: `node --test scripts/tests/sonar-quality-sync.test.cjs scripts/tests/sonar-quality-gate.test.cjs`. This exercises create, repeat, human-note preservation, authorship checks, Quality Gate failure reporting, and API failure handling without external services.
+Offline test: `node --test scripts/tests/sonar-quality-sync.test.cjs scripts/tests/sonar-quality-gate.test.cjs`. This exercises creation, idempotent closure and reopening, human-note preservation, authorship checks, invalid pagination, Quality Gate failure reporting, and API failures without external services.
 
 ## Troubleshooting
 
