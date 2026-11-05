@@ -44,7 +44,7 @@ internal static class AdrEditService
         filePath = source.FilePath;
         var layout = MarkdownLayout.Parse(source.Text, options);
         Validate(filePath, adrDirectory, source.Text, options, cancellationToken);
-        return layout.ToDocument(filePath, source.Fingerprint);
+        return layout.ToDocument(filePath, source.ContentFingerprint);
     }
 
     internal static AdrEditDocument Save(
@@ -63,7 +63,7 @@ internal static class AdrEditService
         var source = ReadSource(filePath, cancellationToken);
         filePath = source.FilePath;
         if (!CryptographicOperations.FixedTimeEquals(
-                Encoding.ASCII.GetBytes(source.Fingerprint),
+                Encoding.ASCII.GetBytes(source.ContentFingerprint),
                 Encoding.ASCII.GetBytes(expectedFingerprint)))
         {
             throw new AdrEditConflictException();
@@ -93,13 +93,13 @@ internal static class AdrEditService
         if (replacements.Count == 0)
         {
             ResolveAdrDirectory(filePath, adrDirectory);
-            return layout.ToDocument(filePath, source.Fingerprint);
+            return layout.ToDocument(filePath, source.ContentFingerprint);
         }
         var updated = Apply(source.Text, replacements);
         ValidateUpdate(filePath, adrDirectory, source.Text, updated, options, cancellationToken);
         Persist(filePath, source, updated, cancellationToken);
         var saved = ReadSource(filePath, cancellationToken);
-        return MarkdownLayout.Parse(saved.Text, options).ToDocument(filePath, saved.Fingerprint, written: true);
+        return MarkdownLayout.Parse(saved.Text, options).ToDocument(filePath, saved.ContentFingerprint, written: true);
     }
 
     private static SourceDocument ReadSource(string filePath, CancellationToken cancellationToken)
@@ -290,7 +290,7 @@ internal static class AdrEditService
 
     private static string Fingerprint(ReadOnlySpan<byte> bytes) => Convert.ToHexString(SHA256.HashData(bytes));
 
-    private sealed record SourceDocument(string FilePath, byte[] Bytes, string Text, bool HasBom, string Fingerprint);
+    private sealed record SourceDocument(string FilePath, byte[] Bytes, string Text, bool HasBom, string ContentFingerprint);
     private sealed record TextReplacement(int Start, int Length, string Value);
 
     private sealed class MarkdownLayout
@@ -338,22 +338,38 @@ internal static class AdrEditService
                 var line = lines[index];
                 if (line.Text.Trim() == "---") break;
                 if (line.Text.TrimStart().StartsWith('#')) continue;
-                var separator = line.Text.IndexOf(':');
-                if (separator <= 0) continue;
-                var key = line.Text[..separator].Trim();
-                var raw = line.Text[(separator + 1)..];
-                var leading = raw.Length - raw.TrimStart().Length;
-                var trimmed = raw.Trim();
-                var quoted = trimmed.Length >= 2 && ((trimmed[0] == '"' && trimmed[^1] == '"') || (trimmed[0] == '\'' && trimmed[^1] == '\''));
-                var quoteDelimiter = quoted ? trimmed[0] : (char?)null;
-                var value = quoted ? trimmed[1..^1] : trimmed;
-                var valueOffset = separator + 1 + leading + (quoted ? 1 : 0);
-                var kind = key.Equals("status", StringComparison.OrdinalIgnoreCase)
-                    && options.Format == AdrFormat.Madr4 ? "status" : "metadata";
-                IReadOnlyList<string>? choices = null;
-                fields.Add(new LayoutField($"metadata-{fields.Count}", key, kind, Required: false,
-                    line.Start + valueOffset, value.Length, value, choices, quoteDelimiter));
+                var field = CreateMetadataField(line, fields.Count, options.Format);
+                if (field is not null) fields.Add(field);
             }
+        }
+
+        private static LayoutField? CreateMetadataField(LineInfo line, int index, AdrFormat format)
+        {
+            var separator = line.Text.IndexOf(':');
+            if (separator <= 0) return null;
+
+            var key = line.Text[..separator].Trim();
+            var raw = line.Text[(separator + 1)..];
+            var leading = raw.Length - raw.TrimStart().Length;
+            var trimmed = raw.Trim();
+            var quoted = trimmed.Length >= 2
+                && ((trimmed[0] == '"' && trimmed[^1] == '"')
+                    || (trimmed[0] == '\'' && trimmed[^1] == '\''));
+            var quoteDelimiter = quoted ? trimmed[0] : (char?)null;
+            var value = quoted ? trimmed[1..^1] : trimmed;
+            var valueOffset = separator + 1 + leading + (quoted ? 1 : 0);
+            var kind = key.Equals("status", StringComparison.OrdinalIgnoreCase)
+                && format == AdrFormat.Madr4 ? "status" : "metadata";
+            return new LayoutField(
+                $"metadata-{index}",
+                key,
+                kind,
+                Required: false,
+                line.Start + valueOffset,
+                value.Length,
+                value,
+                Options: null,
+                quoteDelimiter);
         }
 
         private static void AddSectionFields(
@@ -365,26 +381,50 @@ internal static class AdrEditService
             var headings = FindHeadings(lines).Where(heading => heading.Level <= 2).ToArray();
             for (var index = 0; index < headings.Length; index++)
             {
-                var heading = headings[index];
-                if (heading.Level != 2) continue;
-                var bodyStart = heading.End;
-                var bodyEnd = index + 1 < headings.Length ? headings[index + 1].Start : markdown.Length;
-                var start = bodyStart;
-                while (start < bodyEnd && char.IsWhiteSpace(markdown[start])) start++;
-                var end = bodyEnd;
-                while (end > start && char.IsWhiteSpace(markdown[end - 1])) end--;
-                var value = markdown[start..end];
-                var isStatus = heading.Value.Equals("Status", StringComparison.OrdinalIgnoreCase);
-                var required = options.Format == AdrFormat.Canonical
-                    ? isStatus || heading.Value is "Context" or "Decision" or "Consequences"
-                    : heading.Value is "Context and Problem Statement" or "Considered Options" or "Decision Outcome";
-                var choices = isStatus && options.Format == AdrFormat.Canonical
-                    ? options.EffectiveLifecycle.StatusNames.ToArray()
-                    : null;
-                fields.Add(new LayoutField($"section-{fields.Count}", heading.Value,
-                    isStatus ? "status" : "section", required, start, end - start, value, choices, QuoteDelimiter: null));
+                var field = CreateSectionField(markdown, headings, index, fields.Count, options);
+                if (field is not null) fields.Add(field);
             }
         }
+
+        private static LayoutField? CreateSectionField(
+            string markdown,
+            IReadOnlyList<HeadingInfo> headings,
+            int headingIndex,
+            int fieldIndex,
+            AdrValidationOptions options)
+        {
+            var heading = headings[headingIndex];
+            if (heading.Level != 2) return null;
+
+            var bodyEnd = headingIndex + 1 < headings.Count
+                ? headings[headingIndex + 1].Start
+                : markdown.Length;
+            var start = heading.End;
+            while (start < bodyEnd && char.IsWhiteSpace(markdown[start])) start++;
+            var end = bodyEnd;
+            while (end > start && char.IsWhiteSpace(markdown[end - 1])) end--;
+            var value = markdown[start..end];
+            var isStatus = heading.Value.Equals("Status", StringComparison.OrdinalIgnoreCase);
+            var required = IsRequiredSection(heading.Value, isStatus, options.Format);
+            var choices = isStatus && options.Format == AdrFormat.Canonical
+                ? options.EffectiveLifecycle.StatusNames.ToArray()
+                : null;
+            return new LayoutField(
+                $"section-{fieldIndex}",
+                heading.Value,
+                isStatus ? "status" : "section",
+                required,
+                start,
+                end - start,
+                value,
+                choices,
+                QuoteDelimiter: null);
+        }
+
+        private static bool IsRequiredSection(string heading, bool isStatus, AdrFormat format) =>
+            format == AdrFormat.Canonical
+                ? isStatus || heading is "Context" or "Decision" or "Consequences"
+                : heading is "Context and Problem Statement" or "Considered Options" or "Decision Outcome";
 
         private static HeadingInfo? FindTitle(IReadOnlyList<LineInfo> lines) =>
             FindHeadings(lines).FirstOrDefault(heading => heading.Level == 1);
@@ -402,41 +442,61 @@ internal static class AdrEditService
                     if (lineIndex > 0 && line.Text.Trim() == "---") inFrontMatter = false;
                     continue;
                 }
-                if (TryGetFence(line.Text, out var marker, out var markerLength))
-                {
-                    if (fenceMarker is null)
-                    {
-                        fenceMarker = marker;
-                        fenceLength = markerLength;
-                        continue;
-                    }
-                    if (marker == fenceMarker
-                        && markerLength >= fenceLength
-                        && IsClosingFence(line.Text, markerLength))
-                    {
-                        fenceMarker = null;
-                        fenceLength = 0;
-                        continue;
-                    }
-                }
+                if (UpdateFence(line.Text, ref fenceMarker, ref fenceLength)) continue;
                 if (fenceMarker is not null) continue;
-                var indentation = 0;
-                while (indentation < line.Text.Length && line.Text[indentation] == ' ') indentation++;
-                if (indentation >= 4) continue;
-                var trimmed = line.Text.TrimStart();
-                var hashes = 0;
-                while (hashes < trimmed.Length && trimmed[hashes] == '#') hashes++;
-                if (hashes is < 1 or > 6 || hashes >= trimmed.Length || !char.IsWhiteSpace(trimmed[hashes])) continue;
-                var contentStartInTrimmed = hashes + 1;
-                while (contentStartInTrimmed < trimmed.Length && char.IsWhiteSpace(trimmed[contentStartInTrimmed])) contentStartInTrimmed++;
-                var value = trimmed[contentStartInTrimmed..].TrimEnd();
-                var closing = value.Length;
-                while (closing > 0 && value[closing - 1] == '#') closing--;
-                if (closing < value.Length && closing > 0 && char.IsWhiteSpace(value[closing - 1])) value = value[..closing].TrimEnd();
-                if (value.Length == 0) continue;
-                var valueStart = line.Start + indentation + contentStartInTrimmed;
-                yield return new HeadingInfo(hashes, line.Start, line.End, valueStart, value.Length, value);
+                var heading = ParseHeading(line);
+                if (heading is not null) yield return heading;
             }
+        }
+
+        private static bool UpdateFence(string line, ref char? fenceMarker, ref int fenceLength)
+        {
+            if (!TryGetFence(line, out var marker, out var markerLength)) return false;
+            if (fenceMarker is null)
+            {
+                fenceMarker = marker;
+                fenceLength = markerLength;
+                return true;
+            }
+
+            if (marker != fenceMarker || markerLength < fenceLength || !IsClosingFence(line, markerLength))
+                return false;
+            fenceMarker = null;
+            fenceLength = 0;
+            return true;
+        }
+
+        private static HeadingInfo? ParseHeading(LineInfo line)
+        {
+            var indentation = 0;
+            while (indentation < line.Text.Length && line.Text[indentation] == ' ') indentation++;
+            if (indentation >= 4) return null;
+
+            var trimmed = line.Text.TrimStart();
+            var hashes = 0;
+            while (hashes < trimmed.Length && trimmed[hashes] == '#') hashes++;
+            if (hashes is < 1 or > 6
+                || hashes >= trimmed.Length
+                || !char.IsWhiteSpace(trimmed[hashes]))
+            {
+                return null;
+            }
+
+            var contentStart = hashes + 1;
+            while (contentStart < trimmed.Length && char.IsWhiteSpace(trimmed[contentStart])) contentStart++;
+            var value = TrimClosingHashes(trimmed[contentStart..].TrimEnd());
+            if (value.Length == 0) return null;
+            var valueStart = line.Start + indentation + contentStart;
+            return new HeadingInfo(hashes, line.Start, line.End, valueStart, value.Length, value);
+        }
+
+        private static string TrimClosingHashes(string value)
+        {
+            var closing = value.Length;
+            while (closing > 0 && value[closing - 1] == '#') closing--;
+            return closing < value.Length && closing > 0 && char.IsWhiteSpace(value[closing - 1])
+                ? value[..closing].TrimEnd()
+                : value;
         }
 
         private static bool TryGetFence(string line, out char marker, out int markerLength)
@@ -478,7 +538,7 @@ internal static class AdrEditService
     private sealed record LayoutField(string Id, string Label, string Kind, bool Required, int Start, int Length, string Value, IReadOnlyList<string>? Options, char? QuoteDelimiter);
 }
 
-internal sealed class AdrEditValidationException : Exception
+public sealed class AdrEditValidationException : Exception
 {
     internal AdrEditValidationException(ValidationResult result)
         : base(string.Join(Environment.NewLine, result.Issues.Select(issue => $"{issue.Code}: {issue.Message}"))) =>

@@ -21,7 +21,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
     {
         var context = LoadContext(cancellationToken);
         var adrs = context.Documents
-            .Select(document => Summary(document.Document, context.Format))
+            .Select(document => Summary(document.Document, context.DocumentFormat))
             .ToArray();
         return McpResponseLimit.Ensure(new ListAdrsResult("1.0", adrs.Length, adrs));
     }
@@ -32,7 +32,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         var document = ResolveDocument(context, identifier);
         return McpResponseLimit.Ensure(new GetAdrResult(
             "1.0",
-            Summary(document.Document, context.Format),
+            Summary(document.Document, context.DocumentFormat),
             ContentIsUntrusted: true,
             document.Markdown));
     }
@@ -64,28 +64,9 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         foreach (var candidate in context.Documents)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var document = candidate.Document;
-            var identifier = Identifier(document);
-            var searchable = string.Join('\n', identifier, document.Title, candidate.Markdown);
-            if (!terms.All(term => searchable.Contains(term, StringComparison.OrdinalIgnoreCase)))
-            {
-                continue;
-            }
-
-            var fields = new List<string>(3);
-            if (terms.Any(term => identifier.Contains(term, StringComparison.OrdinalIgnoreCase))) fields.Add("identifier");
-            if (terms.Any(term => document.Title?.Contains(term, StringComparison.OrdinalIgnoreCase) == true)) fields.Add("title");
-            if (terms.Any(term => candidate.Markdown.Contains(term, StringComparison.OrdinalIgnoreCase))) fields.Add("content");
-            matches.Add(new SearchAdrMatch(
-                Summary(document, context.Format),
-                fields,
-                fields.Contains("content", StringComparer.Ordinal)
-                    ? Excerpt(candidate.Markdown, terms)
-                    : null));
-            if (matches.Count == limit)
-            {
-                break;
-            }
+            var match = CreateSearchMatch(candidate, context.DocumentFormat, terms);
+            if (match is not null) matches.Add(match);
+            if (matches.Count == limit) break;
         }
 
         return McpResponseLimit.Ensure(new SearchAdrsResult(
@@ -94,6 +75,31 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
             ExcerptsAreUntrusted: true,
             matches.Count,
             matches));
+    }
+
+    private SearchAdrMatch? CreateSearchMatch(
+        LoadedAdr candidate,
+        AdrFormat format,
+        IReadOnlyList<string> terms)
+    {
+        var document = candidate.Document;
+        var identifier = Identifier(document);
+        var searchable = string.Join('\n', identifier, document.Title, candidate.Markdown);
+        if (!terms.All(term => searchable.Contains(term, StringComparison.OrdinalIgnoreCase))) return null;
+
+        var fields = new List<string>(3);
+        if (terms.Any(term => identifier.Contains(term, StringComparison.OrdinalIgnoreCase)))
+            fields.Add("identifier");
+        if (terms.Any(term => document.Title?.Contains(term, StringComparison.OrdinalIgnoreCase) == true))
+            fields.Add("title");
+        if (terms.Any(term => candidate.Markdown.Contains(term, StringComparison.OrdinalIgnoreCase)))
+            fields.Add("content");
+        return new SearchAdrMatch(
+            Summary(document, format),
+            fields,
+            fields.Contains("content", StringComparer.Ordinal)
+                ? Excerpt(candidate.Markdown, terms)
+                : null);
     }
 
     internal GetAdrRelationshipsResult GetRelationships(
@@ -180,7 +186,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         var configuration = context.Configuration;
         var effectiveProfile = validationProfile ?? configuration?.ValidationProfile ?? "legacy";
         var policy = new ValidationPolicyResult(
-            Format(context.Format),
+            Format(context.DocumentFormat),
             effectiveProfile,
             context.ValidationOptions.ConventionalSupersession,
             configuration?.FilenamePolicy ?? "canonical",
@@ -452,7 +458,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         List<AdrRelationshipResult> output)
     {
         const string prefix = "superseded by ADR-";
-        if (context.Format != AdrFormat.Madr4
+        if (context.DocumentFormat != AdrFormat.Madr4
             || source.Status?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) != true
             || !int.TryParse(source.Status[prefix.Length..].Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var id)
             || id <= 0)
@@ -554,7 +560,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
 
     private sealed record WorkspaceContext(
         AdrGuardConfiguration? Configuration,
-        AdrFormat Format,
+        AdrFormat DocumentFormat,
         AdrValidationOptions ValidationOptions,
         IReadOnlyList<LoadedAdr> Documents);
 }

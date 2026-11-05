@@ -41,7 +41,7 @@ internal sealed record ExternalEvidenceProvenance(string Producer, string Produc
 internal sealed record ExternalObservation(string TestId, string Status, DateTimeOffset? ObservedAt, ExternalEvidenceProvenance Provenance);
 internal sealed record ExternalEvidenceSet(IReadOnlyList<ExternalObservation> Observations);
 
-internal sealed class FitnessManifestException : Exception
+public sealed class FitnessManifestException : Exception
 {
     internal FitnessManifestException(string message) : base(message) { }
     internal FitnessManifestException(string message, Exception inner) : base(message, inner) { }

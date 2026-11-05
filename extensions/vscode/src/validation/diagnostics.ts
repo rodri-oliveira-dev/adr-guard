@@ -72,40 +72,8 @@ export class DiagnosticManager implements vscode.Disposable {
       execution = await this.executor.execute(folder, fallbackArgs, signal);
     }
     const { result } = execution;
-    if (result.termination !== 'exited') {
-      if (result.termination === 'cancelled') {
-        throw new DOMException('Validation cancelled', 'AbortError');
-      }
-      const message = result.termination === 'timed-out'
-        ? vscode.l10n.t('ADR Guard operation timed out. Adjust adrGuard.cli.timeoutMilliseconds if needed.')
-        : result.termination === 'output-limit'
-          ? vscode.l10n.t('ADR Guard exceeded the configured output limit and was stopped.')
-          : vscode.l10n.t('ADR Guard could not be started.');
-      throw new Error(message);
-    }
-    if (result.exitCode !== 0 && result.exitCode !== 1) {
-      const requestedOptions = advancedOptions(args);
-      if (result.exitCode === 2 && requestedOptions.length > 0) {
-        throw new CliCapabilityError(requestedOptions);
-      }
-      const detail = safeErrorLine(result.stderr);
-      throw new Error(detail === undefined
-        ? vscode.l10n.t(
-          'ADR Guard failed with exit code {0}. See ADR Guard Output for details.',
-          result.exitCode ?? 'unknown',
-        )
-        : vscode.l10n.t('ADR Guard failed with exit code {0}. {1}', result.exitCode ?? 'unknown', detail));
-    }
-    let report: AdrCheckReport;
-    try {
-      report = parseCheckReport(result.stdout);
-    } catch (error: unknown) {
-      const detail = error instanceof CheckReportError ? error.message : 'unknown contract error';
-      throw new Error(vscode.l10n.t('ADR Guard returned invalid or incompatible JSON: {0}', detail), { cause: error });
-    }
-    if ((result.exitCode === 0 && !report.valid) || (result.exitCode === 1 && report.valid)) {
-      throw new Error(vscode.l10n.t('ADR Guard returned invalid or incompatible JSON: {0}', 'exit code and valid disagree'));
-    }
+    validateExecutionResult(result, args);
+    const report = parseValidatedReport(result.stdout, result.exitCode);
     signal?.throwIfAborted();
     const diagnostics = await this.toDiagnostics(report, execution.workspaceRoot, adrDirectory);
     signal?.throwIfAborted();
@@ -187,6 +155,42 @@ export class DiagnosticManager implements vscode.Disposable {
     this.ownedUris.set(workspaceRoot, owned);
     this.log.info(`Published ${[...diagnostics.values()].reduce((total, item) => total + item.diagnostics.length, 0)} ADR Guard diagnostic(s).`);
   }
+}
+
+function validateExecutionResult(
+  result: Awaited<ReturnType<CliExecutor['execute']>>['result'],
+  args: readonly string[],
+): void {
+  if (result.termination !== 'exited') {
+    if (result.termination === 'cancelled') throw new DOMException('Validation cancelled', 'AbortError');
+    const messages = {
+      'timed-out': vscode.l10n.t('ADR Guard operation timed out. Adjust adrGuard.cli.timeoutMilliseconds if needed.'),
+      'output-limit': vscode.l10n.t('ADR Guard exceeded the configured output limit and was stopped.'),
+      'spawn-error': vscode.l10n.t('ADR Guard could not be started.'),
+    };
+    throw new Error(messages[result.termination]);
+  }
+  if (result.exitCode === 0 || result.exitCode === 1) return;
+  const requestedOptions = advancedOptions(args);
+  if (result.exitCode === 2 && requestedOptions.length > 0) throw new CliCapabilityError(requestedOptions);
+  const detail = safeErrorLine(result.stderr);
+  throw new Error(detail === undefined
+    ? vscode.l10n.t('ADR Guard failed with exit code {0}. See ADR Guard Output for details.', result.exitCode ?? 'unknown')
+    : vscode.l10n.t('ADR Guard failed with exit code {0}. {1}', result.exitCode ?? 'unknown', detail));
+}
+
+function parseValidatedReport(stdout: string, exitCode: number | null): AdrCheckReport {
+  let report: AdrCheckReport;
+  try {
+    report = parseCheckReport(stdout);
+  } catch (error: unknown) {
+    const detail = error instanceof CheckReportError ? error.message : 'unknown contract error';
+    throw new Error(vscode.l10n.t('ADR Guard returned invalid or incompatible JSON: {0}', detail), { cause: error });
+  }
+  if ((exitCode === 0 && !report.valid) || (exitCode === 1 && report.valid)) {
+    throw new Error(vscode.l10n.t('ADR Guard returned invalid or incompatible JSON: {0}', 'exit code and valid disagree'));
+  }
+  return report;
 }
 
 async function resolveBaselinePath(setting: string, workspaceRoot: string): Promise<string> {

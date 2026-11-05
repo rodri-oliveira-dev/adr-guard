@@ -12,7 +12,7 @@ import type { AdrExplorerProvider } from '../explorer/provider';
 import { OperationalLog } from '../logging';
 import { asLocation } from '../workspace';
 import { ensurePotentialDirectoryWithinWorkspace, ensurePotentialFileWithinWorkspace, ensureResourceWithinWorkspace, isResolvedPathWithin, resolveWorkspaceRelativePath, resolveWorkspaceRoot, WorkspacePolicyError } from '../workspacePolicy';
-import { parseNewAdrFormMessage, type EditValues, type FormValues, type ListState, visualFormInputLimit, VisualCreationSubmission } from '../webview/newAdrFormMessages';
+import { parseNewAdrFormMessage, type EditValues, type FormMessage, type FormValues, type ListState, visualFormInputLimit, VisualCreationSubmission } from '../webview/newAdrFormMessages';
 import { LatestListRequest } from '../webview/adrListModel';
 import { applyConfigurationWrites, configurationWrites, type ConfigurationWrite, type VisualSettingsValues } from '../webview/settingsModel';
 import { buildVisualEditArguments } from './editArguments';
@@ -110,97 +110,150 @@ export class NewAdrFormPanel implements vscode.Disposable {
       if (!this.disposed) await this.post({ type: 'error', message: vscode.l10n.t('The form sent an invalid message.') });
       return;
     }
+    await this.dispatchMessage(message);
+  }
+
+  private async dispatchMessage(message: FormMessage): Promise<void> {
+    const settingsTypes = ['openSettings', 'cancelSettings', 'saveSettings', 'checkSettingsInstallation',
+      'checkMcpConfiguration', 'openMcpDocumentation'];
+    const listTypes = ['newAdr', 'showList', 'cancel', 'selectWorkspace', 'refreshList',
+      'initializeRepository', 'checkInstallation', 'openAdr', 'editAdr', 'saveEdit', 'revealCreated'];
     if (message.type === 'ready') return this.initialize();
-    if (message.type === 'openSettings') {
-      if ((this.screen !== 'list' && this.screen !== 'settings') || this.submission.isActive || message.workspace === undefined) return;
-      this.selectedWorkspace = message.workspace;
-      this.screen = 'settings';
-      await this.post({ type: 'showSettings', settings: await this.settingsFor(workspaceFolder(message.workspace)) });
-      return;
+    if (settingsTypes.includes(message.type)) return this.handleSettingsMessage(message);
+    if (listTypes.includes(message.type)) return this.handleListMessage(message);
+    return this.handleCreationMessage(message);
+  }
+
+  private async handleSettingsMessage(message: FormMessage): Promise<void> {
+    switch (message.type) {
+      case 'openSettings':
+        return this.openSettings(message);
+      case 'cancelSettings':
+        return this.cancelSettings(message);
+      case 'saveSettings':
+        return this.submitSettings(message);
+      case 'checkSettingsInstallation':
+        return this.requestSettingsInstallationCheck(message);
+      case 'checkMcpConfiguration':
+        return this.requestMcpConfigurationCheck(message);
+      case 'openMcpDocumentation':
+        await vscode.env.openExternal(vscode.Uri.parse('https://code.visualstudio.com/docs/copilot/chat/mcp-servers'));
+        return;
     }
-    if (message.type === 'cancelSettings') {
-      if (this.screen !== 'settings' || this.submission.isActive || this.settingsCheckActive || this.mcpCheckActive) return;
-      this.screen = 'list';
-      if (message.workspace !== undefined) this.selectedWorkspace = message.workspace;
-      await this.post({ type: 'showList', ...(message.state === undefined ? {} : { state: message.state }) });
-      if (this.selectedWorkspace !== undefined) await this.loadList(this.selectedWorkspace, message.state);
-      return;
-    }
-    if (message.type === 'saveSettings') {
-      if (this.screen !== 'settings' || message.settings === undefined || !this.submission.begin()) return;
-      await this.saveSettings(message.settings, message.state);
-      return;
-    }
-    if (message.type === 'checkSettingsInstallation') {
-      if (message.workspace === undefined || this.settingsCheckActive || this.screen !== 'settings') return;
+  }
+
+  private async openSettings(message: FormMessage): Promise<void> {
+    if ((this.screen !== 'list' && this.screen !== 'settings')
+      || this.submission.isActive || message.workspace === undefined) return;
+    this.selectedWorkspace = message.workspace;
+    this.screen = 'settings';
+    await this.post({ type: 'showSettings', settings: await this.settingsFor(workspaceFolder(message.workspace)) });
+  }
+
+  private async cancelSettings(message: FormMessage): Promise<void> {
+    if (this.screen !== 'settings' || this.submission.isActive
+      || this.settingsCheckActive || this.mcpCheckActive) return;
+    this.screen = 'list';
+    if (message.workspace !== undefined) this.selectedWorkspace = message.workspace;
+    await this.post({ type: 'showList', ...(message.state === undefined ? {} : { state: message.state }) });
+    if (this.selectedWorkspace !== undefined) await this.loadList(this.selectedWorkspace, message.state);
+  }
+
+  private async submitSettings(message: FormMessage): Promise<void> {
+    if (this.screen !== 'settings' || message.settings === undefined || !this.submission.begin()) return;
+    await this.saveSettings(message.settings, message.state);
+  }
+
+  private async requestSettingsInstallationCheck(message: FormMessage): Promise<void> {
+    if (message.workspace !== undefined && !this.settingsCheckActive && this.screen === 'settings') {
       await this.checkSettingsInstallation(message.workspace);
-      return;
     }
-    if (message.type === 'checkMcpConfiguration') {
-      if (message.workspace === undefined || this.mcpCheckActive || this.screen !== 'settings') return;
-      if (message.mcpEnabled === undefined || message.mcpPath === undefined) return;
+  }
+
+  private async requestMcpConfigurationCheck(message: FormMessage): Promise<void> {
+    if (message.workspace !== undefined && !this.mcpCheckActive && this.screen === 'settings'
+      && message.mcpEnabled !== undefined && message.mcpPath !== undefined) {
       await this.checkMcpConfiguration(message.workspace, message.mcpEnabled, message.mcpPath);
-      return;
     }
-    if (message.type === 'openMcpDocumentation') {
-      await vscode.env.openExternal(vscode.Uri.parse('https://code.visualstudio.com/docs/copilot/chat/mcp-servers'));
-      return;
+  }
+
+  private async handleListMessage(message: FormMessage): Promise<void> {
+    switch (message.type) {
+      case 'newAdr':
+        return this.showNewAdrForm(message.workspace);
+      case 'showList': case 'cancel':
+        return this.showList(message.workspace, message.state);
+      case 'selectWorkspace': case 'refreshList':
+        return this.refreshList(message.workspace, message.state);
+      case 'initializeRepository': case 'checkInstallation':
+        return this.requestListAction(message);
+      case 'openAdr':
+        return this.openListedAdr(message.workspace, message.relativePath);
+      case 'editAdr':
+        return this.editListedAdr(message.workspace, message.relativePath);
+      case 'saveEdit':
+        return this.submitEdit(message.editValues);
+      case 'revealCreated':
+        if (this.screen !== 'list' || message.workspace === undefined) return;
+        await this.post({ type: 'clearListFilters', workspace: message.workspace });
+        return this.loadList(message.workspace);
     }
-    if (message.type === 'newAdr') {
-      if (this.submission.isActive) return;
-      this.selectedWorkspace = message.workspace;
-      this.screen = 'form';
-      await this.post({ type: 'showForm', workspace: message.workspace });
-      return;
+  }
+
+  private async showNewAdrForm(workspace: string | undefined): Promise<void> {
+    if (this.submission.isActive) return;
+    this.selectedWorkspace = workspace;
+    this.screen = 'form';
+    await this.post({ type: 'showForm', workspace });
+  }
+
+  private async refreshList(workspace: string | undefined, state: ListState | undefined): Promise<void> {
+    if (this.screen !== 'list' || workspace === undefined) return;
+    this.selectedWorkspace = workspace;
+    await this.loadList(workspace, state);
+  }
+
+  private async requestListAction(message: FormMessage): Promise<void> {
+    if (this.screen !== 'list' || message.workspace === undefined
+      || message.workspace !== this.selectedWorkspace || this.listActionActive
+      || (message.type !== 'initializeRepository' && message.type !== 'checkInstallation')) return;
+    await this.runListAction(message.type, message.workspace, message.state);
+  }
+
+  private async openListedAdr(workspace: string | undefined, relativePath: string | undefined): Promise<void> {
+    if (this.screen === 'list' && workspace !== undefined && relativePath !== undefined) {
+      await this.openAdr(workspace, relativePath);
     }
-    if (message.type === 'showList' || message.type === 'cancel') {
-      if (this.submission.isActive) return;
-      this.activeOperation?.abort();
-      this.screen = 'list';
-      if (message.workspace !== undefined) this.selectedWorkspace = message.workspace;
-      await this.post({ type: 'showList', ...(message.state === undefined ? {} : { state: message.state }) });
-      if (this.selectedWorkspace !== undefined) await this.loadList(this.selectedWorkspace, message.state);
-      return;
-    }
-    if (message.type === 'selectWorkspace' || message.type === 'refreshList') {
-      if (this.screen !== 'list' || message.workspace === undefined) return;
-      this.selectedWorkspace = message.workspace;
-      await this.loadList(message.workspace, message.state);
-      return;
-    }
-    if (message.type === 'initializeRepository' || message.type === 'checkInstallation') {
-      if (this.screen !== 'list' || message.workspace === undefined || message.workspace !== this.selectedWorkspace || this.listActionActive) return;
-      await this.runListAction(message.type, message.workspace, message.state);
-      return;
-    }
-    if (message.type === 'openAdr') {
-      if (this.screen !== 'list' || message.workspace === undefined || message.relativePath === undefined) return;
-      return this.openAdr(message.workspace, message.relativePath);
-    }
-    if (message.type === 'editAdr') {
-      if (this.screen !== 'list' || message.workspace === undefined || message.relativePath === undefined) return;
-      this.selectedWorkspace = message.workspace;
-      this.screen = 'edit';
-      await this.loadEdit(message.workspace, message.relativePath);
-      return;
-    }
-    if (message.type === 'saveEdit') {
-      if (this.screen !== 'edit' || message.editValues === undefined || !this.submission.begin()) return;
-      await this.saveEdit(message.editValues);
-      return;
-    }
-    if (message.type === 'revealCreated') {
-      if (this.screen !== 'list' || message.workspace === undefined) return;
-      await this.post({ type: 'clearListFilters', workspace: message.workspace });
-      await this.loadList(message.workspace);
-      return;
-    }
+  }
+
+  private async editListedAdr(workspace: string | undefined, relativePath: string | undefined): Promise<void> {
+    if (this.screen !== 'list' || workspace === undefined || relativePath === undefined) return;
+    this.selectedWorkspace = workspace;
+    this.screen = 'edit';
+    await this.loadEdit(workspace, relativePath);
+  }
+
+  private async submitEdit(values: EditValues | undefined): Promise<void> {
+    if (this.screen === 'edit' && values !== undefined && this.submission.begin()) await this.saveEdit(values);
+  }
+
+  private async showList(workspace: string | undefined, state: ListState | undefined): Promise<void> {
+    if (this.submission.isActive) return;
+    this.activeOperation?.abort();
+    this.screen = 'list';
+    if (workspace !== undefined) this.selectedWorkspace = workspace;
+    await this.post({ type: 'showList', ...(state === undefined ? {} : { state }) });
+    if (this.selectedWorkspace !== undefined) await this.loadList(this.selectedWorkspace, state);
+  }
+
+  private async handleCreationMessage(message: FormMessage): Promise<void> {
     if (this.screen !== 'form' || !this.submission.accepts()) return;
     if (message.type === 'traditional') {
       await vscode.commands.executeCommand('adrGuard.createAdr');
       return;
     }
-    if (message.values === undefined) return;
+    if (message.values === undefined
+      || (message.type !== 'describe' && message.type !== 'preview' && message.type !== 'create')) return;
     this.selectedWorkspace = message.values.workspace;
     if (message.type === 'create' && !this.submission.begin()) return;
     await this.run(message.type, message.values);
@@ -499,7 +552,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       const folder = workspaceFolder(workspace);
       const configuration = readValidationConfiguration(folder.uri);
       const entries = await this.dependencies.explorer.catalogFor(folder);
-      if (!this.listRequests.isCurrent(sequence) || this.disposed || this.screen !== 'list' || this.selectedWorkspace !== workspace) return;
+      if (!this.canPublishList(sequence, workspace)) return;
       await this.post({
         type: 'listResult', workspace, directory: configuration.directory,
         entries: entries.map((entry) => ({
@@ -511,13 +564,22 @@ export class NewAdrFormPanel implements vscode.Disposable {
         highlightKind: this.created?.workspace === workspace ? this.created.kind : undefined,
       });
     } catch (error: unknown) {
-      if (!this.listRequests.isCurrent(sequence) || this.disposed || this.screen !== 'list') return;
+      if (!this.canPublishListError(sequence)) return;
       this.dependencies.log.info(`ADR list could not load: ${safeLogError(error)}`);
       const code = isNodeError(error) ? error.code : undefined;
       const folder = vscode.workspace.workspaceFolders?.find((candidate) => candidate.uri.toString() === workspace);
       const directory = folder === undefined ? undefined : readValidationConfiguration(folder.uri).directory;
-      await this.post({ type: 'listError', workspace, directory, kind: code === 'ENOENT' ? 'missing-directory' : error instanceof WorkspacePolicyError ? 'workspace' : 'read' });
+      await this.post({ type: 'listError', workspace, directory, kind: listErrorKind(code, error) });
     }
+  }
+
+  private canPublishList(sequence: number, workspace: string): boolean {
+    return this.listRequests.isCurrent(sequence) && !this.disposed
+      && this.screen === 'list' && this.selectedWorkspace === workspace;
+  }
+
+  private canPublishListError(sequence: number): boolean {
+    return this.listRequests.isCurrent(sequence) && !this.disposed && this.screen === 'list';
   }
 
   private async openAdr(workspace: string, relativePath: string): Promise<void> {
@@ -682,20 +744,7 @@ export class NewAdrFormPanel implements vscode.Disposable {
       const response = parseNewAdrFormResponse(execution.result.stdout.trim());
       validateResponseForOperation(response, operation);
       if (operation === 'create') {
-        const reported = response.path;
-        if (reported === undefined || !response.written) throw new Error(vscode.l10n.t('The CLI did not confirm the created ADR.'));
-        const safePath = await ensureResourceWithinWorkspace(path.resolve(root, reported), root);
-        if (!isResolvedPathWithin(safePath, target)) throw new Error(vscode.l10n.t('The CLI reported an unsafe or unexpected created file path.'));
-        this.created = { workspace: values.workspace, relativePath: path.relative(target, safePath).replaceAll(path.sep, '/'), filePath: safePath, kind: 'created' };
-        this.selectedWorkspace = values.workspace;
-        this.screen = 'list';
-        this.dependencies.refreshExplorer();
-        await this.post({ type: 'created', workspace: values.workspace, relativePath: this.created.relativePath });
-        await this.loadList(values.workspace);
-        this.panel.reveal(vscode.ViewColumn.Active, true);
-        const open = vscode.l10n.t('Open Markdown');
-        const selection = await vscode.window.showInformationMessage(vscode.l10n.t('ADR Guard created {0}.', path.basename(safePath)), open);
-        if (selection === open) await vscode.window.showTextDocument(vscode.Uri.file(safePath), { preview: true });
+        await this.completeCreation(response, values, root, target);
         return;
       }
       await this.post(operation === 'describe'
@@ -710,6 +759,35 @@ export class NewAdrFormPanel implements vscode.Disposable {
       if (operation === 'create') this.submission.end();
       if (!this.disposed) await this.post({ type: 'idle', operation });
     }
+  }
+
+  private async completeCreation(
+    response: NewAdrFormResponse,
+    values: FormValues,
+    root: string,
+    target: string,
+  ): Promise<void> {
+    const reported = response.path;
+    if (reported === undefined || !response.written) {
+      throw new Error(vscode.l10n.t('The CLI did not confirm the created ADR.'));
+    }
+    const safePath = await ensureResourceWithinWorkspace(path.resolve(root, reported), root);
+    if (!isResolvedPathWithin(safePath, target)) {
+      throw new Error(vscode.l10n.t('The CLI reported an unsafe or unexpected created file path.'));
+    }
+    this.created = { workspace: values.workspace,
+      relativePath: path.relative(target, safePath).replaceAll(path.sep, '/'),
+      filePath: safePath, kind: 'created' };
+    this.selectedWorkspace = values.workspace;
+    this.screen = 'list';
+    this.dependencies.refreshExplorer();
+    await this.post({ type: 'created', workspace: values.workspace, relativePath: this.created.relativePath });
+    await this.loadList(values.workspace);
+    this.panel.reveal(vscode.ViewColumn.Active, true);
+    const open = vscode.l10n.t('Open Markdown');
+    const selection = await vscode.window.showInformationMessage(
+      vscode.l10n.t('ADR Guard created {0}.', path.basename(safePath)), open);
+    if (selection === open) await vscode.window.showTextDocument(vscode.Uri.file(safePath), { preview: true });
   }
 
   private async post(message: unknown): Promise<void> { if (!this.disposed) await this.panel.webview.postMessage(message); }
@@ -807,6 +885,10 @@ function escapeHtml(value: string): string { return value.replaceAll('&', '&amp;
 function escapeAttribute(value: string): string { return escapeHtml(value).replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
 function samePath(left: string, right: string): boolean { const normalize = (value: string): string => process.platform === 'win32' ? path.resolve(value).toLowerCase() : path.resolve(value); return normalize(left) === normalize(right); }
 function isNodeError(error: unknown): error is NodeJS.ErrnoException { return error instanceof Error && 'code' in error; }
+function listErrorKind(code: string | undefined, error: unknown): 'missing-directory' | 'workspace' | 'read' {
+  if (code === 'ENOENT') return 'missing-directory';
+  return error instanceof WorkspacePolicyError ? 'workspace' : 'read';
+}
 function mapMcpStatus(result: McpDiscoveryResult): McpSettingsStatus {
   if (result.code === 'available') return 'available';
   if (result.code === 'not-configured') return result.detail === 'disabled' ? 'disabled' : 'not-configured';

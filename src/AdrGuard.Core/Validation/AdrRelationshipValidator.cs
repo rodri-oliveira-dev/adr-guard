@@ -212,44 +212,7 @@ internal static class AdrRelationshipValidator
                 continue;
             }
 
-            var path = new List<AdrDocument>();
-            var positions = new Dictionary<AdrDocument, int>();
-            var stack = new Stack<(AdrDocument Node, int Next)>();
-            state[start] = 1;
-            positions[start] = 0;
-            path.Add(start);
-            stack.Push((start, 0));
-
-            while (stack.Count > 0)
-            {
-                var (node, next) = stack.Pop();
-                var edges = successors[node];
-                if (next >= edges.Count)
-                {
-                    state[node] = 2;
-                    positions.Remove(node);
-                    path.RemoveAt(path.Count - 1);
-                    continue;
-                }
-
-                stack.Push((node, next + 1));
-                var target = edges[next];
-                state.TryGetValue(target, out var targetState);
-                if (targetState == 0)
-                {
-                    state[target] = 1;
-                    positions[target] = path.Count;
-                    path.Add(target);
-                    stack.Push((target, 0));
-                }
-                else if (targetState == 1 && positions.TryGetValue(target, out var cycleStart))
-                {
-                    foreach (var cycleNode in path.Skip(cycleStart))
-                    {
-                        cycleNodes.Add(cycleNode);
-                    }
-                }
-            }
+            FindCyclesFrom(start, successors, state, cycleNodes);
         }
 
         foreach (var document in cycleNodes.OrderBy(item => item.FilePath, StringComparer.Ordinal))
@@ -259,6 +222,57 @@ internal static class AdrRelationshipValidator
                 document.FilePath,
                 "ADR participates in a cycle of superseding decisions."));
         }
+    }
+
+    private static void FindCyclesFrom(
+        AdrDocument start,
+        IReadOnlyDictionary<AdrDocument, IReadOnlyList<AdrDocument>> successors,
+        Dictionary<AdrDocument, int> state,
+        HashSet<AdrDocument> cycleNodes)
+    {
+        var path = new List<AdrDocument> { start };
+        var positions = new Dictionary<AdrDocument, int> { [start] = 0 };
+        var stack = new Stack<(AdrDocument Node, int Next)>();
+        state[start] = 1;
+        stack.Push((start, 0));
+
+        while (stack.Count > 0)
+        {
+            var (node, next) = stack.Pop();
+            var edges = successors[node];
+            if (next >= edges.Count)
+            {
+                state[node] = 2;
+                positions.Remove(node);
+                path.RemoveAt(path.Count - 1);
+                continue;
+            }
+
+            stack.Push((node, next + 1));
+            VisitSuccessor(edges[next], path, positions, stack, state, cycleNodes);
+        }
+    }
+
+    private static void VisitSuccessor(
+        AdrDocument target,
+        List<AdrDocument> path,
+        Dictionary<AdrDocument, int> positions,
+        Stack<(AdrDocument Node, int Next)> stack,
+        Dictionary<AdrDocument, int> state,
+        HashSet<AdrDocument> cycleNodes)
+    {
+        state.TryGetValue(target, out var targetState);
+        if (targetState == 0)
+        {
+            state[target] = 1;
+            positions[target] = path.Count;
+            path.Add(target);
+            stack.Push((target, 0));
+            return;
+        }
+
+        if (targetState != 1 || !positions.TryGetValue(target, out var cycleStart)) return;
+        foreach (var cycleNode in path.Skip(cycleStart)) cycleNodes.Add(cycleNode);
     }
 
     private static bool TryParseMadrSupersedingId(string? status, out int id)

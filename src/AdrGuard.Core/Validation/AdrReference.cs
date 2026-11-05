@@ -174,21 +174,14 @@ internal sealed record AdrReference(
         var openingLength = 0;
         while (reader.ReadLine() is { } line)
         {
-            var trimmed = line.TrimStart();
-            var length = 0;
-            if (trimmed.Length >= 3 && trimmed[0] is '`' or '~')
-            {
-                while (length < trimmed.Length && trimmed[length] == trimmed[0]) length++;
-            }
-
-            if (length >= 3)
+            if (TryReadFence(line, out var fenceMarker, out var fenceLength))
             {
                 if (marker is null)
                 {
-                    marker = trimmed[0];
-                    openingLength = length;
+                    marker = fenceMarker;
+                    openingLength = fenceLength;
                 }
-                else if (trimmed[0] == marker && length >= openingLength)
+                else if (fenceMarker == marker && fenceLength >= openingLength)
                 {
                     marker = null;
                     openingLength = 0;
@@ -200,6 +193,18 @@ internal sealed record AdrReference(
         }
 
         return writer.ToString();
+    }
+
+    private static bool TryReadFence(string line, out char marker, out int length)
+    {
+        marker = default;
+        length = 0;
+        var trimmed = line.TrimStart();
+        if (trimmed.Length < 3 || trimmed[0] is not ('`' or '~')) return false;
+
+        marker = trimmed[0];
+        while (length < trimmed.Length && trimmed[length] == marker) length++;
+        return length >= 3;
     }
 
     private static bool TryNormalizeLocalMarkdownTarget(string target, out string normalizedTarget)

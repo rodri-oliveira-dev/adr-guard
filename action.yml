@@ -1,5 +1,5 @@
 name: ADR Guard - Architecture Decision Validator
-description: Validate, index, review, or inspect the impact of Architecture Decision Records (ADRs) with safe GitHub reporting.
+description: Validate, index, review, analyze impact, or verify ADR-backed architectural drift with safe GitHub reporting.
 author: Rodrigo de Oliveira
 
 inputs:
@@ -8,7 +8,7 @@ inputs:
     required: false
     default: docs/adr
   command:
-    description: ADR Guard command to run. Allowed values are 'check', 'index', opt-in 'review', and opt-in 'impact'.
+    description: ADR Guard command to run. Allowed values are 'check', 'index', opt-in 'review', opt-in 'impact', and opt-in 'drift'.
     required: false
     default: check
   version:
@@ -55,6 +55,22 @@ inputs:
     description: Repository-relative ADR-to-code mapping JSON. Required only when command is 'impact'.
     required: false
     default: ""
+  drift-rules:
+    description: Repository-relative architecture fitness rules JSON. Required only when command is 'drift'.
+    required: false
+    default: ""
+  drift-policy:
+    description: Drift policy mode. Allowed values are 'advisory' and 'enforce'.
+    required: false
+    default: advisory
+  drift-baseline:
+    description: Optional repository-relative existing drift baseline JSON. The Action never creates or updates baselines.
+    required: false
+    default: ""
+  drift-evidence:
+    description: Optional newline-delimited repository-relative external evidence JSON files for drift. At most 20 files.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -75,6 +91,10 @@ runs:
         ADR_GUARD_REVIEW_POLICY_FILE: ${{ inputs.policy-file }}
         ADR_GUARD_IMPACT_BASE_REF: ${{ inputs.base-ref }}
         ADR_GUARD_IMPACT_MAP: ${{ inputs.impact-map }}
+        ADR_GUARD_DRIFT_RULES: ${{ inputs.drift-rules }}
+        ADR_GUARD_DRIFT_POLICY: ${{ inputs.drift-policy }}
+        ADR_GUARD_DRIFT_BASELINE: ${{ inputs.drift-baseline }}
+        ADR_GUARD_DRIFT_EVIDENCE: ${{ inputs.drift-evidence }}
         ADR_GUARD_ACTION_REF: ${{ github.action_ref }}
         ADR_GUARD_EVENT_NAME: ${{ github.event_name }}
         ADR_GUARD_REPOSITORY: ${{ github.repository }}

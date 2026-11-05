@@ -45,20 +45,8 @@ internal static class EditFormCommand
         {
             var parsedRequest = ReadRequest(input, cancellationToken);
             var request = parsedRequest.Request;
-            if (request.SchemaVersion != SchemaVersion || request.Operation is not ("load" or "save"))
-                return UsageError("ADR edit schema version must be 1.0 and operation must be load or save.", error);
-            var expectedProperties = request.Operation == "load"
-                ? LoadProperties
-                : SaveProperties;
-            if (!parsedRequest.Properties.SetEquals(expectedProperties))
-                return UsageError($"ADR edit {request.Operation} request has an invalid property set.", error);
-            if (request.Operation == "load" && (request.Fingerprint is not null || request.Title is not null || request.Fields is not null))
-                return UsageError("ADR edit load requests cannot contain fingerprint, title, or fields.", error);
-            if (request.Operation == "save" && (request.Fingerprint is null || request.Title is null || request.Fields is null))
-                return UsageError("ADR edit save requests require fingerprint, title, and fields.", error);
-            if (request.Fingerprint is not null
-                && (request.Fingerprint.Length != 64 || request.Fingerprint.Any(character => !char.IsAsciiHexDigit(character))))
-                return UsageError("ADR edit fingerprint must be a 64-character hexadecimal SHA-256 value.", error);
+            var requestError = ValidateRequest(parsedRequest);
+            if (requestError is not null) return UsageError(requestError, error);
 
             var options = AdrValidationOptionsFactory.Create(
                 parsed.Format,
@@ -72,27 +60,7 @@ internal static class EditFormCommand
             var document = request.Operation == "load"
                 ? AdrEditService.Load(parsed.FilePath, parsed.AdrDirectory, options, cancellationToken)
                 : AdrEditService.Save(parsed.FilePath, request.Fingerprint!, request.Title!, request.Fields!, parsed.AdrDirectory, options, cancellationToken);
-            if (request.Operation == "save")
-            {
-                WriteResponse(output, new EditSaveResponse(
-                    SchemaVersion,
-                    request.Operation,
-                    document.Fingerprint,
-                    Written: document.Written));
-            }
-            else
-            {
-                WriteResponse(output, new EditLoadResponse(
-                    SchemaVersion,
-                    request.Operation,
-                    parsed.Format == AdrFormat.Madr4 ? "madr-4" : "canonical",
-                    document.FilePath,
-                    document.Fingerprint,
-                    document.Title,
-                    document.Fields.Select(field => new EditFieldResponse(
-                        field.Id, field.Label, field.Kind, field.Required, field.Value, field.Options)).ToArray(),
-                    Written: document.Written));
-            }
+            WriteDocumentResponse(output, request.Operation!, parsed.Format, document);
             return ExitCodes.Success;
         }
         catch (AdrEditValidationException exception)
@@ -116,6 +84,55 @@ internal static class EditFormCommand
             error.WriteLine($"Unable to edit ADR: {exception.Message}");
             return ExitCodes.OperationalError;
         }
+    }
+
+    private static string? ValidateRequest(ParsedEditFormRequest parsedRequest)
+    {
+        var request = parsedRequest.Request;
+        if (request.RequestedSchemaVersion != SchemaVersion || request.Operation is not ("load" or "save"))
+            return "ADR edit schema version must be 1.0 and operation must be load or save.";
+        var expectedProperties = request.Operation == "load" ? LoadProperties : SaveProperties;
+        if (!parsedRequest.Properties.SetEquals(expectedProperties))
+            return $"ADR edit {request.Operation} request has an invalid property set.";
+        if (request.Operation == "load"
+            && (request.Fingerprint is not null || request.Title is not null || request.Fields is not null))
+            return "ADR edit load requests cannot contain fingerprint, title, or fields.";
+        if (request.Operation == "save"
+            && (request.Fingerprint is null || request.Title is null || request.Fields is null))
+            return "ADR edit save requests require fingerprint, title, and fields.";
+        if (request.Fingerprint is not null
+            && (request.Fingerprint.Length != 64
+                || request.Fingerprint.Any(character => !char.IsAsciiHexDigit(character))))
+            return "ADR edit fingerprint must be a 64-character hexadecimal SHA-256 value.";
+        return null;
+    }
+
+    private static void WriteDocumentResponse(
+        TextWriter output,
+        string operation,
+        AdrFormat format,
+        AdrEditDocument document)
+    {
+        if (operation == "save")
+        {
+            WriteResponse(output, new EditSaveResponse(
+                SchemaVersion,
+                operation,
+                document.Fingerprint,
+                Written: document.Written));
+            return;
+        }
+
+        WriteResponse(output, new EditLoadResponse(
+            SchemaVersion,
+            operation,
+            format == AdrFormat.Madr4 ? "madr-4" : "canonical",
+            document.FilePath,
+            document.Fingerprint,
+            document.Title,
+            document.Fields.Select(field => new EditFieldResponse(
+                field.Id, field.Label, field.Kind, field.Required, field.Value, field.Options)).ToArray(),
+            Written: document.Written));
     }
 
     private static readonly HashSet<string> LoadProperties = new(StringComparer.Ordinal)
@@ -173,52 +190,26 @@ internal static class EditFormCommand
 
     private static bool TryParse(IReadOnlyList<string> args, out EditArguments result)
     {
-        string? filePath = null;
-        string? adrDirectory = null;
-        var format = AdrFormat.Canonical;
-        string? lifecycle = null;
-        string? filenamePolicy = null;
-        string? placeholderPolicy = null;
-        string? validationProfile = null;
-        var form = false;
-        var conventional = false;
-        var validateMetadata = false;
-        var assigned = new HashSet<string>(StringComparer.Ordinal);
+        var state = new EditArgumentState();
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
             if (argument is "--form" or "--conventional-supersession" or "--validate-metadata")
             {
-                if (!assigned.Add(argument)) { result = EditArguments.Empty; return false; }
-                if (argument == "--form") form = true;
-                else if (argument == "--conventional-supersession") conventional = true;
-                else validateMetadata = true;
+                if (!state.TryAddFlag(argument)) { result = EditArguments.Empty; return false; }
                 continue;
             }
             if (argument is "--adr-directory" or "--adr-format" or "--lifecycle-statuses" or "--filename-policy" or "--placeholder-policy" or "--validation-profile")
             {
-                if (!assigned.Add(argument) || index + 1 >= args.Count) { result = EditArguments.Empty; return false; }
+                if (index + 1 >= args.Count) { result = EditArguments.Empty; return false; }
                 var value = args[++index];
-                if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-')) { result = EditArguments.Empty; return false; }
-                switch (argument)
-                {
-                    case "--adr-directory": adrDirectory = value; break;
-                    case "--adr-format":
-                        format = value switch { "canonical" => AdrFormat.Canonical, "madr-4" => AdrFormat.Madr4, _ => (AdrFormat)(-1) };
-                        if (!Enum.IsDefined(format)) { result = EditArguments.Empty; return false; }
-                        break;
-                    case "--lifecycle-statuses": lifecycle = value; break;
-                    case "--filename-policy": filenamePolicy = value; break;
-                    case "--placeholder-policy": placeholderPolicy = value; break;
-                    case "--validation-profile": validationProfile = value; break;
-                }
+                if (!state.TryAddValue(argument, value)) { result = EditArguments.Empty; return false; }
                 continue;
             }
-            if (argument.StartsWith('-') || filePath is not null) { result = EditArguments.Empty; return false; }
-            filePath = argument;
+            if (!state.TrySetFilePath(argument)) { result = EditArguments.Empty; return false; }
         }
-        result = new EditArguments(filePath ?? string.Empty, adrDirectory, format, lifecycle, conventional, filenamePolicy, placeholderPolicy, validateMetadata, validationProfile);
-        return form && !string.IsNullOrWhiteSpace(filePath);
+        result = state.ToArguments();
+        return state.Form && !string.IsNullOrWhiteSpace(state.FilePath);
     }
 
     private static int UsageError(string message, TextWriter error)
@@ -231,13 +222,96 @@ internal static class EditFormCommand
     private static void WriteResponse<TResponse>(TextWriter output, TResponse response) =>
         output.WriteLine(JsonSerializer.Serialize(response, JsonOptions));
 
-    private sealed record EditFormRequest(string? SchemaVersion, string? Operation, string? Fingerprint, string? Title, Dictionary<string, string>? Fields);
+    private sealed record EditFormRequest(
+        [property: JsonPropertyName("schemaVersion")] string? RequestedSchemaVersion,
+        string? Operation,
+        string? Fingerprint,
+        string? Title,
+        Dictionary<string, string>? Fields);
     private sealed record ParsedEditFormRequest(EditFormRequest Request, HashSet<string> Properties);
-    private sealed record EditLoadResponse(string SchemaVersion, string Operation, string Format, string Path, string Fingerprint, string Title, IReadOnlyList<EditFieldResponse> Fields, bool Written);
-    private sealed record EditSaveResponse(string SchemaVersion, string Operation, string Fingerprint, bool Written);
+    private sealed record EditLoadResponse(
+        [property: JsonPropertyName("schemaVersion")] string ResponseSchemaVersion,
+        string Operation,
+        string Format,
+        string Path,
+        string Fingerprint,
+        string Title,
+        IReadOnlyList<EditFieldResponse> Fields,
+        bool Written);
+    private sealed record EditSaveResponse(
+        [property: JsonPropertyName("schemaVersion")] string ResponseSchemaVersion,
+        string Operation,
+        string Fingerprint,
+        bool Written);
     private sealed record EditFieldResponse(string Id, string Label, string Kind, bool Required, string Value, IReadOnlyList<string>? Options);
     private sealed record EditArguments(string FilePath, string? AdrDirectory, AdrFormat Format, string? LifecycleStatuses, bool ConventionalSupersession, string? FilenamePolicy, string? PlaceholderPolicy, bool ValidateMetadata, string? ValidationProfile)
     {
         internal static EditArguments Empty { get; } = new(string.Empty, null, AdrFormat.Canonical, null, false, null, null, false, null);
+    }
+
+    private sealed class EditArgumentState
+    {
+        private readonly HashSet<string> assigned = new(StringComparer.Ordinal);
+
+        internal string? FilePath { get; private set; }
+        internal string? AdrDirectory { get; private set; }
+        internal AdrFormat Format { get; private set; } = AdrFormat.Canonical;
+        internal string? Lifecycle { get; private set; }
+        internal string? FilenamePolicy { get; private set; }
+        internal string? PlaceholderPolicy { get; private set; }
+        internal string? ValidationProfile { get; private set; }
+        internal bool Form { get; private set; }
+        internal bool Conventional { get; private set; }
+        internal bool ValidateMetadata { get; private set; }
+
+        internal bool TryAddFlag(string argument)
+        {
+            if (!assigned.Add(argument)) return false;
+            if (argument == "--form") Form = true;
+            else if (argument == "--conventional-supersession") Conventional = true;
+            else ValidateMetadata = true;
+            return true;
+        }
+
+        internal bool TryAddValue(string argument, string value)
+        {
+            if (!assigned.Add(argument) || string.IsNullOrWhiteSpace(value) || value.StartsWith('-'))
+                return false;
+            switch (argument)
+            {
+                case "--adr-directory": AdrDirectory = value; break;
+                case "--adr-format":
+                    Format = value switch
+                    {
+                        "canonical" => AdrFormat.Canonical,
+                        "madr-4" => AdrFormat.Madr4,
+                        _ => (AdrFormat)(-1),
+                    };
+                    return Enum.IsDefined(Format);
+                case "--lifecycle-statuses": Lifecycle = value; break;
+                case "--filename-policy": FilenamePolicy = value; break;
+                case "--placeholder-policy": PlaceholderPolicy = value; break;
+                case "--validation-profile": ValidationProfile = value; break;
+            }
+            return true;
+        }
+
+        internal bool TrySetFilePath(string argument)
+        {
+            if (argument.StartsWith('-') || FilePath is not null) return false;
+            FilePath = argument;
+            return true;
+        }
+
+        internal EditArguments ToArguments() => new(
+            FilePath ?? string.Empty,
+            AdrDirectory,
+            Format,
+            Lifecycle,
+            Conventional,
+            FilenamePolicy,
+            PlaceholderPolicy,
+            ValidateMetadata,
+            ValidationProfile);
     }
 }

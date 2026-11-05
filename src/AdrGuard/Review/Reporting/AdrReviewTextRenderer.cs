@@ -10,7 +10,19 @@ internal static class AdrReviewTextRenderer
         ArgumentNullException.ThrowIfNull(report);
 
         var builder = new StringBuilder();
+        AppendHeader(builder, report);
+        AppendInputScope(builder, report.InputScope);
+        AppendDimensions(builder, report.Dimensions);
+        AppendFindings(builder, report.Findings);
+        AppendLimitations(builder, report.Limitations, report.CostCaveat);
 
+        var rendered = builder.ToString().TrimEnd();
+        AdrReviewReportSerializer.EnsureBounded(rendered);
+        return rendered;
+    }
+
+    private static void AppendHeader(StringBuilder builder, AdrReviewReport report)
+    {
         builder.AppendLine("# ADR Technical Review");
         builder.AppendLine();
         builder.Append("Schema version: ")
@@ -39,15 +51,14 @@ internal static class AdrReviewTextRenderer
         builder.AppendLine(
             "> Advisory AI-assisted review only. Human review remains authoritative; this report does not approve, reject, certify, or change the ADR.");
         builder.AppendLine();
+    }
 
-        AppendInputScope(
-            builder,
-            report.InputScope);
-
+    private static void AppendDimensions(StringBuilder builder, IEnumerable<AdrReviewDimensionReport> dimensions)
+    {
         builder.AppendLine("## Analyzed dimensions");
         builder.AppendLine();
 
-        foreach (var dimension in report.Dimensions)
+        foreach (var dimension in dimensions)
         {
             builder.Append("### ")
                 .AppendLine(dimension.Name);
@@ -60,91 +71,51 @@ internal static class AdrReviewTextRenderer
                 continue;
             }
 
-            foreach (var assessment in dimension.Assessments)
-            {
-                builder.Append("- Classification: ")
-                    .AppendLine(
-                        assessment.Classification);
-
-                if (!string.IsNullOrWhiteSpace(
-                        assessment.FollowUpPriority))
-                {
-                    builder.Append("  Follow-up priority: ")
-                        .AppendLine(
-                            assessment.FollowUpPriority);
-                }
-
-                if (!string.IsNullOrWhiteSpace(
-                        assessment.Uncertainty))
-                {
-                    builder.Append("  Uncertainty: ")
-                        .AppendLine(
-                            assessment.Uncertainty);
-                }
-
-                builder.Append("  Explanation: ")
-                    .AppendLine(
-                        assessment.Explanation);
-
-                if (assessment.Evidence.Length == 0)
-                {
-                    builder.AppendLine(
-                        "  Evidence: not available from verified selected sources.");
-                }
-                else
-                {
-                    foreach (var evidence in assessment.Evidence)
-                    {
-                        builder.Append("  Evidence: [")
-                            .Append(evidence.SourceId)
-                            .Append("] ")
-                            .Append(evidence.Path);
-
-                        if (!string.IsNullOrWhiteSpace(
-                                evidence.AdrId))
-                        {
-                            builder.Append(" (ADR ")
-                                .Append(evidence.AdrId)
-                                .Append(')');
-                        }
-
-                        if (evidence.Line is { } line)
-                        {
-                            builder.Append(':')
-                                .Append(line);
-                        }
-
-                        builder.AppendLine();
-
-                        if (!string.IsNullOrWhiteSpace(
-                                evidence.Excerpt))
-                        {
-                            builder.Append("  Excerpt: ")
-                                .AppendLine(
-                                    evidence.Excerpt);
-                        }
-                    }
-                }
-
-                builder.Append("  Guidance: ")
-                    .AppendLine(
-                        assessment.Guidance);
-            }
+            foreach (var assessment in dimension.Assessments) AppendAssessment(builder, assessment);
 
             builder.AppendLine();
         }
+    }
 
+    private static void AppendAssessment(StringBuilder builder, AdrReviewAssessmentReport assessment)
+    {
+        builder.Append("- Classification: ").AppendLine(assessment.Classification);
+        if (!string.IsNullOrWhiteSpace(assessment.FollowUpPriority))
+            builder.Append("  Follow-up priority: ").AppendLine(assessment.FollowUpPriority);
+        if (!string.IsNullOrWhiteSpace(assessment.Uncertainty))
+            builder.Append("  Uncertainty: ").AppendLine(assessment.Uncertainty);
+        builder.Append("  Explanation: ").AppendLine(assessment.Explanation);
+        if (assessment.Evidence.Length == 0)
+            builder.AppendLine("  Evidence: not available from verified selected sources.");
+        else
+            foreach (var evidence in assessment.Evidence) AppendEvidence(builder, evidence);
+        builder.Append("  Guidance: ").AppendLine(assessment.Guidance);
+    }
+
+    private static void AppendEvidence(StringBuilder builder, AdrReviewEvidenceReport evidence)
+    {
+        builder.Append("  Evidence: [").Append(evidence.SourceId).Append("] ").Append(evidence.Path);
+        if (!string.IsNullOrWhiteSpace(evidence.AdrId))
+            builder.Append(" (ADR ").Append(evidence.AdrId).Append(')');
+        if (evidence.Line is { } line) builder.Append(':').Append(line);
+        builder.AppendLine();
+        if (!string.IsNullOrWhiteSpace(evidence.Excerpt))
+            builder.Append("  Excerpt: ").AppendLine(evidence.Excerpt);
+    }
+
+    private static void AppendFindings(StringBuilder builder, AdrReviewFollowUpFindingReport[] findings)
+    {
         builder.AppendLine("## Follow-up findings");
         builder.AppendLine();
 
-        if (report.Findings.Length == 0)
+        if (findings.Length == 0)
         {
             builder.AppendLine(
                 "No follow-up findings were produced. This is not an architectural approval.");
         }
         else
         {
-            foreach (var finding in report.Findings)
+            foreach (var finding in findings)
             {
                 builder.Append("- ")
                     .Append(finding.Dimension)
@@ -159,28 +130,25 @@ internal static class AdrReviewTextRenderer
                     .AppendLine(finding.Guidance);
             }
         }
+    }
 
+    private static void AppendLimitations(
+        StringBuilder builder,
+        IEnumerable<string> limitations,
+        string costCaveat)
+    {
         builder.AppendLine();
         builder.AppendLine("## Unknowns and limitations");
         builder.AppendLine();
 
-        foreach (var limitation in report.Limitations)
+        foreach (var limitation in limitations)
         {
             builder.Append("- ")
                 .AppendLine(limitation);
         }
 
         builder.Append("- ")
-            .AppendLine(report.CostCaveat);
-
-        var rendered = builder
-            .ToString()
-            .TrimEnd();
-
-        AdrReviewReportSerializer.EnsureBounded(
-            rendered);
-
-        return rendered;
+            .AppendLine(costCaveat);
     }
 
     private static void AppendInputScope(

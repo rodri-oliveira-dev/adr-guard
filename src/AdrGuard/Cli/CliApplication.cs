@@ -26,6 +26,7 @@ internal static class CliApplication
 
         Usage:
           adr-guard init [repository] [options]
+          adr-guard doctor [repository]
           adr-guard check [directory] [--format text|json|sarif] [--diagnostic-locations] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>] [--changed --base-ref <ref>] [--baseline <file>]
           adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
           adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>] [--catalog enriched]
@@ -39,6 +40,7 @@ internal static class CliApplication
 
         Commands:
           init     Initialize ADR Guard configuration in an existing repository.
+          doctor   Diagnose the local repository and tool environment without changing them.
           check    Validate ADR files. Defaults to the current directory.
           baseline Generate or explicitly update a versioned diagnostic baseline.
           index    Validate ADR files and generate an index. Defaults to README.md.
@@ -352,7 +354,7 @@ internal static class CliApplication
         IReadOnlyList<string> effectiveArgs;
         try
         {
-            var configuration = args[0] == "init"
+            var configuration = args[0] is "init" or "doctor"
                 ? null
                 : AdrGuardConfigurationLoader.Load(invocationDirectory ?? Directory.GetCurrentDirectory());
             effectiveArgs = ConfigurationArguments.Apply(args, configuration);
@@ -366,6 +368,13 @@ internal static class CliApplication
         return effectiveArgs[0] switch
         {
             "init" => InitCommand.Run(effectiveArgs, output, error),
+            "doctor" => DoctorCommand.Run(
+                effectiveArgs,
+                GetVersion(),
+                invocationDirectory,
+                output,
+                error,
+                cancellationToken),
             "check" => RunCheck(effectiveArgs, output, error, cancellationToken),
             "baseline" => RunBaseline(effectiveArgs, output, error, cancellationToken),
             "index" => RunIndex(effectiveArgs, output, error),
@@ -396,41 +405,115 @@ internal static class CliApplication
     private static int RunDrift(IReadOnlyList<string> args, TextWriter output, TextWriter error, CancellationToken cancellationToken)
     {
         if (args.Count == 2 && IsHelpOption(args[1])) { output.WriteLine(DriftHelpText); return ExitCodes.Success; }
-        if (!TryParseDriftArguments(args, out var repository, out var rules, out var evidence, out var baseline, out var writeBaseline, out var updateBaseline, out var format, out var policy))
+        if (!TryParseDriftArguments(args, out var arguments))
             return WriteCommandUsageError("drift", error);
-        return DriftCommand.Run(repository, rules, evidence, baseline, writeBaseline, updateBaseline, format, policy, output, error, cancellationToken);
+        return DriftCommand.Run(arguments.Repository, arguments.Rules, arguments.Evidence,
+            arguments.Baseline, arguments.WriteBaseline, arguments.UpdateBaseline,
+            arguments.Format, arguments.Policy, output, error, cancellationToken);
     }
 
-    private static bool TryParseDriftArguments(IReadOnlyList<string> args, out string repository, out string rules, out IReadOnlyList<string> evidence,
-        out string? baseline, out string? writeBaseline, out bool updateBaseline, out DriftOutputFormat format, out DriftPolicy policy)
+    private static bool TryParseDriftArguments(
+        IReadOnlyList<string> args,
+        out DriftArguments arguments)
     {
-        repository = Directory.GetCurrentDirectory(); rules = string.Empty; baseline = null; writeBaseline = null; updateBaseline = false;
-        format = DriftOutputFormat.Text; policy = DriftPolicy.Advisory; var files = new List<string>(); evidence = files;
-        var repositoryAssigned = false; var assigned = new HashSet<string>(StringComparer.Ordinal);
-        for (var index = 1; index < args.Count; index++)
+        var state = new DriftArgumentState();
+        if (!PopulateDriftState(args, state)) return FailDriftParse(state, out arguments);
+        var valid = state.Rules.Length > 0
+            && (!state.UpdateBaseline || state.WriteBaseline is not null)
+            && state.Evidence.Count <= ExternalFitnessEvidenceAdapter.MaximumFiles;
+        arguments = state.ToArguments();
+        return valid;
+    }
+
+    private static bool PopulateDriftState(
+        IReadOnlyList<string> args,
+        DriftArgumentState state)
+    {
+        var index = 1;
+        while (index < args.Count)
         {
-            var argument = args[index];
-            if (argument == "--update-baseline") { if (updateBaseline) return false; updateBaseline = true; continue; }
-            if (argument is "--rules" or "--evidence" or "--baseline" or "--write-baseline" or "--format" or "--policy")
-            {
-                if (index + 1 >= args.Count) return false;
-                var value = args[++index]; if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-')) return false;
-                if (argument != "--evidence" && !assigned.Add(argument)) return false;
-                switch (argument)
-                {
-                    case "--rules": rules = value; break;
-                    case "--evidence": files.Add(value); break;
-                    case "--baseline": baseline = value; break;
-                    case "--write-baseline": writeBaseline = value; break;
-                    case "--format": if (value is not ("text" or "json")) return false; format = value == "json" ? DriftOutputFormat.Json : DriftOutputFormat.Text; break;
-                    case "--policy": if (value is not ("advisory" or "enforce")) return false; policy = value == "enforce" ? DriftPolicy.Enforce : DriftPolicy.Advisory; break;
-                }
-                continue;
-            }
-            if (argument.StartsWith('-') || repositoryAssigned) return false;
-            repository = argument; repositoryAssigned = true;
+            var argument = args[index++];
+            if (!TryApplyDriftArgument(argument, args, ref index, state)) return false;
         }
-        return rules.Length > 0 && (!updateBaseline || writeBaseline is not null) && files.Count <= ExternalFitnessEvidenceAdapter.MaximumFiles;
+        return true;
+    }
+
+    private static bool TryApplyDriftArgument(
+        string argument,
+        IReadOnlyList<string> args,
+        ref int index,
+        DriftArgumentState state)
+    {
+        if (argument == "--update-baseline") return state.TrySetUpdateBaseline();
+        if (argument is not ("--rules" or "--evidence" or "--baseline"
+            or "--write-baseline" or "--format" or "--policy"))
+            return state.TrySetRepository(argument);
+        if (index >= args.Count) return false;
+        return state.TrySetValue(argument, args[index++]);
+    }
+
+    private static bool FailDriftParse(DriftArgumentState state, out DriftArguments arguments)
+    {
+        arguments = state.ToArguments();
+        return false;
+    }
+
+    private sealed record DriftArguments(
+        string Repository,
+        string Rules,
+        IReadOnlyList<string> Evidence,
+        string? Baseline,
+        string? WriteBaseline,
+        bool UpdateBaseline,
+        DriftOutputFormat Format,
+        DriftPolicy Policy);
+
+    private sealed class DriftArgumentState
+    {
+        private readonly HashSet<string> assigned = new(StringComparer.Ordinal);
+        internal string Repository { get; private set; } = Directory.GetCurrentDirectory();
+        internal string Rules { get; private set; } = string.Empty;
+        internal List<string> Evidence { get; } = [];
+        internal string? Baseline { get; private set; }
+        internal string? WriteBaseline { get; private set; }
+        internal bool UpdateBaseline { get; private set; }
+        internal DriftOutputFormat Format { get; private set; } = DriftOutputFormat.Text;
+        internal DriftPolicy Policy { get; private set; } = DriftPolicy.Advisory;
+        internal DriftArguments ToArguments() => new(
+            Repository, Rules, Evidence, Baseline, WriteBaseline, UpdateBaseline, Format, Policy);
+        internal bool TrySetUpdateBaseline()
+        {
+            if (UpdateBaseline) return false;
+            UpdateBaseline = true;
+            return true;
+        }
+        internal bool TrySetRepository(string value)
+        {
+            if (value.StartsWith('-') || !assigned.Add("repository")) return false;
+            Repository = value;
+            return true;
+        }
+        internal bool TrySetValue(string argument, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-')
+                || argument != "--evidence" && !assigned.Add(argument)) return false;
+            switch (argument)
+            {
+                case "--rules": Rules = value; break;
+                case "--evidence": Evidence.Add(value); break;
+                case "--baseline": Baseline = value; break;
+                case "--write-baseline": WriteBaseline = value; break;
+                case "--format":
+                    if (value is not ("text" or "json")) return false;
+                    Format = value == "json" ? DriftOutputFormat.Json : DriftOutputFormat.Text;
+                    break;
+                case "--policy":
+                    if (value is not ("advisory" or "enforce")) return false;
+                    Policy = value == "enforce" ? DriftPolicy.Enforce : DriftPolicy.Advisory;
+                    break;
+            }
+            return true;
+        }
     }
 
     private static int RunImpact(
@@ -445,21 +528,16 @@ internal static class CliApplication
             return ExitCodes.Success;
         }
 
-        if (!TryParseImpactArguments(
-                args,
-                out var repositoryPath,
-                out var baseReference,
-                out var manifestPath,
-                out var format))
+        if (!TryParseImpactArguments(args, out var arguments))
         {
             return WriteCommandUsageError("impact", error);
         }
 
         return ImpactCommand.Run(
-            repositoryPath,
-            baseReference,
-            manifestPath,
-            format,
+            arguments.RepositoryPath,
+            arguments.BaseReference,
+            arguments.ManifestPath,
+            arguments.Format,
             output,
             error,
             cancellationToken);
@@ -467,99 +545,87 @@ internal static class CliApplication
 
     private static bool TryParseImpactArguments(
         IReadOnlyList<string> args,
-        out string repositoryPath,
-        out string baseReference,
-        out string manifestPath,
-        out ImpactOutputFormat format)
+        out ImpactArguments arguments)
     {
-        repositoryPath = Directory.GetCurrentDirectory();
-        baseReference = string.Empty;
-        manifestPath = string.Empty;
-        format = ImpactOutputFormat.Text;
-        var repositoryAssigned = false;
-        var baseAssigned = false;
-        var mapAssigned = false;
-        var formatAssigned = false;
+        var state = new ImpactArgumentState();
+        if (!PopulateImpactState(args, state)) return FailImpactParse(state, out arguments);
 
-        for (var index = 1; index < args.Count; index++)
+        arguments = state.ToArguments();
+        return state.BaseAssigned && state.MapAssigned;
+    }
+
+    private static bool PopulateImpactState(
+        IReadOnlyList<string> args,
+        ImpactArgumentState state)
+    {
+        var index = 1;
+        while (index < args.Count)
         {
-            var argument = args[index];
-            if (argument is "--base-ref" or "--map" or "--format")
+            var argument = args[index++];
+            if (argument is not ("--base-ref" or "--map" or "--format"))
             {
-                if (index + 1 >= args.Count)
-                {
-                    return false;
-                }
-
-                var value = args[++index];
-                if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-'))
-                {
-                    return false;
-                }
-
-                if (argument == "--base-ref")
-                {
-                    if (baseAssigned)
-                    {
-                        return false;
-                    }
-
-                    try
-                    {
-                        GitChangeDetector.ValidateReference(value);
-                    }
-                    catch (ArgumentException)
-                    {
-                        return false;
-                    }
-
-                    baseReference = value;
-                    baseAssigned = true;
-                }
-                else if (argument == "--map")
-                {
-                    if (mapAssigned)
-                    {
-                        return false;
-                    }
-
-                    manifestPath = value;
-                    mapAssigned = true;
-                }
-                else
-                {
-                    if (formatAssigned)
-                    {
-                        return false;
-                    }
-
-                    format = value switch
-                    {
-                        "text" => ImpactOutputFormat.Text,
-                        "json" => ImpactOutputFormat.Json,
-                        _ => (ImpactOutputFormat)(-1),
-                    };
-                    if (!Enum.IsDefined(format))
-                    {
-                        return false;
-                    }
-
-                    formatAssigned = true;
-                }
-
+                if (!state.TrySetRepository(argument)) return false;
                 continue;
             }
+            if (index >= args.Count || !state.TrySetValue(argument, args[index++])) return false;
+        }
+        return true;
+    }
 
-            if (argument.StartsWith('-') || repositoryAssigned)
-            {
-                return false;
-            }
+    private static bool FailImpactParse(ImpactArgumentState state, out ImpactArguments arguments)
+    {
+        arguments = state.ToArguments();
+        return false;
+    }
 
-            repositoryPath = argument;
-            repositoryAssigned = true;
+    private sealed record ImpactArguments(
+        string RepositoryPath,
+        string BaseReference,
+        string ManifestPath,
+        ImpactOutputFormat Format);
+
+    private sealed class ImpactArgumentState
+    {
+        private readonly HashSet<string> assigned = new(StringComparer.Ordinal);
+        internal string RepositoryPath { get; private set; } = Directory.GetCurrentDirectory();
+        internal string BaseReference { get; private set; } = string.Empty;
+        internal string ManifestPath { get; private set; } = string.Empty;
+        internal ImpactOutputFormat Format { get; private set; } = ImpactOutputFormat.Text;
+        internal bool BaseAssigned => assigned.Contains("--base-ref");
+        internal bool MapAssigned => assigned.Contains("--map");
+        internal ImpactArguments ToArguments() => new(
+            RepositoryPath, BaseReference, ManifestPath, Format);
+
+        internal bool TrySetRepository(string value)
+        {
+            if (value.StartsWith('-') || !assigned.Add("repository")) return false;
+            RepositoryPath = value;
+            return true;
         }
 
-        return baseAssigned && mapAssigned;
+        internal bool TrySetValue(string argument, string value)
+        {
+            if (!assigned.Add(argument) || string.IsNullOrWhiteSpace(value) || value.StartsWith('-'))
+                return false;
+            if (argument == "--base-ref")
+            {
+                try { GitChangeDetector.ValidateReference(value); }
+                catch (ArgumentException) { return false; }
+                BaseReference = value;
+            }
+            else if (argument == "--map") ManifestPath = value;
+            else
+            {
+                Format = value switch
+                {
+                    "text" => ImpactOutputFormat.Text,
+                    "json" => ImpactOutputFormat.Json,
+                    _ => (ImpactOutputFormat)(-1),
+                };
+                if (!Enum.IsDefined(Format)) return false;
+            }
+            return true;
+        }
     }
 
     private static int RunCheck(

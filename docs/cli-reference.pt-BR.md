@@ -13,6 +13,7 @@ Esta tabela espelha o dispatcher e o `--help` embutido. Os guias especializados 
 | Comando | Entradas obrigatórias e opções principais | Escritas / efeitos externos | Contrato de saída |
 | --- | --- | --- | --- |
 | `init [repositório]` | Diretório de ADR, template, geração de workflow, `--dry-run` e `--overwrite` opcionais | Grava configuração/template/workflow somente quando solicitado; dry run não grava | `0`, `2`, `3` |
+| `doctor [repositório]` | Diretório do repositório opcional; sem outras opções | Diagnóstico local somente leitura; uma consulta limitada `git --version`; sem rede, provider, instalação ou correção | `0` sem erros, `2`, `3` |
 | `check [diretório]` | Texto/JSON/SARIF, formato, lifecycle/supersession, políticas de nome/placeholder/metadados/perfil, changed/base ref e baseline opcionais | Somente leitura; lê Git local com `--changed` | `0` válido, `1` achados, `2`, `3` |
 | `baseline [diretório] --output <arquivo>` | Opções de política; `--update` obrigatório para substituir | Cria ou substitui explicitamente um baseline versionado | `0`, `2`, `3` |
 | `index [diretório]` | Saída e política opcionais; `--catalog enriched` | Grava índice padrão determinístico ou catálogo enriquecido somente após validação | `0`, `1`, `2`, `3` |
@@ -36,6 +37,21 @@ adr-guard init [repositório] [--adr-directory <caminho>]
 `repositório` usa o diretório de invocação por padrão. Caminhos gerenciados devem ser relativos, permanecer dentro do repositório e não podem atravessar links simbólicos/reparse points. `--dry-run` relata exatamente os arquivos planejados sem gravar. Repetir o mesmo comando não regrava arquivos inalterados. Arquivos existentes causam erro operacional, salvo quando `--overwrite` autoriza explicitamente a substituição.
 
 `--github-actions` grava `.github/workflows/adr-guard.yml` com `contents: read`, sem credenciais de provider e sem permissão de escrita.
+
+## Diagnosticar o ambiente local
+
+> Disponibilidade no código-fonte: `doctor` está implementado na branch de desenvolvimento atual e não faz parte dos artefatos publicados da CLI 1.9.0 descritos acima. Confirme uma release posterior antes de depender dele em automações.
+
+```text
+adr-guard doctor [repositório]
+adr-guard doctor --help
+```
+
+`repositório` usa o diretório de invocação por padrão. O comando relata seis checks em ordem estável: identidade da CLI, detecção do repositório, configuração estrita `.adrguard.yml`, diretório efetivo de ADRs, runtime .NET atual e executável Git local opcional. Cada linha começa com `OK`, `WARNING` ou `ERROR`, inclui um diagnóstico curto e apresenta orientação `Fix:` quando existe uma ação manual segura. Um resumo final conta cada severidade.
+
+O comando é local e somente leitura. Ele não lê o conteúdo das ADRs, inspeciona credenciais de providers, acessa a rede ou remotes Git, instala ferramentas, cria arquivos/diretórios nem aplica correções. A configuração usa o mesmo loader estrito de 64 KiB do schema 1 e as mesmas proteções de contenção de paths dos outros comandos. A detecção do Git executa apenas uma consulta local e limitada `git --version`, sem shell.
+
+Warnings, inclusive Git opcional ausente ou configuração ausente com defaults legados, retornam `0`. Qualquer `ERROR` retorna exit operacional `3`; argumentos inválidos retornam `2` no stderr. Os paths do relatório ficam limitados a `.`, `.adrguard.yml` e paths relativos já validados dentro do repositório; paths absolutos e erros brutos de processos locais não são exibidos.
 
 ## Configuração
 

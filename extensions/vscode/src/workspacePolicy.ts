@@ -95,40 +95,52 @@ export async function ensurePotentialDirectoryWithinWorkspace(
   directoryPath: string,
   workspaceRoot: string,
 ): Promise<string> {
-  let resolvedRoot: string;
-  try {
-    resolvedRoot = await realpath(workspaceRoot);
-  } catch (error: unknown) {
-    const detail = error instanceof Error ? error.message : 'unknown filesystem error';
-    throw new WorkspacePolicyError(`The workspace folder is inaccessible: ${detail}`, 'invalid-path');
-  }
+  const resolvedRoot = await resolveAccessibleWorkspaceRoot(workspaceRoot);
   let cursor = directoryPath;
   for (;;) {
     try {
-      const resolved = await realpath(cursor);
-      if (!isResolvedPathWithin(resolved, resolvedRoot)) {
-        throw new WorkspacePolicyError(
-          'The requested directory resolves outside the selected workspace folder.',
-          'outside-workspace',
-        );
-      }
-      if (cursor === directoryPath && !(await stat(resolved)).isDirectory()) {
-        throw new WorkspacePolicyError('The requested ADR directory is not a directory.', 'invalid-path');
-      }
+      await validatePotentialDirectoryAncestor(cursor, directoryPath, resolvedRoot);
       return directoryPath;
     } catch (error: unknown) {
       if (error instanceof WorkspacePolicyError) throw error;
-      if (isMissingPathError(error) && cursor !== workspaceRoot) {
-        const parent = path.dirname(cursor);
-        if (parent !== cursor) {
-          cursor = parent;
-          continue;
-        }
-      }
+      const parent = nextMissingParent(error, cursor, workspaceRoot);
+      if (parent !== undefined) { cursor = parent; continue; }
       const detail = error instanceof Error ? error.message : 'unknown filesystem error';
       throw new WorkspacePolicyError(`The requested directory is inaccessible: ${detail}`, 'invalid-path');
     }
   }
+}
+
+async function resolveAccessibleWorkspaceRoot(workspaceRoot: string): Promise<string> {
+  try {
+    return await realpath(workspaceRoot);
+  } catch (error: unknown) {
+    const detail = error instanceof Error ? error.message : 'unknown filesystem error';
+    throw new WorkspacePolicyError(`The workspace folder is inaccessible: ${detail}`, 'invalid-path');
+  }
+}
+
+async function validatePotentialDirectoryAncestor(
+  cursor: string,
+  requestedPath: string,
+  resolvedRoot: string,
+): Promise<void> {
+  const resolved = await realpath(cursor);
+  if (!isResolvedPathWithin(resolved, resolvedRoot)) {
+    throw new WorkspacePolicyError(
+      'The requested directory resolves outside the selected workspace folder.',
+      'outside-workspace',
+    );
+  }
+  if (cursor === requestedPath && !(await stat(resolved)).isDirectory()) {
+    throw new WorkspacePolicyError('The requested ADR directory is not a directory.', 'invalid-path');
+  }
+}
+
+function nextMissingParent(error: unknown, cursor: string, workspaceRoot: string): string | undefined {
+  if (!isMissingPathError(error) || cursor === workspaceRoot) return undefined;
+  const parent = path.dirname(cursor);
+  return parent === cursor ? undefined : parent;
 }
 
 export async function ensurePotentialFileWithinWorkspace(

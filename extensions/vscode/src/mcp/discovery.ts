@@ -51,33 +51,7 @@ export class McpServerDiscovery {
     }
 
     try {
-      const originalStat = await this.fileSystem.lstat(configuredPath);
-      if (originalStat.isSymbolicLink() || !originalStat.isFile()) {
-        return { code: 'invalid-configuration', detail: 'The MCP server path must be a regular, non-symbolic-link file.' };
-      }
-      const serverPath = await this.fileSystem.realpath(configuredPath);
-      const resolvedRoots = await this.resolveExistingPaths(options.workspaceRoots);
-      if (resolvedRoots.some((root) => isPathWithin(serverPath, root, platform))) {
-        return { code: 'invalid-configuration', detail: 'The MCP server must not be loaded from the workspace.' };
-      }
-      if (isCancelled(options.signal)) return { code: 'cancelled' };
-
-      const basename = path.basename(serverPath).toLowerCase();
-      if (basename === 'adr-guard-mcp.dll') {
-        const runtime = await this.findRuntime(options.pathEnvironment, platform, resolvedRoots, options.signal);
-        if (isCancelled(options.signal)) return { code: 'cancelled' };
-        if (runtime === undefined) {
-          return { code: 'not-found', detail: 'The dotnet runtime was not found on the extension host PATH.' };
-        }
-        return { code: 'available', launch: { command: runtime, argsPrefix: [serverPath], serverPath } };
-      }
-
-      const expectedName = platform === 'win32' ? 'adr-guard-mcp.exe' : 'adr-guard-mcp';
-      if (basename !== expectedName) {
-        return { code: 'invalid-configuration', detail: `Expected adr-guard-mcp.dll or ${expectedName}.` };
-      }
-      await this.fileSystem.access(serverPath, platform === 'win32' ? fsConstants.F_OK : fsConstants.X_OK);
-      return { code: 'available', launch: { command: serverPath, argsPrefix: [], serverPath } };
+      return await this.inspectConfiguredPath(configuredPath, options, platform);
     } catch (error: unknown) {
       if (isCancelled(options.signal)) return { code: 'cancelled' };
       const code = isNodeError(error) ? error.code : undefined;
@@ -86,6 +60,48 @@ export class McpServerDiscovery {
         detail: error instanceof Error ? error.message : 'unknown filesystem error',
       };
     }
+  }
+
+  private async inspectConfiguredPath(
+    configuredPath: string,
+    options: McpDiscoveryOptions,
+    platform: NodeJS.Platform,
+  ): Promise<McpDiscoveryResult> {
+    const originalStat = await this.fileSystem.lstat(configuredPath);
+    if (originalStat.isSymbolicLink() || !originalStat.isFile()) {
+      return { code: 'invalid-configuration', detail: 'The MCP server path must be a regular, non-symbolic-link file.' };
+    }
+    const serverPath = await this.fileSystem.realpath(configuredPath);
+    const resolvedRoots = await this.resolveExistingPaths(options.workspaceRoots);
+    if (resolvedRoots.some((root) => isPathWithin(serverPath, root, platform))) {
+      return { code: 'invalid-configuration', detail: 'The MCP server must not be loaded from the workspace.' };
+    }
+    if (isCancelled(options.signal)) return { code: 'cancelled' };
+    return path.basename(serverPath).toLowerCase() === 'adr-guard-mcp.dll'
+      ? this.inspectFrameworkDependentServer(serverPath, options, platform, resolvedRoots)
+      : this.inspectNativeServer(serverPath, platform);
+  }
+
+  private async inspectFrameworkDependentServer(
+    serverPath: string,
+    options: McpDiscoveryOptions,
+    platform: NodeJS.Platform,
+    resolvedRoots: readonly string[],
+  ): Promise<McpDiscoveryResult> {
+    const runtime = await this.findRuntime(options.pathEnvironment, platform, resolvedRoots, options.signal);
+    if (isCancelled(options.signal)) return { code: 'cancelled' };
+    return runtime === undefined
+      ? { code: 'not-found', detail: 'The dotnet runtime was not found on the extension host PATH.' }
+      : { code: 'available', launch: { command: runtime, argsPrefix: [serverPath], serverPath } };
+  }
+
+  private async inspectNativeServer(serverPath: string, platform: NodeJS.Platform): Promise<McpDiscoveryResult> {
+    const expectedName = platform === 'win32' ? 'adr-guard-mcp.exe' : 'adr-guard-mcp';
+    if (path.basename(serverPath).toLowerCase() !== expectedName) {
+      return { code: 'invalid-configuration', detail: `Expected adr-guard-mcp.dll or ${expectedName}.` };
+    }
+    await this.fileSystem.access(serverPath, platform === 'win32' ? fsConstants.F_OK : fsConstants.X_OK);
+    return { code: 'available', launch: { command: serverPath, argsPrefix: [], serverPath } };
   }
 
   private async findRuntime(
@@ -103,18 +119,27 @@ export class McpServerDiscovery {
     for (const entry of entries.slice(0, 256)) {
       if (isCancelled(signal)) return undefined;
       for (const name of names) {
-        try {
-          const candidate = await this.fileSystem.realpath(path.join(entry, name));
-          if (workspaceRoots.some((root) => isPathWithin(candidate, root, platform))) continue;
-          if (!(await this.fileSystem.stat(candidate)).isFile()) continue;
-          await this.fileSystem.access(candidate, platform === 'win32' ? fsConstants.F_OK : fsConstants.X_OK);
-          return candidate;
-        } catch {
-          // Missing and inaccessible PATH entries are expected.
-        }
+        const candidate = await this.usableRuntime(path.join(entry, name), platform, workspaceRoots);
+        if (candidate !== undefined) return candidate;
       }
     }
     return undefined;
+  }
+
+  private async usableRuntime(
+    candidatePath: string,
+    platform: NodeJS.Platform,
+    workspaceRoots: readonly string[],
+  ): Promise<string | undefined> {
+    try {
+      const candidate = await this.fileSystem.realpath(candidatePath);
+      if (workspaceRoots.some((root) => isPathWithin(candidate, root, platform))) return undefined;
+      if (!(await this.fileSystem.stat(candidate)).isFile()) return undefined;
+      await this.fileSystem.access(candidate, platform === 'win32' ? fsConstants.F_OK : fsConstants.X_OK);
+      return candidate;
+    } catch {
+      return undefined;
+    }
   }
 
   private async resolveExistingPaths(paths: readonly string[]): Promise<string[]> {

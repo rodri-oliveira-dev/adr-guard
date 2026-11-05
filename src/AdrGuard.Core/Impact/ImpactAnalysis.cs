@@ -50,7 +50,7 @@ internal sealed record ImpactAnalysisResult(
     IReadOnlyList<ImpactChangeAssessment> Changes,
     ImpactCoverage Coverage);
 
-internal sealed class ImpactAnalysisException : Exception
+public sealed class ImpactAnalysisException : Exception
 {
     internal ImpactAnalysisException(string message)
         : base(message)

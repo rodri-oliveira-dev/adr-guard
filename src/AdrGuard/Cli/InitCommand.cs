@@ -234,37 +234,20 @@ internal static class InitCommand
         IReadOnlyList<string> args,
         out InitOptions options)
     {
-        var repository = ".";
-        var adrDirectory = "docs/adr";
-        string? template = null;
-        string? templateFile = null;
-        var githubActions = false;
-        var dryRun = false;
-        var overwrite = false;
-        var repositoryAssigned = false;
-        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var state = new InitArgumentState();
 
         for (var index = 1; index < args.Count; index++)
         {
             var argument = args[index];
             if (argument is "--github-actions" or "--dry-run" or "--overwrite")
             {
-                if (!seen.Add(argument))
-                {
-                    options = default!;
-                    return false;
-                }
-
-                githubActions |= argument == "--github-actions";
-                dryRun |= argument == "--dry-run";
-                overwrite |= argument == "--overwrite";
+                if (!state.TrySetFlag(argument)) { options = default!; return false; }
                 continue;
             }
 
             if (argument is "--adr-directory" or "--template" or "--template-file")
             {
-                if (!seen.Add(argument)
-                    || index + 1 >= args.Count
+                if (index + 1 >= args.Count
                     || string.IsNullOrWhiteSpace(args[index + 1])
                     || args[index + 1].StartsWith('-'))
                 {
@@ -273,47 +256,71 @@ internal static class InitCommand
                 }
 
                 var value = args[++index];
-                switch (argument)
-                {
-                    case "--adr-directory":
-                        adrDirectory = value;
-                        break;
-                    case "--template":
-                        template = value;
-                        break;
-                    case "--template-file":
-                        templateFile = value;
-                        break;
-                }
+                if (!state.TrySetValue(argument, value)) { options = default!; return false; }
 
                 continue;
             }
 
-            if (argument.StartsWith('-') || repositoryAssigned)
+            if (!state.TrySetRepository(argument))
             {
                 options = default!;
                 return false;
             }
 
-            repository = argument;
-            repositoryAssigned = true;
         }
 
-        if (template is not null && templateFile is not null)
+        if (state.Template is not null && state.TemplateFile is not null)
         {
             options = default!;
             return false;
         }
 
         options = new InitOptions(
-            repository,
-            adrDirectory,
-            template,
-            templateFile,
-            githubActions,
-            dryRun,
-            overwrite);
+            state.Repository,
+            state.AdrDirectory,
+            state.Template,
+            state.TemplateFile,
+            state.GitHubActions,
+            state.DryRun,
+            state.Overwrite);
         return true;
+    }
+
+    private sealed class InitArgumentState
+    {
+        private readonly HashSet<string> seen = new(StringComparer.Ordinal);
+        internal string Repository { get; private set; } = ".";
+        internal string AdrDirectory { get; private set; } = "docs/adr";
+        internal string? Template { get; private set; }
+        internal string? TemplateFile { get; private set; }
+        internal bool GitHubActions { get; private set; }
+        internal bool DryRun { get; private set; }
+        internal bool Overwrite { get; private set; }
+
+        internal bool TrySetFlag(string argument)
+        {
+            if (!seen.Add(argument)) return false;
+            GitHubActions |= argument == "--github-actions";
+            DryRun |= argument == "--dry-run";
+            Overwrite |= argument == "--overwrite";
+            return true;
+        }
+
+        internal bool TrySetValue(string argument, string value)
+        {
+            if (!seen.Add(argument)) return false;
+            if (argument == "--adr-directory") AdrDirectory = value;
+            else if (argument == "--template") Template = value;
+            else TemplateFile = value;
+            return true;
+        }
+
+        internal bool TrySetRepository(string argument)
+        {
+            if (argument.StartsWith('-') || !seen.Add("repository")) return false;
+            Repository = argument;
+            return true;
+        }
     }
 
     private sealed record InitOptions(

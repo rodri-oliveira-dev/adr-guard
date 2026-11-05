@@ -67,6 +67,8 @@ adr-guard index docs/adr
 
 `check` valida o conjunto. `index` valida novamente e cria ou atualiza `docs/adr/README.md`; `new` não atualiza o índice automaticamente. Leia o [tutorial da primeira ADR](docs/guides/getting-started.pt-BR.md) para o fluxo completo.
 
+A branch de desenvolvimento atual também inclui o comando ainda não publicado e somente leitura `adr-guard doctor [repositório]` para diagnóstico local da CLI, repositório, configuração, diretório de ADRs, .NET e Git opcional. Ele nunca aplica correções nem acessa a rede. Consulte a [referência da CLI](docs/cli-reference.pt-BR.md#diagnosticar-o-ambiente-local) e confirme uma release posterior antes de usá-lo em automações; o comando não está incluído no pacote publicado da CLI 1.9.0.
+
 ## Escolha a estrutura certa
 
 | Opção | Quando usar | Limite do produto |
@@ -82,7 +84,7 @@ Consulte a [matriz de seleção](docs/decision-design/choosing-a-template.pt-BR.
 
 | Integração | Uso | Guia |
 | --- | --- | --- |
-| GitHub Action | Validar, indexar ou executar review/análise de impacto arquitetural explícitos em runners Linux compatíveis | [Guia de consumo](docs/github-action.pt-BR.md) |
+| GitHub Action | Validar, indexar ou executar review/análise de impacto explícitos; o source atual também adapta verificação de drift somente leitura | [Guia de consumo](docs/github-action.pt-BR.md) |
 | VS Code | Gestão visual de ADRs, fluxos de arquitetura/governança, comandos, diagnósticos em Problems e ADR Explorer por uma CLI compatível instalada | [Guia da extensão](extensions/vscode/README.pt-BR.md) |
 | Servidor MCP | Oferecer a agentes compatíveis acesso estruturado e somente leitura a descoberta, validação, impacto e drift | [Visão geral do MCP](docs/mcp.pt-BR.md) |
 | Containers | Executar a mesma CLI versionada por GHCR ou Docker Hub | [Guia de container e cadeia de suprimentos](docs/container.pt-BR.md) |
@@ -111,7 +113,7 @@ Consulte o [código-fonte e guia de instalação da extensão](extensions/vscode
 
 A criação e a edição estruturadas de ADRs estão implementadas para clientes visuais confiáveis, como a extensão VS Code. Uma CLI compatível da linha 1.7.0 expõe `new <diretório> --form` e `edit <arquivo> --form` como contratos JSON versionados por stdin/stdout; eles não são formulários interativos do terminal. O fluxo tradicional `new --title` continua sendo o caminho voltado a pessoas na linha de comando, inclusive para templates personalizados com restrições. Consulte o [guia de criação](docs/creation.pt-BR.md), a [referência dos contratos da CLI](docs/cli-reference.pt-BR.md) e o [guia da extensão](extensions/vscode/README.pt-BR.md). Confirme que as versões da CLI e da extensão que oferecem os formulários visuais foram publicadas antes de depender delas.
 
-A [Action no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) e a [extensão no Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) estão publicadas. A tag móvel `@v1` está publicada e suporta `check`, `index`, `review` opcional desde a v1.1.6 e `impact` opcional desde a v1.5.0. Na v1.6.0, `drift` é disponibilizado por meio da CLI/container direto, assim como `new` e `draft`; não é um modo da Action composta. A extensão não inclui a CLI.
+A [Action no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) e a [extensão no Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) estão publicadas. A tag móvel `@v1` está publicada e suporta `check`, `index`, `review` opcional desde a v1.1.6 e `impact` opcional desde a v1.5.0. O código-fonte de desenvolvimento atual adiciona `drift` como adapter somente leitura da Action composta, mas esse contrato de inputs ainda não está publicado em `@v1` nem em `v1.9.0`; a linha publicada ainda exige drift pela CLI/container direto. A extensão não inclui a CLI.
 
 A release independente MCP `1.0.0` pode ser instalada com `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0`. Seu backfill autenticado para GitHub Packages continua sendo uma etapa manual de distribuição; NuGet.org é a fonte recomendada. Consulte a [configuração do MCP](docs/mcp-configuration.pt-BR.md), as [ferramentas disponíveis](docs/mcp-tools.pt-BR.md), a [integração com VS Code](extensions/vscode/README.pt-BR.md#integração-mcp) e [segurança e permissões](docs/mcp-security.pt-BR.md).
 

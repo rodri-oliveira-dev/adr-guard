@@ -88,42 +88,7 @@ internal static class AdrMarkdownRenderer
                 "An ADR template ID must be between 1 and 9999.");
         }
 
-        var guidance = GetGuidance(request.Template.CultureName);
-        var values = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["title"] = EscapeInlineMarkdown(request.Title.Trim()),
-            ["status"] = "Proposed",
-            ["context"] = string.Empty,
-            ["decision"] = string.Empty,
-            ["consequences"] = string.Empty,
-            ["guidance-context"] = guidance.Context,
-            ["guidance-decision"] = guidance.Decision,
-            ["guidance-consequences"] = guidance.Consequences,
-        };
-
-        if (request.Id is { } id)
-        {
-            values["id"] = id.ToString("D4", CultureInfo.InvariantCulture);
-        }
-
-        foreach (var pair in request.Substitutions)
-        {
-            if ((!SupportedPlaceholders.Contains(pair.Key, StringComparer.Ordinal)
-                    && !FormOnlyPlaceholders.Contains(pair.Key, StringComparer.Ordinal))
-                || pair.Key.StartsWith("guidance-", StringComparison.Ordinal)
-                || pair.Key is "title" or "id" or "status")
-            {
-                throw new ArgumentException(
-                    $"Unsupported or reserved template substitution '{pair.Key}'.",
-                    nameof(request));
-            }
-
-            values[pair.Key] = NormalizeNewlines(
-                pair.Value
-                    ?? throw new ArgumentException(
-                        $"Template substitution '{pair.Key}' cannot be null.",
-                        nameof(request)));
-        }
+        var values = CreateValues(request);
 
         var sections = request.Template.Sections
             ?? throw new ArgumentException(
@@ -136,54 +101,76 @@ internal static class AdrMarkdownRenderer
             .Append(values["title"])
             .Append("\n\n## Status\n\nProposed\n");
 
-        foreach (var section in sections)
-        {
-            if (section is null)
-            {
-                throw new ArgumentException(
-                    "Template sections cannot be null.",
-                    nameof(request));
-            }
-
-            ValidateHeading(section.Heading);
-            if (!seen.Add(section.Heading))
-            {
-                throw new InvalidOperationException(
-                    $"Duplicate template section '{section.Heading}'.");
-            }
-
-            var body = Substitute(
-                section.BodyTemplate
-                    ?? throw new ArgumentException(
-                        "A template section body cannot be null.",
-                        nameof(request)),
-                values);
-
-            GeneratedAdrStructureGuard.ValidateTemplateContent(
-                section.Heading,
-                body);
-
-            builder
-                .Append("\n## ")
-                .Append(section.Heading)
-                .Append("\n\n")
-                .Append(body.Trim())
-                .Append('\n');
-
-            AdrGenerationContextLimits.ValidateRenderedAdrLength(builder.Length);
-        }
-
-        foreach (var required in new[] { "Context", "Decision", "Consequences" })
-        {
-            if (!seen.Contains(required))
-            {
-                throw new InvalidOperationException(
-                    $"Template is missing required canonical section '{required}'.");
-            }
-        }
+        foreach (var section in sections) AppendSection(section, values, seen, builder);
+        ValidateRequiredSections(seen);
 
         AdrGenerationContextLimits.ValidateRenderedAdrLength(builder.Length);
         return builder.ToString();
+    }
+
+    private static Dictionary<string, string> CreateValues(AdrTemplateRenderRequest request)
+    {
+        var guidance = GetGuidance(request.Template.CultureName);
+        var values = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["title"] = EscapeInlineMarkdown(request.Title.Trim()),
+            ["status"] = "Proposed",
+            ["context"] = string.Empty,
+            ["decision"] = string.Empty,
+            ["consequences"] = string.Empty,
+            ["guidance-context"] = guidance.Context,
+            ["guidance-decision"] = guidance.Decision,
+            ["guidance-consequences"] = guidance.Consequences,
+        };
+        if (request.Id is { } id) values["id"] = id.ToString("D4", CultureInfo.InvariantCulture);
+        foreach (var pair in request.Substitutions) AddSubstitution(pair, values);
+        return values;
+    }
+
+    private static void AddSubstitution(
+        KeyValuePair<string, string> pair,
+        Dictionary<string, string> values)
+    {
+        if ((!SupportedPlaceholders.Contains(pair.Key, StringComparer.Ordinal)
+                && !FormOnlyPlaceholders.Contains(pair.Key, StringComparer.Ordinal))
+            || pair.Key.StartsWith("guidance-", StringComparison.Ordinal)
+            || pair.Key is "title" or "id" or "status")
+        {
+            throw new ArgumentException(
+                $"Unsupported or reserved template substitution '{pair.Key}'.",
+                nameof(pair));
+        }
+
+        values[pair.Key] = NormalizeNewlines(pair.Value);
+    }
+
+    private static void AppendSection(
+        AdrTemplateSection? section,
+        Dictionary<string, string> values,
+        HashSet<string> seen,
+        StringBuilder builder)
+    {
+        if (section is null) throw new ArgumentException("Template sections cannot be null.", nameof(section));
+        ValidateHeading(section.Heading);
+        if (!seen.Add(section.Heading))
+            throw new InvalidOperationException($"Duplicate template section '{section.Heading}'.");
+        var body = Substitute(
+            section.BodyTemplate ?? throw new ArgumentException(
+                "A template section body cannot be null.", nameof(section)),
+            values);
+        GeneratedAdrStructureGuard.ValidateTemplateContent(section.Heading, body);
+        builder.Append("\n## ").Append(section.Heading).Append("\n\n").Append(body.Trim()).Append('\n');
+        AdrGenerationContextLimits.ValidateRenderedAdrLength(builder.Length);
+    }
+
+    private static void ValidateRequiredSections(HashSet<string> seen)
+    {
+        foreach (var required in new[] { "Context", "Decision", "Consequences" })
+        {
+            if (!seen.Contains(required))
+                throw new InvalidOperationException(
+                    $"Template is missing required canonical section '{required}'.");
+        }
     }
 
     private static (string Context, string Decision, string Consequences)

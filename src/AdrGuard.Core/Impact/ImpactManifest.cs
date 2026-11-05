@@ -44,7 +44,7 @@ internal sealed record ImpactMappingManifest(
     internal const string CurrentSchemaVersion = "1.0";
 }
 
-internal sealed class ImpactManifestException : Exception
+public sealed class ImpactManifestException : Exception
 {
     internal ImpactManifestException(string message)
         : base(message)

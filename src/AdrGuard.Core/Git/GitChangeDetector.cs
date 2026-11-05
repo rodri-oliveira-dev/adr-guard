@@ -127,41 +127,62 @@ internal static class GitChangeDetector
 
             if (status[0] is 'R' or 'C')
             {
-                if (index + 1 >= tokens.Length)
-                {
-                    throw new GitOperationException("Git returned an incomplete rename/copy record.");
-                }
-
-                var oldPath = ResolveGitPath(repositoryRoot, tokens[index++]);
-                var newPath = ResolveGitPath(repositoryRoot, tokens[index++]);
-                if (IsAdrPath(physicalCheckedDirectory, oldPath))
-                {
-                    removed.Add(ToCallerPath(physicalCheckedDirectory, checkedDirectory, oldPath));
-                }
-
-                if (IsAdrPath(physicalCheckedDirectory, newPath))
-                {
-                    current.Add(ToCallerPath(physicalCheckedDirectory, checkedDirectory, newPath));
-                }
-
+                AddRenameOrCopy(
+                    tokens,
+                    ref index,
+                    repositoryRoot,
+                    checkedDirectory,
+                    physicalCheckedDirectory,
+                    current,
+                    removed);
                 continue;
             }
 
             var path = ResolveGitPath(repositoryRoot, tokens[index++]);
-            if (!IsAdrPath(physicalCheckedDirectory, path))
-            {
-                continue;
-            }
-
-            if (status[0] == 'D')
-            {
-                removed.Add(ToCallerPath(physicalCheckedDirectory, checkedDirectory, path));
-            }
-            else
-            {
-                current.Add(ToCallerPath(physicalCheckedDirectory, checkedDirectory, path));
-            }
+            AddChangedPath(status[0], path, checkedDirectory, physicalCheckedDirectory, current, removed);
         }
+    }
+
+    private static void AddRenameOrCopy(
+        string[] tokens,
+        ref int index,
+        string repositoryRoot,
+        string checkedDirectory,
+        string physicalCheckedDirectory,
+        HashSet<string> current,
+        HashSet<string> removed)
+    {
+        if (index + 1 >= tokens.Length)
+        {
+            throw new GitOperationException("Git returned an incomplete rename/copy record.");
+        }
+
+        var oldPath = ResolveGitPath(repositoryRoot, tokens[index++]);
+        var newPath = ResolveGitPath(repositoryRoot, tokens[index++]);
+        if (IsAdrPath(physicalCheckedDirectory, oldPath))
+        {
+            removed.Add(ToCallerPath(physicalCheckedDirectory, checkedDirectory, oldPath));
+        }
+
+        if (IsAdrPath(physicalCheckedDirectory, newPath))
+        {
+            current.Add(ToCallerPath(physicalCheckedDirectory, checkedDirectory, newPath));
+        }
+    }
+
+    private static void AddChangedPath(
+        char status,
+        string path,
+        string checkedDirectory,
+        string physicalCheckedDirectory,
+        HashSet<string> current,
+        HashSet<string> removed)
+    {
+        if (!IsAdrPath(physicalCheckedDirectory, path)) return;
+
+        var callerPath = ToCallerPath(physicalCheckedDirectory, checkedDirectory, path);
+        if (status == 'D') removed.Add(callerPath);
+        else current.Add(callerPath);
     }
 
     private static string[] SplitNull(string value) =>

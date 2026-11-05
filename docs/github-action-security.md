@@ -1,6 +1,6 @@
 # GitHub Action security model
 
-ADR Guard's reusable GitHub Action keeps deterministic ADR validation as its default, supports explicit index generation, and exposes AI-assisted `review` only as an opt-in operation. It invokes the published GHCR container and does not expose the AI-assisted `draft` command.
+ADR Guard's reusable GitHub Action keeps deterministic ADR validation as its default, supports explicit index generation, and exposes AI-assisted `review` only as an opt-in operation. Current development source also adapts read-only `drift`; those inputs are not yet published on `@v1` or `v1.9.0`. The Action invokes the selected GHCR container and does not expose the AI-assisted `draft` command.
 
 ## Minimal permissions
 
@@ -43,17 +43,17 @@ The Action starts the container with the following restrictions:
 - read-only container root filesystem;
 - all Linux capabilities dropped with `--cap-drop=ALL`;
 - privilege escalation blocked with `no-new-privileges`;
-- networking disabled with `--network=none` for deterministic `check` and `index`; provider-backed `review` alone uses outbound networking;
+- networking disabled with `--network=none` for deterministic `check`, `index`, `impact`, and source-only `drift`; provider-backed `review` alone uses outbound networking;
 - no `--privileged` mode;
 - no implicit environment-variable or secret forwarding; `review` may forward only the credential variable selected for its provider.
 
 The published image declares a non-root runtime user. CI checks the published image metadata and rejects an empty, root, or UID 0 runtime user.
 
-For `check` and `review`, the entire consumer workspace is mounted read-only. For `index`, the workspace remains read-only and only the validated ADR directory is over-mounted as writable. On Linux, `index` runs using the non-root host UID/GID so generated files retain consumer ownership. A root runner is rejected for writable `index` execution rather than running the container as root.
+For `check`, `review`, `impact`, and source-only `drift`, the entire consumer workspace is mounted read-only. For `index`, the workspace remains read-only and only the validated ADR directory is over-mounted as writable. On Linux, `index` runs using the non-root host UID/GID so generated files retain consumer ownership. A root runner is rejected for writable `index` execution rather than running the container as root.
 
 ## Inputs and diagnostics
 
-`check`, `index`, and explicit `review` are accepted. Paths are resolved inside `GITHUB_WORKSPACE`, traversal and symlink escapes are rejected, and inputs are passed as discrete process arguments rather than evaluated shell fragments. Review accepts only `push`, `workflow_dispatch`, `schedule`, and same-repository `pull_request`; all other event types, including `pull_request_target` and fork pull requests, are rejected before Docker/provider invocation.
+`check`, `index`, explicit `review`, `impact`, and source-only `drift` are accepted. Paths are resolved inside `GITHUB_WORKSPACE`, traversal and symlink escapes are rejected, and inputs are passed as discrete process arguments rather than evaluated shell fragments. Drift accepts one rules file, one optional existing baseline, and at most 20 explicit evidence JSON files; it exposes no baseline write/update or producer execution. Review accepts only `push`, `workflow_dispatch`, `schedule`, and same-repository `pull_request`; all other event types, including `pull_request_target` and fork pull requests, are rejected before Docker/provider invocation.
 
 CLI and provider output are treated as untrusted. Raw output is preserved for troubleshooting while GitHub workflow-command interpretation is suspended. Deterministic `ADR001`–`ADR009` diagnostics with verified paths become escaped error annotations. AI follow-up findings become escaped `warning` annotations only when evidence maps to a verified selected local file; the Action does not invent line numbers. Reporting cannot change the original CLI exit code.
 
@@ -77,4 +77,4 @@ CI also verifies that the exact published SemVer image resolves to a GHCR `sha25
 
 ## Runtime prerequisites
 
-The composite Action requires a Linux runner with a working Docker daemon. Opt-in `review` additionally requires Python 3 because safe `GITHUB_STEP_SUMMARY` and annotation rendering is part of the successful review contract and is validated before provider execution. It is designed for GitHub-hosted Ubuntu runners and compatible non-root Linux runners. Windows, macOS, Docker-less runners, review runners without Python 3, privileged-container requirements, and root execution for writable `index` are outside the supported contract.
+The composite Action requires a Linux runner with a working Docker daemon. Opt-in `review`, `impact`, and source-only `drift` additionally require Python 3 for bounded `GITHUB_STEP_SUMMARY` rendering. It is designed for GitHub-hosted Ubuntu runners and compatible non-root Linux runners. Windows, macOS, Docker-less runners, reporting modes without Python 3, privileged-container requirements, and root execution for writable `index` are outside the supported contract.

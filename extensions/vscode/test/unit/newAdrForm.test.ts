@@ -211,21 +211,21 @@ describe('visual ADR form host boundary', () => {
 
   it('keeps list loading, refresh, and Markdown navigation free of CLI validation and writes', async () => {
     const host = await readFile(path.resolve(__dirname, '../../../src/commands/newAdrForm.ts'), 'utf8');
-    const cancelRoute = host.slice(host.indexOf("if (message.type === 'showList'"), host.indexOf("if (message.type === 'selectWorkspace'"));
+    const listRoutes = host.slice(host.indexOf('private async handleListMessage('), host.indexOf('private async showList('));
+    const cancelRoute = host.slice(host.indexOf('private async showList('), host.indexOf('private async handleCreationMessage('));
     const loadList = host.slice(host.indexOf('private async loadList('), host.indexOf('private async openAdr('));
     const openAdr = host.slice(host.indexOf('private async openAdr('), host.indexOf('private async runListAction('));
-    const refreshRoute = host.slice(host.indexOf("if (message.type === 'selectWorkspace'"), host.indexOf("if (message.type === 'initializeRepository'"));
 
     assert.match(cancelRoute, /if \(this\.submission\.isActive\) return/u);
-    assert.match(cancelRoute, /await this\.loadList\(this\.selectedWorkspace, message\.state\)/u);
+    assert.match(cancelRoute, /await this\.loadList\(this\.selectedWorkspace, state\)/u);
     assert.doesNotMatch(cancelRoute, /executor\.execute|executeCommand|saveEdit|this\.run\(/u);
     assert.match(loadList, /explorer\.catalogFor\(folder\)/u);
-    assert.match(loadList, /this\.screen !== 'list'/u);
+    assert.match(loadList, /this\.screen === 'list'/u);
     assert.doesNotMatch(loadList, /executor\.execute|executeCommand|\['check'|\['new'|\['edit'|\['index'/u);
     assert.match(openAdr, /showTextDocument\(vscode\.Uri\.file\(target\.filePath\)/u);
     assert.doesNotMatch(openAdr, /executor\.execute|executeCommand|writeFile|rename|unlink/u);
-    assert.match(refreshRoute, /await this\.loadList\(message\.workspace, message\.state\)/u);
-    assert.doesNotMatch(refreshRoute, /executor\.execute|executeCommand/u);
+    assert.match(listRoutes, /await this\.loadList\(workspace, state\)/u);
+    assert.doesNotMatch(listRoutes, /executor\.execute|executeCommand/u);
   });
 
   it('negotiates configured-root support before visual edit validation', async () => {
@@ -243,13 +243,13 @@ describe('visual ADR form host boundary', () => {
 
   it('keeps settings navigation and persistence isolated from ADR commands', async () => {
     const host = await readFile(path.resolve(__dirname, '../../../src/commands/newAdrForm.ts'), 'utf8');
-    const settingsRoutes = host.slice(host.indexOf("if (message.type === 'openSettings'"), host.indexOf("if (message.type === 'newAdr'"));
+    const settingsRoutes = host.slice(host.indexOf('private async handleSettingsMessage('), host.indexOf('private async handleListMessage('));
     const saveSettings = host.slice(host.indexOf('private async saveSettings('), host.indexOf('private async loadList('));
 
     assert.match(settingsRoutes, /this\.screen !== 'list' && this\.screen !== 'settings'/u);
     assert.match(settingsRoutes, /settingsFor\(workspaceFolder\(message\.workspace\)\)/u);
-    assert.match(settingsRoutes, /message\.type === 'cancelSettings'/u);
-    assert.match(settingsRoutes, /message\.type === 'checkSettingsInstallation'/u);
+    assert.match(settingsRoutes, /case 'cancelSettings'/u);
+    assert.match(settingsRoutes, /case 'checkSettingsInstallation'/u);
     assert.match(settingsRoutes, /this\.checkSettingsInstallation\(message\.workspace\)/u);
     assert.match(saveSettings, /ConfigurationTarget\.Global/u);
     assert.match(saveSettings, /ConfigurationTarget\.WorkspaceFolder/u);

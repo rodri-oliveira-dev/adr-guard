@@ -12,6 +12,7 @@ EXAMPLE_MAIN="${ROOT_DIR}/docs/examples/github-action-main.yml"
 EXAMPLE_INCREMENTAL="${ROOT_DIR}/docs/examples/github-action-incremental.yml"
 EXAMPLE_FORK="${ROOT_DIR}/docs/examples/github-action-fork.yml"
 EXAMPLE_IMPACT="${ROOT_DIR}/docs/examples/github-action-impact.yml"
+EXAMPLE_DRIFT="${ROOT_DIR}/docs/examples/github-action-drift.yml"
 EXTERNAL_EN="${ROOT_DIR}/docs/github-action-external-verification.md"
 EXTERNAL_PT="${ROOT_DIR}/docs/github-action-external-verification.pt-BR.md"
 REVIEW_EN="${ROOT_DIR}/docs/github-action-review.md"
@@ -33,7 +34,7 @@ PORTAL_INDEX_EN="${ROOT_DIR}/website/src/content/docs/product/index.md"
 PORTAL_INDEX_PT="${ROOT_DIR}/website/src/content/docs/pt-br/product/index.md"
 CI="${ROOT_DIR}/.github/workflows/ci.yml"
 
-for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXAMPLE_INCREMENTAL}" "${EXAMPLE_FORK}" "${EXAMPLE_IMPACT}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${REVIEW_EN}" "${REVIEW_PT}" "${AUDIT_EN}" "${AUDIT_PT}" "${COMPAT_EN}" "${COMPAT_PT}" "${CLI_REFERENCE_EN}" "${CLI_REFERENCE_PT}" "${CHECK_REPORTS_EN}" "${CHECK_REPORTS_PT}" "${CLI_PROJECT}" "${MCP_PROJECT}" "${MCP_MANIFEST}" "${VSCODE_PACKAGE}" "${CHANGELOG}" "${PORTAL_INDEX_EN}" "${PORTAL_INDEX_PT}"; do
+for file in "${ACTION}" "${GUIDE_EN}" "${GUIDE_PT}" "${README_EN}" "${README_PT}" "${EXAMPLE_PR}" "${EXAMPLE_MAIN}" "${EXAMPLE_INCREMENTAL}" "${EXAMPLE_FORK}" "${EXAMPLE_IMPACT}" "${EXAMPLE_DRIFT}" "${EXTERNAL_EN}" "${EXTERNAL_PT}" "${REVIEW_EN}" "${REVIEW_PT}" "${AUDIT_EN}" "${AUDIT_PT}" "${COMPAT_EN}" "${COMPAT_PT}" "${CLI_REFERENCE_EN}" "${CLI_REFERENCE_PT}" "${CHECK_REPORTS_EN}" "${CHECK_REPORTS_PT}" "${CLI_PROJECT}" "${MCP_PROJECT}" "${MCP_MANIFEST}" "${VSCODE_PACKAGE}" "${CHANGELOG}" "${PORTAL_INDEX_EN}" "${PORTAL_INDEX_PT}"; do
   test -s "${file}" || {
     echo "Required GitHub Action consumer documentation is missing: ${file}" >&2
     exit 1
@@ -85,9 +86,10 @@ for active_document in "${README_EN}" "${README_PT}" "${COMPAT_EN}" "${COMPAT_PT
 done
 
 grep -Fq 'github-action-impact-test.sh' "${CI}"
+grep -Fq 'github-action-drift-test.sh' "${CI}"
 
 # Public input contract must stay synchronized with the guides.
-for input in path command version review-target provider model endpoint context-files include-existing-adrs policy policy-file base-ref impact-map; do
+for input in path command version review-target provider model endpoint context-files include-existing-adrs policy policy-file base-ref impact-map drift-rules drift-policy drift-baseline drift-evidence; do
   grep -Eq "^  ${input}:" "${ACTION}" || {
     echo "action.yml no longer exposes expected input '${input}'." >&2
     exit 1
@@ -102,6 +104,24 @@ for input in path command version review-target provider model endpoint context-
     exit 1
   }
 done
+
+for drift_document in "${GUIDE_EN}" "${GUIDE_PT}" "${EXAMPLE_DRIFT}"; do
+  grep -Fq 'command: drift' "${drift_document}"
+  grep -Fq 'drift-rules: .adrguard-fitness.json' "${drift_document}"
+  grep -Fq 'drift-policy: enforce' "${drift_document}"
+  grep -Fq 'contents: read' "${drift_document}"
+  grep -Fq 'version: 1.9.0' "${drift_document}"
+done
+grep -Fiq 'development' "${GUIDE_EN}"
+grep -Fiq 'desenvolvimento' "${GUIDE_PT}"
+action_row_en="$(grep -F '| GitHub Action |' "${COMPAT_EN}")"
+action_row_pt="$(grep -F '| GitHub Action |' "${COMPAT_PT}")"
+grep -Fq '**Not published:** the current source-only `drift` Action inputs' <<< "${action_row_en}"
+grep -Fq '**Não publicado:** os inputs de `drift` da Action presentes no source atual' <<< "${action_row_pt}"
+if grep -Eiq 'pull_request_target|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|secrets\.|write-baseline|update-baseline' "${EXAMPLE_DRIFT}"; then
+  echo "Drift example must remain read-only, unprivileged, and secretless." >&2
+  exit 1
+fi
 
 for impact_document in "${GUIDE_EN}" "${GUIDE_PT}" "${EXAMPLE_IMPACT}"; do
   grep -Fq 'command: impact' "${impact_document}"

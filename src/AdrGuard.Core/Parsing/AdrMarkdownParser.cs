@@ -14,103 +14,14 @@ internal static class AdrMarkdownParser
         var fileName = Path.GetFileName(filePath);
         var (id, slug) = ParseFileName(fileName);
         var (metadata, metadataErrors) = ParseFrontMatter(markdown);
-        var sections = new List<AdrSection>();
-        string? title = null;
-
-        string? currentHeading = null;
-        var currentLevel = 0;
-        int? currentLine = null;
-        int? currentColumn = null;
-        var currentContent = new StringBuilder();
-        char? fenceMarker = null;
-        var fenceLength = 0;
-        var firstLine = true;
-        var inFrontMatter = false;
-        var lineNumber = 0;
-
+        var state = new DocumentParseState();
         foreach (var line in ReadLines(markdown))
         {
-            lineNumber++;
-            if (firstLine)
-            {
-                firstLine = false;
-                inFrontMatter = string.Equals(line.Trim(), "---", StringComparison.Ordinal);
-                if (inFrontMatter) continue;
-            }
-            else if (inFrontMatter)
-            {
-                if (string.Equals(line.Trim(), "---", StringComparison.Ordinal)) inFrontMatter = false;
-                continue;
-            }
-
-            if (TryGetFence(line, out var marker, out var markerLength))
-            {
-                if (fenceMarker is null)
-                {
-                    fenceMarker = marker;
-                    fenceLength = markerLength;
-                    AppendToCurrentSection(currentHeading, currentContent, line);
-                    continue;
-                }
-
-                if (marker == fenceMarker
-                    && markerLength >= fenceLength
-                    && IsClosingFence(line, markerLength))
-                {
-                    AppendToCurrentSection(currentHeading, currentContent, line);
-                    fenceMarker = null;
-                    fenceLength = 0;
-                    continue;
-                }
-            }
-
-            if (fenceMarker is null && TryParseHeading(line, out var level, out var heading))
-            {
-                if (level == 1)
-                {
-                    title ??= heading;
-                    FlushSection(
-                        sections,
-                        currentHeading,
-                        currentLevel,
-                        currentContent,
-                        currentLine,
-                        currentColumn);
-                    currentHeading = null;
-                    currentLevel = 0;
-                    currentLine = null;
-                    currentColumn = null;
-                    currentContent.Clear();
-                    continue;
-                }
-
-                FlushSection(
-                    sections,
-                    currentHeading,
-                    currentLevel,
-                    currentContent,
-                    currentLine,
-                    currentColumn);
-                currentHeading = heading;
-                currentLevel = level;
-                currentLine = lineNumber;
-                currentColumn = line.Length - line.TrimStart().Length + 1;
-                currentContent.Clear();
-                continue;
-            }
-
-            AppendToCurrentSection(currentHeading, currentContent, line);
+            state.ProcessLine(line);
         }
+        state.Complete();
 
-        FlushSection(
-            sections,
-            currentHeading,
-            currentLevel,
-            currentContent,
-            currentLine,
-            currentColumn);
-
-        var sectionStatus = sections
+        var sectionStatus = state.Sections
             .FirstOrDefault(section =>
                 section.Level == 2
                 && string.Equals(
@@ -131,9 +42,9 @@ internal static class AdrMarkdownParser
             fileName,
             id,
             slug,
-            title,
+            state.Title,
             status,
-            sections,
+            state.Sections,
             metadata,
             id.HasValue
                 ? $"ADR-{id.Value.ToString(CultureInfo.InvariantCulture)}"
@@ -165,38 +76,38 @@ internal static class AdrMarkdownParser
                 continue;
             }
 
-            var separator = line.IndexOf(':');
-            if (separator <= 0)
-            {
-                continue;
-            }
-
-            var key = line[..separator].Trim();
-            var value = line[(separator + 1)..].Trim();
-            var quoted = value.Length >= 2
-                && ((value[0] == '"' && value[^1] == '"')
-                    || (value[0] == '\'' && value[^1] == '\''));
-            // Only leading, unquoted YAML indicators introduce anchors, aliases
-            // or tags. Ordinary scalar content and quoted values may use these
-            // characters without enabling YAML evaluation.
-            var yamlIndicator = !quoted && value.Length > 0
-                && value[0] is '&' or '*' or '!';
-            if (key.Length > 64 || value.Length > 4096 || yamlIndicator)
-            {
-                errors.Add($"Metadata '{key}' exceeds limits or uses unsupported YAML features.");
-                continue;
-            }
-            if (quoted)
-            {
-                value = value[1..^1];
-            }
-
-            if (!metadata.TryAdd(key, value))
-                errors.Add($"Metadata key '{key}' is duplicated.");
+            AddMetadataLine(line, metadata, errors);
         }
 
         errors.Add("Front matter is not terminated.");
         return (metadata, errors);
+    }
+
+    private static void AddMetadataLine(
+        string line,
+        Dictionary<string, string> metadata,
+        List<string> errors)
+    {
+        var separator = line.IndexOf(':');
+        if (separator <= 0) return;
+
+        var key = line[..separator].Trim();
+        var value = line[(separator + 1)..].Trim();
+        var quoted = value.Length >= 2
+            && ((value[0] == '"' && value[^1] == '"')
+                || (value[0] == '\'' && value[^1] == '\''));
+        // Only leading, unquoted YAML indicators introduce anchors, aliases
+        // or tags. Ordinary scalar content and quoted values may use these
+        // characters without enabling YAML evaluation.
+        var yamlIndicator = !quoted && value.Length > 0 && value[0] is '&' or '*' or '!';
+        if (key.Length > 64 || value.Length > 4096 || yamlIndicator)
+        {
+            errors.Add($"Metadata '{key}' exceeds limits or uses unsupported YAML features.");
+            return;
+        }
+
+        if (quoted) value = value[1..^1];
+        if (!metadata.TryAdd(key, value)) errors.Add($"Metadata key '{key}' is duplicated.");
     }
 
     private static (int? Id, string? Slug) ParseFileName(string fileName)
@@ -237,116 +148,175 @@ internal static class AdrMarkdownParser
         }
     }
 
-    private static bool TryGetFence(string line, out char marker, out int markerLength)
+    private sealed class DocumentParseState
     {
-        marker = default;
-        markerLength = 0;
-        var indentation = 0;
-        while (indentation < line.Length && line[indentation] == ' ') indentation++;
-        if (indentation >= 4) return false;
-        var trimmed = line.AsSpan(indentation);
+        private string? currentHeading;
+        private int currentLevel;
+        private int? currentLine;
+        private int? currentColumn;
+        private readonly StringBuilder currentContent = new();
+        private char? fenceMarker;
+        private int fenceLength;
+        private bool firstLine = true;
+        private bool inFrontMatter;
+        private int lineNumber;
 
-        if (trimmed.Length < 3 || trimmed[0] is not ('`' or '~'))
+        internal List<AdrSection> Sections { get; } = [];
+        internal string? Title { get; private set; }
+
+        private static bool TryGetFence(string line, out char marker, out int markerLength)
         {
-            return false;
+            marker = default;
+            markerLength = 0;
+            var indentation = 0;
+            while (indentation < line.Length && line[indentation] == ' ') indentation++;
+            if (indentation >= 4) return false;
+            var trimmed = line.AsSpan(indentation);
+            if (trimmed.Length < 3 || trimmed[0] is not ('`' or '~')) return false;
+            marker = trimmed[0];
+            while (markerLength < trimmed.Length && trimmed[markerLength] == marker) markerLength++;
+            return markerLength >= 3;
         }
 
-        marker = trimmed[0];
-
-        while (markerLength < trimmed.Length && trimmed[markerLength] == marker)
+        private static bool IsClosingFence(string line, int markerLength)
         {
-            markerLength++;
+            var trimmed = line.TrimStart();
+            return trimmed[markerLength..].All(char.IsWhiteSpace);
         }
 
-        return markerLength >= 3;
-    }
-
-    private static bool IsClosingFence(string line, int markerLength)
-    {
-        var trimmed = line.TrimStart();
-        return trimmed[markerLength..].All(char.IsWhiteSpace);
-    }
-
-    private static bool TryParseHeading(string line, out int level, out string heading)
-    {
-        level = 0;
-        heading = string.Empty;
-        var indentation = 0;
-        while (indentation < line.Length && line[indentation] == ' ') indentation++;
-        if (indentation >= 4) return false;
-        var trimmed = line[indentation..];
-
-        while (level < trimmed.Length && trimmed[level] == '#')
+        private static bool TryParseHeading(string line, out int level, out string heading)
         {
-            level++;
+            level = 0;
+            heading = string.Empty;
+            var indentation = 0;
+            while (indentation < line.Length && line[indentation] == ' ') indentation++;
+            if (indentation >= 4) return false;
+            var trimmed = line[indentation..];
+            while (level < trimmed.Length && trimmed[level] == '#') level++;
+            if (level is < 1 or > 6 || level >= trimmed.Length || !char.IsWhiteSpace(trimmed[level]))
+                return false;
+            heading = TrimClosingSequence(trimmed[level..].Trim());
+            return heading.Length > 0;
         }
 
-        if (level is < 1 or > 6
-            || level >= trimmed.Length
-            || !char.IsWhiteSpace(trimmed[level]))
+        private static string TrimClosingSequence(string heading)
         {
-            return false;
+            var closingStart = heading.Length;
+            while (closingStart > 0 && heading[closingStart - 1] == '#') closingStart--;
+            if (closingStart == heading.Length || closingStart == 0
+                || !char.IsWhiteSpace(heading[closingStart - 1])) return heading;
+            return heading[..closingStart].TrimEnd();
         }
 
-        heading = TrimClosingSequence(trimmed[level..].Trim());
-        return heading.Length > 0;
-    }
-
-    private static string TrimClosingSequence(string heading)
-    {
-        var closingStart = heading.Length;
-
-        while (closingStart > 0 && heading[closingStart - 1] == '#')
+        private static void FlushSection(
+            List<AdrSection> sections,
+            string? heading,
+            int level,
+            StringBuilder content,
+            int? line,
+            int? column)
         {
-            closingStart--;
+            if (heading is null) return;
+            sections.Add(new AdrSection(
+                heading, level, content.ToString().Trim(), line, column));
         }
 
-        if (closingStart == heading.Length
-            || closingStart == 0
-            || !char.IsWhiteSpace(heading[closingStart - 1]))
+        private static void AppendToCurrentSection(
+            string? currentHeading,
+            StringBuilder content,
+            string line)
         {
-            return heading;
+            if (currentHeading is null) return;
+            if (content.Length > 0) content.AppendLine();
+            content.Append(line);
         }
 
-        return heading[..closingStart].TrimEnd();
-    }
-
-    private static void FlushSection(
-        List<AdrSection> sections,
-        string? heading,
-        int level,
-        StringBuilder content,
-        int? line,
-        int? column)
-    {
-        if (heading is null)
+        internal void ProcessLine(string line)
         {
-            return;
+            lineNumber++;
+            if (ConsumeFrontMatter(line)) return;
+            if (HandleFence(line)) return;
+            if (fenceMarker is null && TryParseHeading(line, out var level, out var heading))
+            {
+                HandleHeading(line, level, heading);
+                return;
+            }
+
+            AppendToCurrentSection(currentHeading, currentContent, line);
         }
 
-        sections.Add(new AdrSection(
-            heading,
-            level,
-            content.ToString().Trim(),
-            line,
-            column));
-    }
+        internal void Complete() => FlushCurrentSection();
 
-    private static void AppendToCurrentSection(
-        string? currentHeading,
-        StringBuilder content,
-        string line)
-    {
-        if (currentHeading is null)
+        private bool ConsumeFrontMatter(string line)
         {
-            return;
+            if (firstLine)
+            {
+                firstLine = false;
+                inFrontMatter = string.Equals(line.Trim(), "---", StringComparison.Ordinal);
+                return inFrontMatter;
+            }
+
+            if (!inFrontMatter) return false;
+            if (string.Equals(line.Trim(), "---", StringComparison.Ordinal)) inFrontMatter = false;
+            return true;
         }
 
-        if (content.Length > 0)
+        private bool HandleFence(string line)
         {
-            content.AppendLine();
+            if (!TryGetFence(line, out var marker, out var markerLength)) return false;
+            if (fenceMarker is null)
+            {
+                fenceMarker = marker;
+                fenceLength = markerLength;
+                AppendToCurrentSection(currentHeading, currentContent, line);
+                return true;
+            }
+
+            if (marker != fenceMarker
+                || markerLength < fenceLength
+                || !IsClosingFence(line, markerLength))
+            {
+                return false;
+            }
+
+            AppendToCurrentSection(currentHeading, currentContent, line);
+            fenceMarker = null;
+            fenceLength = 0;
+            return true;
         }
 
-        content.Append(line);
+        private void HandleHeading(string line, int level, string heading)
+        {
+            FlushCurrentSection();
+            if (level == 1)
+            {
+                Title ??= heading;
+                ResetCurrentSection();
+                return;
+            }
+
+            currentHeading = heading;
+            currentLevel = level;
+            currentLine = lineNumber;
+            currentColumn = line.Length - line.TrimStart().Length + 1;
+            currentContent.Clear();
+        }
+
+        private void FlushCurrentSection() => FlushSection(
+            Sections,
+            currentHeading,
+            currentLevel,
+            currentContent,
+            currentLine,
+            currentColumn);
+
+        private void ResetCurrentSection()
+        {
+            currentHeading = null;
+            currentLevel = 0;
+            currentLine = null;
+            currentColumn = null;
+            currentContent.Clear();
+        }
     }
 }
