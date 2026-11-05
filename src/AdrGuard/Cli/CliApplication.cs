@@ -371,7 +371,7 @@ internal static class CliApplication
             "doctor" => DoctorCommand.Run(
                 effectiveArgs,
                 GetVersion(),
-                invocationDirectory ?? Directory.GetCurrentDirectory(),
+                invocationDirectory,
                 output,
                 error,
                 cancellationToken),

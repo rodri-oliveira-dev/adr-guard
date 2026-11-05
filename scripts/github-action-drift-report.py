@@ -49,6 +49,13 @@ def markdown(value: str) -> str:
     )
 
 
+def code_span(value: str) -> str:
+    longest_run = max((len(run) for run in re.findall(r"`+", value)), default=0)
+    fence = "`" * (longest_run + 1)
+    padding = " " if value.startswith("`") or value.endswith("`") else ""
+    return f"{fence}{padding}{markdown(value)}{padding}{fence}"
+
+
 def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
@@ -193,7 +200,10 @@ def main() -> int:
     else:
         if report_path.stat().st_size > MAX_REPORT_BYTES:
             fail("drift JSON exceeds the reporting byte limit")
-        report = json.loads(report_path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+        except RecursionError:
+            fail("drift JSON nesting exceeds the parser depth limit")
         policy, counts, rows, unresolved_baseline = validate_report(report)
         inconclusive = counts["unknown"] > 0 or unresolved_baseline
         if status == 3 and not inconclusive:
@@ -223,7 +233,7 @@ def main() -> int:
             lines.extend(("", "| ADR | Rule | Outcome | Baseline | Evidence |", "| --- | --- | --- | --- | ---: |"))
             for adr_id, rule_id, outcome, baseline_state, evidence_count in rows[:SUMMARY_FINDING_LIMIT]:
                 lines.append(
-                    f"| `{markdown(adr_id)}` | `{markdown(rule_id)}` | {outcome} | {baseline_state} | {evidence_count} |"
+                    f"| {code_span(adr_id)} | {code_span(rule_id)} | {outcome} | {baseline_state} | {evidence_count} |"
                 )
             if len(rows) > SUMMARY_FINDING_LIMIT:
                 lines.extend(("", f"Only the first {SUMMARY_FINDING_LIMIT} non-pass/baseline findings are shown; inspect the bounded JSON log for all results."))

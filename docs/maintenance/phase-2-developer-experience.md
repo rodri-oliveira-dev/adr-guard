@@ -254,7 +254,7 @@ Repositório pronto, com Git opcional indisponível:
 ```text
 ADR Guard doctor
 OK CLI: 1.9.0
-OK Repository: detected at the selected root (Git worktree).
+OK Repository: detected with a Git worktree marker.
 OK Configuration: .adrguard.yml schema 1 loaded.
 OK ADR directory: docs/adr exists and is readable.
 OK .NET runtime: 10.0.x
@@ -618,10 +618,11 @@ Revisão final de compatibilidade e segurança:
   encaminhar secrets ou oferecer escrita de baseline.
 - O renderer de summary valida schema `1.0`, shape, duplicatas e limites antes
   de emitir Markdown; falha de reporting não substitui o exit original da CLI.
-- Não houve mudança de versão, dependência, permissão de workflow, contrato
-  MCP/VS Code, publicação ou funcionalidade da Fase 3. CodeQL, Dependency
-  Review, NuGet Audit, actionlint, zizmor, Hadolint e Trivy não foram
-  enfraquecidos pelo diff.
+- No snapshot `487aa572`, não houve mudança de versão, dependência, permissão
+  de workflow, contrato MCP/VS Code, publicação ou funcionalidade da Fase 3. As
+  refatorações posteriores preservaram os contratos MCP/VS Code. CodeQL,
+  Dependency Review, NuGet Audit, actionlint, zizmor, Hadolint e Trivy não
+  foram enfraquecidos pelo diff.
 
 Limitações e pendências finais:
 
@@ -633,13 +634,17 @@ Limitações e pendências finais:
 - `actionlint`, `shellcheck` e `zizmor` não estavam instalados localmente e não
   foram baixados implicitamente. Os workflows pinados de segurança devem
   executar esses gates no Pull Request, junto com os jobs hospedados da Action.
-- A extensão VS Code não foi repetida porque nenhum arquivo ou contrato da
-  extensão foi alterado. O MCP foi coberto pela suíte completa e pelo recorte
-  de integração, embora seu source também não tenha mudado.
+- A extensão VS Code e o MCP mudaram depois do snapshot `487aa572` (commits
+  `c11cf95` a `bc96205`). As mudanças foram validadas pela suíte .NET completa
+  (766 testes), pelos testes MCP e por typecheck, lint, build, testes unitários,
+  integração e empacotamento VSIX da extensão.
 - A issue #209 permanece aberta e **não está integralmente concluída**. O
   walkthrough do mantenedor não substitui observação independente com ao
   menos três participantes consentidos; validação visual independente do VS
-  Code, tempos/intervenções e evidência de adoção continuam pendentes.
+  Code, tempos/intervenções e evidência de adoção continuam pendentes. Também
+  falta validar dois projetos externos reais: os cenários A e B usam
+  repositórios temporários, e o cenário B reutiliza fixtures do próprio ADR
+  Guard.
 
 ## Critérios de conclusão
 

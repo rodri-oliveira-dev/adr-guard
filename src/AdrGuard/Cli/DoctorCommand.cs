@@ -23,7 +23,7 @@ internal static class DoctorCommand
     internal static int Run(
         IReadOnlyList<string> args,
         string cliVersion,
-        string invocationDirectory,
+        string? invocationDirectory,
         TextWriter output,
         TextWriter error,
         CancellationToken cancellationToken,
@@ -39,7 +39,7 @@ internal static class DoctorCommand
             return ExitCodes.Success;
         }
 
-        if (!TryParse(args, invocationDirectory, out var repository))
+        if (!TryParse(args, out var repository))
         {
             error.WriteLine("Invalid arguments for 'doctor'.");
             error.WriteLine("Run 'adr-guard doctor --help' for usage.");
@@ -48,6 +48,7 @@ internal static class DoctorCommand
 
         try
         {
+            repository ??= invocationDirectory ?? Directory.GetCurrentDirectory();
             var report = DoctorDiagnosticService.Run(
                 repository,
                 cliVersion,
@@ -75,10 +76,9 @@ internal static class DoctorCommand
 
     private static bool TryParse(
         IReadOnlyList<string> args,
-        string invocationDirectory,
-        out string repository)
+        out string? repository)
     {
-        repository = invocationDirectory;
+        repository = null;
         if (args.Count == 1)
         {
             return true;

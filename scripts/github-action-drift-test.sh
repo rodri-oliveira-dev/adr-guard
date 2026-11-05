@@ -63,8 +63,8 @@ cat >"${VIOLATION_REPORT}" <<'EOF'
   "coverage": {"totalRules": 1, "pass": 0, "violations": 1, "unknown": 0, "notApplicable": 0},
   "findings": [{
     "fingerprint": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "ruleId": "rule|<img src=x>",
-    "adrStableId": "ADR|<script>alert(1)</script>",
+    "ruleId": "`rule|<img src=x>`",
+    "adrStableId": "ADR`|<script>alert(1)</script>",
     "outcome": "violation",
     "checkType": "forbid-project-reference",
     "confidence": "deterministic-static",
@@ -176,7 +176,8 @@ grep -Fxq -- 'evidence/two.json' "${DOCKER_CAPTURE}"
 ADR_GUARD_DRIFT_POLICY=enforce MOCK_STDOUT_FILE="${VIOLATION_REPORT}" MOCK_RUN_EXIT=4 \
   assert_exit_code 4 run_drift
 grep -Fq '| Outcome | Violation (policy failed) |' "${SUMMARY}"
-grep -Fq 'ADR\|&lt;script&gt;alert(1)&lt;/script&gt;' "${SUMMARY}"
+grep -Fq '``ADR`\|&lt;script&gt;alert(1)&lt;/script&gt;``' "${SUMMARY}"
+grep -Fq '`` `rule\|&lt;img src=x&gt;` ``' "${SUMMARY}"
 if grep -Fq '<script>' "${SUMMARY}"; then
   echo "Drift summary rendered unescaped HTML." >&2
   exit 1
@@ -199,6 +200,18 @@ ADR_GUARD_DRIFT_RULES=rules.txt assert_exit_code 2 run_drift
 ADR_GUARD_DRIFT_RULES=missing.json assert_exit_code 2 run_drift
 ADR_GUARD_DRIFT_BASELINE=missing.json assert_exit_code 2 run_drift
 ADR_GUARD_DRIFT_EVIDENCE=evidence/missing.json assert_exit_code 2 run_drift
+
+# Root files whose names begin with dashes remain values rather than CLI options.
+printf '{}\n' >"${WORKSPACE}/--fitness.json"
+printf '{}\n' >"${WORKSPACE}/--baseline.json"
+printf '{}\n' >"${WORKSPACE}/--evidence.json"
+ADR_GUARD_DRIFT_RULES=--fitness.json \
+ADR_GUARD_DRIFT_BASELINE=--baseline.json \
+ADR_GUARD_DRIFT_EVIDENCE=--evidence.json \
+  assert_exit_code 0 run_drift
+grep -Fxq -- './--fitness.json' "${DOCKER_CAPTURE}"
+grep -Fxq -- './--baseline.json' "${DOCKER_CAPTURE}"
+grep -Fxq -- './--evidence.json' "${DOCKER_CAPTURE}"
 
 mkdir -p "${TEMP_DIR}/outside"
 printf '{}\n' >"${TEMP_DIR}/outside/rules.json"
@@ -223,5 +236,23 @@ INVALID_REPORT_LOG="${TEMP_DIR}/invalid-report.log"
 ADR_GUARD_DRIFT_POLICY=enforce MOCK_STDOUT_FILE="${TEMP_DIR}/invalid.json" MOCK_RUN_EXIT=4 \
   assert_exit_code 4 run_drift >"${INVALID_REPORT_LOG}" 2>&1
 grep -Fq 'architecture drift reporting failed' "${INVALID_REPORT_LOG}"
+
+NESTED_REPORT="${TEMP_DIR}/nested-report.json"
+python3 - "${NESTED_REPORT}" <<'PY'
+import sys
+from pathlib import Path
+
+depth = 5_000
+Path(sys.argv[1]).write_text('{"nested":' * depth + 'null' + '}' * depth, encoding='utf-8')
+PY
+NESTED_REPORT_LOG="${TEMP_DIR}/nested-report.log"
+GITHUB_STEP_SUMMARY="${SUMMARY}" \
+  assert_exit_code 1 python3 "${ROOT_DIR}/scripts/github-action-drift-report.py" 0 "${NESTED_REPORT}" \
+  >"${NESTED_REPORT_LOG}" 2>&1
+grep -Fq 'drift JSON nesting exceeds the parser depth limit' "${NESTED_REPORT_LOG}"
+if grep -Fq 'Traceback' "${NESTED_REPORT_LOG}"; then
+  echo "Deeply nested drift JSON must fail without a traceback." >&2
+  exit 1
+fi
 
 echo "GitHub Action architectural drift tests passed."

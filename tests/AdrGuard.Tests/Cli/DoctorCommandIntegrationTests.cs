@@ -87,7 +87,7 @@ public sealed class DoctorCommandIntegrationTests
     [Fact]
     public void DirectoryOutsideRepositoryProducesCompletedErrorReport()
     {
-        var root = CreateTempDirectory();
+        var root = CreateDirectoryOutsideRepository();
 
         try
         {
@@ -107,6 +107,113 @@ public sealed class DoctorCommandIntegrationTests
                 result.Output,
                 StringComparison.Ordinal);
             Assert.Equal(string.Empty, result.Error);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void ConfigurationIsReadFromSelectedDirectoryInsteadOfAncestor()
+    {
+        var root = CreateRepository(gitMarkerAsFile: false, createAdrDirectory: true);
+        var selectedDirectory = Directory.CreateDirectory(Path.Combine(root, "src")).FullName;
+
+        try
+        {
+            var result = RunDoctor(selectedDirectory);
+
+            Assert.Equal(ExitCodes.Success, result.ExitCode);
+            Assert.Contains(
+                "WARNING Configuration: .adrguard.yml was not found; legacy defaults remain active.",
+                result.Output,
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "WARNING ADR directory: the legacy scope is the selected root; no dedicated ADR directory is configured.",
+                result.Output,
+                StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void NestedConfigurationRecognizesAncestorGitMarker()
+    {
+        var root = CreateTempDirectory();
+        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        var selectedDirectory = Directory.CreateDirectory(Path.Combine(root, "component")).FullName;
+        Directory.CreateDirectory(Path.Combine(selectedDirectory, "docs", "adr"));
+        File.WriteAllText(
+            Path.Combine(selectedDirectory, ".adrguard.yml"),
+            "schema-version: 1\nadr-directory: docs/adr\n");
+
+        try
+        {
+            var result = RunDoctor(selectedDirectory);
+
+            Assert.Equal(ExitCodes.Success, result.ExitCode);
+            Assert.Contains(
+                "OK Repository: detected with a Git worktree marker.",
+                result.Output,
+                StringComparison.Ordinal);
+            Assert.Contains("Summary: 6 OK, 0 WARNING, 0 ERROR", result.Output, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void InvalidEncodingInPathContainingSizeTextIsNotReportedAsOversized()
+    {
+        var parent = CreateTempDirectory();
+        var root = Directory.CreateDirectory(Path.Combine(parent, "exceeds the boundary")).FullName;
+        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        File.WriteAllBytes(Path.Combine(root, ".adrguard.yml"), [0xc3, 0x28]);
+
+        try
+        {
+            var result = RunDoctor(root);
+
+            Assert.Equal(ExitCodes.OperationalError, result.ExitCode);
+            Assert.Contains(
+                "ERROR Configuration: .adrguard.yml could not be read or parsed.",
+                result.Output,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain("exceeds the 65536-byte limit", result.Output, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(parent);
+        }
+    }
+
+    [Fact]
+    public void ExplicitRepositoryDoesNotRequireInvocationDirectory()
+    {
+        var root = CreateRepository(gitMarkerAsFile: false, createAdrDirectory: true);
+
+        try
+        {
+            using var output = new StringWriter();
+            using var error = new StringWriter();
+
+            var exitCode = DoctorCommand.Run(
+                ["doctor", root],
+                "1.9.0+tests",
+                invocationDirectory: null,
+                output,
+                error,
+                CancellationToken.None,
+                (_, _) => "git version 2.47.1");
+
+            Assert.Equal(ExitCodes.Success, exitCode);
+            Assert.Equal(string.Empty, error.ToString());
         }
         finally
         {
@@ -179,7 +286,7 @@ public sealed class DoctorCommandIntegrationTests
             var result = RunDoctor(root);
 
             Assert.Equal(ExitCodes.Success, result.ExitCode);
-            Assert.Contains("OK Repository: detected at the selected root (Git worktree).", result.Output, StringComparison.Ordinal);
+            Assert.Contains("OK Repository: detected with a Git worktree marker.", result.Output, StringComparison.Ordinal);
         }
         finally
         {
@@ -307,6 +414,25 @@ public sealed class DoctorCommandIntegrationTests
         var path = Path.Combine(Path.GetTempPath(), $"adr-guard-doctor-{Guid.NewGuid():N}");
         Directory.CreateDirectory(path);
         return path;
+    }
+
+    private static string CreateDirectoryOutsideRepository()
+    {
+        var tempRoot = Path.GetFullPath(Path.GetTempPath());
+        for (var current = new DirectoryInfo(tempRoot);
+             current is not null;
+             current = current.Parent)
+        {
+            if (File.Exists(Path.Combine(current.FullName, ".adrguard.yml"))
+                || Directory.Exists(Path.Combine(current.FullName, ".git"))
+                || File.Exists(Path.Combine(current.FullName, ".git")))
+            {
+                throw new InvalidOperationException(
+                    "The system temporary directory must be outside a repository for this test.");
+            }
+        }
+
+        return CreateTempDirectory();
     }
 
     private static void DeleteDirectory(string path)

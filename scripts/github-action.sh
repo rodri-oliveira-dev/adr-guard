@@ -84,6 +84,14 @@ resolve_inside_workspace() {
   esac
 }
 
+workspace_relative_cli_path() {
+  local resolved_path="$1"
+  WORKSPACE_RELATIVE_CLI_PATH="${resolved_path#"${workspace}/"}"
+  if [[ "${WORKSPACE_RELATIVE_CLI_PATH}" == -* ]]; then
+    WORKSPACE_RELATIVE_CLI_PATH="./${WORKSPACE_RELATIVE_CLI_PATH}"
+  fi
+}
+
 if [[ "${RUNNER_OS:-Linux}" != "Linux" ]]; then
   operational_error "ADR Guard GitHub Action supports Linux runners with Docker only."
 fi
@@ -398,25 +406,29 @@ elif [[ "${command}" == "impact" ]]; then
   )
 elif [[ "${command}" == "drift" ]]; then
   docker_args+=(--network=none)
+  workspace_relative_cli_path "${resolved_drift_rules}"
+  container_drift_rules="${WORKSPACE_RELATIVE_CLI_PATH}"
   cli_args=(
     drift
     /workspace
-    --rules "${resolved_drift_rules#"${workspace}/"}"
+    --rules "${container_drift_rules}"
     --policy "${drift_policy}"
     --format json
   )
 
   if [[ -n "${resolved_drift_baseline}" ]]; then
+    workspace_relative_cli_path "${resolved_drift_baseline}"
     cli_args+=(
       --baseline
-      "${resolved_drift_baseline#"${workspace}/"}"
+      "${WORKSPACE_RELATIVE_CLI_PATH}"
     )
   fi
 
   for evidence_file in "${resolved_drift_evidence[@]}"; do
+    workspace_relative_cli_path "${evidence_file}"
     cli_args+=(
       --evidence
-      "${evidence_file#"${workspace}/"}"
+      "${WORKSPACE_RELATIVE_CLI_PATH}"
     )
   done
 else

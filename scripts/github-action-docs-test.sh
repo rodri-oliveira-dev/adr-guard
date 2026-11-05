@@ -114,8 +114,10 @@ for drift_document in "${GUIDE_EN}" "${GUIDE_PT}" "${EXAMPLE_DRIFT}"; do
 done
 grep -Fiq 'development' "${GUIDE_EN}"
 grep -Fiq 'desenvolvimento' "${GUIDE_PT}"
-grep -Fiq 'Not published' "${COMPAT_EN}"
-grep -Fiq 'Não publicado' "${COMPAT_PT}"
+action_row_en="$(grep -F '| GitHub Action |' "${COMPAT_EN}")"
+action_row_pt="$(grep -F '| GitHub Action |' "${COMPAT_PT}")"
+grep -Fq '**Not published:** the current source-only `drift` Action inputs' <<< "${action_row_en}"
+grep -Fq '**Não publicado:** os inputs de `drift` da Action presentes no source atual' <<< "${action_row_pt}"
 if grep -Eiq 'pull_request_target|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|secrets\.|write-baseline|update-baseline' "${EXAMPLE_DRIFT}"; then
   echo "Drift example must remain read-only, unprivileged, and secretless." >&2
   exit 1

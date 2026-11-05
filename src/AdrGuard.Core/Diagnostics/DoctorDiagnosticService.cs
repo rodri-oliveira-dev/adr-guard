@@ -42,9 +42,12 @@ internal static class DoctorDiagnosticService
         var repository = CheckRepository(selectedDirectory);
         diagnostics.Add(repository.Diagnostic);
 
-        var configuration = CheckConfiguration(repository.RootDirectory);
+        var configuration = CheckConfiguration(
+            repository.RootDirectory is null ? null : selectedDirectory);
         diagnostics.Add(configuration.Diagnostic);
-        diagnostics.Add(CheckAdrDirectory(repository.RootDirectory, configuration));
+        diagnostics.Add(CheckAdrDirectory(
+            repository.RootDirectory is null ? null : selectedDirectory,
+            configuration));
         diagnostics.Add(CheckRuntime());
         diagnostics.Add(CheckGit(
             repository.RootDirectory ?? GetExistingWorkingDirectory(selectedDirectory),
@@ -92,12 +95,11 @@ internal static class DoctorDiagnosticService
             RepositoryPath.ResolveContained(repositoryRoot, selectedRelativePath, allowMissingLeaf: false);
             ProveDirectoryReadable(repositoryRoot);
 
-            var hasGitMarker = Directory.Exists(Path.Combine(repositoryRoot, ".git"))
-                || File.Exists(Path.Combine(repositoryRoot, ".git"));
+            var hasGitMarker = HasGitMarkerInHierarchy(repositoryRoot);
             return hasGitMarker
                 ? new RepositoryCheck(
                     repositoryRoot,
-                    Ok(RepositoryArea, "detected at the selected root (Git worktree)."))
+                    Ok(RepositoryArea, "detected with a Git worktree marker."))
                 : new RepositoryCheck(
                     repositoryRoot,
                     Warning(
@@ -114,9 +116,9 @@ internal static class DoctorDiagnosticService
         }
     }
 
-    private static ConfigurationCheck CheckConfiguration(string? repositoryRoot)
+    private static ConfigurationCheck CheckConfiguration(string? selectedDirectory)
     {
-        if (repositoryRoot is null)
+        if (selectedDirectory is null)
         {
             return new ConfigurationCheck(
                 ConfigurationState.NotChecked,
@@ -126,7 +128,7 @@ internal static class DoctorDiagnosticService
 
         try
         {
-            var configuration = AdrGuardConfigurationLoader.Load(repositoryRoot);
+            var configuration = AdrGuardConfigurationLoader.Load(selectedDirectory);
             return configuration is null
                 ? new ConfigurationCheck(
                     ConfigurationState.Missing,
@@ -149,10 +151,10 @@ internal static class DoctorDiagnosticService
     }
 
     private static DoctorDiagnostic CheckAdrDirectory(
-        string? repositoryRoot,
+        string? selectedDirectory,
         ConfigurationCheck configuration)
     {
-        if (repositoryRoot is null)
+        if (selectedDirectory is null)
         {
             return Warning(AdrDirectoryArea, "not checked because no repository root was identified.");
         }
@@ -177,8 +179,9 @@ internal static class DoctorDiagnosticService
 
         try
         {
+            var configurationRoot = configuration.Configuration.RootDirectory;
             var path = RepositoryPath.ResolveContained(
-                repositoryRoot,
+                configurationRoot,
                 configuration.Configuration.AdrDirectory,
                 allowMissingLeaf: true);
             if (!Directory.Exists(path))
@@ -189,7 +192,7 @@ internal static class DoctorDiagnosticService
             }
 
             RepositoryPath.ResolveContained(
-                repositoryRoot,
+                configurationRoot,
                 configuration.Configuration.AdrDirectory,
                 allowMissingLeaf: false);
             ProveDirectoryReadable(path);
@@ -261,7 +264,7 @@ internal static class DoctorDiagnosticService
             return ".adrguard.yml is a symbolic link or reparse point. Fix: replace it with a regular file inside the repository.";
         }
 
-        if (message.Contains("exceeds the", StringComparison.Ordinal))
+        if (message.StartsWith("Configuration file exceeds the", StringComparison.Ordinal))
         {
             return ".adrguard.yml exceeds the 65536-byte limit. Fix: reduce it to the supported schema 1 scalar configuration.";
         }
@@ -430,6 +433,22 @@ internal static class DoctorDiagnosticService
         {
             return Directory.GetCurrentDirectory();
         }
+    }
+
+    private static bool HasGitMarkerInHierarchy(string directory)
+    {
+        for (var current = new DirectoryInfo(directory);
+             current is not null;
+             current = current.Parent)
+        {
+            var marker = Path.Combine(current.FullName, ".git");
+            if (Directory.Exists(marker) || File.Exists(marker))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void ProveDirectoryReadable(string path)
