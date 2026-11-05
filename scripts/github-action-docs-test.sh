@@ -47,8 +47,16 @@ cli_source_version="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:
 mcp_source_version="$(sed -n 's:.*<VersionPrefix>\([^<]*\)</VersionPrefix>.*:\1:p' "${MCP_PROJECT}" | head -n 1)"
 mcp_registry_version="$(node -p "require(process.argv[1]).version" "${MCP_MANIFEST}")"
 vscode_source_version="$(node -p "require(process.argv[1]).version" "${VSCODE_PACKAGE}")"
-cli_release_version="$(sed -n 's|^## \[\([^]]*\)\](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v[^)]*) .*|\1|p' "${CHANGELOG}" | head -n 1)"
-cli_release_tag="$(sed -n 's|^## \[[^]]*\](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/\(v[^)]*\)) .*|\1|p' "${CHANGELOG}" | head -n 1)"
+published_cli_release_heading="$({
+  while IFS= read -r heading; do
+    if ! grep -Eiq 'prepared|not yet published|release candidate' <<< "${heading}"; then
+      printf '%s\n' "${heading}"
+      break
+    fi
+  done < <(grep -E '^## \[[^]]+\]\(https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v[^)]+\)' "${CHANGELOG}")
+} || true)"
+cli_release_version="$(sed -n 's|^## \[\([^]]*\)\](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v[^)]*) .*|\1|p' <<< "${published_cli_release_heading}")"
+cli_release_tag="$(sed -n 's|^## \[[^]]*\](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/\(v[^)]*\)) .*|\1|p' <<< "${published_cli_release_heading}")"
 
 for version in "${cli_source_version}" "${mcp_source_version}" "${mcp_registry_version}" "${vscode_source_version}" "${cli_release_version}"; do
   test -n "${version}" || {
@@ -61,6 +69,14 @@ test "${cli_release_tag}" = "v${cli_release_version}" || {
   echo "The CHANGELOG release link tag does not match its version heading." >&2
   exit 1
 }
+
+if [[ "${cli_source_version}" != "${cli_release_version}" ]]; then
+  candidate_pattern="^## \\[${cli_source_version//./\\.}\\]\\(https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v${cli_source_version//./\\.}\\).*prepared.*not yet published"
+  grep -Eiq "${candidate_pattern}" "${CHANGELOG}" || {
+    echo "The source CLI version must be marked as prepared and not yet published in CHANGELOG.md." >&2
+    exit 1
+  }
+fi
 
 for compatibility in "${COMPAT_EN}" "${COMPAT_PT}"; do
   grep -Fq "\`${cli_source_version}\`" "${compatibility}"
@@ -116,8 +132,8 @@ grep -Fiq 'development' "${GUIDE_EN}"
 grep -Fiq 'desenvolvimento' "${GUIDE_PT}"
 action_row_en="$(grep -F '| GitHub Action |' "${COMPAT_EN}")"
 action_row_pt="$(grep -F '| GitHub Action |' "${COMPAT_PT}")"
-grep -Fq '**Not published:** the current source-only `drift` Action inputs' <<< "${action_row_en}"
-grep -Fq '**Não publicado:** os inputs de `drift` da Action presentes no source atual' <<< "${action_row_pt}"
+grep -Fq '**Not published:** `v1.10.0`, the updated moving `v1`, and `drift` inputs' <<< "${action_row_en}"
+grep -Fq '**Não publicado:** `v1.10.0`, a atualização de `v1` e os inputs de `drift`' <<< "${action_row_pt}"
 if grep -Eiq 'pull_request_target|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|secrets\.|write-baseline|update-baseline' "${EXAMPLE_DRIFT}"; then
   echo "Drift example must remain read-only, unprivileged, and secretless." >&2
   exit 1
