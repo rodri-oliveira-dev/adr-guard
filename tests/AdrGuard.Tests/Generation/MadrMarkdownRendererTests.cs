@@ -118,6 +118,36 @@ public sealed class MadrMarkdownRendererTests
         Assert.Contains("Markdown headings", error.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("```text\nunclosed")]
+    [InlineData("~~~text\nunclosed")]
+    public void UnclosedCodeFencesAreRejectedPerMadrField(string content)
+    {
+        var error = Assert.Throws<InvalidOperationException>(
+            () => Render(
+                "Adopt Redis",
+                "minimal",
+                "en-US",
+                RequiredSubstitutions(content)));
+
+        Assert.Contains("close every Markdown code fence", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ClosedCodeFencesRemainValidMadrFieldContent()
+    {
+        var markdown = Render(
+            "Adopt Redis",
+            "minimal",
+            "en-US",
+            RequiredSubstitutions("```markdown\n## Example heading\n```"));
+
+        Assert.Contains("```markdown\n## Example heading\n```", markdown, StringComparison.Ordinal);
+        Assert.True(AdrValidator.Validate(
+            [AdrMarkdownParser.Parse("0001-adopt-redis.md", markdown)],
+            AdrFormat.Madr4).IsValid);
+    }
+
     [Fact]
     public void UnsupportedEmptyNulAndOversizedFieldsAreRejected()
     {

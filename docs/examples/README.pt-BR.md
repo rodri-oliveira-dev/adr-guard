@@ -33,7 +33,7 @@ dotnet run --project src/AdrGuard -- check docs/examples/madr-4/pt-BR --adr-form
 Para visualizar o template mínimo nativo sem gravar nem reservar ID:
 
 ```bash
-dotnet run --project src/AdrGuard -- new docs/examples/madr-4/pt-BR --title "Avaliar um cache" --adr-format madr-4 --culture pt-BR --preview
+dotnet run --project src/AdrGuard -- new docs/examples/madr-4/pt-BR --title "Avaliar um cache" --adr-format madr-4 --template minimal --culture pt-BR --preview
 ```
 
 Passar nessas verificações confirma estrutura, nome, status e referências — não o mérito técnico nem a aprovação organizacional da decisão de exemplo.

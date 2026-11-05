@@ -102,6 +102,8 @@ Os templates nativos `minimal` e `extended`, canônicos ou MADR, podem ser mapea
 
 O formulário MADR schema `1.0` omite intencionalmente campos distintos para `Confirmation` e `Pros and Cons of the Options`; a geração extended tradicional ainda inclui orientação editável nessas seções. Adicionar IDs novos que clientes existentes rejeitam exigiria uma nova versão do schema de formulário, não uma mudança silenciosa em `1.0`.
 
+> Disponibilidade: a geração nativa por `new --adr-format madr-4` ainda não foi lançada e não está incluída na CLI 1.9.0 publicada.
+
 A criação tradicional usa a mesma seleção de formato:
 
 ```text

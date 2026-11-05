@@ -16,13 +16,14 @@ desta fase.
 
 ## Objetivo e limites
 
-Preparar a geração offline de ADRs no subconjunto MADR 4.0 já aceito pelo
-ADR Guard, sem implementar o gerador nesta etapa. A implementação futura deve
-preservar integralmente o fluxo canônico, manter a aprovação da decisão sob
-responsabilidade humana e não iniciar trabalho do grafo.
+Esta fase implementou a geração offline de ADRs no subconjunto MADR 4.0 já
+aceito pelo ADR Guard. A implementação preserva integralmente o fluxo canônico,
+mantém a aprovação da decisão sob responsabilidade humana e não inicia trabalho
+do grafo.
 
-Esta fase de planejamento não altera código, schemas, argumentos publicados,
-dependências ou comportamento de runtime.
+As seções "Decisões" e "Plano de alteração" abaixo registram o escopo original
+e mantêm o tempo futuro por esse motivo. O resultado atual está consolidado em
+"Estado da implementação".
 
 ## Evidência consultada
 
@@ -35,7 +36,7 @@ dependências ou comportamento de runtime.
   `AdrNewService`, `AdrCreationService`, catálogo/contratos de formulário e seus
   testes correspondentes.
 
-## Decisões
+## Decisões (registro histórico)
 
 ### Seleção do formato
 
@@ -162,7 +163,7 @@ e `references` -> `More Information`. Campos distintos para `Confirmation` e
 schema `1.0`; essa ampliação deve usar uma futura versão do contrato, não uma
 mudança silenciosa.
 
-## Plano de alteração
+## Plano de alteração (registro histórico)
 
 1. Estender o parsing/help de `NewCommand` e `NewFormCommand` com
    `--adr-format canonical|madr-4`, preservando o default.

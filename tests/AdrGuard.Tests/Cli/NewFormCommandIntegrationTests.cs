@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using AdrGuard.Cli;
+using AdrGuard.Generation;
 using AdrGuard.Processes;
 using Xunit;
 
@@ -69,18 +70,24 @@ public sealed class NewFormCommandIntegrationTests
             var templateResponse = response.RootElement.GetProperty("template");
             Assert.Equal(template, templateResponse.GetProperty("name").GetString());
             Assert.Equal(expectedFields, templateResponse.GetProperty("fields").GetArrayLength());
-            string?[] expectedFieldIds = template == "minimal"
-                ? ["context", "optionsConsidered", "decision"]
-                : ["context", "decisionDrivers", "optionsConsidered", "decision", "consequences", "references"];
+            (string Id, bool Required)[] expectedFieldContracts = template == "minimal"
+                ? [("context", true), ("optionsConsidered", true), ("decision", true)]
+                :
+                [
+                    ("context", true),
+                    ("decisionDrivers", false),
+                    ("optionsConsidered", true),
+                    ("decision", true),
+                    ("consequences", false),
+                    ("references", false),
+                ];
             Assert.Equal(
-                expectedFieldIds,
+                expectedFieldContracts,
                 templateResponse.GetProperty("fields").EnumerateArray()
-                    .Select(field => field.GetProperty("id").GetString())
+                    .Select(field => (
+                        field.GetProperty("id").GetString()!,
+                        field.GetProperty("required").GetBoolean()))
                     .ToArray());
-            Assert.Contains(
-                templateResponse.GetProperty("fields").EnumerateArray(),
-                field => field.GetProperty("id").GetString() == "decision"
-                    && field.GetProperty("required").GetBoolean());
             Assert.Empty(Directory.EnumerateFileSystemEntries(root));
         }
         finally
@@ -116,6 +123,14 @@ public sealed class NewFormCommandIntegrationTests
             Assert.Equal("1.0", previewJson.RootElement.GetProperty("schemaVersion").GetString());
             var markdown = previewJson.RootElement.GetProperty("markdown").GetString();
             Assert.Contains("### Consequences\n\nOperations must monitor retries.", markdown, StringComparison.Ordinal);
+            Assert.Contains(
+                "Propose the managed queue because it satisfies the drivers.",
+                markdown,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                "[EDIT: Replace this guidance with the proposed outcome",
+                markdown,
+                StringComparison.Ordinal);
 
             var create = Run(
                 root,
@@ -267,6 +282,11 @@ public sealed class NewFormCommandIntegrationTests
         {
             var missing = Path.Combine(root, "team-template.md");
             var result = Run(root, Request("describe"), "--template-file", missing);
+            var madrResult = Run(
+                root,
+                Request("describe"),
+                "--adr-format", "madr-4",
+                "--template-file", missing);
 
             Assert.Equal(ExitCodes.Success, result.Code);
             using var response = JsonDocument.Parse(result.Output);
@@ -274,6 +294,9 @@ public sealed class NewFormCommandIntegrationTests
             Assert.Equal("custom", template.GetProperty("name").GetString());
             Assert.False(template.GetProperty("compatible").GetBoolean());
             Assert.Equal("custom-template-field-mapping-unavailable", template.GetProperty("reason").GetString());
+            Assert.Equal(ExitCodes.Success, madrResult.Code);
+            using var madrResponse = JsonDocument.Parse(madrResult.Output);
+            Assert.False(madrResponse.RootElement.GetProperty("template").GetProperty("compatible").GetBoolean());
             Assert.Empty(Directory.EnumerateFiles(root));
         }
         finally
@@ -353,10 +376,24 @@ public sealed class NewFormCommandIntegrationTests
                 decision = "Decision",
                 consequences = "Consequences",
             });
+            var oversizedMadrField = JsonSerializer.Serialize(new
+            {
+                context = new string(
+                    'x',
+                    AdrGenerationContextLimits.MaximumGeneratedFieldCharacters + 1),
+                optionsConsidered = "* Option A",
+                decision = "Propose option A.",
+            });
 
             Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", "Title", unsupportedField)).Code);
             Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", "Title", missingRequiredField)).Code);
             Assert.Equal(ExitCodes.UsageError, Run(root, Request("preview", "Title", oversizedField)).Code);
+            Assert.Equal(
+                ExitCodes.UsageError,
+                Run(
+                    root,
+                    Request("preview", "Title", oversizedMadrField),
+                    "--adr-format", "madr-4").Code);
             Assert.Equal(
                 ExitCodes.UsageError,
                 Run(root, Request("preview", "Title", """{"context":"Con\u0000text","decision":"Decision","consequences":"Consequences"}""")).Code);
@@ -375,10 +412,30 @@ public sealed class NewFormCommandIntegrationTests
             Assert.Equal(
                 ExitCodes.UsageError,
                 Run(root, Request("create", "Title", validFields), "--template-file", Path.Combine(root, "template.md")).Code);
+            var invalidMadrCustom = Run(
+                root,
+                Request("preview", "Title", validFields),
+                "--adr-format", "madr-4",
+                "--template-file", Path.Combine(root, "template.md"));
+            Assert.Equal(ExitCodes.UsageError, invalidMadrCustom.Code);
+            Assert.Contains(
+                "cannot be combined with --adr-format madr-4",
+                invalidMadrCustom.Error,
+                StringComparison.Ordinal);
+            var invalidMadrCustomCreate = Run(
+                root,
+                Request("create", "Title", validFields),
+                "--adr-format", "madr-4",
+                "--template-file", Path.Combine(root, "template.md"));
+            Assert.Equal(ExitCodes.UsageError, invalidMadrCustomCreate.Code);
+            Assert.Contains(
+                "cannot be combined with --adr-format madr-4",
+                invalidMadrCustomCreate.Error,
+                StringComparison.Ordinal);
             Assert.Equal(
                 ExitCodes.OperationalError,
                 Run(root, new string('x', NewFormCommand.MaximumInputCharacters + 1)).Code);
-            Assert.Empty(Directory.EnumerateFiles(root));
+            Assert.Empty(Directory.EnumerateFileSystemEntries(root));
         }
         finally
         {

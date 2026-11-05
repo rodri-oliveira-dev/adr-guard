@@ -102,7 +102,12 @@ internal sealed class AdrNewService
             cancellationToken)
             .Select(policy.NormalizeIdentity).ToArray();
         var existingValidation = AdrValidator.Validate(
-            documents, null, new AdrValidationOptions(format, FilenamePolicy: filenamePolicy));
+            documents,
+            null,
+            new AdrValidationOptions(
+                format,
+                RepositoryRoot: AdrRepositoryRoot.Resolve(directoryPath),
+                FilenamePolicy: filenamePolicy));
 
         if (!existingValidation.IsValid)
         {

@@ -118,6 +118,13 @@ internal static class NewFormCommand
 
         if (templateFilePath is not null)
         {
+            if (operation != DescribeOperation && format == AdrFormat.Madr4)
+            {
+                return UsageError(
+                    "Custom --template-file content is canonical and cannot be combined with --adr-format madr-4.",
+                    error);
+            }
+
             return WriteCustomTemplateResponse(operation, output, error);
         }
 

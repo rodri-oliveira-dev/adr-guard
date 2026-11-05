@@ -102,6 +102,8 @@ The native `minimal` and `extended` canonical and MADR templates can be mapped t
 
 The schema `1.0` MADR form intentionally omits distinct fields for `Confirmation` and `Pros and Cons of the Options`; traditional extended generation still includes editable guidance for those sections. Adding new field IDs that existing clients reject would require a new form schema version rather than a silent `1.0` change.
 
+> Availability: native `new --adr-format madr-4` generation is unreleased and is not included in the published CLI 1.9.0.
+
 Traditional creation uses the same format selection:
 
 ```text

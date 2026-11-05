@@ -77,7 +77,10 @@ internal sealed class AdrCreationService
         var validation = AdrValidator.Validate(
             documents.Append(candidate).ToArray(),
             null,
-            new AdrValidationOptions(format, FilenamePolicy: filenamePolicy));
+            new AdrValidationOptions(
+                format,
+                RepositoryRoot: AdrRepositoryRoot.Resolve(directoryPath),
+                FilenamePolicy: filenamePolicy));
 
         cancellationToken.ThrowIfCancellationRequested();
         return new AdrCreationResult(filePath, validation);
@@ -201,7 +204,12 @@ internal sealed class AdrCreationService
                 cancellationToken)
                 .Select(policy.NormalizeIdentity).ToArray();
             var existingValidation = AdrValidator.Validate(
-                documents, null, new AdrValidationOptions(format, FilenamePolicy: filenamePolicy));
+                documents,
+                null,
+                new AdrValidationOptions(
+                    format,
+                    RepositoryRoot: AdrRepositoryRoot.Resolve(directoryPath),
+                    FilenamePolicy: filenamePolicy));
 
             cancellationToken.ThrowIfCancellationRequested();
 

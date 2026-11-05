@@ -120,30 +120,46 @@ public sealed class NewCommandIntegrationTests
     public async Task ConcurrentMadrCreatorsAllocateDistinctIdsAndRemainValid()
     {
         var directory = CreateDirectory();
+        var blocking = new BlockingPersistence();
         try
         {
-            var first = Task.Run(
-                () => Run(
-                    "new", directory, "--title", "Adopt Redis",
-                    "--adr-format", "madr-4"),
-                TestContext.Current.CancellationToken);
-            var second = Task.Run(
-                () => Run(
-                    "new", directory, "--title", "Adopt Kafka",
-                    "--adr-format", "madr-4"),
+            var template = MadrBuiltInTemplates.Get("minimal", "en-US");
+            var first = new AdrNewService(blocking).CreateMadrAsync(
+                directory,
+                "Adopt Redis",
+                template,
+                dryRun: false,
                 TestContext.Current.CancellationToken);
 
-            var results = await Task.WhenAll(first, second);
-            Assert.All(results, result => Assert.Equal(ExitCodes.Success, result.Code));
+            await blocking.Entered.WaitAsync(
+                TimeSpan.FromSeconds(10),
+                TestContext.Current.CancellationToken);
+
+            var second = new AdrNewService().CreateMadrAsync(
+                directory,
+                "Adopt Kafka",
+                template,
+                dryRun: false,
+                TestContext.Current.CancellationToken);
+
+            await Task.Delay(100, TestContext.Current.CancellationToken);
+            Assert.False(second.IsCompleted);
+            blocking.Release();
+
+            var results = await Task.WhenAll(first, second).WaitAsync(
+                TimeSpan.FromSeconds(10),
+                TestContext.Current.CancellationToken);
+            Assert.All(results, result => Assert.True(result.Written));
             Assert.Equal(
                 ["0001", "0002"],
-                Directory.GetFiles(directory, "*.md")
-                    .Select(path => Path.GetFileName(path)[..4])
+                results.Select(result => Path.GetFileName(result.FilePath!)[..4])
                     .Order(StringComparer.Ordinal)
                     .ToArray());
-            Assert.Equal(
-                ExitCodes.Success,
-                Run("check", directory, "--adr-format", "madr-4").Code);
+            Assert.True(AdrValidator.Validate(
+                AdrDocumentLoader.LoadDirectory(
+                    directory,
+                    TestContext.Current.CancellationToken),
+                AdrFormat.Madr4).IsValid);
             Assert.DoesNotContain(
                 Directory.EnumerateFiles(directory),
                 path => Path.GetFileName(path).Contains("lock", StringComparison.OrdinalIgnoreCase)
@@ -152,7 +168,56 @@ public sealed class NewCommandIntegrationTests
         }
         finally
         {
+            blocking.Release();
             DeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public void CreationUsesRepositoryRootForLinksOutsideTheAdrDirectory()
+    {
+        var root = CreateDirectory();
+        var directory = Path.Combine(root, "adr");
+        Directory.CreateDirectory(Path.Combine(root, ".git"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            File.WriteAllText(Path.Combine(root, "architecture.md"), "# Architecture\n");
+            File.WriteAllText(
+                Path.Combine(directory, "0001-existing.md"),
+                """
+                # Existing
+
+                ## Status
+
+                Proposed
+
+                ## Context
+
+                Context.
+
+                ## Decision
+
+                Decision.
+
+                ## Consequences
+
+                Consequences.
+
+                ## References
+
+                [Architecture](../architecture.md)
+                """ + "\n");
+
+            var result = Run("new", directory, "--title", "New decision");
+
+            Assert.Equal(ExitCodes.Success, result.Code);
+            Assert.Equal(string.Empty, result.Error);
+            Assert.True(File.Exists(Path.Combine(directory, "0002-new-decision.md")));
+        }
+        finally
+        {
+            DeleteDirectory(root);
         }
     }
 

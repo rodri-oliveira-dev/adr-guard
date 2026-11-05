@@ -34,13 +34,15 @@ internal static class GeneratedAdrStructureGuard
             sectionName,
             content,
             rejectAllHeadings: true,
-            maximumRejectedHeadingLevel: 3);
+            maximumRejectedHeadingLevel: 3,
+            rejectUnclosedFence: true);
 
     private static void ValidateField(
         string fieldName,
         string? content,
         bool rejectAllHeadings = false,
-        int maximumRejectedHeadingLevel = 2)
+        int maximumRejectedHeadingLevel = 2,
+        bool rejectUnclosedFence = false)
     {
         if (string.IsNullOrEmpty(content))
         {
@@ -83,6 +85,12 @@ internal static class GeneratedAdrStructureGuard
             previousUnfencedLine = string.IsNullOrWhiteSpace(line)
                 ? null
                 : line;
+        }
+
+        if (rejectUnclosedFence && fenceTracker.IsInsideFence)
+        {
+            throw new InvalidOperationException(
+                $"Template content in the {fieldName} section must close every Markdown code fence.");
         }
     }
 
