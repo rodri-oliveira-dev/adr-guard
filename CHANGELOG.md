@@ -8,7 +8,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 No changes have been assigned to a later release.
 
-## [1.10.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0) — prepared 2026-11-05, not yet published
+## [1.10.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0) — 2026-11-05
 
 ### Added
 - Add the read-only `adr-guard doctor [repository]` command for ordered local diagnostics of the CLI, repository, strict configuration, ADR directory, .NET runtime, and optional Git availability, with actionable text and stable exit semantics.
@@ -21,10 +21,10 @@ No changes have been assigned to a later release.
 - Harden the container supply chain by using the official .NET Alpine build/runtime images, retaining bounded Git support and non-root execution while removing a vulnerable transitive Perl package chain.
 
 ### Compatibility and publication
-- CLI `1.9.0` remains the currently published package. CLI `1.10.0`, its coordinated containers, and the matching exact/moving Action tags are prepared but unavailable until the manual `Release` workflow succeeds after merge.
+- CLI `1.10.0` is published in the [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0) with coordinated container and GitHub Action support. Exact Action tag `v1.10.0` and moving major tag `v1` expose the read-only `drift` contract; older `v1.9.0` does not.
 - Preserve CLI exits `0`–`4`, existing JSON/SARIF schemas, deterministic ordering/fingerprints, and all pre-existing commands and arguments. `doctor` is additive.
-- MCP `1.0.1` and VS Code `1.1.1` are independently versioned release candidates and are not published by the CLI workflow.
-- Full candidate notes: [English](docs/releases/v1.10.0.md) · [Português](docs/releases/v1.10.0.pt-BR.md).
+- MCP `1.0.1` was released independently on 2026-11-05 in [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.1), preserving its seven read-only `stdio` tools and direct `AdrGuard.Core` dependency. VS Code `1.1.1` remains a separately versioned source candidate; neither component is published by the CLI release workflow.
+- Release notes: [English](docs/releases/v1.10.0.md) · [Português](docs/releases/v1.10.0.pt-BR.md).
 
 ## [1.9.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0) — 2026-10-20
 

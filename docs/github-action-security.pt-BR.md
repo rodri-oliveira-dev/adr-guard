@@ -1,6 +1,6 @@
 # Modelo de segurança da GitHub Action
 
-A GitHub Action reutilizável do ADR Guard mantém a validação determinística de ADRs como padrão, permite geração explícita do índice e expõe `review` assistido por IA somente como operação opt-in. O source de desenvolvimento atual também adapta `drift` somente leitura; esses inputs ainda não estão publicados em `@v1` nem em `v1.9.0`. A Action executa o container GHCR selecionado e não expõe o comando de IA `draft`.
+A GitHub Action reutilizável do ADR Guard mantém a validação determinística de ADRs como padrão, permite geração explícita do índice e expõe `review` assistido por IA somente como operação opt-in. O comando `drift` somente leitura está disponível na Action publicada `@v1.10.0` e na referência móvel `@v1` (atualmente em `v1.10.0`), mas não na versão anterior `@v1.9.0`. A Action executa o container GHCR selecionado e não expõe o comando de IA `draft`.
 
 ## Permissões mínimas
 
@@ -43,17 +43,17 @@ A Action inicia o container com as seguintes restrições:
 - filesystem raiz do container somente leitura;
 - todas as capabilities Linux removidas com `--cap-drop=ALL`;
 - elevação de privilégios bloqueada com `no-new-privileges`;
-- rede desabilitada com `--network=none` para `check`, `index`, `impact` e `drift` disponível apenas no source; somente `review` com provider usa rede de saída;
+- rede desabilitada com `--network=none` para `check`, `index`, `impact` e `drift` somente leitura; somente `review` com provider usa rede de saída;
 - sem modo `--privileged`;
 - sem encaminhamento implícito de variáveis de ambiente ou secrets; `review` pode encaminhar apenas a variável de credencial do provider selecionado.
 
 A imagem publicada declara um usuário não-root. O CI verifica os metadados da imagem publicada e rejeita usuário vazio, root ou UID 0.
 
-No `check`, `review`, `impact` e `drift` disponível apenas no source, todo o workspace do consumidor é montado como somente leitura. No `index`, o workspace continua somente leitura e apenas o diretório de ADR validado é sobreposto com uma montagem gravável. Em Linux, `index` usa UID/GID não-root do host para manter o ownership dos arquivos gerados. Um runner executado como root é rejeitado no `index`, em vez de executar o container como root.
+No `check`, `review`, `impact` e `drift` somente leitura, todo o workspace do consumidor é montado como somente leitura. No `index`, o workspace continua somente leitura e apenas o diretório de ADR validado é sobreposto com uma montagem gravável. Em Linux, `index` usa UID/GID não-root do host para manter o ownership dos arquivos gerados. Um runner executado como root é rejeitado no `index`, em vez de executar o container como root.
 
 ## Inputs e diagnósticos
 
-`check`, `index`, `review` explícito, `impact` e `drift` disponível apenas no source são aceitos. Os paths são resolvidos dentro de `GITHUB_WORKSPACE`, traversal e escapes por symlink são rejeitados, e os inputs são enviados como argumentos separados de processo, sem avaliação como fragmentos de shell. Drift aceita um arquivo de regras, um baseline existente opcional e no máximo 20 arquivos JSON explícitos de evidência; não expõe escrita/atualização de baseline nem execução de produtores. O review aceita somente `push`, `workflow_dispatch`, `schedule` e `pull_request` do mesmo repositório; todos os demais tipos de evento, incluindo `pull_request_target` e pull requests de fork, são rejeitados antes da execução do Docker/provider.
+`check`, `index`, `review` explícito, `impact` e `drift` somente leitura são aceitos. Os paths são resolvidos dentro de `GITHUB_WORKSPACE`, traversal e escapes por symlink são rejeitados, e os inputs são enviados como argumentos separados de processo, sem avaliação como fragmentos de shell. Drift aceita um arquivo de regras, um baseline existente opcional e no máximo 20 arquivos JSON explícitos de evidência; não expõe escrita/atualização de baseline nem execução de produtores. O review aceita somente `push`, `workflow_dispatch`, `schedule` e `pull_request` do mesmo repositório; todos os demais tipos de evento, incluindo `pull_request_target` e pull requests de fork, são rejeitados antes da execução do Docker/provider.
 
 A saída do CLI e do provider é tratada como não confiável. O log bruto é preservado para troubleshooting enquanto a interpretação de workflow commands do GitHub fica suspensa. Diagnósticos determinísticos `ADR001`–`ADR009`, com paths verificados, viram annotations de erro escapadas. Achados de IA viram annotations `warning` apenas quando a evidência pode ser associada a um arquivo local selecionado e verificado; a Action não inventa números de linha. O relatório não altera o exit code original do CLI.
 
@@ -77,4 +77,4 @@ O CI também verifica que a imagem SemVer publicada resolve para um repository d
 
 ## Pré-requisitos de runtime
 
-A composite Action exige runner Linux com daemon Docker funcional. `review`, `impact` e `drift` disponível apenas no source também exigem Python 3 para renderização limitada de `GITHUB_STEP_SUMMARY`. O contrato foi projetado para runners Ubuntu hospedados pelo GitHub e runners Linux compatíveis executados como usuário não-root. Windows, macOS, runners sem Docker, modos com reporting sem Python 3, exigência de containers privilegiados e execução como root para `index` não fazem parte do suporte.
+A composite Action exige runner Linux com daemon Docker funcional. `review`, `impact` e `drift` somente leitura também exigem Python 3 para renderização limitada de `GITHUB_STEP_SUMMARY`. O contrato foi projetado para runners Ubuntu hospedados pelo GitHub e runners Linux compatíveis executados como usuário não-root. Windows, macOS, runners sem Docker, modos com reporting sem Python 3, exigência de containers privilegiados e execução como root para `index` não fazem parte do suporte.
