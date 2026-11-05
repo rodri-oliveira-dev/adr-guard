@@ -4,7 +4,7 @@
 [![CLI NuGet](https://img.shields.io/nuget/v/RodriOliveira.AdrGuard.svg?label=CLI%20NuGet)](https://www.nuget.org/packages/RodriOliveira.AdrGuard)
 [![MCP NuGet](https://img.shields.io/nuget/v/RodriOliveira.AdrGuard.Mcp.svg?label=MCP%20NuGet)](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp)
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/rodrioliveira.adr-guard?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard)
-[![Release da CLI no GitHub](https://img.shields.io/github/v/release/rodri-oliveira-dev/adr-guard?filter=v*&sort=semver&label=release%20da%20CLI)](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0)
+[![Release da CLI no GitHub](https://img.shields.io/github/v/release/rodri-oliveira-dev/adr-guard?filter=v*&sort=semver&label=release%20da%20CLI)](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 [![License](https://img.shields.io/github/license/rodri-oliveira-dev/adr-guard)](LICENSE)
 
@@ -47,7 +47,7 @@ dotnet tool install --global RodriOliveira.AdrGuard
 adr-guard --version
 ```
 
-Atualize uma instalação com `dotnet tool update --global RodriOliveira.AdrGuard`. A CLI `1.9.0` está publicada no NuGet.org e possui uma [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0) independente. CLI `1.10.0`, MCP `1.0.1` e VS Code `1.1.1` estão preparados no código-fonte, mas ainda não foram publicados; as versões independentes atualmente públicas de MCP e VS Code continuam sendo `1.0.0` e `1.1.0`. Consulte a [matriz de compatibilidade](docs/compatibility.pt-BR.md) para o snapshot verificado por canal, sem inferir publicação a partir de metadados do código ou de uma tag.
+Atualize uma instalação com `dotnet tool update --global RodriOliveira.AdrGuard`. A CLI `1.10.0` está publicada no NuGet.org e possui uma [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0) independente. CLI `1.11.0`, MCP `1.0.1` e VS Code `1.1.1` estão preparados no código-fonte, mas ainda não foram publicados; as versões independentes atualmente públicas de MCP e VS Code continuam sendo `1.0.0` e `1.1.0`. Consulte a [matriz de compatibilidade](docs/compatibility.pt-BR.md) para o snapshot verificado por canal, sem inferir publicação a partir de metadados do código ou de uma tag.
 
 ## Início rápido
 
@@ -67,7 +67,7 @@ adr-guard index docs/adr
 
 `check` valida o conjunto. `index` valida novamente e cria ou atualiza `docs/adr/README.md`; `new` não atualiza o índice automaticamente. Leia o [tutorial da primeira ADR](docs/guides/getting-started.pt-BR.md) para o fluxo completo.
 
-A candidata preparada da CLI 1.10.0 inclui o comando somente leitura `adr-guard doctor [repositório]` para diagnóstico local da CLI, repositório, configuração, diretório de ADRs, .NET e Git opcional. Ele nunca aplica correções nem acessa a rede. Consulte a [referência da CLI](docs/cli-reference.pt-BR.md#diagnosticar-o-ambiente-local); o comando não está incluído no pacote atualmente publicado da CLI 1.9.0.
+A CLI 1.10.0 publicada inclui o comando somente leitura `adr-guard doctor [repositório]` para diagnóstico local da CLI, repositório, configuração, diretório de ADRs, .NET e Git opcional. Ele nunca aplica correções nem acessa a rede. Consulte a [referência da CLI](docs/cli-reference.pt-BR.md#diagnosticar-o-ambiente-local).
 
 ## Escolha a estrutura certa
 
@@ -76,7 +76,7 @@ A candidata preparada da CLI 1.10.0 inclui o comando somente leitura `adr-guard 
 | Minimal | Contexto, escolha, justificativa e consequências centrais bastam | Gerado por `new`/`draft`; validação canônica |
 | Extended | Opções, direcionadores, riscos ou impacto entre equipes precisam estar explícitos | Gerado por `new`/`draft`; validação canônica; **não é MADR** |
 | Custom | A equipe precisa de perguntas ou seções canônicas adicionais | Um arquivo local estrito via `--template-file`; não aceita Markdown arbitrário |
-| MADR 4.0 | A equipe escolhe deliberadamente a estrutura externa MADR | Geração nativa por `new --adr-format madr-4` nesta branch de desenvolvimento; o canônico continua padrão; ainda não publicado |
+| MADR 4.0 | A equipe escolhe deliberadamente a estrutura externa MADR | Geração nativa por `new --adr-format madr-4` na candidata preparada da CLI 1.11.0; o canônico continua padrão; ainda não publicada |
 
 Consulte a [matriz de seleção](docs/decision-design/choosing-a-template.pt-BR.md), os [exemplos completos](docs/examples/README.pt-BR.md), o [contrato Custom](docs/custom-templates.pt-BR.md) e o [guia MADR](docs/madr-4.pt-BR.md).
 
@@ -101,9 +101,9 @@ Mantenedores podem habilitar [verificações SonarQube Cloud](docs/sonarqube-clo
 
 ### Arquitetura interna de runtime
 
-A CLI e o servidor MCP são executáveis separados que referenciam a mesma biblioteca de classes interna `AdrGuard.Core`. O Core contém o comportamento determinístico compartilhado de parsing, validação, configuração, inventário Git, impacto e drift; ele não depende de nenhum executável e não é um produto ou pacote NuGet independente. Os pacotes da CLI `1.9.0` incluem CLI e Core. A candidata MCP `1.0.1` no código também empacota MCP e Core sem o executável da CLI, enquanto o MCP `1.0.0` já publicado preserva seu artefato original. VS Code e GitHub Action continuam sendo adaptadores do contrato da CLI e não reimplementam regras do Core. Consulte a [ADR 0008](docs/adr/0008-extract-an-internal-shared-core.md) e a [matriz de compatibilidade](docs/compatibility.pt-BR.md).
+A CLI e o servidor MCP são executáveis separados que referenciam a mesma biblioteca de classes interna `AdrGuard.Core`. O Core contém o comportamento determinístico compartilhado de parsing, validação, configuração, inventário Git, impacto e drift; ele não depende de nenhum executável e não é um produto ou pacote NuGet independente. Os pacotes da CLI `1.10.0` publicada e da candidata `1.11.0` incluem CLI e Core. A candidata MCP `1.0.1` no código também empacota MCP e Core sem o executável da CLI, enquanto o MCP `1.0.0` já publicado preserva seu artefato original. VS Code e GitHub Action continuam sendo adaptadores do contrato da CLI e não reimplementam regras do Core. Consulte a [ADR 0008](docs/adr/0008-extract-an-internal-shared-core.md) e a [matriz de compatibilidade](docs/compatibility.pt-BR.md).
 
-Situação das releases (verificada em 03/11/2026): a CLI `1.9.0` está publicada no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.9.0) e em sua [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0). A extensão VS Code `1.1.0` está publicada no [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard). O MCP `1.0.0` está publicado de forma independente no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), em sua [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0) e no MCP Registry; a versão-fonte `1.0.1` não está publicada. A tag de compatibilidade `v1` da Action aponta para o mesmo commit da release exata `v1.9.0`. Consulte a [matriz de compatibilidade](docs/compatibility.pt-BR.md) para os limites exatos entre componentes.
+Situação das releases (verificada em 05/11/2026): a CLI `1.10.0` está publicada no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.10.0) e em sua [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0). A extensão VS Code `1.1.0` está publicada no [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard). O MCP `1.0.0` está publicado de forma independente no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), em sua [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0) e no MCP Registry; a versão-fonte `1.0.1` não está publicada. A tag de compatibilidade `v1` da Action aponta para o mesmo commit da release exata `v1.10.0`. Consulte a [matriz de compatibilidade](docs/compatibility.pt-BR.md) para os limites exatos entre componentes.
 
 A [extensão ADR Guard para VS Code publicada](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) inclui listagem visual de ADRs, criação orientada, edição e configurações. Essas telas exigem os contratos de formulário da CLI 1.7.0. As versões da extensão e da CLI permanecem independentes.
 
@@ -113,7 +113,7 @@ Consulte o [código-fonte e guia de instalação da extensão](extensions/vscode
 
 A criação e a edição estruturadas de ADRs estão implementadas para clientes visuais confiáveis, como a extensão VS Code. Uma CLI compatível da linha 1.7.0 expõe `new <diretório> --form` e `edit <arquivo> --form` como contratos JSON versionados por stdin/stdout; eles não são formulários interativos do terminal. O fluxo tradicional `new --title` continua sendo o caminho voltado a pessoas na linha de comando, inclusive para templates personalizados com restrições. Consulte o [guia de criação](docs/creation.pt-BR.md), a [referência dos contratos da CLI](docs/cli-reference.pt-BR.md) e o [guia da extensão](extensions/vscode/README.pt-BR.md). Confirme que as versões da CLI e da extensão que oferecem os formulários visuais foram publicadas antes de depender delas.
 
-A [Action no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) e a [extensão no Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) estão publicadas. A tag móvel `@v1` está publicada e suporta `check`, `index`, `review` opcional desde a v1.1.6 e `impact` opcional desde a v1.5.0. O código-fonte de desenvolvimento atual adiciona `drift` como adapter somente leitura da Action composta, mas esse contrato de inputs ainda não está publicado em `@v1` nem em `v1.9.0`; a linha publicada ainda exige drift pela CLI/container direto. A extensão não inclui a CLI.
+A [Action no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) e a [extensão no Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) estão publicadas. A tag móvel `@v1` está publicada, aponta para a v1.10.0 e suporta `check`, `index`, `review`, `impact` opcionais e `drift` somente leitura. A extensão não inclui a CLI.
 
 A release independente MCP `1.0.0` pode ser instalada com `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0`. Seu backfill autenticado para GitHub Packages continua sendo uma etapa manual de distribuição; NuGet.org é a fonte recomendada. Consulte a [configuração do MCP](docs/mcp-configuration.pt-BR.md), as [ferramentas disponíveis](docs/mcp-tools.pt-BR.md), a [integração com VS Code](extensions/vscode/README.pt-BR.md#integração-mcp) e [segurança e permissões](docs/mcp-security.pt-BR.md).
 

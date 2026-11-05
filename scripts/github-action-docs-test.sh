@@ -126,14 +126,14 @@ for drift_document in "${GUIDE_EN}" "${GUIDE_PT}" "${EXAMPLE_DRIFT}"; do
   grep -Fq 'drift-rules: .adrguard-fitness.json' "${drift_document}"
   grep -Fq 'drift-policy: enforce' "${drift_document}"
   grep -Fq 'contents: read' "${drift_document}"
-  grep -Fq 'version: 1.9.0' "${drift_document}"
+  grep -Fq 'version: 1.10.0' "${drift_document}"
 done
 grep -Fiq 'development' "${GUIDE_EN}"
 grep -Fiq 'desenvolvimento' "${GUIDE_PT}"
 action_row_en="$(grep -F '| GitHub Action |' "${COMPAT_EN}")"
 action_row_pt="$(grep -F '| GitHub Action |' "${COMPAT_PT}")"
-grep -Fq '**Not published:** `v1.10.0`, the updated moving `v1`, and `drift` inputs' <<< "${action_row_en}"
-grep -Fq '**Não publicado:** `v1.10.0`, a atualização de `v1` e os inputs de `drift`' <<< "${action_row_pt}"
+grep -Fq '**Published:** current `v1` and `v1.10.0`' <<< "${action_row_en}"
+grep -Fq '**Publicado:** `v1` e `v1.10.0` atuais' <<< "${action_row_pt}"
 if grep -Eiq 'pull_request_target|OPENAI_API_KEY|ANTHROPIC_API_KEY|GEMINI_API_KEY|secrets\.|write-baseline|update-baseline' "${EXAMPLE_DRIFT}"; then
   echo "Drift example must remain read-only, unprivileged, and secretless." >&2
   exit 1

@@ -22,7 +22,7 @@ jobs:
       - name: Verify ADR-backed architecture rules
         uses: rodri-oliveira-dev/adr-guard@<commit-sha>
         with:
-          version: 1.9.0
+          version: 1.10.0
           command: drift
           drift-rules: .adrguard-fitness.json
           drift-policy: enforce

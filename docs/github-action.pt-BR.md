@@ -2,7 +2,7 @@
 
 > **Status da publicação:** a Action reutilizável está publicada, e a tag de compatibilidade `v1` está publicada e é móvel. A linha pública `v1` suporta `check`, `index` e `review` opt-in desde a `v1.1.6`; `new` e `draft` continuam fluxos exclusivos de CLI/container. A [listagem no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) foi acessada de forma independente e sem autenticação em 09/10/2026.
 
-> **Status das releases de impact e drift:** os inputs de `impact` estão disponíveis no runtime público coordenado v1.5.0 / `@v1`. Os inputs de `drift` estão preparados para a release coordenada CLI/Action `1.10.0`, mas não estão disponíveis pela Action `@v1` atualmente publicada nem pela tag exata `v1.9.0`. Após o merge, o workflow manual **Release** precisa concluir com `version=1.10.0`, e as tags exata e móvel devem ser verificadas antes de tratar esse recurso como contrato público da Action.
+> **Status das releases de impact e drift:** os inputs de `impact` e `drift` somente leitura estão disponíveis no runtime público coordenado `v1.10.0` / `@v1`. A CLI `1.11.0` é uma candidata não publicada; a geração MADR nativa é um comando da CLI e não é exposta pela Action.
 
 A composite Action do ADR Guard executa o container publicado selecionado do ADR Guard. O consumidor não precisa do .NET SDK. É necessário um runner Linux com Docker e checkout prévio do repositório; `review`, `impact` e `drift` disponível apenas no source também exigem Python 3 no runner para renderização limitada de summaries.
 
@@ -73,7 +73,7 @@ steps:
   - name: Verificar regras arquiteturais ligadas a ADRs
     uses: rodri-oliveira-dev/adr-guard@<commit-sha>
     with:
-      version: 1.9.0
+      version: 1.10.0
       command: drift
       drift-rules: .adrguard-fitness.json
       drift-policy: enforce

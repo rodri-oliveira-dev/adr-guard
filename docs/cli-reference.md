@@ -2,7 +2,7 @@
 
 > Availability: `init`, `.adrguard.yml`, and structured `check` output were published in ADR Guard v1.2.0. MADR 4.0 format selection was published in v1.3.0. See [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) for exact artifacts.
 
-> Architecture impact analysis was introduced in v1.5.0, architectural drift in v1.6.0, and visual form contracts in v1.7.0. CLI 1.9.0 is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.9.0) and in its [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0).
+> Architecture impact analysis was introduced in v1.5.0, architectural drift in v1.6.0, and visual form contracts in v1.7.0. CLI 1.10.0 is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.10.0) and in its [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0). Native MADR generation is prepared for CLI 1.11.0 but is not yet published.
 
 > The schema `1.0` visual-form contracts require CLI 1.7.0 or newer and a separately versioned compatible VS Code extension when used visually. CLI, extension, and MCP versions are independent.
 
@@ -40,7 +40,7 @@ adr-guard init [repository] [--adr-directory <path>]
 
 ## Diagnose a local environment
 
-> Release status: `doctor` is included in the prepared CLI 1.10.0 candidate but is not part of the currently published CLI 1.9.0 artifacts. Do not depend on it from public automation until 1.10.0 is verified in the intended registry.
+> Release status: `doctor` is published in CLI 1.10.0.
 
 ```text
 adr-guard doctor [repository]
@@ -102,7 +102,7 @@ The native `minimal` and `extended` canonical and MADR templates can be mapped t
 
 The schema `1.0` MADR form intentionally omits distinct fields for `Confirmation` and `Pros and Cons of the Options`; traditional extended generation still includes editable guidance for those sections. Adding new field IDs that existing clients reject would require a new form schema version rather than a silent `1.0` change.
 
-> Availability: native `new --adr-format madr-4` generation is unreleased and is not included in the published CLI 1.9.0.
+> Availability: native `new --adr-format madr-4` generation is prepared for CLI 1.11.0 but is not included in the published CLI 1.10.0.
 
 Traditional creation uses the same format selection:
 

@@ -9,7 +9,7 @@ Escolha a opção mais leve que torne a decisão e seus trade-offs compreensíve
 | **Minimal** | Escolha focada, de complexidade baixa ou moderada, com justificativa clara | Menor cerimônia; o autor precisa incluir custos e justificativa nas seções centrais | Gerado por `new`/`draft` com `--template minimal`; validado pelo modo canônico padrão |
 | **Extended** | Escolha de maior impacto, controversa, entre equipes ou com risco operacional | Direcionadores, opções, justificativa, consequências positivas/negativas, riscos e referências explícitos | Gerado por `new`/`draft` com `--template extended`; validado pelo modo canônico; não é MADR |
 | **Custom** | A equipe precisa de seções canônicas extras ou perguntas próprias | Orientação flexível, mas com restrições estruturais e de placeholders; manutenção da equipe | Um arquivo local via `--template-file`; o resultado continua canônico e começa `Proposed` |
-| **MADR 4.0** | Equipes que já usam MADR ou querem sua estrutura de opções e resultado | Formato externo com direcionadores e análise de opções; metadata e seções diferem do canônico | Geração/validação opcional com `new --adr-format madr-4` nesta branch de desenvolvimento; ainda não publicada |
+| **MADR 4.0** | Equipes que já usam MADR ou querem sua estrutura de opções e resultado | Formato externo com direcionadores e análise de opções; metadata e seções diferem do canônico | Geração/validação opcional com `new --adr-format madr-4` na candidata preparada da CLI 1.11.0; ainda não publicada |
 
 ## Heurísticas de seleção
 

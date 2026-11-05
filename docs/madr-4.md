@@ -2,7 +2,7 @@
 
 > Availability: MADR 4.0 validation is published in [ADR Guard v1.3.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0) and remains opt-in.
 
-> Development status: native MADR generation is implemented on this branch but is not available in published packages or images until a later release completes its publication workflow.
+> Release status: native MADR generation is prepared for CLI 1.11.0 but is not available in published packages or images until that release completes its publication workflow. CLI 1.10.0 remains the published baseline.
 
 ADR Guard implements an explicit subset aligned with the official [MADR 4.0.0 templates](https://github.com/adr/madr/tree/4.0.0/template). It never guesses a format:
 

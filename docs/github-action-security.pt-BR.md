@@ -1,6 +1,6 @@
 # Modelo de segurança da GitHub Action
 
-A GitHub Action reutilizável do ADR Guard mantém a validação determinística de ADRs como padrão, permite geração explícita do índice e expõe `review` assistido por IA somente como operação opt-in. O source de desenvolvimento atual também adapta `drift` somente leitura; esses inputs ainda não estão publicados em `@v1` nem em `v1.9.0`. A Action executa o container GHCR selecionado e não expõe o comando de IA `draft`.
+A GitHub Action reutilizável do ADR Guard mantém a validação determinística de ADRs como padrão, permite geração explícita do índice e expõe `review` assistido por IA somente como operação opt-in. `drift` somente leitura está publicado em `@v1` e na versão exata `v1.10.0`. A Action executa o container GHCR selecionado e não expõe `new`, geração MADR nativa nem o comando de IA `draft`.
 
 ## Permissões mínimas
 
