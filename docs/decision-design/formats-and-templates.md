@@ -20,7 +20,7 @@ The `new` command can generate canonical records from:
 
 Extended is an ADR Guard canonical template with additional decision drivers, options, rationale, consequences, risks, and references. **It is not MADR.** Custom templates remain canonical and must preserve the required headings, initial `Proposed` status, and strict placeholder contract. Arbitrary Markdown is not accepted.
 
-**MADR 4.0** is a separate, opt-in validation format selected with `--adr-format madr-4`. ADR Guard validates an explicit subset of the external structure. The CLI does not offer an equivalent `new --template madr-4` generator; author or obtain a MADR record separately, then validate it in MADR mode.
+**MADR 4.0** is a separate, opt-in format selected with `--adr-format madr-4`. ADR Guard validates an explicit subset of the external structure. Native generation through `new --adr-format madr-4` is implemented on the Phase 3 development branch with `minimal` and `extended` starting points; it is not available in published packages or images yet. This is format selection, not a `--template madr-4` alias, and canonical remains the default. Custom templates remain canonical-only.
 
 ## Educational approaches versus product contracts
 

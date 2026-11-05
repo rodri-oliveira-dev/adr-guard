@@ -20,7 +20,7 @@ O comando `new` pode gerar registros canônicos a partir de:
 
 Extended é um template canônico do ADR Guard com direcionadores, opções, justificativa, consequências, riscos e referências adicionais. **Ele não é MADR.** Templates Custom continuam canônicos e precisam preservar títulos obrigatórios, status inicial `Proposed` e contrato estrito de placeholders. Markdown arbitrário não é aceito.
 
-**MADR 4.0** é um formato de validação separado e opcional, selecionado com `--adr-format madr-4`. O ADR Guard valida um subconjunto explícito da estrutura externa. Não existe um gerador equivalente `new --template madr-4`; escreva ou obtenha a ADR MADR separadamente e valide-a nesse modo.
+**MADR 4.0** é um formato separado e opcional, selecionado com `--adr-format madr-4`. O ADR Guard valida um subconjunto explícito da estrutura externa. A geração nativa por `new --adr-format madr-4` está implementada na branch de desenvolvimento da Fase 3 com pontos de partida `minimal` e `extended`; ela ainda não está disponível em pacotes ou imagens publicados. Trata-se de seleção de formato, não de um alias `--template madr-4`, e o canônico continua sendo o padrão. Templates personalizados permanecem exclusivamente canônicos.
 
 ## Abordagens educacionais e contratos do produto
 

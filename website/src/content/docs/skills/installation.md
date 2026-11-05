@@ -87,6 +87,6 @@ The destination ADR directory must already exist. On approval, the agent can use
 | Agent recognizes a skill, but `adr-guard` is unavailable | Install or restore the independent .NET Tool and verify `adr-guard --version`. |
 | CLI rejects the document | Check the repository's `.adrguard.yml`, required canonical headings, format and real diagnostics; see [validation](../catalog/#adr-guard-validate). |
 | AI review needs credentials | Provide explicit provider/model and authorization for transmitted content. There is **no** automatic provider selection. |
-| MADR 4.0 document does not match a generated template | MADR is separately authored and validated with `--adr-format madr-4`; `new` does not generate MADR files. |
+| MADR 4.0 document does not match the selected format | Published CLIs validate MADR with `--adr-format madr-4`. Native `new --adr-format madr-4` generation exists only in the Phase 3 development source until a later release; verify the installed command's `--help` instead of inferring availability. |
 
 Next: [browse the catalog](../catalog/), [follow task examples](../examples/) or [review trust boundaries](../security-and-governance/).
