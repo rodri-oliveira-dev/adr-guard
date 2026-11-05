@@ -1,0 +1,69 @@
+name: Documentation improvement
+description: Report missing, outdated, confusing, or incorrect documentation.
+title: "[Docs]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ADR Guard documentation is written in English by default, with selected Brazilian Portuguese translations.
+        Report the affected page and explain the documentation gap. Please avoid posting private ADR content.
+  - type: checkboxes
+    id: existing
+    attributes:
+      label: Existing reports
+      options:
+        - label: I searched existing issues for this documentation problem.
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Documentation area
+      options:
+        - README / project overview
+        - Documentation portal / website
+        - CLI reference and guides
+        - GitHub Action / CI
+        - MCP Server
+        - VS Code Extension
+        - Agent Skills
+        - Examples / tutorials
+        - Translation / localization
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: location
+    attributes:
+      label: Page or file
+      description: Link to the page or provide its repository path.
+      placeholder: "docs/cli-reference.md or https://..."
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Affected language
+      options:
+        - English
+        - Brazilian Portuguese (pt-BR)
+        - Multiple languages
+        - Not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What needs improvement?
+      description: Describe the incorrect, unclear, missing, or outdated content.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Suggested correction
+      description: Explain the desired wording, example, or documentation structure.
+  - type: textarea
+    id: references
+    attributes:
+      label: References or additional context
+      description: Links to examples, relevant releases, screenshots, or related issues.
