@@ -205,6 +205,14 @@ jobs:
           test -s docs/releases/v1.9.0.md
           test -s docs/releases/v1.9.0.pt-BR.md
 
+      - name: Verify v1.11.0 release notes before packaging
+        if: inputs.version == '1.11.0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s docs/releases/v1.11.0.md
+          test -s docs/releases/v1.11.0.pt-BR.md
+
       - name: Validate resolved MSBuild version
         shell: bash
         env:
@@ -722,6 +730,15 @@ jobs:
 
             rendered_notes="$RUNNER_TEMP/v1.10.0-release-notes.md"
             bash scripts/render-release-notes.sh docs/releases/v1.10.0.md "$rendered_notes"
+            release_notes=(--notes-file "$rendered_notes")
+          elif [[ "${RELEASE_TAG}" == v1.11.0 ]]; then
+            if [[ ! -s docs/releases/v1.11.0.md ]]; then
+              echo "::error::Curated v1.11.0 release notes are missing from the validated commit."
+              exit 1
+            fi
+
+            rendered_notes="$RUNNER_TEMP/v1.11.0-release-notes.md"
+            bash scripts/render-release-notes.sh docs/releases/v1.11.0.md "$rendered_notes"
             release_notes=(--notes-file "$rendered_notes")
           fi
 

@@ -9,7 +9,7 @@
     <ToolCommandName>adr-guard</ToolCommandName>
 
     <PackageId>RodriOliveira.AdrGuard</PackageId>
-    <VersionPrefix>1.10.0</VersionPrefix>
+    <VersionPrefix>1.11.0</VersionPrefix>
     <Title>ADR Guard - Architecture Decision Records Validator</Title>
     <Authors>Rodrigo de Oliveira</Authors>
     <Description>Validate, index, create, draft, review, analyze impact, and verify ADR-backed architectural drift from the command line. ADR Guard provides deterministic Markdown checks, explicit mappings, bounded fitness evidence, offline ADR generation, and optional human-reviewed AI assistance.</Description>
@@ -18,10 +18,10 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon-nuget.png</PackageIcon>
-    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '1.10.0'">Adds the read-only adr-guard doctor command for local environment diagnostics.
-Integrates deterministic architectural drift verification with the GitHub Action while preserving CLI schemas, exit codes, and human-owned approval.
-Includes developer-experience, onboarding, maintainability, security, reliability, and test improvements from the Phase 1 and Phase 2 work.
-Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0</PackageReleaseNotes>
+    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '1.11.0'">Adds native, deterministic MADR 4.0 generation to adr-guard new with minimal and extended templates.
+Supports explicit or configured format selection, side-effect-free preview and dry-run, and the existing schema 1.0 structured form contract.
+Preserves canonical generation by default, atomic writes, concurrent ID allocation, and human-owned ADR approval.
+Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.11.0</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/rodri-oliveira-dev/adr-guard</PackageProjectUrl>
     <RepositoryUrl>https://github.com/rodri-oliveira-dev/adr-guard</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
