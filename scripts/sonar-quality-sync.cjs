@@ -143,39 +143,75 @@ module.exports = async function syncSonar({github, context, core}) {
   const repository = await github.rest.repos.get({ owner, repo });
   const defaultBranch = repository.data.default_branch;
   
+  // Reconcile only after a complete, explicitly scoped scan of the default
+  // branch. Incomplete or malformed Sonar responses must never close issues.
+  if (typeof defaultBranch !== "string" || !defaultBranch) {
+    throw new Error("Cannot determine the GitHub default branch for Sonar reconciliation.");
+  }
+
   const sonarIssues = [];
+  const sonarIssueKeys = new Set();
   const rules = new Map();
   const pageSize = 500;
-  
+  let expectedTotal = null;
+
   for (let page = 1; page <= 100; page += 1) {
     const response = await sonarGet("/api/issues/search", {
       componentKeys: projectKey,
+      branch: defaultBranch,
       issueStatuses: "OPEN",
       impactSeverities: "BLOCKER,HIGH",
       additionalFields: "_all",
       ps: pageSize,
       p: page,
     });
-  
-    const pageIssues = response.issues ?? [];
-    sonarIssues.push(...pageIssues);
-  
+
+    const total = response?.paging?.total;
+    if (
+      !Array.isArray(response?.issues) ||
+      !Number.isSafeInteger(total) ||
+      total < 0 ||
+      total > 100 * pageSize ||
+      response.paging.pageIndex !== page ||
+      response.paging.pageSize !== pageSize ||
+      (expectedTotal !== null && expectedTotal !== total)
+    ) {
+      throw new Error("Sonar issue search returned incomplete or inconsistent paging metadata.");
+    }
+
+    expectedTotal = total;
+    const expectedCount = Math.min(pageSize, total - sonarIssues.length);
+    if (response.issues.length !== expectedCount) {
+      throw new Error("Sonar issue search returned an incomplete page; no issues were changed.");
+    }
+
+    for (const issue of response.issues) {
+      if (
+        typeof issue?.key !== "string" ||
+        !issue.key ||
+        sonarIssueKeys.has(issue.key)
+      ) {
+        throw new Error("Sonar issue search returned a missing or duplicate finding key.");
+      }
+      sonarIssueKeys.add(issue.key);
+      sonarIssues.push(issue);
+    }
+
     for (const rule of response.rules ?? []) {
       if (rule.key) {
         rules.set(rule.key, rule);
       }
     }
-  
-    const total = response.paging?.total ?? response.total ?? sonarIssues.length;
-    if (sonarIssues.length >= total || pageIssues.length < pageSize) {
+
+    if (sonarIssues.length === total) {
       break;
     }
-  
+
     if (page === 100) {
       throw new Error("Sonar issue pagination exceeded the 100-page safety limit.");
     }
   }
-  
+
   const findings = sonarIssues.map((issue) => {
     const qualifyingImpacts = (issue.impacts ?? []).filter((impact) =>
       trackedSeverities.has(impact.severity),
@@ -225,6 +261,7 @@ module.exports = async function syncSonar({github, context, core}) {
   let created = 0;
   let updated = 0;
   let reopened = 0;
+  let closed = 0;
   let unchanged = 0;
   
   for (const { issue, qualifyingImpacts } of findings) {
@@ -458,8 +495,36 @@ module.exports = async function syncSonar({github, context, core}) {
     }
   }
   
+  // Only bot-authored issues with valid managed markers may be closed.
+  // Disappearing from this result does not prove the code defect was fixed.
+  for (const [sonarKey, existing] of existingBySonarKey) {
+    if (sonarIssueKeys.has(sonarKey) || existing.state !== "open") {
+      continue;
+    }
+
+    await github.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: existing.number,
+      body:
+        "Automatic Sonar reconciliation: this finding is no longer returned " +
+        "as **OPEN** with **HIGH/BLOCKER** impact on the " +
+        markdownInline(defaultBranch) + " branch. " +
+        "Closing this managed issue; if the same Sonar key qualifies again, " +
+        "the synchronizer will reopen it. This does not independently " +
+        "establish that the code defect was fixed.",
+    });
+    await github.rest.issues.update({
+      owner,
+      repo,
+      issue_number: existing.number,
+      state: "closed",
+    });
+    closed += 1;
+  }
+
   core.info(
-    `Sonar sync complete: ${findings.length} tracked finding(s), ${created} created, ${updated} updated, ${reopened} reopened, ${unchanged} unchanged.`,
+    `Sonar sync complete: ${findings.length} tracked finding(s), ${created} created, ${updated} updated, ${reopened} reopened, ${closed} closed, ${unchanged} unchanged.`,
   );
   
   await core.summary
@@ -473,6 +538,7 @@ module.exports = async function syncSonar({github, context, core}) {
       ["Created", String(created)],
       ["Updated", String(updated)],
       ["Reopened", String(reopened)],
+      ["Closed", String(closed)],
       ["Unchanged", String(unchanged)],
     ])
     .write();
