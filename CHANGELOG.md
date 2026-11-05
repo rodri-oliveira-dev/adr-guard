@@ -6,9 +6,25 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
-- Add source-only, read-only GitHub Action support for `drift` with explicit rules, policy, existing baseline, and bounded evidence inputs; preserve CLI pass/violation/unknown exits and render a bounded summary without duplicating policy logic. This Action contract is not yet published on `@v1` or an exact release tag.
-- Add the source-only `adr-guard doctor [repository]` command for ordered, read-only local diagnostics of the CLI, repository, strict configuration, ADR directory, .NET runtime, and optional Git availability, with actionable text and stable exit semantics. It is not yet part of a published artifact.
-- Harden the container supply chain by moving the pinned build and runtime bases to the official .NET Alpine variants, retaining the bounded Git dependency and non-root execution while removing a vulnerable transitive Perl package chain.
+No changes have been assigned to a later release.
+
+## [1.10.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0) — prepared 2026-11-05, not yet published
+
+### Added
+- Add the read-only `adr-guard doctor [repository]` command for ordered local diagnostics of the CLI, repository, strict configuration, ADR directory, .NET runtime, and optional Git availability, with actionable text and stable exit semantics.
+- Add read-only GitHub Action support for `drift` with explicit rules, policy, existing baseline, and bounded evidence inputs; preserve CLI pass/violation/unknown exits and render a bounded summary without duplicating policy logic.
+
+### Changed
+- Consolidate command argument parsing, shared filesystem/process boundaries, and maintenance seams from Phases 1 and 2 without changing the established CLI command, schema, or exit-code contracts.
+- Improve onboarding and developer diagnostics while retaining deterministic validation, human-owned ADR approval, and fail-closed handling of incomplete evidence.
+- Reduce cognitive complexity in CLI, Core, MCP, and VS Code adapters and expand regression coverage for the affected behavior.
+- Harden the container supply chain by using the official .NET Alpine build/runtime images, retaining bounded Git support and non-root execution while removing a vulnerable transitive Perl package chain.
+
+### Compatibility and publication
+- CLI `1.9.0` remains the currently published package. CLI `1.10.0`, its coordinated containers, and the matching exact/moving Action tags are prepared but unavailable until the manual `Release` workflow succeeds after merge.
+- Preserve CLI exits `0`–`4`, existing JSON/SARIF schemas, deterministic ordering/fingerprints, and all pre-existing commands and arguments. `doctor` is additive.
+- MCP `1.0.1` and VS Code `1.1.1` are independently versioned release candidates and are not published by the CLI workflow.
+- Full candidate notes: [English](docs/releases/v1.10.0.md) · [Português](docs/releases/v1.10.0.pt-BR.md).
 
 ## [1.9.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0) — 2026-10-20
 

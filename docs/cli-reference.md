@@ -40,7 +40,7 @@ adr-guard init [repository] [--adr-directory <path>]
 
 ## Diagnose a local environment
 
-> Source availability: `doctor` is implemented on the current development branch and is not part of the published CLI 1.9.0 artifacts described above. Verify a later release before depending on it from automation.
+> Release status: `doctor` is included in the prepared CLI 1.10.0 candidate but is not part of the currently published CLI 1.9.0 artifacts. Do not depend on it from public automation until 1.10.0 is verified in the intended registry.
 
 ```text
 adr-guard doctor [repository]

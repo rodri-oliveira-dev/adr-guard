@@ -2,6 +2,14 @@
 
 All notable changes to ADR Guard for VS Code are documented here. Extension versions are independent from ADR Guard CLI versions.
 
+## 1.1.1 — prepared 2026-11-05, not yet published
+
+- Prepare a maintenance patch over the published 1.1.0 extension with safer executable/workspace path handling, clearer bounded UI messages, and reduced adapter complexity.
+- Retain VS Code `1.101.0+`, schema `1.0` visual create/edit contracts, all existing commands/settings, and the optional default-off MCP provider.
+- Support the separately installed CLI 1.10.0 while preserving capability detection and fallback behavior for older compatible CLIs.
+- Keep MCP optional and separately installed; MCP 1.0.1 remains independent and is not bundled in the VSIX.
+- The repository workflow validates and packages `adr-guard-1.1.1.vsix` only. Marketplace publication remains a separate, explicitly authorized manual step.
+
 ## 1.1.0 — 2026-10-20
 
 - Navigate Problems diagnostics to optional CLI-provided line and column locations, while retaining the document-start fallback for older CLIs and file-only findings.

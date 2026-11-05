@@ -3,7 +3,7 @@
 [English](mcp-v1.0.1.md)
 
 <!-- release-candidate-only:start -->
-O ADR Guard MCP `1.0.1` está preparado no código-fonte, mas, em 20/10/2026, **não está publicado** no NuGet.org, em GitHub Releases, no GitHub Packages nem no MCP Registry. A release MCP pública atual continua sendo a `1.0.0`. Esta candidata patch altera a composição interna e corrige o tratamento de plataforma, preservando todos os contratos públicos do MCP.
+O ADR Guard MCP `1.0.1` está preparado no código-fonte, mas, em 05/11/2026, **não está publicado** no NuGet.org, em GitHub Releases, no GitHub Packages nem no MCP Registry. A release MCP pública atual continua sendo a `1.0.0`. Esta candidata patch altera a composição interna e corrige o tratamento de plataforma, preservando todos os contratos públicos do MCP.
 <!-- release-candidate-only:end -->
 
 ## Principais mudanças
@@ -24,7 +24,7 @@ O ADR Guard MCP `1.0.1` está preparado no código-fonte, mas, em 20/10/2026, **
 - Exige .NET 10 e um cliente MCP local compatível com `stdio`.
 - Nomes das ferramentas, argumentos de inicialização, schema `1.0`, campos estruturados, limites, semântica de erros, transporte e anotações somente leitura permanecem iguais à versão `1.0.0`.
 - Git continua opcional e é usado somente por `analyze_impact` e pelos metadados associados a commit em `verify_architecture`.
-- O servidor independe da CLI e da extensão VS Code. O VS Code `1.1.0` pode registrá-lo quando a integração MCP é habilitada explicitamente e um caminho separado para o executável é configurado.
+- O servidor independe da CLI e da extensão VS Code. O VS Code `1.1.0` publicado e a candidata `1.1.1` podem registrá-lo quando a integração MCP é habilitada explicitamente e um caminho separado para o executável é configurado.
 
 ## Mudanças de comportamento
 

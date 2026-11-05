@@ -3,7 +3,7 @@
 [Português (Brasil)](mcp-v1.0.1.pt-BR.md)
 
 <!-- release-candidate-only:start -->
-ADR Guard MCP `1.0.1` is prepared in source control but, as of 2026-10-20, is **not published** on NuGet.org, GitHub Releases, GitHub Packages, or the MCP Registry. The current public MCP release remains `1.0.0`. This patch candidate changes internal composition and fixes platform handling while preserving every public MCP contract.
+ADR Guard MCP `1.0.1` is prepared in source control but, as of 2026-11-05, is **not published** on NuGet.org, GitHub Releases, GitHub Packages, or the MCP Registry. The current public MCP release remains `1.0.0`. This patch candidate changes internal composition and fixes platform handling while preserving every public MCP contract.
 <!-- release-candidate-only:end -->
 
 ## Highlights
@@ -24,7 +24,7 @@ ADR Guard MCP `1.0.1` is prepared in source control but, as of 2026-10-20, is **
 - Requires .NET 10 and a compatible local `stdio` MCP client.
 - Tool names, startup arguments, schema version `1.0`, structured fields, limits, error semantics, transport, and read-only annotations are unchanged from `1.0.0`.
 - Git remains optional and is used only for `analyze_impact` and commit-aware `verify_architecture` metadata.
-- The server is independent from the CLI and VS Code extension. VS Code `1.1.0` can register it when the MCP integration is explicitly enabled and a separate executable path is configured.
+- The server is independent from the CLI and VS Code extension. Published VS Code `1.1.0` and candidate `1.1.1` can register it when MCP integration is explicitly enabled and a separate executable path is configured.
 
 ## Behavior changes
 
