@@ -40,7 +40,7 @@ adr-guard init [repositório] [--adr-directory <caminho>]
 
 ## Diagnosticar o ambiente local
 
-> Disponibilidade no código-fonte: `doctor` está implementado na branch de desenvolvimento atual e não faz parte dos artefatos publicados da CLI 1.9.0 descritos acima. Confirme uma release posterior antes de depender dele em automações.
+> Status da release: `doctor` está incluído na candidata preparada da CLI 1.10.0, mas não faz parte dos artefatos atualmente publicados da CLI 1.9.0. Não dependa dele em automações públicas antes de verificar a versão 1.10.0 no registro pretendido.
 
 ```text
 adr-guard doctor [repositório]

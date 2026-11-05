@@ -47,7 +47,7 @@ dotnet tool install --global RodriOliveira.AdrGuard
 adr-guard --version
 ```
 
-Atualize uma instalação com `dotnet tool update --global RodriOliveira.AdrGuard`. A CLI `1.9.0` está publicada no NuGet.org e possui uma [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0) independente. O [pacote MCP 1.0.0](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0) está publicado no NuGet.org e no MCP Registry; MCP `1.0.1` continua sendo uma candidata no código-fonte. Consulte a [matriz de compatibilidade](docs/compatibility.pt-BR.md) para o snapshot verificado por canal, sem inferir publicação a partir de metadados do código ou de uma tag.
+Atualize uma instalação com `dotnet tool update --global RodriOliveira.AdrGuard`. A CLI `1.9.0` está publicada no NuGet.org e possui uma [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.9.0) independente. CLI `1.10.0`, MCP `1.0.1` e VS Code `1.1.1` estão preparados no código-fonte, mas ainda não foram publicados; as versões independentes atualmente públicas de MCP e VS Code continuam sendo `1.0.0` e `1.1.0`. Consulte a [matriz de compatibilidade](docs/compatibility.pt-BR.md) para o snapshot verificado por canal, sem inferir publicação a partir de metadados do código ou de uma tag.
 
 ## Início rápido
 
@@ -67,7 +67,7 @@ adr-guard index docs/adr
 
 `check` valida o conjunto. `index` valida novamente e cria ou atualiza `docs/adr/README.md`; `new` não atualiza o índice automaticamente. Leia o [tutorial da primeira ADR](docs/guides/getting-started.pt-BR.md) para o fluxo completo.
 
-A branch de desenvolvimento atual também inclui o comando ainda não publicado e somente leitura `adr-guard doctor [repositório]` para diagnóstico local da CLI, repositório, configuração, diretório de ADRs, .NET e Git opcional. Ele nunca aplica correções nem acessa a rede. Consulte a [referência da CLI](docs/cli-reference.pt-BR.md#diagnosticar-o-ambiente-local) e confirme uma release posterior antes de usá-lo em automações; o comando não está incluído no pacote publicado da CLI 1.9.0.
+A candidata preparada da CLI 1.10.0 inclui o comando somente leitura `adr-guard doctor [repositório]` para diagnóstico local da CLI, repositório, configuração, diretório de ADRs, .NET e Git opcional. Ele nunca aplica correções nem acessa a rede. Consulte a [referência da CLI](docs/cli-reference.pt-BR.md#diagnosticar-o-ambiente-local); o comando não está incluído no pacote atualmente publicado da CLI 1.9.0.
 
 ## Escolha a estrutura certa
 

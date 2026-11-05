@@ -4,7 +4,7 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 
 > **Published extension:** [ADR Guard for VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) is available on the Visual Studio Marketplace as `rodrioliveira.adr-guard`. The VS Code extension and .NET CLI are distributed and versioned separately; the extension does not bundle the CLI.
 
-> **Release status (verified 2026-11-03):** version 1.1.0 is published in the Marketplace and adds the MCP provider and visual Impact, Drift, baseline, enriched catalog, AI Draft, and Technical Review workflows described below. CLI 1.9.0 is published separately on NuGet.org and GitHub Releases. MCP 1.0.0 is published separately on NuGet.org and in the MCP Registry; MCP 1.0.1 remains an unpublished candidate.
+> **Release status (verified 2026-11-05):** version 1.1.0 is published in the Marketplace and adds the MCP provider and visual Impact, Drift, baseline, enriched catalog, AI Draft, and Technical Review workflows described below. Version 1.1.1 is a prepared maintenance candidate, not a published download. CLI 1.9.0 and MCP 1.0.0 remain the published versions; CLI 1.10.0 and MCP 1.0.1 are separate unpublished candidates.
 
 ## Features
 
@@ -217,10 +217,11 @@ The manifest is authoritative. Resource values are saved per workspace folder by
 | --- | --- |
 | VS Code | `1.101.0` or newer in the `1.x` line. |
 | Extension 1.1.0 | Published in the Visual Studio Marketplace. Extension and CLI releases remain independent. |
+| Extension 1.1.1 | Prepared maintenance candidate; not yet published. |
 | Core CLI integration | Compatible `adr-guard` v1.3.0 or newer for the documented baseline commands. |
 | Visual create/edit | CLI 1.7.0 schema `1.0` form contracts. |
 | Impact, drift, baseline, enriched catalog, draft, review/compare | A CLI build whose `<command> --help` exposes the requested flags; the extension checks capabilities instead of assuming matching versions. |
-| MCP | Optional. Extension 1.1.0 uses the stable VS Code MCP provider API with separately installed MCP 1.0.0 or a compatible schema `1.0` build; the extension remains fully functional without it. |
+| MCP | Optional. Extensions 1.1.0/1.1.1 use the stable VS Code MCP provider API with separately installed MCP 1.0.0 or a compatible schema `1.0` build; the extension remains fully functional without it. |
 
 ## Troubleshooting
 

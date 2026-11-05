@@ -4,7 +4,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 
 > **Extensão publicada:** [ADR Guard para VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) está disponível no Visual Studio Marketplace como `rodrioliveira.adr-guard`. A extensão VS Code e a CLI .NET são distribuídas e versionadas separadamente; a extensão não inclui a CLI.
 
-> **Estado da release (verificado em 03/11/2026):** a versão 1.1.0 está publicada no Marketplace e adiciona o provider MCP e os fluxos visuais de Impacto, Drift, baseline, catálogo enriquecido, Rascunho por IA e Review Técnico descritos abaixo. A CLI 1.9.0 está publicada separadamente no NuGet.org e no GitHub Releases. O MCP 1.0.0 está publicado separadamente no NuGet.org e no MCP Registry; MCP 1.0.1 continua sendo uma candidata não publicada.
+> **Estado da release (verificado em 05/11/2026):** a versão 1.1.0 está publicada no Marketplace e adiciona o provider MCP e os fluxos visuais de Impacto, Drift, baseline, catálogo enriquecido, Rascunho por IA e Review Técnico descritos abaixo. A versão 1.1.1 é uma candidata de manutenção preparada, não um download publicado. CLI 1.9.0 e MCP 1.0.0 continuam sendo as versões públicas; CLI 1.10.0 e MCP 1.0.1 são candidatas separadas ainda não publicadas.
 
 ## Funcionalidades
 
@@ -217,10 +217,11 @@ O manifesto é a fonte de verdade. Valores de recurso são salvos por pasta pela
 | --- | --- |
 | VS Code | `1.101.0` ou superior na linha `1.x`. |
 | Extensão 1.1.0 | Publicada no Visual Studio Marketplace. Releases da extensão e da CLI permanecem independentes. |
+| Extensão 1.1.1 | Candidata de manutenção preparada; ainda não publicada. |
 | Integração básica da CLI | `adr-guard` v1.3.0 ou superior compatível para os comandos básicos documentados. |
 | Criação/edição visual | Contratos de formulário schema `1.0` da CLI 1.7.0. |
 | Impacto, drift, baseline, catálogo enriquecido, draft, review/comparação | Build da CLI cujo `<command> --help` exponha os flags pedidos; a extensão verifica capacidades em vez de presumir versões iguais. |
-| MCP | Opcional. A extensão 1.1.0 usa a API estável de provider MCP do VS Code com o MCP 1.0.0 instalado separadamente ou build compatível com o schema `1.0`; a extensão funciona integralmente sem ele. |
+| MCP | Opcional. As extensões 1.1.0/1.1.1 usam a API estável de provider MCP do VS Code com o MCP 1.0.0 instalado separadamente ou build compatível com o schema `1.0`; a extensão funciona integralmente sem ele. |
 
 ## Solução de problemas
 
