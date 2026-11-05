@@ -36,7 +36,7 @@ Its runtime hardening, token model, workspace write boundaries, anonymous GHCR p
 
 ## Secret handling
 
-Never place provider API keys or repository secrets in ADR Markdown, workflow inputs, issue reports, or command-line arguments. `check`, `index`, `impact`, and source-only `drift` do not require provider credentials. For explicit `review`, supply only the selected provider variable through the caller step environment as documented; the Action validates the provider-specific environment before forwarding it to the isolated container.
+Never place provider API keys or repository secrets in ADR Markdown, workflow inputs, issue reports, or command-line arguments. `check`, `index`, `impact`, and read-only `drift` do not require provider credentials. For explicit `review`, supply only the selected provider variable through the caller step environment as documented; the Action validates the provider-specific environment before forwarding it to the isolated container.
 
 ## Disclosure
 
