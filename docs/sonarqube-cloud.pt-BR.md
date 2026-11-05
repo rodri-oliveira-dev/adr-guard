@@ -32,11 +32,11 @@ O workflow **não** envia cobertura ao Codecov nem publica badges de cobertura/Q
 O workflow [`sonar-quality-issues.yml`](../.github/workflows/sonar-quality-issues.yml) executa às segundas-feiras ou manualmente na `main`, **somente com `SONAR_CI_ENABLED=true`**. Consulta findings OPEN com impacto HIGH/BLOCKER e sincroniza issues com a label `Sonar Quality Issues`.
 
 - Cada finding possui chave estável do Sonar e bloco Markdown gerenciado pela automação. Uma issue só é gerenciada quando **foi criada pelo bot e contém marcadores válidos**.
-- Atualizações são idempotentes e preservam o texto fora dos marcadores; findings resolvidos/desaparecidos **não são fechados automaticamente**.
-- Erros de autenticação/API interrompem a automação em vez de informar falsamente ausência de findings. Nunca faça testes com credenciais de exemplo no tracker de produção.
+- As atualizações são idempotentes e preservam o texto fora dos marcadores. Após uma consulta completa e validada à branch principal no Sonar, findings que não estão mais OPEN com impacto HIGH/BLOCKER têm suas issues encerradas com comentário explicativo. Se o mesmo identificador voltar a atender aos critérios, a issue original será reaberta.
+- Erros de autenticação/API, páginas incompletas ou paginação inconsistente interrompem a reconciliação antes de qualquer alteração nas issues. A ausência do finding não comprova, por si só, que o defeito no código foi corrigido. Nunca faça testes com credenciais de exemplo no tracker de produção.
 - O workflow desabilitado não modifica issues. Anotações e issues criadas manualmente são preservadas.
 
-Teste offline: `node --test scripts/tests/sonar-quality-sync.test.cjs scripts/tests/sonar-quality-gate.test.cjs`. Verifica criação, repetição, preservação de notas, autoria, relato de reprovação do Quality Gate e falhas da API sem acessar serviços externos.
+Teste offline: `node --test scripts/tests/sonar-quality-sync.test.cjs scripts/tests/sonar-quality-gate.test.cjs`. Verifica criação, encerramento idempotente, reabertura, preservação de notas, autoria, paginação inválida, relato de reprovação do Quality Gate e falhas da API sem acessar serviços externos.
 
 ## Solução de problemas
 
