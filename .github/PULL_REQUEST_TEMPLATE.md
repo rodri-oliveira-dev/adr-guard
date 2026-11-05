@@ -54,6 +54,7 @@ See AGENTS.md for architecture rules and the repository's validation commands.
 
 | Check | Command or evidence | Result |
 | --- | --- | --- |
+| Restore | `dotnet restore AdrGuard.slnx` | Not run / Passed / Failed / N/A |
 | Build | `dotnet build AdrGuard.slnx --configuration Release --no-restore` | Not run / Passed / Failed / N/A |
 | Tests | `dotnet test --solution AdrGuard.slnx --configuration Release --no-build` | Not run / Passed / Failed / N/A |
 | Component-specific checks | <!-- VS Code, Action, MCP, docs, security, etc. --> | Not run / Passed / Failed / N/A |
