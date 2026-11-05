@@ -146,11 +146,11 @@ O projeto usa .NET 10. Para compilar e testar a partir do código:
 
 ```bash
 dotnet restore AdrGuard.slnx
-dotnet build AdrGuard.slnx --no-restore
-dotnet test AdrGuard.slnx --no-build
+dotnet build AdrGuard.slnx --configuration Release --no-restore
+dotnet test --solution AdrGuard.slnx --configuration Release --no-build
 ```
 
-Issues e pull requests focados são bem-vindos. Use o [issue tracker](https://github.com/rodri-oliveira-dev/adr-guard/issues) para propostas e bugs reproduzíveis, [SUPPORT.md](SUPPORT.md) para suporte e [SECURITY.md](SECURITY.md) para relatar vulnerabilidades de forma privada.
+Issues e pull requests focados são bem-vindos. Use o [issue tracker](https://github.com/rodri-oliveira-dev/adr-guard/issues) para propostas de escopo definido e bugs reproduzíveis, o [GitHub Discussions](https://github.com/rodri-oliveira-dev/adr-guard/discussions) para dúvidas, ideias iniciais e compartilhamento de experiências, o [SUPPORT.md](SUPPORT.md) para orientações de suporte e o [SECURITY.md](SECURITY.md) para relatar vulnerabilidades de forma privada.
 
 ## Releases e licença
 
