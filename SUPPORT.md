@@ -4,11 +4,14 @@ ADR Guard is an open-source project maintained through GitHub.
 
 ## Usage questions and bugs
 
-For reproducible bugs, documentation problems, feature requests, and GitHub Action integration questions, open an issue:
+For reproducible bugs, documentation problems, feature requests, and integration questions, choose the appropriate [issue form](https://github.com/rodri-oliveira-dev/adr-guard/issues/new/choose):
 
-https://github.com/rodri-oliveira-dev/adr-guard/issues
+- **Bug report:** reproducible incorrect behavior in the CLI, Core, GitHub Action, MCP, VS Code, containers, or skills.
+- **Feature request:** a user need, proposed behavior, acceptance criteria, and possible compatibility implications.
+- **Documentation improvement:** missing or incorrect documentation, examples, and translations.
+- **Question or integration help:** installation, configuration, and usage questions that are not reproducible defects.
 
-Before opening an issue, include:
+The issue forms ask for relevant details. Before opening an issue, prepare:
 
 - component and version (CLI, MCP, or VS Code extension) or Action ref;
 - execution mode (.NET Tool, MCP server, VS Code extension, container, or GitHub Action);
