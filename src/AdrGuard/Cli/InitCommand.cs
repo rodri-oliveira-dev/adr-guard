@@ -238,35 +238,11 @@ internal static class InitCommand
 
         for (var index = 1; index < args.Count; index++)
         {
-            var argument = args[index];
-            if (argument is "--github-actions" or "--dry-run" or "--overwrite")
-            {
-                if (!state.TrySetFlag(argument)) { options = default!; return false; }
-                continue;
-            }
-
-            if (argument is "--adr-directory" or "--template" or "--template-file")
-            {
-                if (index + 1 >= args.Count
-                    || string.IsNullOrWhiteSpace(args[index + 1])
-                    || args[index + 1].StartsWith('-'))
-                {
-                    options = default!;
-                    return false;
-                }
-
-                var value = args[++index];
-                if (!state.TrySetValue(argument, value)) { options = default!; return false; }
-
-                continue;
-            }
-
-            if (!state.TrySetRepository(argument))
+            if (!TryApplyArgument(args, ref index, state))
             {
                 options = default!;
                 return false;
             }
-
         }
 
         if (state.Template is not null && state.TemplateFile is not null)
@@ -284,6 +260,23 @@ internal static class InitCommand
             state.DryRun,
             state.Overwrite);
         return true;
+    }
+
+    private static bool TryApplyArgument(
+        IReadOnlyList<string> args,
+        ref int index,
+        InitArgumentState state)
+    {
+        var argument = args[index];
+        if (argument is "--github-actions" or "--dry-run" or "--overwrite")
+            return state.TrySetFlag(argument);
+        if (argument is not ("--adr-directory" or "--template" or "--template-file"))
+            return state.TrySetRepository(argument);
+        if (index + 1 >= args.Count
+            || string.IsNullOrWhiteSpace(args[index + 1])
+            || args[index + 1].StartsWith('-'))
+            return false;
+        return state.TrySetValue(argument, args[++index]);
     }
 
     private sealed class InitArgumentState

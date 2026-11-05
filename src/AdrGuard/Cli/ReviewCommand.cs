@@ -72,108 +72,18 @@ internal static class ReviewCommand
         ArgumentNullException.ThrowIfNull(output);
         ArgumentNullException.ThrowIfNull(error);
 
-        if (compareReference is not null)
-        {
-            try
-            {
-                GitChangeDetector.ValidateReference(compareReference);
-            }
-            catch (ArgumentException exception)
-            {
-                error.WriteLine(
-                    securityBoundary.SanitizeDiagnostic(
-                        $"Invalid comparison reference: {exception.Message}"));
-                return ExitCodes.UsageError;
-            }
-        }
-
-        var fullPath = Path.GetFullPath(targetPath);
-
-        if (!string.Equals(
-                Path.GetExtension(fullPath),
-                ".md",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            error.WriteLine(
-                "Review target must be a Markdown ADR file with a .md extension.");
-            return ExitCodes.UsageError;
-        }
-
-        if (!File.Exists(fullPath))
-        {
-            error.WriteLine(
-                securityBoundary.SanitizeDiagnostic(
-                    $"ADR file does not exist: '{fullPath}'."));
-            return ExitCodes.OperationalError;
-        }
-
-        if (outputPath is not null)
-        {
-            try
-            {
-                AdrReviewReportFileWriter.ValidateDestination(
-                    outputPath,
-                    format,
-                    fullPath,
-                    overwriteOutput);
-            }
-            catch (Exception exception) when (
-                exception is InvalidOperationException
-                    or IOException
-                    or UnauthorizedAccessException
-                    or ArgumentException)
-            {
-                error.WriteLine(
-                    securityBoundary.SanitizeDiagnostic(
-                        $"Invalid review report output: {exception.Message}"));
-                return ExitCodes.OperationalError;
-            }
-        }
+        var validationStatus = ValidateRequest(
+            targetPath, compareReference, outputPath, format, overwriteOutput,
+            securityBoundary, error, out var fullPath);
+        if (validationStatus is not null) return validationStatus.Value;
 
         try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var documentStatus = PrepareDocument(
-                fullPath, compareReference, error, securityBoundary, out var prepared, cancellationToken);
-            if (documentStatus is not null) return documentStatus.Value;
-            var markdown = prepared!.Markdown;
-            var document = prepared.Document;
-            var outputContext = new ReviewOutputContext(format, output, error, securityBoundary);
-            var policyStatus = ApplyPolicy(
-                document, contextFilePaths, policyMode, policyFilePath, outputContext);
-            if (policyStatus is not null) return policyStatus.Value;
-
-            var contextRequest = new ContextPreparationRequest(
-                fullPath, markdown, contextFilePaths, includeExistingAdrs, prepared.Comparison, document);
-            var contextStatus = PrepareContext(
-                contextRequest, securityBoundary, error, out var securedMaterial, cancellationToken);
-            if (contextStatus is not null) return contextStatus.Value;
-            var securedReviewContext = securedMaterial!.Context;
-            var securedDocument = securedMaterial.Document;
-
-            var diagnosticWriter =
-                format == AdrReviewOutputFormat.Json
-                    ? error
-                    : output;
-
-            WriteSourceDisclosure(
-                securedReviewContext,
-                includeExistingAdrs,
-                diagnosticWriter);
-
-            var providerContext =
-                AdrReviewContextBuilder.ComposeProviderContext(
-                    securedReviewContext);
-            var providerStatus = InvokeProvider(
-                providerFactory, securedReviewContext, providerContext,
-                error, securityBoundary, out var result, cancellationToken);
-            if (providerStatus is not null) return providerStatus.Value;
-
-            return WriteReport(new ReportRequest(
-                    securedDocument, securedReviewContext, result!, providerName, model,
-                    new ReportDestination(format, outputPath, fullPath, overwriteOutput)),
-                output, diagnosticWriter, error, securityBoundary);
+            return Execute(
+                fullPath, contextFilePaths, includeExistingAdrs, providerName, model,
+                format, outputPath, overwriteOutput, policyMode, policyFilePath,
+                securityBoundary, providerFactory, output, error, compareReference,
+                cancellationToken);
         }
         catch (OperationCanceledException)
         {
@@ -209,6 +119,136 @@ internal static class ReviewCommand
                     $"ADR review failed: {exception.Message}"));
             return ExitCodes.OperationalError;
         }
+    }
+
+    private static int? ValidateRequest(
+        string targetPath,
+        string? compareReference,
+        string? outputPath,
+        AdrReviewOutputFormat format,
+        bool overwriteOutput,
+        AdrReviewSecurityBoundary securityBoundary,
+        TextWriter error,
+        out string fullPath)
+    {
+        fullPath = string.Empty;
+        if (compareReference is not null)
+        {
+            try
+            {
+                GitChangeDetector.ValidateReference(compareReference);
+            }
+            catch (ArgumentException exception)
+            {
+                error.WriteLine(
+                    securityBoundary.SanitizeDiagnostic(
+                        $"Invalid comparison reference: {exception.Message}"));
+                return ExitCodes.UsageError;
+            }
+        }
+
+        fullPath = Path.GetFullPath(targetPath);
+        if (!string.Equals(
+                Path.GetExtension(fullPath),
+                ".md",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            error.WriteLine(
+                "Review target must be a Markdown ADR file with a .md extension.");
+            return ExitCodes.UsageError;
+        }
+
+        if (!File.Exists(fullPath))
+        {
+            error.WriteLine(
+                securityBoundary.SanitizeDiagnostic(
+                    $"ADR file does not exist: '{fullPath}'."));
+            return ExitCodes.OperationalError;
+        }
+
+        if (outputPath is null) return null;
+        try
+        {
+            AdrReviewReportFileWriter.ValidateDestination(
+                outputPath,
+                format,
+                fullPath,
+                overwriteOutput);
+            return null;
+        }
+        catch (Exception exception) when (
+            exception is InvalidOperationException
+                or IOException
+                or UnauthorizedAccessException
+                or ArgumentException)
+        {
+            error.WriteLine(
+                securityBoundary.SanitizeDiagnostic(
+                    $"Invalid review report output: {exception.Message}"));
+            return ExitCodes.OperationalError;
+        }
+    }
+
+    private static int Execute(
+        string fullPath,
+        IReadOnlyList<string> contextFilePaths,
+        bool includeExistingAdrs,
+        string providerName,
+        string model,
+        AdrReviewOutputFormat format,
+        string? outputPath,
+        bool overwriteOutput,
+        AdrReviewPolicyMode policyMode,
+        string? policyFilePath,
+        AdrReviewSecurityBoundary securityBoundary,
+        Func<IAdrReviewProvider> providerFactory,
+        TextWriter output,
+        TextWriter error,
+        string? compareReference,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        var documentStatus = PrepareDocument(
+            fullPath, compareReference, error, securityBoundary, out var prepared, cancellationToken);
+        if (documentStatus is not null) return documentStatus.Value;
+        var markdown = prepared!.Markdown;
+        var document = prepared.Document;
+        var outputContext = new ReviewOutputContext(format, output, error, securityBoundary);
+        var policyStatus = ApplyPolicy(
+            document, contextFilePaths, policyMode, policyFilePath, outputContext);
+        if (policyStatus is not null) return policyStatus.Value;
+
+        var contextRequest = new ContextPreparationRequest(
+            fullPath, markdown, contextFilePaths, includeExistingAdrs, prepared.Comparison, document);
+        var contextStatus = PrepareContext(
+            contextRequest, securityBoundary, error, out var securedMaterial, cancellationToken);
+        if (contextStatus is not null) return contextStatus.Value;
+        var securedReviewContext = securedMaterial!.Context;
+        var securedDocument = securedMaterial.Document;
+
+        var diagnosticWriter =
+            format == AdrReviewOutputFormat.Json
+                ? error
+                : output;
+
+        WriteSourceDisclosure(
+            securedReviewContext,
+            includeExistingAdrs,
+            diagnosticWriter);
+
+        var providerContext =
+            AdrReviewContextBuilder.ComposeProviderContext(
+                securedReviewContext);
+        var providerStatus = InvokeProvider(
+            providerFactory, securedReviewContext, providerContext,
+            error, securityBoundary, out var result, cancellationToken);
+        if (providerStatus is not null) return providerStatus.Value;
+
+        return WriteReport(new ReportRequest(
+                securedDocument, securedReviewContext, result!, providerName, model,
+                new ReportDestination(format, outputPath, fullPath, overwriteOutput)),
+            output, diagnosticWriter, error, securityBoundary);
     }
 
     private static int? PrepareDocument(
