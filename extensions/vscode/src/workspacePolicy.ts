@@ -91,6 +91,36 @@ export async function ensureResourceWithinWorkspace(
   }
 }
 
+export async function ensureExistingMarkdownFileWithinWorkspace(
+  relativePath: string,
+  workspaceRoot: string,
+): Promise<string> {
+  if (relativePath.trim() !== relativePath
+    || relativePath.length === 0
+    || relativePath.includes('\\')
+    || path.posix.isAbsolute(relativePath)
+    || path.win32.isAbsolute(relativePath)
+    || relativePath.split('/').includes('..')
+    || path.posix.extname(relativePath).toLowerCase() !== '.md') {
+    throw new WorkspacePolicyError('The requested ADR path is not a safe relative Markdown path.', 'invalid-path');
+  }
+  const candidate = path.resolve(workspaceRoot, ...relativePath.split('/'));
+  if (!isResolvedPathWithin(candidate, workspaceRoot)) {
+    throw new WorkspacePolicyError('The requested ADR resolves outside the selected workspace folder.', 'outside-workspace');
+  }
+  try {
+    const fileStat = await lstat(candidate);
+    if (fileStat.isSymbolicLink() || !fileStat.isFile()) {
+      throw new WorkspacePolicyError('The requested ADR must be a regular, non-symbolic-link Markdown file.', 'invalid-path');
+    }
+    return await ensureResourceWithinWorkspace(candidate, workspaceRoot);
+  } catch (error: unknown) {
+    if (error instanceof WorkspacePolicyError) throw error;
+    const detail = error instanceof Error ? error.message : 'unknown filesystem error';
+    throw new WorkspacePolicyError(`The requested ADR is inaccessible: ${detail}`, 'invalid-path');
+  }
+}
+
 export async function ensurePotentialDirectoryWithinWorkspace(
   directoryPath: string,
   workspaceRoot: string,

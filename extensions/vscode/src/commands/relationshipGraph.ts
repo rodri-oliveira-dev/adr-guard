@@ -1,15 +1,14 @@
-import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import * as vscode from 'vscode';
 import { CliDiscoveryError } from '../cli/discovery';
 import { CliExecutor, requireSuccessfulResult } from '../cli/executor';
 import { readValidationConfiguration } from '../configuration';
-import { parseRelationshipGraphReport, RelationshipGraphContractError, RelationshipGraphRenderLimitError } from '../contracts/relationshipGraph';
+import { parseRelationshipGraphReport, RelationshipGraphContractError, RelationshipGraphReportLimitError, type RelationshipGraphReport, type RelationshipType } from '../contracts/relationshipGraph';
 import { OperationalLog } from '../logging';
 import { asLocation, selectWorkspaceFolder } from '../workspace';
 import { relationshipGraphWebviewHtml } from '../webview/relationshipGraphHtml';
-import { layoutRelationshipGraph } from '../webview/relationshipGraphModel';
-import { ensureResourceWithinWorkspace, resolveWorkspaceRelativePath, resolveWorkspaceRoot, WorkspacePolicyError } from '../workspacePolicy';
+import { layoutRelationshipGraph, maximumVisibleRelationshipGraphNodes, relationshipGraphStatuses, type RelationshipGraphFilters } from '../webview/relationshipGraphModel';
+import { ensureExistingMarkdownFileWithinWorkspace, ensureResourceWithinWorkspace, resolveWorkspaceRelativePath, resolveWorkspaceRoot, WorkspacePolicyError } from '../workspacePolicy';
 
 interface RelationshipGraphDependencies { readonly executor: CliExecutor; readonly log: OperationalLog; readonly extensionUri: vscode.Uri }
 
@@ -23,6 +22,8 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   private readonly disposables: vscode.Disposable[] = [];
   private active: AbortController | undefined;
   private disposed = false;
+  private report: RelationshipGraphReport | undefined;
+  private filters: RelationshipGraphFilters = { status: null, type: null, focusPath: null };
 
   private constructor(private readonly dependencies: RelationshipGraphDependencies, private folder: vscode.WorkspaceFolder) {
     this.panel = vscode.window.createWebviewPanel('adrGuard.relationshipGraph', vscode.l10n.t('ADR Relationships'), vscode.ViewColumn.Active, {
@@ -64,7 +65,17 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   private async receive(message: unknown): Promise<void> {
     if (!isMessage(message) || this.disposed) return;
     if (message.type === 'ready' || message.type === 'refresh') { await this.load(); return; }
-    if (typeof message.path === 'string' && message.path.length <= 4096) await this.openAdr(message.path);
+    if (message.type === 'openAdr') { await this.openAdr(message.path); return; }
+    if (message.type === 'filter') {
+      const statuses = this.report === undefined ? [] : relationshipGraphStatuses(this.report);
+      if (message.status !== null && !statuses.includes(message.status)) return;
+      this.filters = { status: message.status, type: message.relationshipType, focusPath: null };
+      await this.postGraph();
+      return;
+    }
+    if (message.path !== null && !this.isKnownAdrPath(message.path)) return;
+    this.filters = { ...this.filters, focusPath: message.path };
+    await this.postGraph();
   }
 
   private async load(): Promise<void> {
@@ -88,11 +99,13 @@ export class RelationshipGraphPanel implements vscode.Disposable {
       }
       const report = parseRelationshipGraphReport(execution.result.stdout.trim());
       if (this.active !== operation || operation.signal.aborted) return;
-      await this.post({ type: 'graph', workspace: this.folder.name, directory: report.adrDirectory, summary: report.summary, diagnostics: report.diagnostics, layout: layoutRelationshipGraph(report) });
+      this.report = report;
+      this.filters = { status: null, type: null, focusPath: null };
+      await this.postGraph();
     } catch (error: unknown) {
       if (this.active !== operation || operation.signal.aborted) return;
       const state = error instanceof IncompatibleRelationshipsCliError || error instanceof RelationshipGraphContractError ? 'incompatible'
-        : error instanceof RelationshipGraphRenderLimitError ? 'limit' : 'error';
+        : error instanceof RelationshipGraphReportLimitError ? 'limit' : 'error';
       this.dependencies.log.info(`Relationship graph failed: ${safeLogError(error)}`);
       await this.post({ type: 'graphError', state, message: relationshipErrorMessage(error) });
     } finally {
@@ -102,8 +115,9 @@ export class RelationshipGraphPanel implements vscode.Disposable {
 
   private async openAdr(relativePath: string): Promise<void> {
     try {
+      if (!this.isKnownAdrPath(relativePath)) throw new WorkspacePolicyError('The requested ADR is not part of the loaded graph.', 'invalid-path');
       const root = await resolveWorkspaceRoot(asLocation(this.folder));
-      const target = await ensureResourceWithinWorkspace(path.resolve(root, relativePath), root);
+      const target = await ensureExistingMarkdownFileWithinWorkspace(relativePath, root);
       await vscode.window.showTextDocument(vscode.Uri.file(target), { preview: true });
     } catch (error: unknown) {
       this.dependencies.log.info(`Relationship graph navigation failed: ${safeLogError(error)}`);
@@ -111,13 +125,40 @@ export class RelationshipGraphPanel implements vscode.Disposable {
     }
   }
 
+  private isKnownAdrPath(relativePath: string): boolean {
+    return relativePath.length <= 4096 && (this.report?.nodes.some((node) => node.path === relativePath) ?? false);
+  }
+
+  private async postGraph(): Promise<void> {
+    if (this.report === undefined) return;
+    await this.post({
+      type: 'graph', workspace: this.folder.name, directory: this.report.adrDirectory, summary: this.report.summary,
+      diagnostics: this.report.diagnostics, statuses: relationshipGraphStatuses(this.report), filters: this.filters,
+      visibleLimit: maximumVisibleRelationshipGraphNodes, layout: layoutRelationshipGraph(this.report, this.filters),
+    });
+  }
+
   private async post(message: unknown): Promise<void> { if (!this.disposed) await this.panel.webview.postMessage(message); }
 }
 
-function isMessage(value: unknown): value is { readonly type: 'ready' | 'refresh' | 'openAdr'; readonly path?: string } {
+type RelationshipGraphMessage =
+  | { readonly type: 'ready' }
+  | { readonly type: 'refresh' }
+  | { readonly type: 'openAdr'; readonly path: string }
+  | { readonly type: 'focus'; readonly path: string | null }
+  | { readonly type: 'filter'; readonly status: string | null; readonly relationshipType: RelationshipType | null };
+
+function isMessage(value: unknown): value is RelationshipGraphMessage {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
   const record = value as Record<string, unknown>;
-  return Object.keys(record).every((key) => key === 'type' || key === 'path') && (record.type === 'ready' || record.type === 'refresh' || record.type === 'openAdr');
+  if (record.type === 'ready' || record.type === 'refresh') return Object.keys(record).length === 1;
+  if (record.type === 'openAdr' || record.type === 'focus') return Object.keys(record).length === 2
+    && Object.keys(record).every((key) => key === 'type' || key === 'path')
+    && (typeof record.path === 'string' || (record.type === 'focus' && record.path === null));
+  return record.type === 'filter' && Object.keys(record).length === 3
+    && Object.keys(record).every((key) => key === 'type' || key === 'status' || key === 'relationshipType')
+    && (record.status === null || typeof record.status === 'string')
+    && (record.relationshipType === null || record.relationshipType === 'depends-on' || record.relationshipType === 'supersedes' || record.relationshipType === 'superseded-by');
 }
 function strings(): Record<string, string> { return {
   title: vscode.l10n.t('ADR Relationships'), refresh: vscode.l10n.t('Refresh'), loading: vscode.l10n.t('Loading ADR relationships…'),
@@ -125,10 +166,19 @@ function strings(): Record<string, string> { return {
   nodes: vscode.l10n.t('ADRs'), relationships: vscode.l10n.t('Relationships'), resolved: vscode.l10n.t('Resolved'), unresolved: vscode.l10n.t('Unresolved'), ambiguous: vscode.l10n.t('Ambiguous'),
   dependsOn: vscode.l10n.t('Depends on'), supersedes: vscode.l10n.t('Supersedes'), supersededBy: vscode.l10n.t('Superseded by'), diagnostics: vscode.l10n.t('Relationship diagnostics'),
   openAdr: vscode.l10n.t('Open ADR'), retry: vscode.l10n.t('Retry'), unknownTitle: vscode.l10n.t('Unknown title'), unknownStatus: vscode.l10n.t('Unknown status'),
+  filters: vscode.l10n.t('Graph filters'), allStatuses: vscode.l10n.t('All statuses'), allRelationshipTypes: vscode.l10n.t('All relationship types'),
+  status: vscode.l10n.t('Status'), relationshipType: vscode.l10n.t('Relationship type'), clearFilters: vscode.l10n.t('Clear filters'),
+  details: vscode.l10n.t('ADR details'), path: vscode.l10n.t('Path'), format: vscode.l10n.t('Format'), selectHint: vscode.l10n.t('Select an ADR to inspect its details.'),
+  focus: vscode.l10n.t('Focus on direct relationships'), clearFocus: vscode.l10n.t('Show the complete graph'), focused: vscode.l10n.t('Showing the selected ADR and its direct relationships.'),
+  direction: vscode.l10n.t('Arrows point from the declaring ADR to the declared target.'), cycle: vscode.l10n.t('Supersession cycle'), broken: vscode.l10n.t('Broken reference'),
+  workspaceChanges: vscode.l10n.t('Workspace changes are not loaded automatically. Use Refresh to update this graph.'),
+  visibleNodes: vscode.l10n.t('{0} of {1} matching ADRs shown'), visualLimit: vscode.l10n.t('Refine the filters or focus an ADR. At most {0} ADRs are shown at once.'),
+  keyboardHelp: vscode.l10n.t('Use the arrow keys to move between ADRs, Enter or Space to select, and Home or End to jump.'),
+  noMatches: vscode.l10n.t('No ADRs match the current graph filters.'),
 }; }
 function relationshipErrorMessage(error: unknown): string {
   if (error instanceof IncompatibleRelationshipsCliError || error instanceof RelationshipGraphContractError) return vscode.l10n.t('The installed ADR Guard CLI is incompatible with relationship graph schema 1.0. Update the CLI and try again.');
-  if (error instanceof RelationshipGraphRenderLimitError) return vscode.l10n.t('This graph has {0} ADRs and {1} relationships. The visual limit is 200 ADRs and 400 relationships.', error.nodes, error.relationships);
+  if (error instanceof RelationshipGraphReportLimitError) return vscode.l10n.t('This graph has {0} ADRs and {1} relationships and exceeds the safe report limit.', error.nodes, error.relationships);
   if (error instanceof WorkspacePolicyError) return vscode.l10n.t('The configured ADR directory is unavailable or outside the selected trusted workspace.');
   if (error instanceof CliDiscoveryError) return vscode.l10n.t('ADR Guard was not found. Configure adrGuard.cli.path or install it on the extension host PATH.');
   if (error instanceof Error) return error.message;

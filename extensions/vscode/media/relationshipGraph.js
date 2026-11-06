@@ -5,6 +5,8 @@
   const app = document.getElementById('app');
   const svgNamespace = 'http://www.w3.org/2000/svg';
   let strings = {};
+  let currentMessage;
+  let selectedPath;
 
   function element(name, attributes, text) {
     const node = document.createElement(name);
@@ -18,8 +20,8 @@
     if (text !== undefined) node.textContent = text;
     return node;
   }
-  function action(label, type) {
-    const button = element('button', { type: 'button' }, label);
+  function action(label, type, attributes) {
+    const button = element('button', { type: 'button', ...attributes }, label);
     button.addEventListener('click', () => vscode.postMessage({ type }));
     return button;
   }
@@ -34,9 +36,11 @@
     const node = element('header', { class: 'graph-header' });
     const heading = element('div');
     heading.append(element('h1', {}, strings.title), element('p', { class: 'directory' }, `${message.workspace} · ${message.directory}`));
-    node.append(heading, action(strings.refresh, 'refresh'));
+    const refresh = action(strings.refresh, 'refresh', { 'aria-describedby': 'workspace-refresh-note' });
+    node.append(heading, refresh);
     return node;
   }
+  function refreshNote() { return element('p', { id: 'workspace-refresh-note', class: 'refresh-note' }, strings.workspaceChanges); }
   function metrics(summary) {
     const node = element('dl', { class: 'metrics' });
     [[strings.nodes, summary.nodes], [strings.relationships, summary.relationships], [strings.resolved, summary.resolved], [strings.unresolved, summary.unresolved], [strings.ambiguous, summary.ambiguous]].forEach(([label, value]) => {
@@ -44,11 +48,32 @@
     });
     return node;
   }
+  function filters(message) {
+    const section = element('section', { class: 'filters', 'aria-label': strings.filters });
+    const statusLabel = element('label', {}, strings.status);
+    const status = element('select', { id: 'status-filter' });
+    status.append(element('option', { value: '' }, strings.allStatuses));
+    message.statuses.forEach((value) => status.append(element('option', { value }, value)));
+    status.value = message.filters.status || '';
+    statusLabel.append(status);
+    const typeLabel = element('label', {}, strings.relationshipType);
+    const type = element('select', { id: 'relationship-filter' });
+    [['', strings.allRelationshipTypes], ['depends-on', strings.dependsOn], ['supersedes', strings.supersedes], ['superseded-by', strings.supersededBy]].forEach(([value, label]) => type.append(element('option', { value }, label)));
+    type.value = message.filters.type || '';
+    typeLabel.append(type);
+    const apply = () => vscode.postMessage({ type: 'filter', status: status.value || null, relationshipType: type.value || null });
+    status.addEventListener('change', apply); type.addEventListener('change', apply);
+    const clear = element('button', { type: 'button', class: 'secondary' }, strings.clearFilters);
+    clear.addEventListener('click', () => vscode.postMessage({ type: 'filter', status: null, relationshipType: null }));
+    section.append(statusLabel, typeLabel, clear);
+    return section;
+  }
   function legend() {
     const node = element('section', { class: 'legend', 'aria-label': strings.relationships });
-    [['depends-on', strings.dependsOn], ['supersedes', strings.supersedes], ['superseded-by', strings.supersededBy], ['unresolved', strings.unresolved], ['ambiguous', strings.ambiguous]].forEach(([kind, label]) => {
-      const item = element('span'); item.append(element('i', { class: `legend-line ${kind}` }), document.createTextNode(label)); node.append(item);
+    [['depends-on', strings.dependsOn], ['supersedes', strings.supersedes], ['superseded-by', strings.supersededBy], ['unresolved', strings.broken], ['ambiguous', strings.ambiguous], ['cycle', strings.cycle]].forEach(([kind, label]) => {
+      const item = element('span'); item.append(element('i', { class: `legend-line ${kind}`, 'aria-hidden': 'true' }), document.createTextNode(label)); node.append(item);
     });
+    node.append(element('p', { class: 'direction' }, strings.direction));
     return node;
   }
   function edgePath(edge) {
@@ -61,12 +86,13 @@
     marker.append(svgElement('path', { d: 'M 0 0 L 10 5 L 0 10 z', class: className })); defs.append(marker);
   }
   function graph(layout) {
-    const viewport = element('div', { class: 'graph-viewport', tabindex: '0' });
-    const svg = svgElement('svg', { viewBox: `0 0 ${layout.width} ${layout.height}`, width: layout.width, height: layout.height, role: 'img', 'aria-label': strings.relationships });
+    const viewport = element('div', { class: 'graph-viewport', role: 'region', 'aria-label': strings.relationships, 'aria-describedby': 'graph-keyboard-help' });
+    const svg = svgElement('svg', { viewBox: `0 0 ${layout.width} ${layout.height}`, width: layout.width, height: layout.height });
     const defs = svgElement('defs'); addMarker(defs, 'arrow-depends', 'marker depends-on'); addMarker(defs, 'arrow-supersedes', 'marker supersedes'); addMarker(defs, 'arrow-superseded', 'marker superseded-by'); svg.append(defs);
-    const edges = svgElement('g', { class: 'edges' });
+    const edges = svgElement('g', { class: 'edges', 'aria-hidden': 'true' });
     layout.edges.forEach((edge) => {
-      const path = svgElement('path', { d: edgePath(edge), class: `edge ${edge.type} ${edge.resolution}`, 'marker-end': `url(#arrow-${edge.type === 'depends-on' ? 'depends' : edge.type === 'supersedes' ? 'supersedes' : 'superseded'})` });
+      const classes = `edge ${edge.type} ${edge.resolution}${edge.cycle ? ' cycle' : ''}`;
+      const path = svgElement('path', { d: edgePath(edge), class: classes, 'marker-end': `url(#arrow-${edge.type === 'depends-on' ? 'depends' : edge.type === 'supersedes' ? 'supersedes' : 'superseded'})` });
       path.append(svgElement('title', {}, `${labelForType(edge.type)} · ${edge.resolution}: ${edge.declaredTarget}`)); edges.append(path);
       if (!edge.target) {
         edges.append(svgElement('circle', { cx: edge.source.x + 72, cy: edge.source.y, r: '7', class: 'unresolved-target' }));
@@ -75,14 +101,54 @@
     });
     svg.append(edges);
     const nodes = svgElement('g', { class: 'nodes' });
-    layout.nodes.forEach((item) => {
-      const node = svgElement('g', { class: 'graph-node', transform: `translate(${item.x} ${item.y})`, tabindex: '0', role: 'button', 'aria-label': `${item.id}: ${item.title || strings.unknownTitle}` });
+    const nodeElements = [];
+    layout.nodes.forEach((item, index) => {
+      const problemLabels = [item.cycle ? strings.cycle : '', item.broken ? strings.broken : '', item.ambiguous ? strings.ambiguous : ''].filter(Boolean);
+      const selected = item.path === selectedPath;
+      const classes = ['graph-node', selected ? 'selected' : '', item.cycle ? 'cycle' : '', item.broken ? 'broken' : '', item.ambiguous ? 'ambiguous' : ''].filter(Boolean).join(' ');
+      const accessibleLabel = `${item.id}: ${item.title || strings.unknownTitle}. ${strings.status}: ${item.status || strings.unknownStatus}.${problemLabels.length ? ` ${problemLabels.join(', ')}.` : ''}`;
+      const node = svgElement('g', { class: classes, transform: `translate(${item.x} ${item.y})`, tabindex: selected || (!selectedPath && index === 0) ? '0' : '-1', role: 'button', 'aria-label': accessibleLabel, 'aria-pressed': selected ? 'true' : 'false', 'data-path': item.path });
       node.append(svgElement('rect', { width: '220', height: '76', rx: '5' }), svgElement('text', { x: '12', y: '22', class: 'node-id' }, item.id), svgElement('text', { x: '12', y: '43', class: 'node-title' }, truncate(item.title || strings.unknownTitle, 31)), svgElement('text', { x: '12', y: '63', class: 'node-status' }, truncate(item.status || strings.unknownStatus, 33)), svgElement('title', {}, `${item.id}\n${item.title || strings.unknownTitle}\n${item.path}`));
-      const open = () => vscode.postMessage({ type: 'openAdr', path: item.path });
-      node.addEventListener('click', open); node.addEventListener('keydown', (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } });
-      nodes.append(node);
+      const select = () => { selectedPath = item.path; render(currentMessage); };
+      node.addEventListener('click', select);
+      node.addEventListener('keydown', (event) => navigateNodes(event, nodeElements, index, select));
+      nodeElements.push(node); nodes.append(node);
     });
     svg.append(nodes); viewport.append(svg); return viewport;
+  }
+  function navigateNodes(event, nodes, index, select) {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(); return; }
+    let target = index;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') target = Math.min(nodes.length - 1, index + 1);
+    else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') target = Math.max(0, index - 1);
+    else if (event.key === 'Home') target = 0;
+    else if (event.key === 'End') target = nodes.length - 1;
+    else return;
+    event.preventDefault();
+    nodes.forEach((node, nodeIndex) => node.setAttribute('tabindex', nodeIndex === target ? '0' : '-1'));
+    nodes[target]?.focus();
+  }
+  function detail(layout) {
+    const item = layout.nodes.find((node) => node.path === selectedPath);
+    const aside = element('aside', { class: 'details', 'aria-label': strings.details, 'aria-live': 'polite' });
+    aside.append(element('h2', {}, strings.details));
+    if (!item) { aside.append(element('p', { class: 'select-hint' }, strings.selectHint)); return aside; }
+    aside.append(element('h3', {}, `${item.id} · ${item.title || strings.unknownTitle}`));
+    const values = element('dl');
+    [[strings.status, item.status || strings.unknownStatus], [strings.format, item.format], [strings.path, item.path]].forEach(([label, value]) => { const row = element('div'); row.append(element('dt', {}, label), element('dd', {}, value)); values.append(row); });
+    aside.append(values);
+    const badges = element('div', { class: 'diagnostic-badges' });
+    if (item.cycle) badges.append(element('span', { class: 'cycle' }, strings.cycle));
+    if (item.broken) badges.append(element('span', { class: 'broken' }, strings.broken));
+    if (item.ambiguous) badges.append(element('span', { class: 'ambiguous' }, strings.ambiguous));
+    if (badges.childNodes.length) aside.append(badges);
+    const actions = element('div', { class: 'detail-actions' });
+    const open = element('button', { type: 'button' }, strings.openAdr); open.addEventListener('click', () => vscode.postMessage({ type: 'openAdr', path: item.path }));
+    const isFocused = currentMessage.filters.focusPath === item.path;
+    const focus = element('button', { type: 'button', class: 'secondary' }, isFocused ? strings.clearFocus : strings.focus);
+    focus.addEventListener('click', () => vscode.postMessage({ type: 'focus', path: isFocused ? null : item.path }));
+    actions.append(open, focus); aside.append(actions);
+    return aside;
   }
   function diagnostics(items) {
     if (!items.length) return undefined;
@@ -90,15 +156,22 @@
     const list = element('ul'); items.forEach((item) => { const location = item.line ? `:${item.line}${item.column ? `:${item.column}` : ''}` : ''; const entry = element('li', { class: item.severity }); entry.append(element('strong', {}, item.code), document.createTextNode(` · ${item.path}${location} · ${item.message}`)); list.append(entry); }); section.append(list); return section;
   }
   function render(message) {
-    app.replaceChildren(); app.append(header(message), metrics(message.summary));
-    if (message.summary.nodes === 0) { app.append(element('section', { class: 'state', role: 'status' }, strings.empty)); return; }
+    currentMessage = message;
+    if (selectedPath && !message.layout.nodes.some((node) => node.path === selectedPath)) selectedPath = undefined;
+    app.replaceChildren(); app.append(header(message), refreshNote(), metrics(message.summary), filters(message));
+    if (message.summary.nodes === 0) { app.append(element('section', { class: 'state compact', role: 'status' }, strings.empty)); return; }
     app.append(legend());
+    if (message.filters.focusPath) app.append(element('p', { class: 'notice', role: 'status' }, strings.focused));
     if (message.summary.relationships === 0) app.append(element('p', { class: 'notice', role: 'status' }, strings.noRelationships));
-    app.append(graph(message.layout));
+    if (message.layout.totalMatchingNodes === 0) app.append(element('p', { class: 'notice', role: 'status' }, strings.noMatches));
+    if (message.layout.truncated) app.append(element('p', { class: 'notice warning', role: 'status' }, `${format(strings.visibleNodes, message.layout.nodes.length, message.layout.totalMatchingNodes)} ${format(strings.visualLimit, message.visibleLimit)}`));
+    const help = element('p', { id: 'graph-keyboard-help', class: 'keyboard-help' }, strings.keyboardHelp); app.append(help);
+    const content = element('div', { class: 'graph-content' }); content.append(graph(message.layout), detail(message.layout)); app.append(content);
     const diagnosticSection = diagnostics(message.diagnostics); if (diagnosticSection) app.append(diagnosticSection);
   }
   function labelForType(type) { return type === 'depends-on' ? strings.dependsOn : type === 'supersedes' ? strings.supersedes : strings.supersededBy; }
   function truncate(value, maximum) { return value.length > maximum ? `${value.slice(0, maximum - 1)}…` : value; }
+  function format(template, ...values) { return values.reduce((result, value, index) => result.replaceAll(`{${index}}`, String(value)), template); }
 
   document.addEventListener('DOMContentLoaded', () => vscode.postMessage({ type: 'ready' }));
   window.addEventListener('message', (event) => {

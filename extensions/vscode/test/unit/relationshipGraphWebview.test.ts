@@ -21,4 +21,15 @@ describe('relationship graph Webview security', () => {
     assert.match(script, /textContent/u);
     assert.match(script, /createElementNS/u);
   });
+
+  it('provides selection, filtering, explicit refresh, focus, and keyboard navigation without edit actions', async () => {
+    const script = await readFile(path.resolve(__dirname, '../../../media/relationshipGraph.js'), 'utf8');
+    assert.match(script, /type: 'filter'/u);
+    assert.match(script, /type: 'focus'/u);
+    assert.match(script, /type: 'openAdr'/u);
+    assert.match(script, /ArrowRight/u);
+    assert.match(script, /aria-pressed/u);
+    assert.match(script, /tabindex/u);
+    assert.doesNotMatch(script, /createAdr|approveAdr|updateStatus|saveAdr/u);
+  });
 });

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { maximumRelationshipGraphNodes, parseRelationshipGraphReport, RelationshipGraphContractError, RelationshipGraphRenderLimitError, type RelationshipGraphReport } from '../../src/contracts/relationshipGraph';
+import { maximumRelationshipGraphReportNodes, parseRelationshipGraphReport, RelationshipGraphContractError, RelationshipGraphReportLimitError, type RelationshipGraphReport } from '../../src/contracts/relationshipGraph';
 
 describe('relationship graph contract', () => {
   it('strictly transforms the versioned CLI JSON without interpreting ADR content', () => {
@@ -25,10 +25,13 @@ describe('relationship graph contract', () => {
     for (const value of cases) assert.throws(() => parseRelationshipGraphReport(JSON.stringify(value)), RelationshipGraphContractError);
   });
 
-  it('enforces explicit visual rendering limits', () => {
-    const nodes = Array.from({ length: maximumRelationshipGraphNodes + 1 }, (_, index) => ({ id: `ADR-${index}`, title: null, status: null, path: `docs/adr/${index}.md`, format: 'canonical' }));
+  it('accepts reports larger than the visual limit and enforces a bounded contract limit', () => {
+    const acceptedNodes = Array.from({ length: 101 }, (_, index) => ({ id: `ADR-${index}`, title: null, status: null, path: `docs/adr/${index}.md`, format: 'canonical' }));
+    const accepted = { schemaVersion: '1.0', adrDirectory: 'docs/adr', summary: { nodes: acceptedNodes.length, relationships: 0, resolved: 0, unresolved: 0, ambiguous: 0, diagnostics: 0 }, nodes: acceptedNodes, relationships: [], diagnostics: [] };
+    assert.equal(parseRelationshipGraphReport(JSON.stringify(accepted)).nodes.length, 101);
+    const nodes = Array.from({ length: maximumRelationshipGraphReportNodes + 1 }, (_, index) => ({ id: `ADR-${index}`, title: null, status: null, path: `docs/adr/${index}.md`, format: 'canonical' }));
     const value = { schemaVersion: '1.0', adrDirectory: 'docs/adr', summary: { nodes: nodes.length, relationships: 0, resolved: 0, unresolved: 0, ambiguous: 0, diagnostics: 0 }, nodes, relationships: [], diagnostics: [] };
-    assert.throws(() => parseRelationshipGraphReport(JSON.stringify(value)), RelationshipGraphRenderLimitError);
+    assert.throws(() => parseRelationshipGraphReport(JSON.stringify(value)), RelationshipGraphReportLimitError);
   });
 });
 

@@ -42,9 +42,11 @@ Use as ações do título para atualizar a árvore, revelar a ADR ativa, criar u
 
 ## Grafo de relacionamentos de ADRs (builds do código-fonte)
 
-A ação de grafo no título e o comando **ADR Guard: Abrir grafo de relacionamentos de ADRs** abrem um painel separado e somente leitura. A extensão invoca `relationships` na CLI e adapta estritamente o schema `1.0`; ela não interpreta Markdown de ADR nem resolve vínculos em TypeScript. Arestas temáticas distintas mostram declarações de dependência, substituição e substituída-por, com estilos separados para os estados resolvido, não resolvido e ambíguo.
+A ação de grafo no título e o comando **ADR Guard: Abrir grafo de relacionamentos de ADRs** abrem um painel separado e somente leitura. A extensão invoca `relationships` na CLI e adapta estritamente o schema `1.0`; ela não interpreta Markdown de ADR, infere vínculos nem modifica decisões em TypeScript. Arestas temáticas direcionais mostram declarações de dependência, substituição e substituída-por. Evidências existentes da CLI destacam ciclos de substituição, referências não resolvidas e declarações ambíguas.
 
-A visualização determinística em camadas é limitada a 200 nós de ADR e 400 relacionamentos. Os estados de carregamento, diretório vazio, ausência de vínculos, CLI incompatível, erro operacional e limite de renderização permanecem explícitos. Strings do contrato entram como texto sob uma CSP restritiva, usando somente recursos locais da extensão. A funcionalidade e seu contrato da CLI estão disponíveis atualmente no código-fonte e não fazem parte da extensão 1.1.0 nem da CLI 1.10.0 publicadas.
+Selecionar um nó mostra seus metadados essenciais e ações explícitas para abrir o Markdown do workspace após validação segura ou focar nos vínculos diretos de entrada e saída. Filtros por status e tipo de relacionamento atuam sobre o relatório carregado sem invocar novamente a CLI. A navegação por teclado usa setas, Home, End, Enter e Espaço com rótulos acessíveis e estados de foco visíveis.
+
+A visualização determinística em camadas mostra no máximo 100 nós de ADR correspondentes por vez; relatórios maiores e limitados continuam filtráveis. Alterações no workspace são incorporadas somente por **Atualizar** explícito, evitando processamento do grafo em segundo plano. Os estados de carregamento, diretório vazio, ausência de vínculos, CLI incompatível, erro operacional e limite seguro do relatório permanecem explícitos. Strings do contrato entram como texto sob uma CSP restritiva, usando somente recursos locais da extensão. A funcionalidade e seu contrato da CLI estão disponíveis atualmente no código-fonte e não fazem parte da extensão 1.1.0 nem da CLI 1.10.0 publicadas.
 
 ## Listagem visual
 

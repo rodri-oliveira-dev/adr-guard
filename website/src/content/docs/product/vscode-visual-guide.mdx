@@ -42,9 +42,11 @@ Use the title actions to refresh the tree, reveal the active ADR, create an ADR,
 
 ## ADR relationship graph (source builds)
 
-The relationship-graph title action and **ADR Guard: Open ADR Relationship Graph** command open a separate read-only panel. The extension invokes the CLI's `relationships` command and strictly adapts schema `1.0`; it does not parse ADR Markdown or resolve links in TypeScript. Distinct themed edges show dependency, supersedes, and superseded-by declarations, with separate resolved, unresolved, and ambiguous line states.
+The relationship-graph title action and **ADR Guard: Open ADR Relationship Graph** command open a separate read-only panel. The extension invokes the CLI's `relationships` command and strictly adapts schema `1.0`; it does not parse ADR Markdown, infer links, or modify decisions in TypeScript. Directional themed edges show dependency, supersedes, and superseded-by declarations. Existing CLI evidence highlights supersession cycles, unresolved references, and ambiguous declarations.
 
-The deterministic layered view is limited to 200 ADR nodes and 400 relationships. Loading, empty-directory, no-relationship, incompatible-CLI, operational-error, and render-limit states remain explicit. Contract strings are inserted as text under a restrictive CSP using only extension-local assets. This feature and its CLI contract are currently available from source and are not part of the published extension 1.1.0 or CLI 1.10.0.
+Selecting a node shows its essential metadata and explicit actions to open its safely validated workspace Markdown or focus on direct incoming and outgoing links. Status and relationship-type filters operate on the loaded report without invoking the CLI again. Keyboard navigation uses arrows, Home, End, Enter, and Space with accessible labels and visible focus states.
+
+The deterministic layered view shows at most 100 matching ADR nodes at once; larger bounded reports remain filterable. Workspace changes are incorporated only by explicit **Refresh**, avoiding background graph processing. Loading, empty-directory, no-relationship, incompatible-CLI, operational-error, and safe report-limit states remain explicit. Contract strings are inserted as text under a restrictive CSP using only extension-local assets. This feature and its CLI contract are currently available from source and are not part of the published extension 1.1.0 or CLI 1.10.0.
 
 ## Visual list
 

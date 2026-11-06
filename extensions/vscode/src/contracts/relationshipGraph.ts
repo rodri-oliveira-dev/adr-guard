@@ -1,6 +1,6 @@
 export const relationshipGraphSchemaVersion = '1.0' as const;
-export const maximumRelationshipGraphNodes = 200;
-export const maximumRelationshipGraphRelationships = 400;
+export const maximumRelationshipGraphReportNodes = 5_000;
+export const maximumRelationshipGraphReportRelationships = 10_000;
 
 export type RelationshipType = 'superseded-by' | 'supersedes' | 'depends-on';
 export type RelationshipResolution = 'resolved' | 'unresolved' | 'ambiguous';
@@ -43,10 +43,10 @@ export class RelationshipGraphContractError extends Error {
   public constructor(message: string) { super(message); this.name = 'RelationshipGraphContractError'; }
 }
 
-export class RelationshipGraphRenderLimitError extends Error {
+export class RelationshipGraphReportLimitError extends Error {
   public constructor(public readonly nodes: number, public readonly relationships: number) {
-    super(`Relationship graph exceeds the rendering limit (${maximumRelationshipGraphNodes} nodes and ${maximumRelationshipGraphRelationships} relationships).`);
-    this.name = 'RelationshipGraphRenderLimitError';
+    super(`Relationship graph exceeds the bounded report limit (${maximumRelationshipGraphReportNodes} nodes and ${maximumRelationshipGraphReportRelationships} relationships).`);
+    this.name = 'RelationshipGraphReportLimitError';
   }
 }
 
@@ -64,8 +64,8 @@ export function parseRelationshipGraphReport(input: string): RelationshipGraphRe
     || relationships.filter((item) => item.resolution === 'resolved').length !== summary.resolved
     || relationships.filter((item) => item.resolution === 'unresolved').length !== summary.unresolved
     || relationships.filter((item) => item.resolution === 'ambiguous').length !== summary.ambiguous) throw invalid('inconsistent summary');
-  if (nodes.length > maximumRelationshipGraphNodes || relationships.length > maximumRelationshipGraphRelationships) {
-    throw new RelationshipGraphRenderLimitError(nodes.length, relationships.length);
+  if (nodes.length > maximumRelationshipGraphReportNodes || relationships.length > maximumRelationshipGraphReportRelationships) {
+    throw new RelationshipGraphReportLimitError(nodes.length, relationships.length);
   }
   const nodeKeys = new Set(nodes.map((node) => `${node.id}\0${node.path}`));
   if (nodeKeys.size !== nodes.length) throw invalid('duplicate node');

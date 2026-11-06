@@ -4,7 +4,7 @@ All notable changes to ADR Guard for VS Code are documented here. Extension vers
 
 ## 1.1.1 — prepared 2026-11-05, not yet published
 
-- Add a source-only ADR relationship graph panel backed exclusively by the CLI schema `1.0` contract, with deterministic bounded layout, themed edge/state styling, secure Markdown navigation, local assets, restrictive CSP, and explicit loading/empty/error/incompatible states.
+- Add a source-only, read-only ADR relationship graph panel backed exclusively by the CLI schema `1.0` contract, with node details, status/type filters, direct-link focus, diagnostic cycle/broken/ambiguous highlights, directional legend, explicit refresh, keyboard accessibility, a 100-node visible limit, secure Markdown navigation, restrictive CSP, and explicit loading/empty/error/incompatible states.
 - Prepare a maintenance patch over the published 1.1.0 extension with safer executable/workspace path handling, clearer bounded UI messages, and reduced adapter complexity.
 - Retain VS Code `1.101.0+`, schema `1.0` visual create/edit contracts, all existing commands/settings, and the optional default-off MCP provider.
 - Support the separately installed CLI 1.10.0 while preserving capability detection and fallback behavior for older compatible CLIs.
