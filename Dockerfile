@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # .NET SDK 10.0.403, Alpine 3.24.
-FROM mcr.microsoft.com/dotnet/sdk@sha256:212fe4cb74627d5adf9817a4088906ae3edff1bd853bb27565d4b46731efe61e AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403-alpine3.24@sha256:5562fd626eec39f6f53218f9b7d7856ab7195d51d846568304fbe85071a3b6e6 AS build
 WORKDIR /src
 
 COPY global.json Directory.Build.props Directory.Packages.props ./
@@ -21,7 +21,7 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     /p:UseAppHost=true
 
 # .NET Runtime 10.0.14, Alpine 3.24.
-FROM mcr.microsoft.com/dotnet/runtime@sha256:4f1f30cf0bb4ab0c8b2daa84613051683456f8df4a9bf7c812e20d74962992ac AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0.14-alpine3.24@sha256:8ef0660a5ae5877915bc868a27aabf334c8b14c60aadbdd0fa058d81b87c52b6 AS final
 WORKDIR /workspace
 
 # Impact analysis invokes the bounded local Git CLI. The runtime remains
