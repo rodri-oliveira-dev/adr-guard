@@ -69,6 +69,7 @@ export function parseRelationshipGraphReport(input: string): RelationshipGraphRe
   }
   const nodeKeys = new Set(nodes.map((node) => `${node.id}\0${node.path}`));
   if (nodeKeys.size !== nodes.length) throw invalid('duplicate node');
+  if (new Set(nodes.map((node) => node.path)).size !== nodes.length) throw invalid('duplicate node path');
   for (const relationship of relationships) {
     if (!nodeKeys.has(`${relationship.sourceId}\0${relationship.sourcePath}`)
       || relationship.targets.some((target) => !nodeKeys.has(`${target.id}\0${target.path}`))) throw invalid('relationship references an unknown node');

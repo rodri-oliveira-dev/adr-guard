@@ -30,6 +30,18 @@ describe('relationship graph layout', () => {
     assert.equal(layout.edges.at(-1)?.resolution, 'unresolved');
   });
 
+  it('lays out empty and disconnected graphs without invalid dimensions', () => {
+    const empty: RelationshipGraphReport = { schemaVersion: '1.0', adrDirectory: 'docs/adr', summary: { nodes: 0, relationships: 0, resolved: 0, unresolved: 0, ambiguous: 0, diagnostics: 0 }, nodes: [], relationships: [], diagnostics: [] };
+    const emptyLayout = layoutRelationshipGraph(empty);
+    assert.deepEqual(emptyLayout.nodes, []);
+    assert.ok(emptyLayout.width > 0 && emptyLayout.height > 0);
+
+    const disconnected = report(false);
+    const layout = layoutRelationshipGraph({ ...disconnected, relationships: [], summary: { ...disconnected.summary, relationships: 0, resolved: 0 } });
+    assert.deepEqual(layout.nodes.map(({ x }) => x), [40, 40, 40]);
+    assert.equal(new Set(layout.nodes.map(({ y }) => y)).size, 3);
+  });
+
   it('filters status and relationship type without inventing relationships', () => {
     const value = report(false);
     const filtered = layoutRelationshipGraph(value, { status: 'Accepted', type: 'depends-on', focusPath: null });
@@ -47,15 +59,16 @@ describe('relationship graph layout', () => {
 
   it('caps visible nodes after filtering and reports truncation', () => {
     const value = report(false);
-    const nodes = Array.from({ length: maximumVisibleRelationshipGraphNodes + 5 }, (_, index) => ({ id: `ADR-${index}`, title: null, status: index % 2 === 0 ? 'Accepted' : 'Proposed', path: `docs/adr/${index}.md`, format: 'canonical' as const }));
+    const nodes = Array.from({ length: 1_000 }, (_, index) => ({ id: `ADR-${index}`, title: null, status: index % 2 === 0 ? 'Accepted' : 'Proposed', path: `docs/adr/${index}.md`, format: 'canonical' as const }));
     const large: RelationshipGraphReport = { ...value, nodes, relationships: [], diagnostics: [], summary: { nodes: nodes.length, relationships: 0, resolved: 0, unresolved: 0, ambiguous: 0, diagnostics: 0 } };
     const layout = layoutRelationshipGraph(large, { status: null, type: null, focusPath: null });
     assert.equal(layout.nodes.length, maximumVisibleRelationshipGraphNodes);
     assert.equal(layout.totalMatchingNodes, nodes.length);
     assert.equal(layout.truncated, true);
     const filtered = layoutRelationshipGraph(large, { status: 'Proposed', type: null, focusPath: null });
-    assert.equal(filtered.nodes.length, Math.floor(nodes.length / 2));
-    assert.equal(filtered.truncated, false);
+    assert.equal(filtered.nodes.length, maximumVisibleRelationshipGraphNodes);
+    assert.equal(filtered.totalMatchingNodes, 500);
+    assert.equal(filtered.truncated, true);
   });
 
   it('marks cycles, broken references, and ambiguous declarations from existing evidence', () => {

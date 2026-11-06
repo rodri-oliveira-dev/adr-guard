@@ -162,6 +162,24 @@ public sealed class RelationshipsCommandIntegrationTests
     }
 
     [Fact]
+    public void MaximumFileSetProducesACompleteBoundedGraph()
+    {
+        using var repository = new TestRepository();
+        for (var index = 1; index <= RelationshipsCommand.MaximumAdrFiles; index++)
+        {
+            repository.Write($"{index:D4}-decision.md", Canonical($"Decision {index}", "Accepted"));
+        }
+
+        var result = repository.Run(["relationships"]);
+
+        Assert.Equal(ExitCodes.Success, result.ExitCode);
+        Assert.True(System.Text.Encoding.UTF8.GetByteCount(result.Output) <= RelationshipGraphReportRenderer.MaximumResponseBytes);
+        using var json = JsonDocument.Parse(result.Output);
+        Assert.Equal(RelationshipsCommand.MaximumAdrFiles, json.RootElement.GetProperty("nodes").GetArrayLength());
+        Assert.Equal(0, json.RootElement.GetProperty("relationships").GetArrayLength());
+    }
+
+    [Fact]
     public void ResponseOverLimitFailsBeforeProducingPartialJson()
     {
         using var repository = new TestRepository();
@@ -178,6 +196,29 @@ public sealed class RelationshipsCommandIntegrationTests
             $"{RelationshipGraphReportRenderer.MaximumResponseBytes}-byte limit",
             result.Error,
             StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PreCanceledOperationFailsWithoutProducingPartialJson()
+    {
+        using var repository = new TestRepository();
+        repository.Write("0001-first.md", Canonical("First", "Accepted"));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.True(RelationshipsCommandArguments.TryParse(["relationships"], out var arguments));
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        var exitCode = RelationshipsCommand.Run(
+            arguments,
+            repository.Root,
+            output,
+            error,
+            cancellation.Token);
+
+        Assert.Equal(ExitCodes.OperationalError, exitCode);
+        Assert.Equal(string.Empty, output.ToString());
+        Assert.Contains("canceled", error.ToString(), StringComparison.Ordinal);
     }
 
     private static string Canonical(string title, string status, string relationships = "") => $$"""

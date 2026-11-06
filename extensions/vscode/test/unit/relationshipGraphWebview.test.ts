@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import { relationshipGraphWebviewHtml } from '../../src/webview/relationshipGraphHtml';
+import { parseRelationshipGraphMessage } from '../../src/webview/relationshipGraphMessages';
 
 describe('relationship graph Webview security', () => {
   it('uses a restrictive CSP, nonce-protected local script, and escaped attributes', () => {
@@ -31,5 +32,23 @@ describe('relationship graph Webview security', () => {
     assert.match(script, /aria-pressed/u);
     assert.match(script, /tabindex/u);
     assert.doesNotMatch(script, /createAdr|approveAdr|updateStatus|saveAdr/u);
+  });
+
+  it('strictly bounds extension-host messages and rejects unknown shapes', () => {
+    assert.deepEqual(parseRelationshipGraphMessage({ type: 'ready' }), { type: 'ready' });
+    assert.deepEqual(parseRelationshipGraphMessage({ type: 'openAdr', path: 'docs/adr/0001.md' }), { type: 'openAdr', path: 'docs/adr/0001.md' });
+    assert.deepEqual(parseRelationshipGraphMessage({ type: 'filter', status: null, relationshipType: 'depends-on' }), { type: 'filter', status: null, relationshipType: 'depends-on' });
+    for (const invalid of [
+      null, [], { type: 'ready', extra: true }, { type: 'openAdr', path: '' }, { type: 'openAdr', path: 'x'.repeat(4_097) },
+      { type: 'focus' }, { type: 'filter', status: '', relationshipType: null }, { type: 'filter', status: null, relationshipType: 'inferred' },
+    ]) assert.equal(parseRelationshipGraphMessage(invalid), undefined);
+  });
+
+  it('uses editor theme variables for light and dark compatibility', async () => {
+    const style = await readFile(path.resolve(__dirname, '../../../media/relationshipGraph.css'), 'utf8');
+    assert.match(style, /color-scheme: light dark/u);
+    assert.match(style, /var\(--vscode-editor-background\)/u);
+    assert.match(style, /var\(--vscode-focusBorder\)/u);
+    assert.doesNotMatch(style, /#[0-9a-f]{3,8}\b/iu);
   });
 });

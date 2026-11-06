@@ -3,10 +3,11 @@ import * as vscode from 'vscode';
 import { CliDiscoveryError } from '../cli/discovery';
 import { CliExecutor, requireSuccessfulResult } from '../cli/executor';
 import { readValidationConfiguration } from '../configuration';
-import { parseRelationshipGraphReport, RelationshipGraphContractError, RelationshipGraphReportLimitError, type RelationshipGraphReport, type RelationshipType } from '../contracts/relationshipGraph';
+import { parseRelationshipGraphReport, RelationshipGraphContractError, RelationshipGraphReportLimitError, type RelationshipGraphReport } from '../contracts/relationshipGraph';
 import { OperationalLog } from '../logging';
 import { asLocation, selectWorkspaceFolder } from '../workspace';
 import { relationshipGraphWebviewHtml } from '../webview/relationshipGraphHtml';
+import { parseRelationshipGraphMessage } from '../webview/relationshipGraphMessages';
 import { layoutRelationshipGraph, maximumVisibleRelationshipGraphNodes, relationshipGraphStatuses, type RelationshipGraphFilters } from '../webview/relationshipGraphModel';
 import { ensureExistingMarkdownFileWithinWorkspace, ensureResourceWithinWorkspace, resolveWorkspaceRelativePath, resolveWorkspaceRoot, WorkspacePolicyError } from '../workspacePolicy';
 
@@ -63,23 +64,26 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   }
 
   private async receive(message: unknown): Promise<void> {
-    if (!isMessage(message) || this.disposed) return;
-    if (message.type === 'ready' || message.type === 'refresh') { await this.load(); return; }
-    if (message.type === 'openAdr') { await this.openAdr(message.path); return; }
-    if (message.type === 'filter') {
+    const parsed = parseRelationshipGraphMessage(message);
+    if (parsed === undefined || this.disposed) return;
+    if (parsed.type === 'ready' || parsed.type === 'refresh') { await this.load(); return; }
+    if (parsed.type === 'openAdr') { await this.openAdr(parsed.path); return; }
+    if (parsed.type === 'filter') {
       const statuses = this.report === undefined ? [] : relationshipGraphStatuses(this.report);
-      if (message.status !== null && !statuses.includes(message.status)) return;
-      this.filters = { status: message.status, type: message.relationshipType, focusPath: null };
+      if (parsed.status !== null && !statuses.includes(parsed.status)) return;
+      this.filters = { status: parsed.status, type: parsed.relationshipType, focusPath: null };
       await this.postGraph();
       return;
     }
-    if (message.path !== null && !this.isKnownAdrPath(message.path)) return;
-    this.filters = { ...this.filters, focusPath: message.path };
+    if (parsed.path !== null && !this.isKnownAdrPath(parsed.path)) return;
+    this.filters = { ...this.filters, focusPath: parsed.path };
     await this.postGraph();
   }
 
   private async load(): Promise<void> {
     this.active?.abort();
+    this.report = undefined;
+    this.filters = { status: null, type: null, focusPath: null };
     const operation = new AbortController();
     this.active = operation;
     await this.post({ type: 'loading', strings: strings() });
@@ -141,25 +145,6 @@ export class RelationshipGraphPanel implements vscode.Disposable {
   private async post(message: unknown): Promise<void> { if (!this.disposed) await this.panel.webview.postMessage(message); }
 }
 
-type RelationshipGraphMessage =
-  | { readonly type: 'ready' }
-  | { readonly type: 'refresh' }
-  | { readonly type: 'openAdr'; readonly path: string }
-  | { readonly type: 'focus'; readonly path: string | null }
-  | { readonly type: 'filter'; readonly status: string | null; readonly relationshipType: RelationshipType | null };
-
-function isMessage(value: unknown): value is RelationshipGraphMessage {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
-  const record = value as Record<string, unknown>;
-  if (record.type === 'ready' || record.type === 'refresh') return Object.keys(record).length === 1;
-  if (record.type === 'openAdr' || record.type === 'focus') return Object.keys(record).length === 2
-    && Object.keys(record).every((key) => key === 'type' || key === 'path')
-    && (typeof record.path === 'string' || (record.type === 'focus' && record.path === null));
-  return record.type === 'filter' && Object.keys(record).length === 3
-    && Object.keys(record).every((key) => key === 'type' || key === 'status' || key === 'relationshipType')
-    && (record.status === null || typeof record.status === 'string')
-    && (record.relationshipType === null || record.relationshipType === 'depends-on' || record.relationshipType === 'supersedes' || record.relationshipType === 'superseded-by');
-}
 function strings(): Record<string, string> { return {
   title: vscode.l10n.t('ADR Relationships'), refresh: vscode.l10n.t('Refresh'), loading: vscode.l10n.t('Loading ADR relationships…'),
   empty: vscode.l10n.t('No ADRs were found in the configured directory.'), noRelationships: vscode.l10n.t('No declared ADR relationships were found.'),

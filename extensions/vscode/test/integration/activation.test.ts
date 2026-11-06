@@ -138,6 +138,18 @@ suite('ADR Guard extension activation', () => {
     assert.equal(countWebviews(), 1);
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
   });
+
+  test('reuses the relationship graph panel when relationship support is unavailable', async () => {
+    const countWebviews = (): number => vscode.window.tabGroups.all.flatMap((group) => group.tabs)
+      .filter((tab) => tab.input instanceof vscode.TabInputWebview && tab.label === 'ADR Relationships').length;
+    assert.equal(countWebviews(), 0);
+    await vscode.commands.executeCommand('adrGuard.openRelationshipGraph');
+    await waitFor(() => countWebviews() === 1);
+    assert.equal(countWebviews(), 1);
+    await vscode.commands.executeCommand('adrGuard.openRelationshipGraph');
+    assert.equal(countWebviews(), 1);
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+  });
 });
 
 async function waitFor(condition: () => boolean): Promise<void> {

@@ -19,6 +19,7 @@ describe('relationship graph contract', () => {
       { ...base, unexpected: true },
       { ...base, summary: { ...base.summary, nodes: 99 } },
       { ...base, nodes: [{ ...base.nodes[0], path: '../outside.md' }, base.nodes[1]] },
+      { ...base, nodes: [base.nodes[0], { ...base.nodes[1], path: base.nodes[0]?.path }] },
       { ...base, relationships: [{ ...base.relationships[0], resolution: 'unresolved', targets: base.relationships[0]?.targets }] },
       { ...base, relationships: [{ ...base.relationships[0], targets: [{ id: 'ADR-3', path: 'docs/adr/0003.md' }] }] },
     ];
@@ -26,9 +27,9 @@ describe('relationship graph contract', () => {
   });
 
   it('accepts reports larger than the visual limit and enforces a bounded contract limit', () => {
-    const acceptedNodes = Array.from({ length: 101 }, (_, index) => ({ id: `ADR-${index}`, title: null, status: null, path: `docs/adr/${index}.md`, format: 'canonical' }));
+    const acceptedNodes = Array.from({ length: 1_000 }, (_, index) => ({ id: `ADR-${index}`, title: null, status: null, path: `docs/adr/${index}.md`, format: 'canonical' }));
     const accepted = { schemaVersion: '1.0', adrDirectory: 'docs/adr', summary: { nodes: acceptedNodes.length, relationships: 0, resolved: 0, unresolved: 0, ambiguous: 0, diagnostics: 0 }, nodes: acceptedNodes, relationships: [], diagnostics: [] };
-    assert.equal(parseRelationshipGraphReport(JSON.stringify(accepted)).nodes.length, 101);
+    assert.equal(parseRelationshipGraphReport(JSON.stringify(accepted)).nodes.length, 1_000);
     const nodes = Array.from({ length: maximumRelationshipGraphReportNodes + 1 }, (_, index) => ({ id: `ADR-${index}`, title: null, status: null, path: `docs/adr/${index}.md`, format: 'canonical' }));
     const value = { schemaVersion: '1.0', adrDirectory: 'docs/adr', summary: { nodes: nodes.length, relationships: 0, resolved: 0, unresolved: 0, ambiguous: 0, diagnostics: 0 }, nodes, relationships: [], diagnostics: [] };
     assert.throws(() => parseRelationshipGraphReport(JSON.stringify(value)), RelationshipGraphReportLimitError);
