@@ -7,6 +7,7 @@
   let strings = {};
   let currentMessage;
   let selectedPath;
+  let requestedFocusPath;
 
   function element(name, attributes, text) {
     const node = document.createElement(name);
@@ -36,7 +37,7 @@
     const node = element('header', { class: 'graph-header' });
     const heading = element('div');
     heading.append(element('h1', {}, strings.title), element('p', { class: 'directory' }, `${message.workspace} · ${message.directory}`));
-    const refresh = action(strings.refresh, 'refresh', { 'aria-describedby': 'workspace-refresh-note' });
+    const refresh = action(strings.refresh, 'refresh', { id: 'graph-refresh', 'aria-describedby': 'workspace-refresh-note' });
     node.append(heading, refresh);
     return node;
   }
@@ -107,9 +108,9 @@
       const selected = item.path === selectedPath;
       const classes = ['graph-node', selected ? 'selected' : '', item.cycle ? 'cycle' : '', item.broken ? 'broken' : '', item.ambiguous ? 'ambiguous' : ''].filter(Boolean).join(' ');
       const accessibleLabel = `${item.id}: ${item.title || strings.unknownTitle}. ${strings.status}: ${item.status || strings.unknownStatus}.${problemLabels.length ? ` ${problemLabels.join(', ')}.` : ''}`;
-      const node = svgElement('g', { class: classes, transform: `translate(${item.x} ${item.y})`, tabindex: selected || (!selectedPath && index === 0) ? '0' : '-1', role: 'button', 'aria-label': accessibleLabel, 'aria-pressed': selected ? 'true' : 'false', 'data-path': item.path });
+      const node = svgElement('g', { class: classes, transform: `translate(${item.x} ${item.y})`, tabindex: selected || (!selectedPath && index === 0) ? '0' : '-1', role: 'button', 'aria-label': accessibleLabel, 'aria-pressed': selected ? 'true' : 'false', 'aria-controls': 'graph-details', 'data-path': item.path });
       node.append(svgElement('rect', { width: '220', height: '76', rx: '5' }), svgElement('text', { x: '12', y: '22', class: 'node-id' }, item.id), svgElement('text', { x: '12', y: '43', class: 'node-title' }, truncate(item.title || strings.unknownTitle, 31)), svgElement('text', { x: '12', y: '63', class: 'node-status' }, truncate(item.status || strings.unknownStatus, 33)), svgElement('title', {}, `${item.id}\n${item.title || strings.unknownTitle}\n${item.path}`));
-      const select = () => { selectedPath = item.path; render(currentMessage); };
+      const select = () => { selectedPath = item.path; requestedFocusPath = item.path; render(currentMessage); };
       node.addEventListener('click', select);
       node.addEventListener('keydown', (event) => navigateNodes(event, nodeElements, index, select));
       nodeElements.push(node); nodes.append(node);
@@ -130,7 +131,7 @@
   }
   function detail(layout) {
     const item = layout.nodes.find((node) => node.path === selectedPath);
-    const aside = element('aside', { class: 'details', 'aria-label': strings.details, 'aria-live': 'polite' });
+    const aside = element('aside', { id: 'graph-details', class: 'details', 'aria-label': strings.details, 'aria-live': 'polite' });
     aside.append(element('h2', {}, strings.details));
     if (!item) { aside.append(element('p', { class: 'select-hint' }, strings.selectHint)); return aside; }
     aside.append(element('h3', {}, `${item.id} · ${item.title || strings.unknownTitle}`));
@@ -143,9 +144,9 @@
     if (item.ambiguous) badges.append(element('span', { class: 'ambiguous' }, strings.ambiguous));
     if (badges.childNodes.length) aside.append(badges);
     const actions = element('div', { class: 'detail-actions' });
-    const open = element('button', { type: 'button' }, strings.openAdr); open.addEventListener('click', () => vscode.postMessage({ type: 'openAdr', path: item.path }));
+    const open = element('button', { id: 'graph-open-adr', type: 'button' }, strings.openAdr); open.addEventListener('click', () => vscode.postMessage({ type: 'openAdr', path: item.path }));
     const isFocused = currentMessage.filters.focusPath === item.path;
-    const focus = element('button', { type: 'button', class: 'secondary' }, isFocused ? strings.clearFocus : strings.focus);
+    const focus = element('button', { id: 'graph-focus', type: 'button', class: 'secondary' }, isFocused ? strings.clearFocus : strings.focus);
     focus.addEventListener('click', () => vscode.postMessage({ type: 'focus', path: isFocused ? null : item.path }));
     actions.append(open, focus); aside.append(actions);
     return aside;
@@ -157,9 +158,16 @@
   }
   function render(message) {
     currentMessage = message;
+    const activeId = document.activeElement?.id;
+    const activePath = document.activeElement?.getAttribute('data-path');
     if (selectedPath && !message.layout.nodes.some((node) => node.path === selectedPath)) selectedPath = undefined;
     app.replaceChildren(); app.append(header(message), refreshNote(), metrics(message.summary), filters(message));
-    if (message.summary.nodes === 0) { app.append(element('section', { class: 'state compact', role: 'status' }, strings.empty)); return; }
+    if (message.summary.nodes === 0) {
+      app.append(element('section', { class: 'state compact', role: 'status' }, strings.empty));
+      restoreFocus(undefined, activeId);
+      requestedFocusPath = undefined;
+      return;
+    }
     app.append(legend());
     if (message.filters.focusPath) app.append(element('p', { class: 'notice', role: 'status' }, strings.focused));
     if (message.summary.relationships === 0) app.append(element('p', { class: 'notice', role: 'status' }, strings.noRelationships));
@@ -168,6 +176,13 @@
     const help = element('p', { id: 'graph-keyboard-help', class: 'keyboard-help' }, strings.keyboardHelp); app.append(help);
     const content = element('div', { class: 'graph-content' }); content.append(graph(message.layout), detail(message.layout)); app.append(content);
     const diagnosticSection = diagnostics(message.diagnostics); if (diagnosticSection) app.append(diagnosticSection);
+    restoreFocus(requestedFocusPath || activePath, activeId);
+    requestedFocusPath = undefined;
+  }
+  function restoreFocus(path, id) {
+    const node = path && [...document.querySelectorAll('.graph-node')].find((candidate) => candidate.getAttribute('data-path') === path);
+    const target = node || (id ? document.getElementById(id) : undefined);
+    target?.focus();
   }
   function labelForType(type) { return type === 'depends-on' ? strings.dependsOn : type === 'supersedes' ? strings.supersedes : strings.supersededBy; }
   function truncate(value, maximum) { return value.length > maximum ? `${value.slice(0, maximum - 1)}…` : value; }

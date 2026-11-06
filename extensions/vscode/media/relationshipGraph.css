@@ -20,7 +20,8 @@ h1 { font-size: 1.6rem; margin: 0; }
 .legend { align-items: center; display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 10px 0; }
 .legend span { align-items: center; display: flex; gap: 7px; }
 .legend .direction { color: var(--vscode-descriptionForeground); flex-basis: 100%; margin: 0; }
-.legend-line { border-top: 3px solid; display: inline-block; width: 28px; }
+.legend-line { border-top: 3px solid; display: inline-block; position: relative; width: 28px; }
+.legend-line::after { border-bottom: 4px solid transparent; border-left: 7px solid currentColor; border-top: 4px solid transparent; content: ''; position: absolute; right: -1px; top: -5px; }
 .legend-line.depends-on { color: var(--vscode-charts-blue); }
 .legend-line.supersedes { color: var(--vscode-charts-purple); }
 .legend-line.superseded-by { color: var(--vscode-charts-orange); }
