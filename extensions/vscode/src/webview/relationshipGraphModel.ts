@@ -198,8 +198,11 @@ function relationshipCycleEdges(report: RelationshipGraphReport): Set<string> {
   for (const relationship of report.relationships) {
     if (relationship.type === 'depends-on' || relationship.resolution !== 'resolved') continue;
     for (const target of relationship.targets) {
-      adjacency.get(relationship.sourcePath)?.push(target.path);
-      reverse.get(target.path)?.push(relationship.sourcePath);
+      const [from, to] = relationship.type === 'supersedes'
+        ? [target.path, relationship.sourcePath]
+        : [relationship.sourcePath, target.path];
+      adjacency.get(from)?.push(to);
+      reverse.get(to)?.push(from);
     }
   }
   for (const targets of [...adjacency.values(), ...reverse.values()]) targets.sort(compareText);
@@ -332,7 +335,9 @@ function compareTarget(left: { readonly id: string; readonly path: string }, rig
   return compareText(left.id, right.id) || compareText(left.path, right.path);
 }
 function compareText(left: string, right: string): number {
-  return left.localeCompare(right, 'en', { sensitivity: 'case' });
+  if (left < right) return -1;
+  if (left > right) return 1;
+  return 0;
 }
 function cycleEdgeKey(sourcePath: string, targetPath: string, type: RelationshipType): string {
   return `${sourcePath}\0${targetPath}\0${type}`;

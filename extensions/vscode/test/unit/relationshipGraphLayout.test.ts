@@ -15,6 +15,18 @@ describe('relationship graph layout', () => {
     ]);
   });
 
+  it('uses ordinal ordering when identifiers differ only by accents', () => {
+    const nodes: RelationshipGraphReport['nodes'] = [
+      { id: 'ADR-café', title: null, status: null, path: 'café.md', format: 'canonical' },
+      { id: 'ADR-cafe', title: null, status: null, path: 'cafe.md', format: 'canonical' },
+    ];
+    const value: RelationshipGraphReport = { schemaVersion: '1.0', adrDirectory: '.', summary: { nodes: 2, relationships: 0, resolved: 0, unresolved: 0, ambiguous: 0, diagnostics: 0 }, nodes, relationships: [], diagnostics: [] };
+    const forward = layoutRelationshipGraph(value);
+    const reversed = layoutRelationshipGraph({ ...value, nodes: [...nodes].reverse() });
+    assert.deepEqual(forward, reversed);
+    assert.deepEqual(forward.nodes.map((node) => node.id), ['ADR-cafe', 'ADR-café']);
+  });
+
   it('keeps cycles bounded and represents unresolved relationships as dangling edges', () => {
     const value = report(false);
     const cycle: RelationshipGraphReport = {
@@ -97,12 +109,14 @@ describe('relationship graph layout', () => {
   it('marks only edges that participate in a supersession cycle', () => {
     const nodes = [1, 2, 3, 4].map((id) => ({ id: `ADR-${id}`, title: null, status: 'Superseded', path: `${id}.md`, format: 'canonical' as const }));
     const relationships: RelationshipGraphReport['relationships'] = [
-      resolvedEdge(1, 2), resolvedEdge(2, 1), resolvedEdge(3, 4), resolvedEdge(4, 3), resolvedEdge(2, 3),
+      resolvedEdge(1, 2), resolvedEdge(2, 1), resolvedEdge(3, 4), resolvedEdge(4, 3),
+      resolvedEdge(2, 3), resolvedEdge(3, 2, 'superseded-by'),
     ];
     const diagnostics = nodes.map((node) => ({ code: 'ADR010', message: 'cycle', path: node.path, severity: 'error' as const }));
-    const value: RelationshipGraphReport = { schemaVersion: '1.0', adrDirectory: '.', summary: { nodes: 4, relationships: 5, resolved: 5, unresolved: 0, ambiguous: 0, diagnostics: 4 }, nodes, relationships, diagnostics };
+    const value: RelationshipGraphReport = { schemaVersion: '1.0', adrDirectory: '.', summary: { nodes: 4, relationships: 6, resolved: 6, unresolved: 0, ambiguous: 0, diagnostics: 4 }, nodes, relationships, diagnostics };
     const layout = layoutRelationshipGraph(value);
     assert.equal(layout.edges.find((item) => item.sourcePath === '2.md' && item.targetPath === '3.md')?.cycle, false);
+    assert.equal(layout.edges.find((item) => item.sourcePath === '3.md' && item.targetPath === '2.md')?.cycle, false);
     assert.equal(layout.edges.filter((item) => item.cycle).length, 4);
   });
 });
@@ -116,6 +130,6 @@ function report(reverse: boolean): RelationshipGraphReport {
   return { schemaVersion: '1.0', adrDirectory: 'docs/adr', summary: { nodes: 3, relationships: 2, resolved: 2, unresolved: 0, ambiguous: 0, diagnostics: 0 }, nodes: reverse ? [...nodes].reverse() : nodes, relationships: reverse ? [...relationships].reverse() : relationships, diagnostics: [] };
 }
 
-function resolvedEdge(source: number, target: number): RelationshipGraphReport['relationships'][number] {
-  return { sourceId: `ADR-${source}`, sourcePath: `${source}.md`, type: 'supersedes', declaredTarget: `ADR-${target}`, resolution: 'resolved', targets: [{ id: `ADR-${target}`, path: `${target}.md` }] };
+function resolvedEdge(source: number, target: number, type: 'supersedes' | 'superseded-by' = 'supersedes'): RelationshipGraphReport['relationships'][number] {
+  return { sourceId: `ADR-${source}`, sourcePath: `${source}.md`, type, declaredTarget: `ADR-${target}`, resolution: 'resolved', targets: [{ id: `ADR-${target}`, path: `${target}.md` }] };
 }

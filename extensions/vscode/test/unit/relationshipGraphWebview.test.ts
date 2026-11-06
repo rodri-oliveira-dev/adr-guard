@@ -73,6 +73,9 @@ describe('relationship graph Webview security', () => {
     assert.deepEqual(harness.messages.at(-1), { type: 'filter', query: '', status: 'Accepted', relationshipType: null });
     harness.dispatch({ ...graphMessage(), filters: { query: '', status: 'Accepted', type: null, focusPath: null } });
     assert.equal(requiredElement(harness.document, 'graph-status').textContent, 'Filters updated. 2 matching ADRs.');
+    harness.focus('graph-clear-filters');
+    harness.dispatchGraph();
+    assert.equal(requiredActiveElement(harness.document).id, 'graph-clear-filters');
     harness.click('graph-refresh');
     assert.deepEqual(harness.messages.at(-1), { type: 'refresh' });
   });

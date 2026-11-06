@@ -71,7 +71,7 @@
     typeLabel.append(type);
     const apply = () => vscode.postMessage({ type: 'filter', query: search.value, status: status.value || null, relationshipType: type.value || null });
     search.addEventListener('change', apply); status.addEventListener('change', apply); type.addEventListener('change', apply);
-    const clear = element('button', { type: 'button', class: 'secondary' }, strings.clearFilters);
+    const clear = element('button', { id: 'graph-clear-filters', type: 'button', class: 'secondary' }, strings.clearFilters);
     clear.addEventListener('click', () => vscode.postMessage({ type: 'filter', query: '', status: null, relationshipType: null }));
     section.append(searchLabel, statusLabel, typeLabel, clear);
     return section;
