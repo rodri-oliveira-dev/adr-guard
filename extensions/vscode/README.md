@@ -5,7 +5,7 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 > **Published extension:** [ADR Guard for VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) is available on the Visual Studio Marketplace as `rodrioliveira.adr-guard`. The VS Code extension and .NET CLI are distributed and versioned separately; the extension does not bundle the CLI.
 
 <!-- vsix-package-status:start -->
-> **Release status (verified 2026-11-05):** version 1.1.0 is published in the Marketplace and adds the MCP provider and visual Impact, Drift, baseline, enriched catalog, AI Draft, and Technical Review workflows described below. Version 1.1.1 is a prepared maintenance candidate, not a published download. CLI 1.10.0 and MCP 1.0.1 are published independently; CLI 1.11.0 remains an unpublished candidate.
+> **Release status (verified 2026-11-06):** version 1.1.1 is published in the Marketplace. Version 1.2.0 is prepared but not published and adds the relationship graph described below. CLI 1.11.0 and MCP 1.0.1 are published independently; CLI 1.12.0 and MCP 1.0.2 are prepared candidates.
 <!-- vsix-package-status:end -->
 
 ## Features
@@ -103,7 +103,7 @@ Select a node to inspect its identifier, title, status, format, and path, then e
 
 The graph uses a deterministic layered layout and displays at most 100 matching nodes at once. Larger bounded reports remain available for search, filtering, and direct-link focus instead of being rendered in full. Workspace changes are loaded only through **Refresh** or by running **Open ADR Relationship Graph** again while its panel is open, preventing background graph processing. Loading, empty-directory, no-relationship, operational-error, incompatible-CLI, and safe report-limit states remain explicit. All contract text is inserted through text DOM APIs under a restrictive nonce-based Content Security Policy using extension-local resources.
 
-This capability is currently available from source together with the source-only CLI relationship contract. It is not present in the published extension 1.1.0 or published CLI 1.10.0.
+This capability is prepared for extension 1.2.0 with CLI 1.12.0. It is not present in the published extension 1.1.1 or published CLI 1.11.0. Older or malformed CLIs produce an explicit incompatible state; the extension never falls back to parsing ADR Markdown.
 
 ## Visual ADR list
 
@@ -230,12 +230,13 @@ The manifest is authoritative. Resource values are saved per workspace folder by
 | Surface | Requirement |
 | --- | --- |
 | VS Code | `1.101.0` or newer in the `1.x` line. |
-| Extension 1.1.0 | Published in the Visual Studio Marketplace. Extension and CLI releases remain independent. |
-| Extension 1.1.1 | Prepared maintenance candidate; not yet published. |
+| Extension 1.1.1 | Published in the Visual Studio Marketplace. Extension and CLI releases remain independent. |
+| Extension 1.2.0 | Prepared relationship-graph release candidate; not yet published. |
 | Core CLI integration | Compatible `adr-guard` v1.3.0 or newer for the documented baseline commands. |
 | Visual create/edit | CLI 1.7.0 schema `1.0` form contracts. |
 | Impact, drift, baseline, enriched catalog, draft, review/compare | A CLI build whose `<command> --help` exposes the requested flags; the extension checks capabilities instead of assuming matching versions. |
-| MCP | Optional. Extensions 1.1.0/1.1.1 use the stable VS Code MCP provider API with separately installed MCP 1.0.0 or a compatible schema `1.0` build; the extension remains fully functional without it. |
+| Relationship graph | Extension 1.2.0 plus CLI 1.12.0, or a compatible CLI build exposing `relationships` schema `1.0`. |
+| MCP | Optional. Extensions 1.1.0+ use the stable VS Code MCP provider API with separately installed MCP 1.0.1 or a compatible schema `1.0` build; the extension remains fully functional without it. |
 
 ## Troubleshooting
 

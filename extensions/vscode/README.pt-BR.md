@@ -5,7 +5,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 > **Extensão publicada:** [ADR Guard para VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) está disponível no Visual Studio Marketplace como `rodrioliveira.adr-guard`. A extensão VS Code e a CLI .NET são distribuídas e versionadas separadamente; a extensão não inclui a CLI.
 
 <!-- vsix-package-status:start -->
-> **Estado da release (verificado em 05/11/2026):** a versão 1.1.0 está publicada no Marketplace e adiciona o provider MCP e os fluxos visuais de Impacto, Drift, baseline, catálogo enriquecido, Rascunho por IA e Review Técnico descritos abaixo. A versão 1.1.1 é uma candidata de manutenção preparada, não um download publicado. CLI 1.10.0 e MCP 1.0.1 estão publicados independentemente; CLI 1.11.0 permanece uma candidata não publicada.
+> **Estado da release (verificado em 06/11/2026):** a versão 1.1.1 está publicada no Marketplace. A versão 1.2.0 está preparada, mas não publicada, e adiciona o grafo de relacionamentos descrito abaixo. CLI 1.11.0 e MCP 1.0.1 estão publicados independentemente; CLI 1.12.0 e MCP 1.0.2 são candidatos preparados.
 <!-- vsix-package-status:end -->
 
 ## Funcionalidades
@@ -103,7 +103,7 @@ Selecione um nó para consultar identificador, título, status, formato e caminh
 
 O grafo usa layout determinístico em camadas e exibe no máximo 100 nós correspondentes por vez. Relatórios maiores e limitados continuam disponíveis para busca, filtros e foco em vínculos diretos, em vez de serem renderizados integralmente. Alterações no workspace entram somente por **Atualizar** ou pela nova execução de **Abrir grafo de relacionamentos de ADRs** enquanto o painel está aberto, evitando processamento do grafo em segundo plano. Permanecem explícitos os estados de carregamento, diretório vazio, ausência de relacionamentos, erro operacional, CLI incompatível e limite seguro do relatório. Todo texto do contrato entra no DOM por APIs de texto sob uma Content Security Policy restritiva baseada em nonce, usando recursos locais da extensão.
 
-Esta capacidade está disponível atualmente no código-fonte junto com o contrato de relacionamentos source-only da CLI. Ela não faz parte da extensão 1.1.0 nem da CLI 1.10.0 publicadas.
+Esta capacidade está preparada para a extensão 1.2.0 com a CLI 1.12.0. Ela não faz parte da extensão 1.1.1 nem da CLI 1.11.0 publicadas. CLIs antigas ou malformadas produzem um estado incompatível explícito; a extensão nunca recorre a parsing local do Markdown das ADRs.
 
 ## Listagem visual de ADRs
 
@@ -230,12 +230,13 @@ O manifesto é a fonte de verdade. Valores de recurso são salvos por pasta pela
 | Superfície | Requisito |
 | --- | --- |
 | VS Code | `1.101.0` ou superior na linha `1.x`. |
-| Extensão 1.1.0 | Publicada no Visual Studio Marketplace. Releases da extensão e da CLI permanecem independentes. |
-| Extensão 1.1.1 | Candidata de manutenção preparada; ainda não publicada. |
+| Extensão 1.1.1 | Publicada no Visual Studio Marketplace. Releases da extensão e da CLI permanecem independentes. |
+| Extensão 1.2.0 | Candidata preparada da release do grafo de relacionamentos; ainda não publicada. |
 | Integração básica da CLI | `adr-guard` v1.3.0 ou superior compatível para os comandos básicos documentados. |
 | Criação/edição visual | Contratos de formulário schema `1.0` da CLI 1.7.0. |
 | Impacto, drift, baseline, catálogo enriquecido, draft, review/comparação | Build da CLI cujo `<command> --help` exponha os flags pedidos; a extensão verifica capacidades em vez de presumir versões iguais. |
-| MCP | Opcional. As extensões 1.1.0/1.1.1 usam a API estável de provider MCP do VS Code com o MCP 1.0.0 instalado separadamente ou build compatível com o schema `1.0`; a extensão funciona integralmente sem ele. |
+| Grafo de relacionamentos | Extensão 1.2.0 com CLI 1.12.0, ou build compatível da CLI que exponha `relationships` schema `1.0`. |
+| MCP | Opcional. As extensões 1.1.0+ usam a API estável de provider MCP do VS Code com MCP 1.0.1 instalado separadamente ou build compatível com schema `1.0`; a extensão funciona integralmente sem ele. |
 
 ## Solução de problemas
 

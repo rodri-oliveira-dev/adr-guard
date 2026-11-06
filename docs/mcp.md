@@ -4,7 +4,7 @@
 
 The ADR Guard MCP server is a local, read-only adapter that exposes ADR Guard domain capabilities to Model Context Protocol clients. It lets a compatible agent list, read, search, relate, validate, and analyze ADRs without replacing the CLI or embedding an AI model in ADR Guard.
 
-> **Availability:** MCP `1.0.0` is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0), and the official MCP Registry. MCP `1.0.1` is an unpublished candidate; do not use its version in public installation commands until both NuGet.org and the Registry are verified. GitHub Packages is an authenticated secondary feed with an independently triggered backfill for the already published 1.0.0 release. See [MCP release distribution](mcp-release.md).
+> **Availability:** MCP `1.0.1` is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.1), [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.1), GitHub Packages, and the official MCP Registry. MCP `1.0.2` is a prepared but unpublished patch. See [MCP release distribution](mcp-release.md).
 
 The prepared Registry name is `io.github.rodri-oliveira-dev/adr-guard`, backed by the NuGet package `RodriOliveira.AdrGuard.Mcp`. The Registry is discovery metadata for compatible clients; it does not guarantee client-side automatic installation. The only transport is local `stdio`.
 
@@ -48,5 +48,5 @@ Related deterministic capabilities remain documented in [Architecture Impact Ana
 
 - There is no network transport, remote hosted service, write tool, resource, prompt, or autonomous agent in this implementation.
 - The server does not install itself, fetch Git references, run builds/tests/scripts, generate baselines, create ADRs, or update indexes.
-- The public .NET 10 MCP tool can be installed from NuGet.org with `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0`; GitHub Packages requires authenticated feed access after its backfill has completed. Source builds remain available.
+- The public .NET 10 MCP tool can be installed from NuGet.org with `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.1`; GitHub Packages remains an authenticated secondary feed. Source builds remain available.
 - Client compatibility is documented only where the repository has a concrete integration: the VS Code stable MCP extension API. Other clients may work with a standard `stdio` command but are not claimed as tested here.

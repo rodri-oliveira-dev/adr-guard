@@ -4,17 +4,24 @@ ADR Guard MCP is versioned independently from the ADR Guard CLI and VS Code exte
 
 ## Unreleased
 
-- No additional MCP changes after the `1.0.1` release candidate baseline.
+- No additional MCP changes after the `1.0.2` release candidate baseline.
 
-## 1.0.1 — Release candidate; not published
+## 1.0.2 — Release candidate; not published
+
+- Reuse the shared deterministic Core relationship graph in the existing `get_adr_relationships` tool, including authoritative relationship diagnostics and consistent MADR target normalization.
+- Preserve all seven read-only tools, schema `1.0`, structured fields, local `stdio` transport, startup arguments, limits, and fail-closed behavior.
+- Keep MCP independently packaged and released; no tool or public contract is added.
+- See the [candidate release notes](../../docs/releases/mcp-v1.0.2.md).
+
+## 1.0.1 — 2026-11-05
 
 - Reference the internal, non-packable `AdrGuard.Core` assembly directly while remaining independent from the CLI executable.
 - Keep all seven read-only schema `1.0` tools, `stdio` transport, startup arguments, result contracts, limits, and error semantics unchanged.
 - Resolve physical Git-directory aliases before containment checks so valid macOS repositories are not rejected.
 - Package MCP plus Core and explicitly exclude `adr-guard.dll`; Core has no independent package or release stream.
-- Prepare authenticated GitHub Packages distribution for future MCP versions and a separate, provenance-verified backfill for published 1.0.0; no automatic republishing of existing versions.
-- Keep `.mcp/server.json` at published `1.0.0`; the protected workflow generates the `1.0.1` Registry manifest only during an explicitly dispatched release.
-- See the [candidate release notes](../../docs/releases/mcp-v1.0.1.md) and their post-publication checklist.
+- Added authenticated GitHub Packages distribution for future MCP versions and a separate, provenance-verified backfill for published 1.0.0; no automatic republishing of existing versions.
+- Published `1.0.1` on NuGet.org, GitHub Packages, GitHub Releases, and the official MCP Registry through the protected manual workflow.
+- See the [release notes](../../docs/releases/mcp-v1.0.1.md).
 
 ## 1.0.0 — 2026-10-17
 

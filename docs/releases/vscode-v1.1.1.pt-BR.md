@@ -1,13 +1,17 @@
-# ADR Guard para VS Code 1.1.1 — candidata a release
+# ADR Guard para VS Code 1.1.1
 
 [English](vscode-v1.1.1.md)
 
-ADR Guard para VS Code `1.1.1` está preparada, mas **não foi publicada**. A versão pública atual no Marketplace continua sendo `1.1.0`, verificada pela Gallery API do Marketplace em 05/11/2026.
+ADR Guard para VS Code `1.1.1` foi publicado no Visual Studio Marketplace em 05/11/2026. Este patch de manutenção antecede e não inclui o grafo de relacionamentos da Fase 3 preparado para a versão `1.2.0`.
 
-Esta candidata preserva todos os comandos e configurações existentes, VS Code `1.101.0+`, contratos de criação/edição visual no schema `1.0` e o provider MCP opcional e desabilitado por padrão. Ela incorpora melhorias em caminhos, mensagens limitadas, manutenção e testes de regressão, e adiciona um comando somente leitura para o grafo de relacionamentos de ADRs sem incluir binários da CLI ou do MCP no VSIX.
+## Mudanças
 
-O grafo consome exclusivamente o schema `1.0` de relacionamentos da CLI, aceita relatórios limitados com até 5.000 ADRs e 10.000 relacionamentos e renderiza no máximo 100 ADRs correspondentes por meio de um layout determinístico em camadas, para que relatórios maiores sejam filtrados ou focados primeiro. Ele diferencia dependências/substituições e estados resolvido/não resolvido/ambíguo e renderiza textos não confiáveis do contrato com APIs seguras de DOM sob uma CSP restritiva de recursos locais. Ele apresenta explicitamente carregamento, vazio, ausência de vínculos, CLI incompatível, erro operacional e limite de renderização. A capacidade permanece disponível apenas no código-fonte até que a candidata da extensão e uma CLI contendo `relationships` sejam publicadas.
+- Melhora o tratamento de caminhos do executável e workspace, mensagens limitadas para usuários, manutenibilidade dos adapters e cobertura de regressão.
+- Preserva todos os comandos, configurações, VS Code `1.101.0+`, contratos visuais de criação/edição no schema `1.0` e provider MCP opcional e desabilitado por padrão.
+- Continua executando uma CLI compatível instalada separadamente; o VSIX não inclui CLI nem MCP.
 
-A extensão continua executando uma CLI compatível instalada separadamente. A CLI `1.10.0` publicada fornece o conjunto de comandos atualmente publicado; verificações de capacidade e fallbacks seguros permanecem ativos. O branch de código-fonte adiciona o contrato JSON `relationships` depois do baseline preparado da CLI `1.11.0`, portanto o grafo apresenta o estado de CLI incompatível com os pacotes publicados atualmente. MCP `1.0.1` é opcional, instalado de forma independente e publicado separadamente.
+## Compatibilidade
 
-Após o merge, execute **VS Code VSIX Package** na `main` para gerar e validar `adr-guard-1.1.1.vsix`. O workflow não publica no Marketplace. A publicação no Marketplace exige uma ação separada e explicitamente autorizada da pessoa proprietária, com autenticação do Marketplace, seguida da confirmação de que `rodrioliveira.adr-guard` informa `1.1.1`.
+- A CLI `1.11.0` publicada oferece o conjunto de comandos disponível quando esta extensão foi lançada.
+- MCP `1.0.1` é opcional, instalado de forma independente e lançado separadamente.
+- O grafo de relacionamentos exige a extensão `1.2.0` e uma CLI que exponha o schema `1.0` de `relationships`; ele não integra esta versão imutável do Marketplace.

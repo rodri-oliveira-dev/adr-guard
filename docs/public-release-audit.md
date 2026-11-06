@@ -34,12 +34,12 @@ Public source links:
 
 ## Moving version versus repository baseline
 
-`src/AdrGuard/AdrGuard.csproj` intentionally keeps `VersionPrefix=1.1.0`. The release workflow uses that value as the **release-series baseline**, then compares it with immutable release/reservation tags and increments the patch for subsequent releases.
+At the time of the original audit, `src/AdrGuard/AdrGuard.csproj` kept `VersionPrefix=1.1.0`. The current source baseline is prepared independently for the next SemVer release; see the current [compatibility matrix](compatibility.md) rather than treating this historical snapshot as current metadata.
 
 Therefore:
 
-- `VersionPrefix` is not the current public package version;
-- local CI packaging may intentionally produce `1.1.0` for deterministic baseline tests;
+- `VersionPrefix` described the source baseline at the time of this audit, not a moving public version;
+- current local packaging uses the version prepared in the active source branch;
 - the latest public patch must be obtained from the GitHub Releases/NuGet public surfaces;
 - documentation should describe first-available feature versions but should not hard-code a moving “current release” patch unless it is an audit snapshot.
 

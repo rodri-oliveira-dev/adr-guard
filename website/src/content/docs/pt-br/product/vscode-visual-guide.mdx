@@ -1,6 +1,6 @@
 ---
 title: VS Code — Guia Visual
-description: Um passo a passo visual da interface publicada do ADR Guard 1.1.0 para consultar, criar, editar, configurar e validar ADRs no VS Code.
+description: Um passo a passo visual da interface publicada do ADR Guard 1.1.1 e do grafo de relacionamentos preparado para 1.2.0.
 sidebar:
   order: 2
   badge:
@@ -11,10 +11,10 @@ sidebar:
 O ADR Guard para VS Code é uma interface executada no host do workspace sobre a CLI .NET. A extensão oferece navegação, formulários, configurações e diagnósticos em Problems; a CLI continua sendo a autoridade para parsing, geração, edição, validação, políticas e códigos de saída.
 
 :::note[Status de publicação]
-Estas capturas registram a interface da extensão **1.0.0**, com os contratos de formulário da CLI **1.7.0**, e continuam representativas da interface compartilhada na versão **1.1.0** publicada no Marketplace. As telas de arquitetura/governança/IA e o provider MCP incluídos na versão 1.1.0 estão documentados em texto abaixo porque não há capturas adicionais verificadas. Releases da extensão, CLI e MCP são independentes.
+Estas capturas registram a interface da extensão **1.0.0**, com os contratos de formulário da CLI **1.7.0**, e continuam representativas da interface compartilhada na versão **1.1.1** publicada no Marketplace. As telas de arquitetura/governança/IA e o provider MCP estão documentados em texto porque não há capturas adicionais verificadas. O grafo está preparado para a extensão **1.2.0** com a CLI **1.12.0** e ainda não foi publicado. Releases da extensão, CLI e MCP são independentes.
 :::
 
-O [workflow VS Code VSIX Package no GitHub Actions](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/vscode-extension-release.yml) gera e valida um `.vsix` versionado, disponível nos **Artifacts** da execução bem-sucedida por **21 dias** (sujeito aos limites de retenção do repositório). Essa opção continua sendo apenas instalação manual por artifact; **o workflow não publica no Marketplace**, embora a versão 1.1.0 esteja disponível lá de forma independente. Consulte as [notas da release](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/releases/vscode-v1.1.0.pt-BR.md).
+O [workflow VS Code VSIX Package no GitHub Actions](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/vscode-extension-release.yml) gera e valida um `.vsix` versionado, disponível nos **Artifacts** da execução bem-sucedida por **21 dias**. Essa opção continua sendo apenas instalação manual por artifact; **o workflow não publica no Marketplace**, embora a versão 1.1.1 esteja disponível lá de forma independente. Consulte as [notas da candidata 1.2.0](https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/releases/vscode-v1.2.0.pt-BR.md).
 
 Para tabelas de comandos, chaves de configuração, limites de confiança e solução de problemas, consulte a [referência da extensão VS Code](../vscode-extension/). Este guia se concentra na interface e nos fluxos mais comuns.
 
@@ -27,7 +27,7 @@ Abra a interface por um destes pontos:
 - selecione o ícone do ADR Guard na Barra de Atividades;
 - execute **ADR Guard: Abrir ADR Guard** pela Paleta de Comandos;
 - use a ação de listagem no título do ADR Explorer;
-- use a ação do grafo de relacionamentos no título do ADR Explorer (somente em builds do código-fonte);
+- use a ação do grafo de relacionamentos no título do ADR Explorer (somente em builds preparados da 1.2.0);
 - execute **ADR Guard: Criar ADR com formulário** para ir diretamente ao cadastro.
 
 A extensão reutiliza um único painel, em vez de criar uma aba nova para cada ação.
@@ -40,13 +40,13 @@ A view **Registros de Decisões de Arquitetura** lista as ADRs Markdown do diret
 
 Use as ações do título para atualizar a árvore, revelar a ADR ativa, criar uma ADR ou abrir a listagem visual. Selecionar uma ADR abre seu arquivo Markdown. Destinos de relacionamentos só são abertos depois de verificações de workspace, caminho, tipo de arquivo e limite de symlink.
 
-## Grafo de relacionamentos de ADRs (builds do código-fonte)
+## Grafo de relacionamentos de ADRs (preparado para 1.2.0)
 
 A ação de grafo no título e o comando **ADR Guard: Abrir grafo de relacionamentos de ADRs** abrem um painel separado e somente leitura. A extensão invoca `relationships` na CLI e adapta estritamente o schema `1.0`; ela não interpreta Markdown de ADR, infere vínculos nem modifica decisões em TypeScript. Arestas temáticas direcionais mostram declarações de dependência, substituição e substituída-por. Evidências existentes da CLI destacam ciclos de substituição, referências não resolvidas e declarações ambíguas.
 
 Selecionar um nó mostra seus metadados essenciais e ações explícitas para abrir o Markdown do workspace após validação segura ou focar nos vínculos diretos de entrada e saída. Filtros por status e tipo de relacionamento atuam sobre o relatório carregado sem invocar novamente a CLI. A navegação por teclado usa setas, Home, End, Enter e Espaço com rótulos acessíveis e estados de foco visíveis.
 
-A visualização determinística em camadas mostra no máximo 100 nós de ADR correspondentes por vez; relatórios maiores e limitados continuam filtráveis. Alterações no workspace são incorporadas somente por **Atualizar** explícito, evitando processamento do grafo em segundo plano. Os estados de carregamento, diretório vazio, ausência de vínculos, CLI incompatível, erro operacional e limite seguro do relatório permanecem explícitos. Strings do contrato entram como texto sob uma CSP restritiva, usando somente recursos locais da extensão. A funcionalidade e seu contrato da CLI estão disponíveis atualmente no código-fonte e não fazem parte da extensão 1.1.0 nem da CLI 1.10.0 publicadas.
+A visualização determinística em camadas mostra no máximo 100 nós de ADR correspondentes por vez; relatórios maiores e limitados continuam filtráveis. Alterações no workspace são incorporadas somente por **Atualizar** explícito, evitando processamento do grafo em segundo plano. Os estados de carregamento, diretório vazio, ausência de vínculos, CLI incompatível, erro operacional e limite seguro do relatório permanecem explícitos. Strings do contrato entram como texto sob uma CSP restritiva, usando somente recursos locais da extensão. A funcionalidade está preparada para a extensão 1.2.0 e CLI 1.12.0; ela não faz parte da extensão 1.1.1 nem da CLI 1.11.0 publicadas.
 
 ## Listagem visual
 

@@ -9,7 +9,7 @@
     <ToolCommandName>adr-guard</ToolCommandName>
 
     <PackageId>RodriOliveira.AdrGuard</PackageId>
-    <VersionPrefix>1.11.0</VersionPrefix>
+    <VersionPrefix>1.12.0</VersionPrefix>
     <Title>ADR Guard - Architecture Decision Records Validator</Title>
     <Authors>Rodrigo de Oliveira</Authors>
     <Description>Validate, index, create, draft, review, analyze impact, and verify ADR-backed architectural drift from the command line. ADR Guard provides deterministic Markdown checks, explicit mappings, bounded fitness evidence, offline ADR generation, and optional human-reviewed AI assistance.</Description>
@@ -18,10 +18,10 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon-nuget.png</PackageIcon>
-    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '1.11.0'">Adds native, deterministic MADR 4.0 generation to adr-guard new with minimal and extended templates.
-Supports explicit or configured format selection, side-effect-free preview and dry-run, and the existing schema 1.0 structured form contract.
-Preserves canonical generation by default, atomic writes, concurrent ID allocation, and human-owned ADR approval.
-Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.11.0</PackageReleaseNotes>
+    <PackageReleaseNotes Condition="'$(VersionPrefix)' == '1.12.0'">Adds the read-only adr-guard relationships command with a strict schema 1.0 contract for declared ADR nodes, edges, resolution states, and existing diagnostics.
+Centralizes deterministic relationship discovery in AdrGuard.Core without changing check JSON/SARIF contracts or inferring architectural decisions.
+Preserves CLI exits 0-4, bounded inputs, deterministic ordering, and human-owned ADR approval.
+Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.12.0</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/rodri-oliveira-dev/adr-guard</PackageProjectUrl>
     <RepositoryUrl>https://github.com/rodri-oliveira-dev/adr-guard</RepositoryUrl>
     <RepositoryType>git</RepositoryType>

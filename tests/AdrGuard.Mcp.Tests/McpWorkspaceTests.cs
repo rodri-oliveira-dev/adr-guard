@@ -78,6 +78,25 @@ public sealed class McpWorkspaceTests
     }
 
     [Fact]
+    public void RelationshipsReuseCoreMadrResolutionWithoutChangingThePublicContract()
+    {
+        using var repository = TemporaryMcpRepository.Create();
+        repository.Write(".adrguard.yml", "schema-version: 1\nadr-directory: docs/adr\nadr-format: madr-4\n");
+        repository.Write("docs/adr/0001-source.md", Madr("Source", "superseded by ADR-0002"));
+        repository.Write("docs/adr/0002-target.md", Madr("Target", "accepted"));
+
+        var result = CreateWorkspace(repository).GetRelationships("ADR-1", TestContext.Current.CancellationToken);
+
+        Assert.Equal("1.0", result.SchemaVersion);
+        var relationship = Assert.Single(result.Relationships);
+        Assert.Equal("superseded-by", relationship.Type);
+        Assert.Equal("ADR-0002", relationship.DeclaredTarget);
+        Assert.Equal("valid", relationship.Resolution);
+        Assert.Equal("ADR-2", relationship.TargetIdentifier);
+        Assert.Equal("docs/adr/0002-target.md", relationship.TargetPath);
+    }
+
+    [Fact]
     public void ValidationDiagnosticsAreSuccessfulDomainResults()
     {
         using var repository = TemporaryMcpRepository.Create();
@@ -89,6 +108,23 @@ public sealed class McpWorkspaceTests
         Assert.Equal(1, result.Files);
         Assert.Contains(result.Diagnostics, item => item.Code == "ADR005" && item.Severity == "error");
     }
+
+    private static string Madr(string title, string status) => $$"""
+        ---
+        status: {{status}}
+        ---
+
+        # {{title}}
+
+        ## Context and Problem Statement
+        Context.
+
+        ## Considered Options
+        Options.
+
+        ## Decision Outcome
+        Outcome.
+        """;
 
     [Fact]
     public void WorkspaceRejectsTraversalOversizedFilesAndCancellation()

@@ -184,8 +184,8 @@ e páginas específicas apontam para ela em vez de reproduzir toda a matriz.
   aplicável; conteúdo de IA permanece consultivo e nunca estabelece aprovação.
 - **Compatibilidade publicada:** as linhas de versão são independentes. Conforme
   a [matriz de compatibilidade](../compatibility.md), CLI `1.9.0`, MCP `1.0.0` e
-  VS Code `1.1.0` estão publicados; MCP `1.0.1` existe apenas como candidata no
-  código-fonte. A Action expõe a tag exata `v1.9.0` e o alias móvel `v1`. A
+  VS Code `1.1.1` estão publicados; MCP `1.0.1` também está publicado. A Action
+  atualmente expõe a tag exata `v1.11.0` e o alias móvel `v1`. A
   consolidação não altera nenhum desses estados.
 - **Documentação:** mudanças futuras de comportamento exigiriam atualização
   equivalente EN/pt-BR e portal. Refactors internos sem mudança observável devem

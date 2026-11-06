@@ -1,6 +1,8 @@
-# ADR format and validation compatibility
+# ADR format and product compatibility
 
-Document format and validation rigor are independent. Existing commands default to `canonical` plus `legacy`, preserving the published behavior and exit codes.
+[Português (Brasil)](compatibility.pt-BR.md)
+
+Document format and validation rigor are independent. Existing commands default to `canonical` plus `legacy`, preserving published behavior and exit codes.
 
 | Profile | Lifecycle | Supersession text | Placeholders | Metadata |
 | --- | --- | --- | --- | --- |
@@ -9,38 +11,31 @@ Document format and validation rigor are independent. Existing commands default 
 | `standard` | Adds `Rejected` | On | Warning | Validated |
 | `strict` | Adds `Rejected` | On | Error | Validated |
 
-Use `adr-format: canonical` or `madr-4` independently with `validation-profile: legacy|advisory|standard|strict`. Explicit lifecycle, filename, placeholder, and metadata settings refine the selected profile. Baseline fingerprints retain diagnostic code, path, and message identity; warnings do not change the exit code. JSON adds `severity` only for warnings, and SARIF emits their standard `warning` level.
-
-MADR 4.0 validation is published and remains opt-in. Native MADR generation through `new` and `new --form` is assigned to the prepared CLI `1.11.0` candidate but has no published package or image yet. Canonical generation remains the default in both cases.
+Use `adr-format: canonical` or `madr-4` independently with `validation-profile: legacy|advisory|standard|strict`. Explicit lifecycle, filename, placeholder, and metadata settings refine the selected profile. Native MADR generation is published in CLI `1.11.0`; canonical generation remains the default.
 
 ## Product compatibility matrix
 
-The products use independent SemVer streams. Equal version numbers are not required and source availability is not publication evidence. In the table, **published** means available from the named public registry, **candidate** means a versioned source/package baseline prepared and validated for release but not promoted to a registry, and **source only** means the implementation is present without a release baseline for consumers.
+The products use independent SemVer streams. Equal version numbers are not required and source availability is not publication evidence. Status was verified against GitHub Releases, NuGet.org, the Visual Studio Marketplace, the MCP Registry, and Git tags on 2026-11-06.
 
-| Product / capability | Repository version | Minimum dependency | Runtime / host | Optional dependencies | Works without MCP? | Distribution status checked 2026-11-05 |
-| --- | --- | --- | --- | --- | --- | --- |
-| CLI / .NET Tool | `1.11.0` candidate | None | .NET 10 | Git only for incremental validation, comparative review, impact, and commit-aware drift metadata; configured AI provider only for `draft`/`review` | Yes | **Published:** `1.10.0` on NuGet.org and in the exact `v1.10.0` GitHub Release. **Not published:** `1.11.0`, including native MADR generation. |
-| Native MADR 4.0 generation (`new`, `new --form`) | `1.11.0` candidate | Candidate CLI `1.11.0`; structured clients continue to use form schema `1.0` | .NET 10 | None | Yes | **Published:** MADR validation only, since CLI `1.3.0`. **Not published:** native MADR generation in any package, image, Action tag, or release. Canonical generation remains the default. |
-| Read-only relationship graph (`relationships`) | source only after the `1.11.0` baseline | A source build whose command help exposes schema `1.0` | .NET 10 | None | Yes | **Not published:** additive CLI contract and compatible VS Code graph are available together from source; they do not change MCP `1.0` or check JSON/SARIF. |
-| VS Code core commands, Problems, Explorer | `1.1.1` candidate | Compatible CLI `1.3.0+` for the documented baseline command set | VS Code `1.101.0+`; Node workspace extension host; trusted local `file:` workspace | Git/provider requirements come from the selected CLI command | Yes | **Published:** Marketplace `1.1.0`. **Not published:** maintenance candidate `1.1.1`. Workflow-built VSIX artifacts are a separate 21-day installation channel and are never published automatically. |
-| VS Code visual create/edit | `1.1.1` candidate | CLI `1.7.0+`, form schema `1.0` | Same VS Code boundary | None beyond the CLI | Yes | **Published:** Marketplace `1.1.0`. Candidate `1.1.1` preserves schema `1.0`. |
-| VS Code impact, drift, baseline, enriched catalog, draft, review/compare | `1.1.1` candidate | CLI build whose `<command> --help` exposes the requested contract; published CLI `1.10.0` supports the documented workflows | Same VS Code boundary | Local Git/mappings/evidence or AI provider only when the chosen CLI workflow requires them | Yes | **Published:** Marketplace `1.1.0`; candidate `1.1.1` still requires a separately installed CLI. |
-| VS Code MCP provider | `1.1.1` candidate | Separately installed MCP `1.0.0+` with unchanged schema `1.0` contracts | VS Code `1.101.0+`, trusted local/remote workspace host | `dotnet` on the extension-host `PATH` when configured with a DLL | Not applicable; this row is the optional integration | **Published:** included in Marketplace `1.1.0`, disabled by default. MCP `1.0.1` is published independently on NuGet.org and GitHub Releases; VS Code `1.1.1` remains unpublished. |
-| MCP server / .NET Tool | `1.0.1` released | None; extension is not required | .NET 10, local `stdio` client | Git only for `analyze_impact` and commit metadata | Not applicable; it runs independently | **Published:** `1.0.1` on NuGet.org and in the exact `mcp/v1.0.1` GitHub Release. The checked-in MCP Registry manifest remains at `1.0.0`; verify the Registry independently. |
-| GitHub Action | published exact `v1.10.0` / moving `v1`; `v1.11.0` candidate | CLI container from the same coordinated release | Linux runner with Docker; Python 3 for bounded review/impact/drift rendering | Provider credentials only for explicit `review`; Git history/map only for `impact`; local rules/baseline/evidence for `drift` | Yes | **Published:** current `v1` and `v1.10.0` expose `check`, `index`, opt-in `review`, opt-in `impact`, and read-only `drift`. **Not published:** `v1.11.0`; the Action does not expose the `new` command or native MADR generation. |
+| Product / capability | Repository version | Minimum dependency | Distribution status |
+| --- | --- | --- | --- |
+| CLI / .NET Tool | `1.12.0` candidate | .NET 10 | Published: `1.11.0` on NuGet.org and GitHub Releases. Prepared, not published: `1.12.0`. |
+| Native MADR generation | Included in CLI `1.11.0+` | CLI `1.11.0`; form schema remains `1.0` | Published in `1.11.0`; canonical remains the default. |
+| Read-only relationship graph | CLI `1.12.0` candidate | Direct CLI use; schema `1.0` | Prepared, not published. Existing check JSON/SARIF contracts are unchanged. |
+| VS Code core, forms, analysis, and optional MCP provider | `1.2.0` candidate | VS Code `1.101.0+`; separately installed CLI appropriate to each command | Marketplace `1.1.1` is published. `1.2.0` is prepared but not published; validated workflow VSIX artifacts are retained for 21 days and never published automatically. |
+| VS Code relationship graph | `1.2.0` candidate | CLI `1.12.0` or a compatible build exposing `relationships` schema `1.0` | Prepared, not published. Older or malformed CLIs produce an explicit incompatible state. |
+| MCP server / .NET Tool | `1.0.2` candidate | .NET 10; local `stdio` client | `1.0.1` is published on NuGet.org, GitHub Releases, GitHub Packages, and the MCP Registry. `1.0.2` is prepared but not published. |
+| GitHub Action | coordinated `v1.12.0` candidate | Linux runner with Docker; matching CLI container | Exact `v1.11.0` and moving `v1` are published. The Action retains `check`, `index`, `review`, `impact`, and `drift`; it does not expose `relationships` or `new`. |
 
-The CLI runs independently of both the extension and MCP. The extension retains its complete CLI-backed behavior when MCP is disabled, missing, or incompatible. The MCP server runs with any compatible `stdio` client and does not require the extension.
+The VS Code extension probes command capabilities rather than trusting a version string. The relationship graph requires `relationships --help` plus a strict schema `1.0` response. It never falls back to parsing ADR Markdown in TypeScript. MCP remains optional and separately installed; the extension retains its CLI-backed behavior when MCP is disabled, missing, or incompatible.
 
 ## Internal assembly and package boundaries
 
-Current source builds use this dependency graph:
-
 ```text
-VS Code / GitHub Action ──process or container──> AdrGuard CLI ──> AdrGuard.Core
-compatible MCP client ───────────────stdio──────> AdrGuard.Mcp ──> AdrGuard.Core
+VS Code / GitHub Action --process or container--> AdrGuard CLI --> AdrGuard.Core
+compatible MCP client --------------stdio------> AdrGuard.Mcp --> AdrGuard.Core
 ```
 
-`AdrGuard.Core` is an internal, non-packable class library. It contains shared parsing, validation, configuration, bounded Git inventory, impact, and drift behavior, but exposes no independently versioned consumer product. Published CLI `1.10.0` and candidate CLI `1.11.0` packages include `adr-guard` plus `AdrGuard.Core.dll` and exclude MCP. Published MCP `1.0.1` packages include `adr-guard-mcp` plus `AdrGuard.Core.dll` and exclude `adr-guard.dll`. CLI and MCP retain separate executables, package IDs, versions, release tags, and publication workflows.
+`AdrGuard.Core` is internal and non-packable. It has no independent version, package, tag, or release. CLI packages contain `adr-guard` plus `AdrGuard.Core.dll` and exclude MCP. MCP packages contain `adr-guard-mcp` plus `AdrGuard.Core.dll` and exclude `adr-guard.dll`. CLI and MCP retain separate package IDs, versions, tags, manifests, and manual release workflows.
 
-Confirm an installed CLI with `adr-guard --version` plus the relevant command's `--help`. Confirm extension versions in the Visual Studio Marketplace, and MCP versions in both NuGet.org and the MCP Registry. A branch, local package, workflow VSIX, manifest, or release note alone does not establish registry publication.
-
+Confirm an installed CLI with `adr-guard --version` and the relevant command's `--help`. Confirm extension versions in the Marketplace and MCP versions in NuGet.org plus the MCP Registry. A branch, local package, workflow artifact, manifest, or release note alone does not establish publication.

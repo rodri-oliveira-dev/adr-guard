@@ -4,9 +4,9 @@
 
 O workflow `MCP Release` (`.github/workflows/mcp-release.yml`) é independente da release da CLI. Ele recebe um único SemVer estável, executa apenas por acionamento manual na `main`, exige CI bem-sucedido para o commit escolhido e deriva desse valor as versões do pacote, manifesto, tag, GitHub Release e Registry. Não o acione antes de concluir a configuração abaixo.
 
-O MCP `1.0.0` foi publicado no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), em uma [GitHub Release própria](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0) e no MCP Registry. O GitHub Packages é um feed NuGet secundário e autenticado; a disponibilidade da versão `1.0.0` nesse canal depende da execução do workflow de backfill após o merge desta mudança.
+MCP `1.0.1` está publicado no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.1), em uma [GitHub Release própria](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.1), GitHub Packages e MCP Registry.
 
-O MCP `1.0.1` é uma candidata a release não publicada. O baseline do projeto é `1.0.1`, enquanto `.mcp/server.json` mantém intencionalmente a última publicação no Registry, `1.0.0`. O workflow manual substitui de forma estrutural os dois campos de versão do manifesto pelo input explícito de `workflow_dispatch`, valida o manifesto gerado e só o publica depois dos gates do pacote e da GitHub Release.
+MCP `1.0.2` é uma candidata a release não publicada. O baseline do projeto é `1.0.2`, enquanto `.mcp/server.json` registra a última publicação verificada no Registry, `1.0.1`. O workflow manual substitui de forma estrutural os dois campos de versão do manifesto pelo input explícito de `workflow_dispatch`, valida o manifesto gerado e só o publica depois dos gates do pacote e da GitHub Release.
 
 ## Administração única obrigatória
 

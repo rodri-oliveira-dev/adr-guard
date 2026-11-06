@@ -2,7 +2,7 @@
 
 > Disponibilidade: a validação MADR 4.0 está publicada no [ADR Guard v1.3.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.3.0) e permanece opcional.
 
-> Estado da release: a geração MADR nativa está preparada para a CLI 1.11.0, mas não estará disponível em pacotes ou imagens publicados até que essa release conclua seu fluxo de publicação. A CLI 1.10.0 continua sendo o baseline publicado.
+> Estado da release: a geração MADR nativa está disponível na CLI e nos containers publicados na versão 1.11.0.
 
 O ADR Guard implementa um subconjunto explícito alinhado aos [templates oficiais MADR 4.0.0](https://github.com/adr/madr/tree/4.0.0/template). O formato nunca é inferido:
 
