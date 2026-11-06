@@ -27,6 +27,7 @@ Abra a interface por um destes pontos:
 - selecione o ícone do ADR Guard na Barra de Atividades;
 - execute **ADR Guard: Abrir ADR Guard** pela Paleta de Comandos;
 - use a ação de listagem no título do ADR Explorer;
+- use a ação do grafo de relacionamentos no título do ADR Explorer (somente em builds do código-fonte);
 - execute **ADR Guard: Criar ADR com formulário** para ir diretamente ao cadastro.
 
 A extensão reutiliza um único painel, em vez de criar uma aba nova para cada ação.
@@ -38,6 +39,12 @@ A view **Registros de Decisões de Arquitetura** lista as ADRs Markdown do diret
 ![ADR Explorer na Barra de Atividades com três ADRs e a listagem visual aberta ao lado.](/adr-guard/images/vscode/adr-explorer.png)
 
 Use as ações do título para atualizar a árvore, revelar a ADR ativa, criar uma ADR ou abrir a listagem visual. Selecionar uma ADR abre seu arquivo Markdown. Destinos de relacionamentos só são abertos depois de verificações de workspace, caminho, tipo de arquivo e limite de symlink.
+
+## Grafo de relacionamentos de ADRs (builds do código-fonte)
+
+A ação de grafo no título e o comando **ADR Guard: Abrir grafo de relacionamentos de ADRs** abrem um painel separado e somente leitura. A extensão invoca `relationships` na CLI e adapta estritamente o schema `1.0`; ela não interpreta Markdown de ADR nem resolve vínculos em TypeScript. Arestas temáticas distintas mostram declarações de dependência, substituição e substituída-por, com estilos separados para os estados resolvido, não resolvido e ambíguo.
+
+A visualização determinística em camadas é limitada a 200 nós de ADR e 400 relacionamentos. Os estados de carregamento, diretório vazio, ausência de vínculos, CLI incompatível, erro operacional e limite de renderização permanecem explícitos. Strings do contrato entram como texto sob uma CSP restritiva, usando somente recursos locais da extensão. A funcionalidade e seu contrato da CLI estão disponíveis atualmente no código-fonte e não fazem parte da extensão 1.1.0 nem da CLI 1.10.0 publicadas.
 
 ## Listagem visual
 

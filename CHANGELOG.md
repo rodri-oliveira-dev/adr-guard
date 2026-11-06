@@ -9,6 +9,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 ### Added
 
 - Add the source-only, read-only `adr-guard relationships [directory] --format json` command and strict schema `1.0` for deterministic ADR nodes, declared edges, resolution states, and existing relationship diagnostics.
+- Add the source-only VS Code relationship graph that consumes that contract without duplicating ADR parsing or relationship resolution, with deterministic rendering limits and secure local Webview resources.
 
 ### Compatibility
 

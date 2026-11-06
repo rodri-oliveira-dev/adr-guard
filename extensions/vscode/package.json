@@ -49,6 +49,7 @@
     "onCommand:adrGuard.initializeRepository",
     "onCommand:adrGuard.createAdr",
     "onCommand:adrGuard.openVisual",
+    "onCommand:adrGuard.openRelationshipGraph",
     "onCommand:adrGuard.createAdrWithForm",
     "onCommand:adrGuard.validateAdrs",
     "onCommand:adrGuard.validateChangedAdrs",
@@ -97,6 +98,12 @@
         "title": "%command.openVisual%",
         "category": "%command.category%",
         "icon": "$(list-flat)"
+      },
+      {
+        "command": "adrGuard.openRelationshipGraph",
+        "title": "%command.openRelationshipGraph%",
+        "category": "%command.category%",
+        "icon": "$(type-hierarchy-sub)"
       },
       {
         "command": "adrGuard.createAdrWithForm",
@@ -185,6 +192,11 @@
           "command": "adrGuard.openVisual",
           "when": "view == adrGuard.adrExplorer",
           "group": "navigation"
+        },
+        {
+          "command": "adrGuard.openRelationshipGraph",
+          "when": "view == adrGuard.adrExplorer",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [

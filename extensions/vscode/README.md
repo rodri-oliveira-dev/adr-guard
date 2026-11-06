@@ -19,6 +19,7 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 - Opt in to debounced validation after saving an ADR.
 - Generate an ADR index only after explicit confirmation.
 - Browse canonical and MADR 4.0 files in the native Explorer, including safe display-only status and relationship navigation.
+- Visualize declared ADR dependencies and supersession relationships from the CLI's strict graph JSON contract.
 - Run Git-aware changed-file validation against an explicit local base ref, with no hidden fetch.
 - Classify diagnostics against an existing read-only baseline.
 - Explicitly run visual Architecture Impact and Architectural Drift reports through strict CLI JSON contracts.
@@ -82,6 +83,7 @@ Open the Command Palette and choose the command under **ADR Guard**:
 | Initialize Repository | Previews `init --dry-run`, then asks before writing. Existing files are not overwritten. |
 | Create ADR | Runs the compatible traditional `new` flow and opens the verified created file. |
 | Open ADR Guard | Opens or reveals the visual ADR list without creating files or running validation. |
+| Open ADR Relationship Graph | Opens the read-only declared relationship graph for the selected workspace folder. |
 | Create ADR with Form | Opens the guided form, previews through the CLI, then creates only after explicit submission. |
 | Validate ADRs | Runs a full JSON validation and updates Problems. |
 | Validate Changed ADRs | Uses `--changed --base-ref`; it never performs `git fetch`. |
@@ -92,6 +94,14 @@ Open the Command Palette and choose the command under **ADR Guard**:
 | Reveal Current ADR | Selects the active ADR in the Explorer. |
 
 Multi-root workspaces are supported. Commands use the active file's folder when possible and otherwise ask which folder to use. Settings with resource scope can differ by workspace folder.
+
+## ADR relationship graph
+
+Run **ADR Guard: Open ADR Relationship Graph** from the Command Palette or the ADR Explorer title. The separate read-only panel invokes `relationships <directory> --format json` and consumes only schema `1.0`; it does not parse Markdown or resolve relationships in TypeScript. Dependency, supersedes, and superseded-by edges use distinct editor-theme colors, while resolved, unresolved, and ambiguous states use distinct line styles. Selecting a node opens its workspace-contained Markdown file.
+
+The graph uses a deterministic layered layout and refuses to render more than 200 ADR nodes or 400 declared relationships. It reports loading, empty-directory, no-relationship, operational-error, incompatible-CLI, and render-limit states explicitly. All labels, titles, diagnostics, paths, and declared targets are inserted through text DOM APIs under a restrictive nonce-based Content Security Policy; the panel uses only extension-local script and style resources.
+
+This capability is currently available from source together with the source-only CLI relationship contract. It is not present in the published extension 1.1.0 or published CLI 1.10.0.
 
 ## Visual ADR list
 

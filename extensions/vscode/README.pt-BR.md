@@ -19,6 +19,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 - Validação opcional e agrupada após salvar uma ADR.
 - Geração explícita do índice, sempre com confirmação.
 - Explorer nativo para formatos canônico e MADR 4.0, com status e relacionamentos apenas para apresentação/navegação segura.
+- Visualização de dependências e substituições declaradas entre ADRs pelo contrato JSON estrito de grafo da CLI.
 - Validação incremental contra uma ref Git local informada, sem `git fetch` oculto.
 - Classificação contra um baseline existente e somente leitura.
 - Execução visual explícita de Impacto Arquitetural e Drift Arquitetural por contratos JSON estritos da CLI.
@@ -82,6 +83,7 @@ Abra a Paleta de Comandos e escolha a ação sob **ADR Guard**:
 | Inicializar repositório | Mostra a prévia de `init --dry-run` e pede confirmação antes de escrever. |
 | Criar ADR | Executa o fluxo tradicional compatível de `new` e abre somente o arquivo criado e verificado. |
 | Abrir ADR Guard | Abre ou revela a listagem visual de ADRs sem criar arquivos nem executar validação. |
+| Abrir grafo de relacionamentos de ADRs | Abre o grafo somente leitura de relacionamentos declarados para a pasta selecionada. |
 | Criar ADR com formulário | Abre o formulário orientado, gera a prévia pela CLI e cria somente após envio explícito. |
 | Validar ADRs | Executa validação JSON completa e atualiza Problems. |
 | Validar ADRs alteradas | Usa `--changed --base-ref`; nunca executa `git fetch`. |
@@ -92,6 +94,14 @@ Abra a Paleta de Comandos e escolha a ação sob **ADR Guard**:
 | Revelar ADR atual | Seleciona a ADR ativa no Explorer. |
 
 Workspaces com múltiplas raízes são suportados. Quando possível, os comandos usam a pasta do arquivo ativo; caso contrário, solicitam a pasta. Configurações de escopo de recurso podem variar por pasta.
+
+## Grafo de relacionamentos de ADRs
+
+Execute **ADR Guard: Abrir grafo de relacionamentos de ADRs** pela Paleta de Comandos ou pelo título do ADR Explorer. O painel separado e somente leitura invoca `relationships <directory> --format json` e consome exclusivamente o schema `1.0`; ele não interpreta Markdown nem resolve relacionamentos em TypeScript. Arestas de dependência, substituição e substituída-por usam cores distintas do tema do editor, enquanto os estados resolvido, não resolvido e ambíguo usam estilos de linha diferentes. Selecionar um nó abre o Markdown contido no workspace.
+
+O grafo usa layout determinístico em camadas e recusa renderizar mais de 200 nós de ADR ou 400 relacionamentos declarados. Ele apresenta explicitamente carregamento, diretório vazio, ausência de relacionamentos, erro operacional, CLI incompatível e limite de renderização. Rótulos, títulos, diagnósticos, caminhos e destinos declarados entram no DOM apenas como texto, sob uma Content Security Policy restritiva baseada em nonce; o painel usa somente script e estilo locais da extensão.
+
+Esta capacidade está disponível atualmente no código-fonte junto com o contrato de relacionamentos source-only da CLI. Ela não faz parte da extensão 1.1.0 nem da CLI 1.10.0 publicadas.
 
 ## Listagem visual de ADRs
 

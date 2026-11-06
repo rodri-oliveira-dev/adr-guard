@@ -18,6 +18,7 @@ import { DiagnosticManager } from './validation/diagnostics';
 import { SaveValidationController } from './validation/onSave';
 import { NewAdrFormPanel } from './commands/newAdrForm';
 import { registerMcpProvider } from './mcp/provider';
+import { openRelationshipGraph } from './commands/relationshipGraph';
 
 let activeRunner: CliRunner | undefined;
 
@@ -63,6 +64,7 @@ export function activate(context: vscode.ExtensionContext): AdrGuardExtensionApi
     vscode.commands.registerCommand('adrGuard.initializeRepository', async () => initializeRepository(core)),
     vscode.commands.registerCommand('adrGuard.createAdr', async () => createAdr(core)),
     vscode.commands.registerCommand('adrGuard.openVisual', async () => openVisual('list')),
+    vscode.commands.registerCommand('adrGuard.openRelationshipGraph', async () => openRelationshipGraph({ executor, log, extensionUri: context.extensionUri })),
     vscode.commands.registerCommand('adrGuard.createAdrWithForm', async () => openVisual('form')),
     vscode.commands.registerCommand('adrGuard.validateAdrs', async () => validateAdrs(core)),
     vscode.commands.registerCommand('adrGuard.validateChangedAdrs', async () => validateChangedAdrs(core)),

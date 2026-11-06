@@ -6,6 +6,7 @@
   "command.initializeRepository": "Inicializar repositório",
   "command.createAdr": "Criar ADR",
   "command.openVisual": "Abrir ADR Guard",
+  "command.openRelationshipGraph": "Abrir grafo de relacionamentos de ADRs",
   "command.createAdrWithForm": "Criar ADR com formulário",
   "command.validateAdrs": "Validar ADRs",
   "command.validateChangedAdrs": "Validar ADRs alteradas",

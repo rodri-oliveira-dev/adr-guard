@@ -14,6 +14,7 @@ suite('ADR Guard extension activation', () => {
       'onCommand:adrGuard.initializeRepository',
       'onCommand:adrGuard.createAdr',
       'onCommand:adrGuard.openVisual',
+      'onCommand:adrGuard.openRelationshipGraph',
       'onCommand:adrGuard.createAdrWithForm',
       'onCommand:adrGuard.validateAdrs',
       'onCommand:adrGuard.validateChangedAdrs',
@@ -45,6 +46,7 @@ suite('ADR Guard extension activation', () => {
       'adrGuard.initializeRepository',
       'adrGuard.createAdr',
       'adrGuard.openVisual',
+      'adrGuard.openRelationshipGraph',
       'adrGuard.createAdrWithForm',
       'adrGuard.validateAdrs',
       'adrGuard.validateChangedAdrs',
@@ -106,11 +108,12 @@ suite('ADR Guard extension activation', () => {
       'adrGuard.refreshExplorer',
       'adrGuard.revealCurrentAdr',
       'adrGuard.openVisual',
+      'adrGuard.openRelationshipGraph',
     ]);
     assert.deepEqual(viewTitleCommands.at(-1), {
-      command: 'adrGuard.openVisual',
+      command: 'adrGuard.openRelationshipGraph',
       when: 'view == adrGuard.adrExplorer',
-      group: 'navigation',
+      group: 'navigation@4',
     });
   });
 

@@ -27,6 +27,7 @@ Open the interface from one of these entry points:
 - select the ADR Guard icon in the Activity Bar;
 - run **ADR Guard: Open ADR Guard** from the Command Palette;
 - use the list action in the ADR Explorer title;
+- use the relationship-graph action in the ADR Explorer title (source builds only);
 - run **ADR Guard: Create ADR with Form** to go directly to creation.
 
 The extension reuses one panel instead of creating a new tab for each action.
@@ -38,6 +39,12 @@ The **Architecture Decision Records** view lists Markdown ADRs from the configur
 ![ADR Explorer in the Activity Bar with three ADRs and the visual list open beside it.](/adr-guard/images/vscode/adr-explorer.png)
 
 Use the title actions to refresh the tree, reveal the active ADR, create an ADR, or open the visual list. Selecting an ADR opens its Markdown file. Relationship targets are opened only after workspace, path, file type, and symlink-boundary checks.
+
+## ADR relationship graph (source builds)
+
+The relationship-graph title action and **ADR Guard: Open ADR Relationship Graph** command open a separate read-only panel. The extension invokes the CLI's `relationships` command and strictly adapts schema `1.0`; it does not parse ADR Markdown or resolve links in TypeScript. Distinct themed edges show dependency, supersedes, and superseded-by declarations, with separate resolved, unresolved, and ambiguous line states.
+
+The deterministic layered view is limited to 200 ADR nodes and 400 relationships. Loading, empty-directory, no-relationship, incompatible-CLI, operational-error, and render-limit states remain explicit. Contract strings are inserted as text under a restrictive CSP using only extension-local assets. This feature and its CLI contract are currently available from source and are not part of the published extension 1.1.0 or CLI 1.10.0.
 
 ## Visual list
 

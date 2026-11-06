@@ -344,5 +344,21 @@
   "View existing baseline": "Consultar baseline existente",
   "Cancel operation": "Cancelar operação",
   "Recommendation": "Recomendação",
-  "Investigation priority": "Prioridade de investigação"
+  "Investigation priority": "Prioridade de investigação",
+  "ADR Relationships": "Relacionamentos de ADRs",
+  "Loading ADR relationships…": "Carregando relacionamentos de ADRs…",
+  "No ADRs were found in the configured directory.": "Nenhuma ADR foi encontrada no diretório configurado.",
+  "No declared ADR relationships were found.": "Nenhum relacionamento declarado entre ADRs foi encontrado.",
+  "ADRs": "ADRs",
+  "Relationships": "Relacionamentos",
+  "Resolved": "Resolvidos",
+  "Unresolved": "Não resolvidos",
+  "Ambiguous": "Ambíguos",
+  "Depends on": "Depende de",
+  "Supersedes": "Substitui",
+  "Superseded by": "Substituída por",
+  "Relationship diagnostics": "Diagnósticos de relacionamentos",
+  "The installed ADR Guard CLI is incompatible with relationship graph schema 1.0. Update the CLI and try again.": "A CLI ADR Guard instalada é incompatível com o schema 1.0 do grafo de relacionamentos. Atualize a CLI e tente novamente.",
+  "This graph has {0} ADRs and {1} relationships. The visual limit is 200 ADRs and 400 relationships.": "Este grafo tem {0} ADRs e {1} relacionamentos. O limite visual é de 200 ADRs e 400 relacionamentos.",
+  "The configured ADR directory is unavailable or outside the selected trusted workspace.": "O diretório de ADRs configurado está indisponível ou fora do workspace confiável selecionado."
 }
