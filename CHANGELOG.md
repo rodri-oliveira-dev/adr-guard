@@ -6,6 +6,14 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
+### Added
+
+- Add the source-only, read-only `adr-guard relationships [directory] --format json` command and strict schema `1.0` for deterministic ADR nodes, declared edges, resolution states, and existing relationship diagnostics.
+
+### Compatibility
+
+- Share declared relationship discovery across Core validation, CLI, and MCP without changing the seven public MCP tool contracts or existing check JSON/SARIF schemas. The command remains unpublished until a future release explicitly includes it.
+
 ## [1.11.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.11.0) — prepared 2026-11-05, not yet published
 
 ### Added

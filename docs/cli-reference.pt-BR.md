@@ -15,6 +15,7 @@ Esta tabela espelha o dispatcher e o `--help` embutido. Os guias especializados 
 | `init [repositório]` | Diretório de ADR, template, geração de workflow, `--dry-run` e `--overwrite` opcionais | Grava configuração/template/workflow somente quando solicitado; dry run não grava | `0`, `2`, `3` |
 | `doctor [repositório]` | Diretório do repositório opcional; sem outras opções | Diagnóstico local somente leitura; uma consulta limitada `git --version`; sem rede, provider, instalação ou correção | `0` sem erros, `2`, `3` |
 | `check [diretório]` | Texto/JSON/SARIF, formato, lifecycle/supersession, políticas de nome/placeholder/metadados/perfil, changed/base ref e baseline opcionais | Somente leitura; lê Git local com `--changed` | `0` válido, `1` achados, `2`, `3` |
+| `relationships [diretório]` | JSON, formato ADR, lifecycle/supersession, política de nome e perfil | Exportação local somente leitura; sem Git, provider, execução de scripts ou escritas | `0` limpo, `1` diagnósticos de relação, `2`, `3` |
 | `baseline [diretório] --output <arquivo>` | Opções de política; `--update` obrigatório para substituir | Cria ou substitui explicitamente um baseline versionado | `0`, `2`, `3` |
 | `index [diretório]` | Saída e política opcionais; `--catalog enriched` | Grava índice padrão determinístico ou catálogo enriquecido somente após validação | `0`, `1`, `2`, `3` |
 | `new [diretório]` | Fluxo humano exige `--title`; fluxo estruturado exige `--form`; opções de formato/template/cultura/nome | Prévia não grava; criação persiste uma ADR canônica ou MADR proposta atomicamente | `0`, `1`, `2`, `3` |
@@ -52,6 +53,21 @@ adr-guard doctor --help
 O comando é local e somente leitura. Ele não lê o conteúdo das ADRs, inspeciona credenciais de providers, acessa a rede ou remotes Git, instala ferramentas, cria arquivos/diretórios nem aplica correções. A configuração usa o mesmo loader estrito de 64 KiB do schema 1 e as mesmas proteções de contenção de paths dos outros comandos. A detecção do Git executa apenas uma consulta local e limitada `git --version`, sem shell.
 
 Warnings, inclusive Git opcional ausente ou configuração ausente com defaults legados, retornam `0`. Qualquer `ERROR` retorna exit operacional `3`; argumentos inválidos retornam `2` no stderr. Os paths do relatório ficam limitados a `.`, `.adrguard.yml` e paths relativos já validados dentro do repositório; paths absolutos e erros brutos de processos locais não são exibidos.
+
+## Exportar o grafo de relacionamentos declarados
+
+> Estado de release: `relationships` está disponível no código-fonte após o baseline preparado da CLI 1.11.0; ele não integra o pacote da CLI 1.10.0 atualmente publicado.
+
+```text
+adr-guard relationships [diretório] [--format json]
+  [--adr-format canonical|madr-4]
+  [--lifecycle-statuses <mapeamento>] [--conventional-supersession]
+  [--filename-policy <política>] [--validation-profile <perfil>]
+```
+
+O comando grava somente o [schema estrito `1.0` do grafo](schemas/adr-relationship-graph-v1.schema.json) no stdout. Nós contêm ID efetivo, título, status, caminho relativo ao repositório e formato selecionado. Cada declaração explícita `superseded-by`, `supersedes` ou `depends-on` registra origem, target literal declarado, resolução (`resolved`, `unresolved` ou `ambiguous`) e zero, um ou vários targets candidatos. Diagnósticos reutilizam `ADR006`–`ADR008` e `ADR010`–`ADR014` quando pertinentes. Os contratos JSON e SARIF existentes de `check` permanecem inalterados.
+
+A ordenação é ordinal e reproduzível. Exit `0` indica grafo sem diagnósticos de relação; `1`, JSON produzido com diagnósticos; `2`, uso/configuração inválidos; e `3`, caminho inseguro, entrada malformada, limite de recurso, falha de I/O ou cancelamento que impediu resposta completa. O comando lê no máximo 1.000 ADRs, 512 KiB por arquivo e 32 MiB no total, e emite no máximo 1 MiB. Ele rejeita raiz de ADR fora do repositório de invocação e travessia por reparse points, nunca executa conteúdo do workspace e nunca modifica ADRs. Apenas declarações descritas na [governança de relacionamentos](relationship-governance.pt-BR.md) são reconhecidas; referências narrativas, similaridade e saída de IA não criam arestas.
 
 ## Configuração
 

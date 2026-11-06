@@ -1,106 +1,68 @@
 using AdrGuard.Model;
-using System.Globalization;
 
 namespace AdrGuard.Validation;
 
 internal static class AdrRelationshipValidator
 {
-    private enum RelationProvenance
-    {
-        Section,
-        StatusText,
-        MadrMetadata,
-    }
-
-    private sealed record NormalizedRelation(AdrDocument Target, RelationProvenance Provenance, bool Effective);
-
     internal static void Validate(
         IReadOnlyList<AdrDocument> documents,
         List<ValidationIssue> issues,
         AdrLifecyclePolicy? lifecycle = null) =>
-        Validate(documents, issues, new AdrValidationOptions(AdrFormat.Canonical, Lifecycle: lifecycle));
+        Validate(
+            AdrRelationshipGraphBuilder.Build(
+                documents,
+                new AdrValidationOptions(AdrFormat.Canonical, Lifecycle: lifecycle)),
+            issues,
+            new AdrValidationOptions(AdrFormat.Canonical, Lifecycle: lifecycle));
 
     internal static void Validate(
-        IReadOnlyList<AdrDocument> documents,
+        AdrRelationshipGraph graph,
         List<ValidationIssue> issues,
         AdrValidationOptions options)
     {
-        ArgumentNullException.ThrowIfNull(documents);
+        ArgumentNullException.ThrowIfNull(graph);
         ArgumentNullException.ThrowIfNull(issues);
 
         var lifecycle = options.EffectiveLifecycle;
-        var byPath = documents.ToDictionary(
-            document => Path.GetFullPath(document.FilePath),
-            StringComparer.Ordinal);
-        var byId = documents
-            .Where(document => document.Id.HasValue)
-            .GroupBy(document => document.Id!.Value)
-            .Where(group => group.Count() == 1)
-            .ToDictionary(group => group.Key, group => group.Single());
         var successors = new Dictionary<AdrDocument, IReadOnlyList<AdrDocument>>();
 
-        foreach (var document in documents)
+        foreach (var document in graph.Nodes)
         {
-            var targets = ResolveSupersedingTargets(document, byPath, byId, issues, options)
-                .Select(relation => relation.Target)
+            var declared = graph.Relationships
+                .Where(edge => edge.Source == document && edge.Type == "superseded-by")
+                .ToArray();
+            foreach (var unresolvedMadr in declared.Where(edge =>
+                         edge.Origin == AdrRelationshipOrigin.MadrMetadata
+                         && edge.Resolution != AdrRelationshipResolution.Resolved))
+            {
+                if (!AdrRelationshipGraphBuilder.TryParseMadrSupersedingId(document.Status, out var targetId))
+                {
+                    continue;
+                }
+                issues.Add(new ValidationIssue(
+                    ValidationCodes.BrokenReference,
+                    document.FilePath,
+                    $"MADR supersession status references ADR-{targetId:D4}, which does not resolve to a unique ADR in the validated set."));
+            }
+
+            var targets = declared
+                .Where(edge => edge.Resolution == AdrRelationshipResolution.Resolved)
+                .SelectMany(edge => edge.Targets)
                 .Distinct()
                 .OrderBy(target => target.FilePath, StringComparer.Ordinal)
                 .ToArray();
             successors[document] = targets;
         }
 
-        foreach (var document in documents)
+        foreach (var document in graph.Nodes)
         {
             var targets = successors[document];
             ValidateSupersessionTargets(document, targets, issues, lifecycle);
-            ValidateSupersedesDeclarations(document, byPath, successors, issues, lifecycle);
-            ValidateDependencies(document, byPath, issues, lifecycle);
+            ValidateSupersedesDeclarations(document, graph, successors, issues, lifecycle);
+            ValidateDependencies(document, graph, issues, lifecycle);
         }
 
         ValidateCycles(successors, issues);
-    }
-
-    private static IEnumerable<NormalizedRelation> ResolveSupersedingTargets(
-        AdrDocument document,
-        Dictionary<string, AdrDocument> byPath,
-        Dictionary<int, AdrDocument> byId,
-        List<ValidationIssue> issues,
-        AdrValidationOptions options)
-    {
-        foreach (var reference in AdrReference.FindInSections(document, "Superseded by"))
-        {
-            if (byPath.TryGetValue(reference.ResolvedPath, out var target))
-            {
-                yield return new NormalizedRelation(target, RelationProvenance.Section, Effective: true);
-            }
-        }
-
-        if (options.ConventionalSupersession)
-        {
-            foreach (var reference in AdrReference.FindInStatusText(document, options.RepositoryRoot))
-            {
-                if (byPath.TryGetValue(reference.ResolvedPath, out var target))
-                {
-                    yield return new NormalizedRelation(target, RelationProvenance.StatusText, Effective: true);
-                }
-            }
-        }
-
-        if (!TryParseMadrSupersedingId(document.Status, out var targetId))
-        {
-            yield break;
-        }
-
-        if (byId.TryGetValue(targetId, out var madrTarget))
-        {
-            yield return new NormalizedRelation(madrTarget, RelationProvenance.MadrMetadata, Effective: true);
-            yield break;
-        }
-
-        issues.Add(new ValidationIssue(
-            ValidationCodes.BrokenReference,
-            document.FilePath,
-            $"MADR supersession status references ADR-{targetId:D4}, which does not resolve to a unique ADR in the validated set."));
     }
 
     private static void ValidateSupersessionTargets(
@@ -137,17 +99,17 @@ internal static class AdrRelationshipValidator
 
     private static void ValidateSupersedesDeclarations(
         AdrDocument document,
-        Dictionary<string, AdrDocument> byPath,
+        AdrRelationshipGraph graph,
         Dictionary<AdrDocument, IReadOnlyList<AdrDocument>> successors,
         List<ValidationIssue> issues,
         AdrLifecyclePolicy lifecycle)
     {
-        foreach (var reference in AdrReference.FindInSections(document, "Supersedes"))
+        foreach (var edge in graph.Relationships.Where(candidate =>
+                     candidate.Source == document
+                     && candidate.Type == "supersedes"
+                     && candidate.Resolution == AdrRelationshipResolution.Resolved))
         {
-            if (!byPath.TryGetValue(reference.ResolvedPath, out var predecessor))
-            {
-                continue;
-            }
+            var predecessor = edge.Targets[0];
 
             var isPending = lifecycle.TryResolve(document.Status, out var successorKind)
                 && successorKind == AdrLifecycleKind.Proposed;
@@ -157,8 +119,8 @@ internal static class AdrRelationshipValidator
                     ValidationCodes.InconsistentSupersession,
                     document.FilePath,
                     $"ADR declares that it supersedes '{predecessor.FileName}', but that ADR is not Superseded.",
-                    Line: reference.Line,
-                    Column: reference.Column));
+                    Line: edge.Line,
+                    Column: edge.Column));
             }
 
             if (successors.TryGetValue(predecessor, out var declared)
@@ -169,22 +131,25 @@ internal static class AdrRelationshipValidator
                     ValidationCodes.InconsistentSupersession,
                     document.FilePath,
                     $"ADR '{predecessor.FileName}' names a different superseding decision.",
-                    Line: reference.Line,
-                    Column: reference.Column));
+                    Line: edge.Line,
+                    Column: edge.Column));
             }
         }
     }
 
     private static void ValidateDependencies(
         AdrDocument document,
-        Dictionary<string, AdrDocument> byPath,
+        AdrRelationshipGraph graph,
         List<ValidationIssue> issues,
         AdrLifecyclePolicy lifecycle)
     {
-        foreach (var reference in AdrReference.FindInSections(document, "Depends on", "Dependencies"))
+        foreach (var edge in graph.Relationships.Where(candidate =>
+                     candidate.Source == document
+                     && candidate.Type == "depends-on"
+                     && candidate.Resolution == AdrRelationshipResolution.Resolved))
         {
-            if (!byPath.TryGetValue(reference.ResolvedPath, out var dependency)
-                || !IsInactive(dependency.Status, lifecycle))
+            var dependency = edge.Targets[0];
+            if (!IsInactive(dependency.Status, lifecycle))
             {
                 continue;
             }
@@ -193,8 +158,8 @@ internal static class AdrRelationshipValidator
                 ValidationCodes.InactiveDependency,
                 document.FilePath,
                 $"ADR explicitly depends on inactive decision '{dependency.FileName}' ({dependency.Status}).",
-                Line: reference.Line,
-                Column: reference.Column));
+                Line: edge.Line,
+                Column: edge.Column));
         }
     }
 
@@ -273,23 +238,6 @@ internal static class AdrRelationshipValidator
 
         if (targetState != 1 || !positions.TryGetValue(target, out var cycleStart)) return;
         foreach (var cycleNode in path.Skip(cycleStart)) cycleNodes.Add(cycleNode);
-    }
-
-    private static bool TryParseMadrSupersedingId(string? status, out int id)
-    {
-        id = default;
-        if (string.IsNullOrWhiteSpace(status)
-            || !status.StartsWith("superseded by ADR-", StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
-        return int.TryParse(
-            status["superseded by ADR-".Length..].Trim(),
-            NumberStyles.None,
-            CultureInfo.InvariantCulture,
-            out id)
-            && id > 0;
     }
 
     private static bool IsSuperseded(string? status, AdrLifecyclePolicy lifecycle) =>

@@ -115,45 +115,39 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         var sources = identifier is null
             ? context.Documents
             : [ResolveDocument(context, identifier)];
-        var byPath = context.Documents.ToLookup(
-            item => Path.GetFullPath(item.Document.FilePath),
-            PathComparer);
-        var relationships = new List<AdrRelationshipResult>();
-        foreach (var source in sources)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            AddSectionRelationships(context, source.Document, byPath, "superseded-by", relationships, "Superseded by");
-            AddSectionRelationships(context, source.Document, byPath, "supersedes", relationships, "Supersedes");
-            AddSectionRelationships(context, source.Document, byPath, "depends-on", relationships, "Depends on", "Dependencies");
-            if (context.ValidationOptions.ConventionalSupersession)
-            {
-                AddReferences(
-                    context,
-                    source.Document,
-                    "superseded-by",
-                    AdrReference.FindInStatusText(source.Document, serverOptions.RepositoryRoot),
-                    byPath,
-                    relationships);
-            }
-
-            AddMadrSupersession(context, source.Document, relationships);
-        }
-
         var sourcePaths = sources.Select(item => item.Document.FilePath).ToHashSet(PathComparer);
+        var graph = AdrRelationshipGraphBuilder.Build(
+            context.Documents.Select(item => item.Document).ToArray(),
+            context.ValidationOptions);
+        var relationships = graph.Relationships
+            .Where(edge => sourcePaths.Contains(edge.Source.FilePath))
+            .Where(edge => context.DocumentFormat == AdrFormat.Madr4
+                           || edge.Origin != AdrRelationshipOrigin.MadrMetadata)
+            .Select(edge => new AdrRelationshipResult(
+                Identifier(edge.Source),
+                Relative(edge.Source.FilePath),
+                edge.Type,
+                edge.DeclaredTarget,
+                edge.Resolution == AdrRelationshipResolution.Resolved
+                    ? Identifier(edge.Targets[0])
+                    : null,
+                edge.Resolution == AdrRelationshipResolution.Resolved
+                    ? Relative(edge.Targets[0].FilePath)
+                    : null,
+                edge.Resolution switch
+                {
+                    AdrRelationshipResolution.Resolved => "valid",
+                    AdrRelationshipResolution.Ambiguous => "ambiguous",
+                    _ => "unresolved",
+                }))
+            .ToArray();
         var issues = AdrValidator.Validate(
                 context.Documents.Select(item => item.Document).ToArray(),
                 additionalKnownPaths: null,
                 context.ValidationOptions)
             .Issues
             .Where(issue => sourcePaths.Contains(issue.FilePath)
-                            && issue.Code is ValidationCodes.BrokenReference
-                                or ValidationCodes.MissingSupersededBy
-                                or ValidationCodes.DuplicateId
-                                or ValidationCodes.SupersessionCycle
-                                or ValidationCodes.SelfSupersession
-                                or ValidationCodes.MultipleSuperseders
-                                or ValidationCodes.InconsistentSupersession
-                                or ValidationCodes.InactiveDependency)
+                            && AdrRelationshipGraphBuilder.IsRelationshipDiagnostic(issue.Code))
             .Select(issue => new AdrRelationshipIssue(
                 issue.Code,
                 issue.Message,
@@ -406,75 +400,6 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
             0 => throw new ArgumentException("ADR identifier or path was not found in the configured ADR directory.", nameof(identifier)),
             _ => throw new ArgumentException("ADR identifier is ambiguous in the configured ADR directory.", nameof(identifier)),
         };
-    }
-
-    private void AddSectionRelationships(
-        WorkspaceContext context,
-        AdrDocument source,
-        ILookup<string, LoadedAdr> byPath,
-        string type,
-        List<AdrRelationshipResult> output,
-        params string[] headings) =>
-        AddReferences(
-            context,
-            source,
-            type,
-            AdrReference.FindInSections(source, headings, serverOptions.RepositoryRoot),
-            byPath,
-            output);
-
-    private void AddReferences(
-        WorkspaceContext context,
-        AdrDocument source,
-        string type,
-        IReadOnlyList<AdrReference> references,
-        ILookup<string, LoadedAdr> byPath,
-        List<AdrRelationshipResult> output)
-    {
-        foreach (var reference in references)
-        {
-            var targets = reference.ResolvedPath.Length == 0
-                ? []
-                : byPath[Path.GetFullPath(reference.ResolvedPath)].ToArray();
-            output.Add(new AdrRelationshipResult(
-                Identifier(source),
-                Relative(source.FilePath),
-                type,
-                reference.Target,
-                targets.Length == 1 ? Identifier(targets[0].Document) : null,
-                targets.Length == 1 ? Relative(targets[0].Document.FilePath) : null,
-                targets.Length switch
-                {
-                    1 => "valid",
-                    > 1 => "ambiguous",
-                    _ => "unresolved",
-                }));
-        }
-    }
-
-    private void AddMadrSupersession(
-        WorkspaceContext context,
-        AdrDocument source,
-        List<AdrRelationshipResult> output)
-    {
-        const string prefix = "superseded by ADR-";
-        if (context.DocumentFormat != AdrFormat.Madr4
-            || source.Status?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) != true
-            || !int.TryParse(source.Status[prefix.Length..].Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var id)
-            || id <= 0)
-        {
-            return;
-        }
-
-        var targets = context.Documents.Where(item => item.Document.Id == id).ToArray();
-        output.Add(new AdrRelationshipResult(
-            Identifier(source),
-            Relative(source.FilePath),
-            "superseded-by",
-            $"ADR-{id}",
-            targets.Length == 1 ? Identifier(targets[0].Document) : null,
-            targets.Length == 1 ? Relative(targets[0].Document.FilePath) : null,
-            targets.Length switch { 1 => "valid", > 1 => "ambiguous", _ => "unresolved" }));
     }
 
     private string? TryReadCommit(CancellationToken cancellationToken)

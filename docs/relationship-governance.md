@@ -19,3 +19,7 @@ Recognized declarations are Markdown links under level-two `Superseded by`, `Sup
 `ADR001`–`ADR009` retain their published meanings. Broken local Markdown/MADR targets remain `ADR007`; a canonical `Superseded` record without a usable target remains `ADR008`.
 
 Long historical chains are valid: a decision that superseded an older one may itself later be superseded. Circular narrative references are also valid unless they are explicit supersession edges. The graph is evaluated in deterministic path order and does not use AI or semantic interpretation.
+
+## Read-only relationship graph
+
+Source builds provide `adr-guard relationships [directory] --format json` for bounded visual clients such as the VS Code extension. Its separate [schema `1.0`](schemas/adr-relationship-graph-v1.schema.json) exposes nodes, explicit relationships, resolution state and the relationship diagnostics above. Resolved edges have one target, unresolved edges have none, and ambiguous edges disclose every matching candidate without choosing one. The command is read-only and local; it neither changes the seven MCP tool contracts nor modifies the existing check JSON/SARIF schemas.

@@ -27,6 +27,9 @@
     <None Include="../../docs/schemas/adr-impact-report-v1.schema.json"
           Link="Schemas/adr-impact-report-v1.schema.json"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../docs/schemas/adr-relationship-graph-v1.schema.json"
+          Link="Schemas/adr-relationship-graph-v1.schema.json"
+          CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../docs/schemas/adr-fitness-rules-v1.schema.json"
           Link="Schemas/adr-fitness-rules-v1.schema.json"
           CopyToOutputDirectory="PreserveNewest" />

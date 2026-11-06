@@ -62,8 +62,11 @@ Edite a ADR `Proposed` gerada e substitua as instruções por contexto, decisão
 
 ```bash
 adr-guard check docs/adr
+adr-guard relationships docs/adr --format json
 adr-guard index docs/adr
 ```
+
+Builds do código-fonte também expõem o comando somente leitura `relationships` para clientes visuais. Ele emite o grafo versionado declarado sem inferir relações narrativas, semânticas ou por IA; essa capacidade não faz parte da CLI 1.10.0 atualmente publicada. Consulte a [governança de relacionamentos](docs/relationship-governance.pt-BR.md#grafo-de-relacionamentos-somente-leitura).
 
 `check` valida o conjunto. `index` valida novamente e cria ou atualiza `docs/adr/README.md`; `new` não atualiza o índice automaticamente. Leia o [tutorial da primeira ADR](docs/guides/getting-started.pt-BR.md) para o fluxo completo.
 

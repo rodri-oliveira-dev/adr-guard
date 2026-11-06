@@ -62,8 +62,11 @@ Edit the generated `Proposed` ADR to replace its guidance with your real context
 
 ```bash
 adr-guard check docs/adr
+adr-guard relationships docs/adr --format json
 adr-guard index docs/adr
 ```
+
+Source builds also expose the read-only `relationships` command for visual clients. It emits the versioned declared graph without inferring narrative, semantic, or AI relationships; this capability is not part of the currently published CLI 1.10.0. See [relationship governance](docs/relationship-governance.md#read-only-relationship-graph).
 
 `check` validates the ADR set. `index` validates again and creates or updates `docs/adr/README.md`; `new` does not update the index automatically. Read the [first ADR tutorial](docs/guides/getting-started.md) for the complete workflow.
 
