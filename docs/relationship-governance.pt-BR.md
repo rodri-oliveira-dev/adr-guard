@@ -19,3 +19,9 @@ As declarações reconhecidas são links Markdown sob headings de nível dois `S
 `ADR001`–`ADR009` preservam os significados publicados. Targets Markdown/MADR quebrados continuam como `ADR007`; um registro canônico `Superseded` sem target utilizável continua como `ADR008`.
 
 Cadeias históricas longas são válidas: uma decisão que substituiu outra pode ser substituída depois. Referências narrativas circulares também são válidas quando não são arestas explícitas de substituição. O grafo é avaliado em ordem determinística por path e não usa IA nem interpretação semântica.
+
+## Grafo de relacionamentos somente leitura
+
+A CLI `1.12.0` preparada oferece `adr-guard relationships [diretório] --format json` para clientes visuais limitados, como o VS Code `1.2.0`. Seu [schema `1.0`](schemas/adr-relationship-graph-v1.schema.json) separado expõe nós, relações explícitas, estado de resolução e os diagnósticos de relação acima. Arestas resolvidas têm um target, não resolvidas não têm nenhum e ambíguas divulgam todos os candidatos correspondentes sem escolher um. O comando é local e somente leitura; ele não altera os contratos dos sete tools MCP nem os schemas JSON/SARIF existentes de `check`.
+
+O grafo preparado do VS Code `1.2.0` consome somente esse relatório. Ele oferece filtros locais por status/tipo, detalhes de seleção, foco em vínculos diretos, destaque de diagnósticos, navegação por teclado e recarregamento explícito. No máximo 100 nós correspondentes são exibidos por vez, para que relatórios maiores e limitados sejam refinados antes da renderização. Abrir um documento exige um caminho exato do relatório para um arquivo Markdown regular existente e fisicamente contido no workspace confiável. O grafo não pode criar, editar, aprovar, substituir nem alterar o status de ciclo de vida de uma ADR.

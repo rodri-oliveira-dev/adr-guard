@@ -19,6 +19,7 @@ internal static class ConfigurationArguments
         switch (args[0])
         {
             case "check":
+            case "relationships":
             case "index":
             case "baseline":
                 AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);

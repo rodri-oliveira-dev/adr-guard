@@ -25,8 +25,8 @@ export function prepareReadme(content, locale, version) {
     ? `| Extensão ${version} | Versão deste pacote; confirme a disponibilidade pública no Visual Studio Marketplace. |`
     : `| Extension ${version} | This package version; verify public availability in the Visual Studio Marketplace. |`;
   const compatibilityPattern = locale === 'pt-BR'
-    ? new RegExp(`^\\| Extensão ${escapedVersion} \\| Candidata de manutenção preparada; ainda não publicada\\. \\|$`, 'gm')
-    : new RegExp(`^\\| Extension ${escapedVersion} \\| Prepared maintenance candidate; not yet published\\. \\|$`, 'gm');
+    ? new RegExp(`^\\| Extensão ${escapedVersion} \\| Candidata preparada da release do grafo de relacionamentos; ainda não publicada\\. \\|$`, 'gm')
+    : new RegExp(`^\\| Extension ${escapedVersion} \\| Prepared relationship-graph release candidate; not yet published\\. \\|$`, 'gm');
 
   let prepared = replaceExactlyOnce(
     content,

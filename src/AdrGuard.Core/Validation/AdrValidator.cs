@@ -92,7 +92,8 @@ internal static class AdrValidator
 
         ValidateDuplicateIds(documents, issues);
         ValidateDuplicateStableIds(documents, issues);
-        AdrRelationshipValidator.Validate(documents, issues, options);
+        var relationshipGraph = AdrRelationshipGraphBuilder.Build(documents, options);
+        AdrRelationshipValidator.Validate(relationshipGraph, issues, options);
 
         return new ValidationResult(
             issues

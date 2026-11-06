@@ -9,18 +9,18 @@ import {
   prepareReadme,
 } from '../../scripts/package-vsix.mjs';
 
-const version = '1.1.1';
+const version = '1.2.0';
 const englishReadme = `# Extension
 <!-- vsix-package-status:start -->
 > Version ${version} is not yet published.
 <!-- vsix-package-status:end -->
-| Extension ${version} | Prepared maintenance candidate; not yet published. |
+| Extension ${version} | Prepared relationship-graph release candidate; not yet published. |
 `;
 const portugueseReadme = `# Extensão
 <!-- vsix-package-status:start -->
 > A versão ${version} ainda não foi publicada.
 <!-- vsix-package-status:end -->
-| Extensão ${version} | Candidata de manutenção preparada; ainda não publicada. |
+| Extensão ${version} | Candidata preparada da release do grafo de relacionamentos; ainda não publicada. |
 `;
 const changelog = `# Changelog
 
@@ -31,9 +31,9 @@ test('prepares bilingual package metadata without claiming Marketplace publicati
   const english = prepareReadme(englishReadme, 'en', version);
   const portuguese = prepareReadme(portugueseReadme, 'pt-BR', version);
 
-  assert.match(english, /\*\*Package version:\*\*.*1\.1\.1/);
+  assert.match(english, /\*\*Package version:\*\*.*1\.2\.0/);
   assert.match(english, /verify public availability in the Visual Studio Marketplace/);
-  assert.match(portuguese, /\*\*Versão deste pacote:\*\*.*1\.1\.1/);
+  assert.match(portuguese, /\*\*Versão deste pacote:\*\*.*1\.2\.0/);
   assert.match(portuguese, /confirme a disponibilidade pública no Visual Studio Marketplace/);
   assert.doesNotMatch(`${english}${portuguese}`, /vsix-package-status/);
 });
@@ -52,7 +52,7 @@ test('fails closed when required source markers are missing or duplicated', () =
   );
   assert.throws(
     () => prepareChangelog(`${changelog}${changelog}`, version),
-    /Expected exactly one prepared 1\.1\.1 changelog heading; found 2/,
+    /Expected exactly one prepared 1\.2\.0 changelog heading; found 2/,
   );
 });
 

@@ -5,6 +5,8 @@
 !images/icon-activity.svg
 !media/newAdrForm.js
 !media/newAdrForm.css
+!media/relationshipGraph.js
+!media/relationshipGraph.css
 !package.json
 !package.nls.json
 !package.nls.pt-br.json

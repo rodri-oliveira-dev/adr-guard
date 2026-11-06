@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/schemas/adr-relationship-graph-v1.schema.json",
+  "title": "ADR Guard relationship graph v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "adrDirectory", "summary", "nodes", "relationships", "diagnostics"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "adrDirectory": { "$ref": "#/$defs/path" },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "relationships", "resolved", "unresolved", "ambiguous", "diagnostics"],
+      "properties": {
+        "nodes": { "$ref": "#/$defs/count" },
+        "relationships": { "$ref": "#/$defs/count" },
+        "resolved": { "$ref": "#/$defs/count" },
+        "unresolved": { "$ref": "#/$defs/count" },
+        "ambiguous": { "$ref": "#/$defs/count" },
+        "diagnostics": { "$ref": "#/$defs/count" }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relationship" }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/diagnostic" }
+    }
+  },
+  "$defs": {
+    "count": { "type": "integer", "minimum": 0 },
+    "identifier": { "type": "string", "minLength": 1 },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\])(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\\\u0000]+$"
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "status", "path", "format"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "title": { "type": ["string", "null"] },
+        "status": { "type": ["string", "null"] },
+        "path": { "$ref": "#/$defs/path" },
+        "format": { "enum": ["canonical", "madr-4"] }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "path"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "path": { "$ref": "#/$defs/path" }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "sourcePath", "type", "declaredTarget", "resolution", "targets"],
+      "properties": {
+        "sourceId": { "$ref": "#/$defs/identifier" },
+        "sourcePath": { "$ref": "#/$defs/path" },
+        "type": { "enum": ["superseded-by", "supersedes", "depends-on"] },
+        "declaredTarget": { "type": "string", "minLength": 1 },
+        "resolution": { "enum": ["resolved", "unresolved", "ambiguous"] },
+        "targets": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/target" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "resolution": { "const": "resolved" } } },
+          "then": { "properties": { "targets": { "minItems": 1, "maxItems": 1 } } }
+        },
+        {
+          "if": { "properties": { "resolution": { "const": "unresolved" } } },
+          "then": { "properties": { "targets": { "maxItems": 0 } } }
+        },
+        {
+          "if": { "properties": { "resolution": { "const": "ambiguous" } } },
+          "then": { "properties": { "targets": { "minItems": 2 } } }
+        }
+      ]
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "path", "severity"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^ADR[0-9]{3}$" },
+        "message": { "type": "string", "minLength": 1 },
+        "path": { "$ref": "#/$defs/path" },
+        "severity": { "enum": ["warning", "error"] },
+        "line": { "type": "integer", "minimum": 1 },
+        "column": { "type": "integer", "minimum": 1 }
+      }
+    }
+  }
+}

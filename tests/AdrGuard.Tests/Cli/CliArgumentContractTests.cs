@@ -12,6 +12,8 @@ public sealed class CliArgumentContractTests
         { "check", ["check", "first", "second"] },
         { "check", ["check", "--changed"] },
         { "check", ["check", "--base-ref", "main"] },
+        { "relationships", ["relationships", "--format", "text"] },
+        { "relationships", ["relationships", "first", "second"] },
         {
             "check",
             [
@@ -116,6 +118,7 @@ public sealed class CliArgumentContractTests
 
     [Theory]
     [InlineData("baseline")]
+    [InlineData("relationships")]
     [InlineData("impact")]
     [InlineData("drift")]
     public void CommandSpecificHelpBypassesRequiredArguments(string command)

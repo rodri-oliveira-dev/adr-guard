@@ -14,6 +14,33 @@ O recurso ainda não está publicado. Templates customizados continuam
 canônicos, o schema do formulário permanece `1.0`, e o grafo não faz parte
 desta fase.
 
+## Revisão de estabilização posterior dos prompts 5–7
+
+Em 2026-11-06, a branch também recebeu uma revisão dirigida do contrato
+aditivo `relationships` e de sua visualização no VS Code. Esse trabalho não
+altera retroativamente o escopo MADR desta fase nem declara publicação.
+
+- Os comandos anteriores da CLI, os relatórios JSON/SARIF e seus schemas
+  permaneceram inalterados; testes focados de roteamento, argumentos e reports
+  passaram, e o único schema novo no diff é o schema `1.0` do grafo.
+- Os sete tools MCP read-only e seus contratos `1.0` foram preservados. A suíte
+  MCP confirmou nomes, schemas de saída, anotações e operações reais.
+- A extensão passou em testes unitários e de host para ativação, multi-root,
+  workspace não confiável, ausência de suporte ao grafo, mensagens localizadas,
+  teclado, tema e segurança de caminhos/Webview.
+- Fixtures determinísticas de 1.000 ADRs confirmaram o limite da CLI e a
+  adaptação do relatório sem renderizar mais de 100 nós simultaneamente.
+  Grafos vazios, desconectados, cíclicos, ambíguos e extensos permaneceram
+  limitados e determinísticos.
+- A revisão corrigiu três lacunas: mensagens host–Webview agora têm parsing
+  estrito e limites explícitos; uma recarga invalida o relatório anterior antes
+  de qualquer falha/cancelamento; e paths duplicados de nós são rejeitados pelo
+  adaptador em vez de produzir seleção ambígua.
+- O baseline final da solução em `Release` concluiu com 819 testes aprovados,
+  sem falhas ou skips. Os 18 testes de integração do VS Code passaram entre
+  host normal, multi-root e não confiável; os testes unitários da extensão
+  concluíram com 136 aprovados e um skip preexistente de plataforma.
+
 ## Objetivo e limites
 
 Esta fase implementou a geração offline de ADRs no subconjunto MADR 4.0 já

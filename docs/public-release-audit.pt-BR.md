@@ -34,12 +34,12 @@ Links públicos de referência:
 
 ## Versão móvel versus baseline do repositório
 
-`src/AdrGuard/AdrGuard.csproj` mantém intencionalmente `VersionPrefix=1.1.0`. O workflow de release usa esse valor como **baseline da série de releases**, compara com tags imutáveis de release/reserva e incrementa o patch nas releases seguintes.
+Na auditoria original, `src/AdrGuard/AdrGuard.csproj` mantinha `VersionPrefix=1.1.0`. O baseline atual do código-fonte é preparado independentemente para a próxima release SemVer; consulte a [matriz de compatibilidade](compatibility.pt-BR.md) atual em vez de tratar este snapshot histórico como metadata corrente.
 
 Portanto:
 
-- `VersionPrefix` não representa a versão pública atual;
-- o empacotamento local do CI pode produzir `1.1.0` intencionalmente para testes determinísticos do baseline;
+- `VersionPrefix` descrevia o baseline do código na época desta auditoria, não uma versão pública móvel;
+- o empacotamento local atual usa a versão preparada na branch ativa;
 - o patch público mais recente deve ser obtido pelas superfícies públicas GitHub Releases/NuGet;
 - a documentação deve registrar versões em que recursos surgiram, mas não deve fixar um “release atual” móvel fora de um snapshot de auditoria.
 

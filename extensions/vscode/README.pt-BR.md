@@ -5,7 +5,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 > **Extensão publicada:** [ADR Guard para VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) está disponível no Visual Studio Marketplace como `rodrioliveira.adr-guard`. A extensão VS Code e a CLI .NET são distribuídas e versionadas separadamente; a extensão não inclui a CLI.
 
 <!-- vsix-package-status:start -->
-> **Estado da release (verificado em 05/11/2026):** a versão 1.1.0 está publicada no Marketplace e adiciona o provider MCP e os fluxos visuais de Impacto, Drift, baseline, catálogo enriquecido, Rascunho por IA e Review Técnico descritos abaixo. A versão 1.1.1 é uma candidata de manutenção preparada, não um download publicado. CLI 1.10.0 e MCP 1.0.1 estão publicados independentemente; CLI 1.11.0 permanece uma candidata não publicada.
+> **Estado da release (verificado em 06/11/2026):** a versão 1.1.1 está publicada no Marketplace. A versão 1.2.0 está preparada, mas não publicada, e adiciona o grafo de relacionamentos descrito abaixo. CLI 1.11.0 e MCP 1.0.1 estão publicados independentemente; CLI 1.12.0 e MCP 1.0.2 são candidatos preparados.
 <!-- vsix-package-status:end -->
 
 ## Funcionalidades
@@ -19,6 +19,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 - Validação opcional e agrupada após salvar uma ADR.
 - Geração explícita do índice, sempre com confirmação.
 - Explorer nativo para formatos canônico e MADR 4.0, com status e relacionamentos apenas para apresentação/navegação segura.
+- Visualização de dependências e substituições declaradas entre ADRs pelo contrato JSON estrito de grafo da CLI.
 - Validação incremental contra uma ref Git local informada, sem `git fetch` oculto.
 - Classificação contra um baseline existente e somente leitura.
 - Execução visual explícita de Impacto Arquitetural e Drift Arquitetural por contratos JSON estritos da CLI.
@@ -82,6 +83,7 @@ Abra a Paleta de Comandos e escolha a ação sob **ADR Guard**:
 | Inicializar repositório | Mostra a prévia de `init --dry-run` e pede confirmação antes de escrever. |
 | Criar ADR | Executa o fluxo tradicional compatível de `new` e abre somente o arquivo criado e verificado. |
 | Abrir ADR Guard | Abre ou revela a listagem visual de ADRs sem criar arquivos nem executar validação. |
+| Abrir grafo de relacionamentos de ADRs | Abre o grafo somente leitura de relacionamentos declarados para a pasta selecionada. |
 | Criar ADR com formulário | Abre o formulário orientado, gera a prévia pela CLI e cria somente após envio explícito. |
 | Validar ADRs | Executa validação JSON completa e atualiza Problems. |
 | Validar ADRs alteradas | Usa `--changed --base-ref`; nunca executa `git fetch`. |
@@ -93,6 +95,16 @@ Abra a Paleta de Comandos e escolha a ação sob **ADR Guard**:
 
 Workspaces com múltiplas raízes são suportados. Quando possível, os comandos usam a pasta do arquivo ativo; caso contrário, solicitam a pasta. Configurações de escopo de recurso podem variar por pasta.
 
+## Grafo de relacionamentos de ADRs
+
+Execute **ADR Guard: Abrir grafo de relacionamentos de ADRs** pela Paleta de Comandos ou pelo título do ADR Explorer. O painel separado e somente leitura invoca `relationships <directory> --format json` e consome exclusivamente o schema `1.0`; ele não interpreta Markdown, infere relacionamentos nem modifica decisões em TypeScript. Arestas de dependência, substituição e substituída-por têm cores distintas e setas direcionais. Diagnósticos existentes da CLI destacam ciclos de substituição, referências não resolvidas e declarações ambíguas.
+
+Selecione um nó para consultar identificador, título, status, formato e caminho; depois, abra explicitamente o Markdown ou foque a visualização nos vínculos diretos de entrada e saída. A busca sem diferenciar maiúsculas e minúsculas por identificador, título e caminho, além dos filtros por status e tipo de relacionamento, atua sobre todo o relatório carregado, inclusive nós além da primeira página visível. Navegação por setas, foco móvel, rótulos acessíveis e estados de foco visíveis oferecem suporte ao teclado. A abertura do Markdown exige um caminho exato do relatório carregado e um arquivo `.md` regular que permaneça fisicamente dentro do workspace selecionado.
+
+O grafo usa layout determinístico em camadas e exibe no máximo 100 nós correspondentes por vez. Relatórios maiores e limitados continuam disponíveis para busca, filtros e foco em vínculos diretos, em vez de serem renderizados integralmente. Alterações no workspace entram somente por **Atualizar** ou pela nova execução de **Abrir grafo de relacionamentos de ADRs** enquanto o painel está aberto, evitando processamento do grafo em segundo plano. Permanecem explícitos os estados de carregamento, diretório vazio, ausência de relacionamentos, erro operacional, CLI incompatível e limite seguro do relatório. Todo texto do contrato entra no DOM por APIs de texto sob uma Content Security Policy restritiva baseada em nonce, usando recursos locais da extensão.
+
+Esta capacidade está preparada para a extensão 1.2.0 com a CLI 1.12.0. Ela não faz parte da extensão 1.1.1 nem da CLI 1.11.0 publicadas. CLIs antigas ou malformadas produzem um estado incompatível explícito; a extensão nunca recorre a parsing local do Markdown das ADRs.
+
 ## Listagem visual de ADRs
 
 Execute **ADR Guard: Abrir ADR Guard** pela Paleta de Comandos ou pelo título do ADR Explorer. O painel visual reutilizável começa no diretório de ADRs configurado para a pasta selecionada e mostra os metadados disponíveis de identificador, título, status, data e caminho relativo. A busca ignora maiúsculas e minúsculas em título, identificador e caminho; filtros de status e ordenações determinísticas por número, título ou data são aplicados localmente, sem executar validação completa pela CLI. Metadados ausentes continuam visivelmente desconhecidos, e documentos sem número ficam depois das ADRs numeradas.
@@ -103,7 +115,7 @@ O cabeçalho da listagem agrupa atualização, verificação da instalação, in
 
 A listagem diferencia carregamento, diretório vazio, filtros sem resultados, diretório inexistente, workspace indisponível e erro de leitura. Ela nunca cria diretórios nem inicializa o repositório durante a consulta. Alterações em arquivos são agrupadas pelo watcher compartilhado com o ADR Explorer, e respostas antigas não substituem a pasta atual durante trocas rápidas.
 
-**Nova ADR** abre o formulário existente no mesmo painel e preserva pasta, diretório, busca, filtro, ordem e rolagem para o retorno. Após uma criação bem-sucedida, a listagem é atualizada, a nova ADR é destacada, o Explorer nativo é atualizado e a ação **Abrir Markdown** é oferecida sem retirar o foco automaticamente. Se os filtros ocultarem o novo registro, o painel informa e oferece uma ação explícita para revelá-lo. **Cancelar** e **Voltar para a listagem** retornam sem gravar; sair de um formulário alterado por essas ações controladas exige confirmação. O comando direto **Criar ADR com formulário** continua disponível e também retorna para a listagem.
+**Nova ADR** abre o formulário existente no mesmo painel da listagem e preserva pasta, diretório, busca, filtro, ordem e rolagem para o retorno. O grafo de relacionamentos permanece sempre em um painel separado. Após uma criação bem-sucedida, a listagem é atualizada, a nova ADR é destacada, o Explorer nativo é atualizado e a ação **Abrir Markdown** é oferecida sem retirar o foco automaticamente. Se os filtros ocultarem o novo registro, o painel informa e oferece uma ação explícita para revelá-lo. **Cancelar** e **Voltar para a listagem** retornam sem gravar; sair de um formulário alterado por essas ações controladas exige confirmação. O comando direto **Criar ADR com formulário** continua disponível e também retorna para a listagem.
 
 Voltar e Cancelar são ações exclusivamente de navegação no cadastro, na edição e nas configurações. Elas nunca executam `new`, `edit --save`, `check` ou `index`; enquanto um salvamento de cadastro, edição ou configurações está ativo, esses controles permanecem desabilitados para impedir uma transição concorrente. Atualização, busca, filtros, ordenação, seleção de workspace e watchers do Explorer também atualizam apenas o catálogo somente leitura, sem iniciar validação de ADRs.
 
@@ -218,12 +230,13 @@ O manifesto é a fonte de verdade. Valores de recurso são salvos por pasta pela
 | Superfície | Requisito |
 | --- | --- |
 | VS Code | `1.101.0` ou superior na linha `1.x`. |
-| Extensão 1.1.0 | Publicada no Visual Studio Marketplace. Releases da extensão e da CLI permanecem independentes. |
-| Extensão 1.1.1 | Candidata de manutenção preparada; ainda não publicada. |
+| Extensão 1.1.1 | Publicada no Visual Studio Marketplace. Releases da extensão e da CLI permanecem independentes. |
+| Extensão 1.2.0 | Candidata preparada da release do grafo de relacionamentos; ainda não publicada. |
 | Integração básica da CLI | `adr-guard` v1.3.0 ou superior compatível para os comandos básicos documentados. |
 | Criação/edição visual | Contratos de formulário schema `1.0` da CLI 1.7.0. |
 | Impacto, drift, baseline, catálogo enriquecido, draft, review/comparação | Build da CLI cujo `<command> --help` exponha os flags pedidos; a extensão verifica capacidades em vez de presumir versões iguais. |
-| MCP | Opcional. As extensões 1.1.0/1.1.1 usam a API estável de provider MCP do VS Code com o MCP 1.0.0 instalado separadamente ou build compatível com o schema `1.0`; a extensão funciona integralmente sem ele. |
+| Grafo de relacionamentos | Extensão 1.2.0 com CLI 1.12.0, ou build compatível da CLI que exponha `relationships` schema `1.0`. |
+| MCP | Opcional. As extensões 1.1.0+ usam a API estável de provider MCP do VS Code com MCP 1.0.1 instalado separadamente ou build compatível com schema `1.0`; a extensão funciona integralmente sem ele. |
 
 ## Solução de problemas
 

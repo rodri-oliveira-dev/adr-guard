@@ -7,6 +7,7 @@ import {
   eligibleWorkspaceFolders,
   ensurePotentialDirectoryWithinWorkspace,
   ensurePotentialFileWithinWorkspace,
+  ensureExistingMarkdownFileWithinWorkspace,
   ensureResourceWithinWorkspace,
   isResolvedPathWithin,
   preferredWorkspaceLocation,
@@ -132,5 +133,21 @@ describe('workspace policy', () => {
       ensurePotentialFileWithinWorkspace(path.join(link, 'baseline.json'), root),
       (error: unknown) => error instanceof WorkspacePolicyError && error.code === 'outside-workspace',
     );
+  });
+
+  it('opens only existing regular Markdown files through safe relative paths', async () => {
+    const root = await temporaryDirectory();
+    await mkdir(path.join(root, 'docs'));
+    const markdown = path.join(root, 'docs', '0001.md');
+    await writeFile(markdown, '# ADR');
+    assert.equal(await ensureExistingMarkdownFileWithinWorkspace('docs/0001.md', root), await realpath(markdown));
+    for (const unsafe of ['../outside.md', '/rooted.md', 'docs\\0001.md', 'docs/file.txt', ' docs/0001.md']) {
+      await assert.rejects(ensureExistingMarkdownFileWithinWorkspace(unsafe, root), WorkspacePolicyError);
+    }
+    await assert.rejects(ensureExistingMarkdownFileWithinWorkspace('docs/missing.md', root), WorkspacePolicyError);
+    const outside = await temporaryDirectory();
+    await writeFile(path.join(outside, 'escaped.md'), '# outside');
+    await symlink(outside, path.join(root, 'linked'), process.platform === 'win32' ? 'junction' : 'dir');
+    await assert.rejects(ensureExistingMarkdownFileWithinWorkspace('linked/escaped.md', root), WorkspacePolicyError);
   });
 });
