@@ -21,7 +21,7 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     /p:UseAppHost=true
 
 # .NET Runtime 10.0.14, Alpine 3.24.
-FROM mcr.microsoft.com/dotnet/runtime@sha256:54d48f739ebffdef82388056d420af37ed39c722b8d5ee5dedca6878537c2737 AS final
+FROM mcr.microsoft.com/dotnet/runtime@sha256:4f1f30cf0bb4ab0c8b2daa84613051683456f8df4a9bf7c812e20d74962992ac AS final
 WORKDIR /workspace
 
 # Impact analysis invokes the bounded local Git CLI. The runtime remains
