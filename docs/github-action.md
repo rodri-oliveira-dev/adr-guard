@@ -71,7 +71,7 @@ steps:
       persist-credentials: false
 
   - name: Verify ADR-backed architecture rules
-    uses: rodri-oliveira-dev/adr-guard@v1.10.0
+    uses: rodri-oliveira-dev/adr-guard@v1.11.0
     with:
       command: drift
       drift-rules: .adrguard-fitness.json

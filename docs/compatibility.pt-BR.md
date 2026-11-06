@@ -19,13 +19,13 @@ Os produtos usam linhas SemVer independentes. Números iguais não são obrigat�
 
 | Produto / capacidade | Versão no repositório | Dependência mínima | Estado de distribuição |
 | --- | --- | --- | --- |
-| CLI / .NET Tool | candidata `1.12.0` | .NET 10 | Publicada: `1.11.0` no NuGet.org e GitHub Releases. Preparada, não publicada: `1.12.0`. |
+| CLI / .NET Tool | candidata `1.12.0` | .NET 10 | **Publicado:** `1.11.0` no NuGet.org e GitHub Releases. **Preparada, não publicada:** `1.12.0`. |
 | Geração MADR nativa | Incluída na CLI `1.11.0+` | CLI `1.11.0`; schema de formulário permanece `1.0` | Publicada na `1.11.0`; o canônico continua padrão. |
 | Grafo de relacionamentos somente leitura | candidata CLI `1.12.0` | Uso direto da CLI; schema `1.0` | Preparado, não publicado. Os contratos JSON/SARIF existentes do check permanecem inalterados. |
 | Núcleo, formulários, análises e provider MCP do VS Code | candidata `1.2.0` | VS Code `1.101.0+`; CLI separada adequada a cada comando | Marketplace `1.1.1` está publicado. `1.2.0` está preparada, mas não publicada; artifacts VSIX validados ficam retidos por 21 dias e nunca são publicados automaticamente. |
 | Grafo de relacionamentos do VS Code | candidata `1.2.0` | CLI `1.12.0` ou build compatível que exponha `relationships` schema `1.0` | Preparado, não publicado. CLIs antigas ou malformadas produzem estado incompatível explícito. |
 | Servidor MCP / .NET Tool | candidata `1.0.2` | .NET 10; cliente `stdio` local | `1.0.1` está publicado no NuGet.org, GitHub Releases, GitHub Packages e MCP Registry. `1.0.2` está preparado, mas não publicado. |
-| GitHub Action | candidata coordenada `v1.12.0` | Runner Linux com Docker; container correspondente da CLI | `v1.11.0` exata e `v1` móvel estão publicadas. A Action mantém `check`, `index`, `review`, `impact` e `drift`; ela não expõe `relationships` nem `new`. |
+| GitHub Action | candidata coordenada `v1.12.0` | Runner Linux com Docker; container correspondente da CLI | **Publicado:** `v1.11.0` exata e `v1` móvel. A Action mantém `check`, `index`, `review`, `impact` e `drift`; ela não expõe `relationships` nem `new`. |
 
 A extensão VS Code consulta capacidades de comando em vez de confiar na versão textual. O grafo exige `relationships --help` e resposta estrita no schema `1.0`; nunca usa parsing alternativo de Markdown em TypeScript. MCP continua opcional e instalado separadamente; a extensão preserva seu comportamento apoiado pela CLI quando MCP está desabilitado, ausente ou incompatível.
 
