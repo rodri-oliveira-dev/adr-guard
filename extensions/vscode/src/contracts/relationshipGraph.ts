@@ -1,6 +1,7 @@
 export const relationshipGraphSchemaVersion = '1.0' as const;
 export const maximumRelationshipGraphReportNodes = 5_000;
 export const maximumRelationshipGraphReportRelationships = 10_000;
+const maximumRelationshipGraphTextLength = 1_048_576;
 
 export type RelationshipType = 'superseded-by' | 'supersedes' | 'depends-on';
 export type RelationshipResolution = 'resolved' | 'unresolved' | 'ambiguous';
@@ -102,7 +103,7 @@ function parseRelationship(value: unknown): RelationshipGraphRelationship {
 function parseDiagnostic(value: unknown): RelationshipGraphDiagnostic {
   const record = exactRecord(value, ['code', 'message', 'path', 'severity'], 'diagnostic', ['line', 'column']);
   const code = text(record.code, 'diagnostic.code');
-  if (!/^ADR[0-9]{3}$/u.test(code)) throw invalid('invalid diagnostic code');
+  if (!/^ADR\d{3}$/u.test(code)) throw invalid('invalid diagnostic code');
   const line = optionalPositiveInteger(record.line, 'diagnostic.line');
   const column = optionalPositiveInteger(record.column, 'diagnostic.column');
   return { code, message: text(record.message, 'diagnostic.message'), path: safePath(record.path, 'diagnostic.path'), severity: oneOf(record.severity, ['warning', 'error'] as const, 'diagnostic.severity'), ...(line === undefined ? {} : { line }), ...(column === undefined ? {} : { column }) };
@@ -115,11 +116,50 @@ function exactRecord(value: unknown, required: readonly string[], label: string,
   if (required.some((key) => !(key in record)) || keys.some((key) => !required.includes(key) && !optional.includes(key))) throw invalid(`${label} has an invalid shape`);
   return record;
 }
-function array(value: unknown, label: string): unknown[] { if (!Array.isArray(value)) throw invalid(`${label} is not an array`); return value; }
-function text(value: unknown, label: string): string { if (typeof value !== 'string' || value.length === 0 || value.length > 32_768) throw invalid(`${label} is invalid`); return value; }
-function nullableText(value: unknown, label: string): string | null { return value === null ? null : text(value, label); }
-function count(value: unknown, label: string): number { if (!Number.isSafeInteger(value) || (value as number) < 0) throw invalid(`${label} is invalid`); return value as number; }
-function optionalPositiveInteger(value: unknown, label: string): number | undefined { if (value === undefined) return undefined; const result = count(value, label); if (result < 1) throw invalid(`${label} is invalid`); return result; }
-function oneOf<const T extends readonly string[]>(value: unknown, allowed: T, label: string): T[number] { if (typeof value !== 'string' || !allowed.includes(value)) throw invalid(`${label} is invalid`); return value; }
-function safePath(value: unknown, label: string): string { const result = text(value, label); if (/^(?:[/\\]|[A-Za-z]:)/u.test(result) || result.split('/').includes('..') || result.includes('\\') || result.includes('\0')) throw invalid(`${label} is unsafe`); return result; }
+function array(value: unknown, label: string): unknown[] {
+  if (!Array.isArray(value)) {
+    throw invalid(`${label} is not an array`);
+  }
+  return value;
+}
+function text(value: unknown, label: string): string {
+  if (typeof value !== 'string' || value.length === 0 || value.length > maximumRelationshipGraphTextLength) {
+    throw invalid(`${label} is invalid`);
+  }
+  return value;
+}
+function nullableText(value: unknown, label: string): string | null {
+  if (value === null) return null;
+  if (typeof value !== 'string' || value.length > maximumRelationshipGraphTextLength) {
+    throw invalid(`${label} is invalid`);
+  }
+  return value;
+}
+function count(value: unknown, label: string): number {
+  if (!Number.isSafeInteger(value) || (value as number) < 0) {
+    throw invalid(`${label} is invalid`);
+  }
+  return value as number;
+}
+function optionalPositiveInteger(value: unknown, label: string): number | undefined {
+  if (value === undefined) return undefined;
+  const result = count(value, label);
+  if (result < 1) {
+    throw invalid(`${label} is invalid`);
+  }
+  return result;
+}
+function oneOf<const T extends readonly string[]>(value: unknown, allowed: T, label: string): T[number] {
+  if (typeof value !== 'string' || !allowed.includes(value)) {
+    throw invalid(`${label} is invalid`);
+  }
+  return value;
+}
+function safePath(value: unknown, label: string): string {
+  const result = text(value, label);
+  if (/^(?:[/\\]|[A-Za-z]:)/u.test(result) || result.split('/').includes('..') || result.includes('\\') || result.includes('\0')) {
+    throw invalid(`${label} is unsafe`);
+  }
+  return result;
+}
 function invalid(detail: string): RelationshipGraphContractError { return new RelationshipGraphContractError(`ADR relationship graph JSON is invalid or unsupported: ${detail}.`); }

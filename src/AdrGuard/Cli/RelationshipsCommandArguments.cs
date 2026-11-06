@@ -24,9 +24,10 @@ internal sealed record RelationshipsCommandArguments(
         string? validationProfile = null;
         var outputFormatAssigned = false;
 
-        for (var index = 1; index < args.Count; index++)
+        var index = 1;
+        while (index < args.Count)
         {
-            var argument = args[index];
+            var argument = args[index++];
             if (argument == "--conventional-supersession")
             {
                 if (conventionalSupersession) return Fail(out arguments);
@@ -36,43 +37,16 @@ internal sealed record RelationshipsCommandArguments(
 
             if (argument.StartsWith('-'))
             {
-                if (index + 1 >= args.Count) return Fail(out arguments);
-                var value = args[++index];
-                if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-')) return Fail(out arguments);
-                switch (argument)
-                {
-                    case "--format" when !outputFormatAssigned && value == "json":
-                        outputFormatAssigned = true;
-                        break;
-                    case "--adr-format" when !formatAssigned:
-                        format = value switch
-                        {
-                            "canonical" => AdrFormat.Canonical,
-                            "madr-4" => AdrFormat.Madr4,
-                            _ => (AdrFormat)(-1),
-                        };
-                        if (!Enum.IsDefined(format)) return Fail(out arguments);
-                        formatAssigned = true;
-                        break;
-                    case "--lifecycle-statuses" when lifecycleStatuses is null:
-                        try { AdrLifecyclePolicy.Parse(value); }
-                        catch (ArgumentException) { return Fail(out arguments); }
-                        lifecycleStatuses = value;
-                        break;
-                    case "--filename-policy" when filenamePolicy is null:
-                        try { AdrFilenamePolicy.Parse(value); }
-                        catch (ArgumentException) { return Fail(out arguments); }
-                        filenamePolicy = value;
-                        break;
-                    case "--validation-profile" when validationProfile is null:
-                        try { AdrValidationOptionsFactory.ParseProfile(value); }
-                        catch (ArgumentException) { return Fail(out arguments); }
-                        validationProfile = value;
-                        break;
-                    default:
-                        return Fail(out arguments);
-                }
-
+                if (!TryReadOptionValue(args, ref index, out var value)
+                    || !TryApplyOption(
+                        argument,
+                        value,
+                        ref format,
+                        ref formatAssigned,
+                        ref lifecycleStatuses,
+                        ref filenamePolicy,
+                        ref validationProfile,
+                        ref outputFormatAssigned)) return Fail(out arguments);
                 continue;
             }
 
@@ -89,6 +63,94 @@ internal sealed record RelationshipsCommandArguments(
             filenamePolicy,
             validationProfile);
         return true;
+    }
+
+    private static bool TryReadOptionValue(
+        IReadOnlyList<string> args,
+        ref int index,
+        out string value)
+    {
+        if (index >= args.Count)
+        {
+            value = string.Empty;
+            return false;
+        }
+
+        value = args[index++];
+        return !string.IsNullOrWhiteSpace(value) && !value.StartsWith('-');
+    }
+
+    private static bool TryApplyOption(
+        string argument,
+        string value,
+        ref AdrFormat format,
+        ref bool formatAssigned,
+        ref string? lifecycleStatuses,
+        ref string? filenamePolicy,
+        ref string? validationProfile,
+        ref bool outputFormatAssigned) => argument switch
+    {
+        "--format" => TrySetOutputFormat(value, ref outputFormatAssigned),
+        "--adr-format" => TrySetAdrFormat(value, ref format, ref formatAssigned),
+        "--lifecycle-statuses" => TrySetLifecycle(value, ref lifecycleStatuses),
+        "--filename-policy" => TrySetFilenamePolicy(value, ref filenamePolicy),
+        "--validation-profile" => TrySetValidationProfile(value, ref validationProfile),
+        _ => false,
+    };
+
+    private static bool TrySetOutputFormat(string value, ref bool assigned)
+    {
+        if (assigned || value != "json") return false;
+        assigned = true;
+        return true;
+    }
+
+    private static bool TrySetAdrFormat(string value, ref AdrFormat format, ref bool assigned)
+    {
+        if (assigned) return false;
+        format = value switch
+        {
+            "canonical" => AdrFormat.Canonical,
+            "madr-4" => AdrFormat.Madr4,
+            _ => (AdrFormat)(-1),
+        };
+        if (!Enum.IsDefined(format)) return false;
+        assigned = true;
+        return true;
+    }
+
+    private static bool TrySetLifecycle(string value, ref string? lifecycleStatuses)
+    {
+        if (lifecycleStatuses is not null || !IsValid(value, AdrLifecyclePolicy.Parse)) return false;
+        lifecycleStatuses = value;
+        return true;
+    }
+
+    private static bool TrySetFilenamePolicy(string value, ref string? filenamePolicy)
+    {
+        if (filenamePolicy is not null || !IsValid(value, AdrFilenamePolicy.Parse)) return false;
+        filenamePolicy = value;
+        return true;
+    }
+
+    private static bool TrySetValidationProfile(string value, ref string? validationProfile)
+    {
+        if (validationProfile is not null || !IsValid(value, AdrValidationOptionsFactory.ParseProfile)) return false;
+        validationProfile = value;
+        return true;
+    }
+
+    private static bool IsValid<T>(string value, Func<string, T> parse)
+    {
+        try
+        {
+            parse(value);
+            return true;
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
     }
 
     private static bool Fail(out RelationshipsCommandArguments arguments)

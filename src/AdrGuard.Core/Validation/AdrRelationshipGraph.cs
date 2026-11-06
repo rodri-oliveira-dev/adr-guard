@@ -71,7 +71,7 @@ internal static class AdrRelationshipGraphBuilder
                 relationships.Add(CreateEdge(
                     source,
                     "superseded-by",
-                    $"ADR-{targetId}",
+                    $"ADR-{targetId:D4}",
                     targets,
                     AdrRelationshipOrigin.MadrMetadata));
             }

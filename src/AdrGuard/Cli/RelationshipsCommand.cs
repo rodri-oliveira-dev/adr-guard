@@ -22,6 +22,7 @@ internal static class RelationshipsCommand
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var root = Path.GetFullPath(repositoryRoot);
             var adrDirectory = ResolveAdrDirectory(root, arguments.DirectoryPath);
             var options = AdrValidationOptionsFactory.Create(

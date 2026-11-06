@@ -34,6 +34,17 @@ describe('relationship graph contract', () => {
     const value = { schemaVersion: '1.0', adrDirectory: 'docs/adr', summary: { nodes: nodes.length, relationships: 0, resolved: 0, unresolved: 0, ambiguous: 0, diagnostics: 0 }, nodes, relationships: [], diagnostics: [] };
     assert.throws(() => parseRelationshipGraphReport(JSON.stringify(value)), RelationshipGraphReportLimitError);
   });
+
+  it('accepts empty optional metadata and text larger than the former UI-only limit', () => {
+    const value = validReport();
+    const longTitle = 'x'.repeat(32_769);
+    const nodes = [{ ...value.nodes[0], title: longTitle, status: '' }, value.nodes[1]];
+    const report = parseRelationshipGraphReport(JSON.stringify({ ...value, nodes }));
+    const firstNode = report.nodes[0];
+    if (firstNode === undefined) assert.fail('Expected the first graph node.');
+    assert.equal(firstNode.title, longTitle);
+    assert.equal(firstNode.status, '');
+  });
 });
 
 function validReport(): RelationshipGraphReport {

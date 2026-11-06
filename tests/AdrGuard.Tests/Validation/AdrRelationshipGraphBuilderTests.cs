@@ -46,7 +46,7 @@ public sealed class AdrRelationshipGraphBuilderTests
             AdrRelationshipGraphBuilder.Build([source, firstTarget, secondTarget], options).Relationships);
 
         Assert.Equal("superseded-by", relationship.Type);
-        Assert.Equal("ADR-2", relationship.DeclaredTarget);
+        Assert.Equal("ADR-0002", relationship.DeclaredTarget);
         Assert.Equal(AdrRelationshipResolution.Ambiguous, relationship.Resolution);
         Assert.Equal(2, relationship.Targets.Count);
     }

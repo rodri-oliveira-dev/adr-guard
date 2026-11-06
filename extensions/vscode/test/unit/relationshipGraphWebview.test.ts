@@ -23,6 +23,8 @@ describe('relationship graph Webview security', () => {
     assert.match(html, /lang="en-US&quot; onload=alert\(1\)"/u);
     assert.doesNotMatch(html, /lang="en-US" onload=/u);
     assert.doesNotMatch(html, /https?:\/\//u);
+    assert.match(html, /id="graph-status"[^>]+role="status"[^>]+aria-live="polite"/u);
+    assert.match(html, /<main id="app"><\/main>/u);
   });
 
   it('renders untrusted contract fields only with text DOM APIs', async () => {
@@ -48,6 +50,7 @@ describe('relationship graph Webview security', () => {
     first.dispatchEvent(domEvent(harness.window, 'click', { bubbles: true }));
     assert.equal(requiredElement(harness.document, 'graph-details').textContent.includes('ADR-1'), true);
     assert.equal(activePath(harness.document), 'docs/adr/0001.md');
+    assert.equal(requiredElement(harness.document, 'graph-status').textContent, 'Selected ADR-1: First.');
 
     harness.click('graph-open-adr');
     harness.click('graph-focus');
@@ -67,9 +70,24 @@ describe('relationship graph Webview security', () => {
     harness.dispatchGraph();
     assert.equal(requiredActiveElement(harness.document).id, 'status-filter');
     harness.change('status-filter', 'Accepted');
-    assert.deepEqual(harness.messages.at(-1), { type: 'filter', status: 'Accepted', relationshipType: null });
+    assert.deepEqual(harness.messages.at(-1), { type: 'filter', query: '', status: 'Accepted', relationshipType: null });
+    harness.dispatch({ ...graphMessage(), filters: { query: '', status: 'Accepted', type: null, focusPath: null } });
+    assert.equal(requiredElement(harness.document, 'graph-status').textContent, 'Filters updated. 2 matching ADRs.');
     harness.click('graph-refresh');
     assert.deepEqual(harness.messages.at(-1), { type: 'refresh' });
+  });
+
+  it('restores pre-loading focus only when the user did not move focus during loading', () => {
+    const harness = createHarness();
+    harness.focus('status-filter');
+    harness.dispatch({ type: 'loading', strings: graphMessage().strings });
+    harness.dispatchGraph();
+    assert.equal(requiredActiveElement(harness.document).id, 'status-filter');
+
+    harness.dispatch({ type: 'loading', strings: graphMessage().strings });
+    harness.focus('graph-status');
+    harness.dispatchGraph();
+    assert.equal(requiredActiveElement(harness.document).id, 'graph-status');
   });
 
   it('makes relationship direction visible in the legend as well as available as localized text', async () => {
@@ -83,10 +101,10 @@ describe('relationship graph Webview security', () => {
   it('strictly bounds extension-host messages and rejects unknown shapes', () => {
     assert.deepEqual(parseRelationshipGraphMessage({ type: 'ready' }), { type: 'ready' });
     assert.deepEqual(parseRelationshipGraphMessage({ type: 'openAdr', path: 'docs/adr/0001.md' }), { type: 'openAdr', path: 'docs/adr/0001.md' });
-    assert.deepEqual(parseRelationshipGraphMessage({ type: 'filter', status: null, relationshipType: 'depends-on' }), { type: 'filter', status: null, relationshipType: 'depends-on' });
+    assert.deepEqual(parseRelationshipGraphMessage({ type: 'filter', query: 'cache', status: null, relationshipType: 'depends-on' }), { type: 'filter', query: 'cache', status: null, relationshipType: 'depends-on' });
     for (const invalid of [
       null, [], { type: 'ready', extra: true }, { type: 'openAdr', path: '' }, { type: 'openAdr', path: 'x'.repeat(4_097) },
-      { type: 'focus' }, { type: 'filter', status: '', relationshipType: null }, { type: 'filter', status: null, relationshipType: 'inferred' },
+      { type: 'focus' }, { type: 'filter', query: '', status: '', relationshipType: null }, { type: 'filter', query: '', status: null, relationshipType: 'inferred' },
     ]) assert.equal(parseRelationshipGraphMessage(invalid), undefined);
   });
 
@@ -105,12 +123,13 @@ interface GraphHarness {
   readonly window: Window;
   change(id: string, value: string): void;
   click(id: string): void;
+  dispatch(message: Record<string, unknown>): void;
   focus(id: string): void;
   dispatchGraph(): void;
 }
 
 function createHarness(): GraphHarness {
-  const window = parseHtml('<!doctype html><html><body><main id="app"></main></body></html>');
+  const window = parseHtml('<!doctype html><html><body><div id="graph-status"></div><main id="app"></main></body></html>');
   const document = window.document;
   const messages: Record<string, unknown>[] = [];
   let activeElement: Element | null = null;
@@ -137,13 +156,23 @@ function createHarness(): GraphHarness {
       target.dispatchEvent(domEvent(window, 'change', { bubbles: true }));
     },
     click: (id) => { const target = document.getElementById(id); assert.ok(target, `Missing element: ${id}`); target.click(); },
-    focus: (id) => { const target = document.getElementById(id); assert.ok(target, `Missing element: ${id}`); target.focus(); },
+    dispatch,
+    focus: (id) => {
+      const target = document.getElementById(id);
+      assert.ok(target, `Missing element: ${id}`);
+      target.focus();
+      target.dispatchEvent(domEvent(window, 'focusin', { bubbles: true }));
+    },
     dispatchGraph,
   };
 
   function dispatchGraph(): void {
+    dispatch(graphMessage());
+  }
+
+  function dispatch(message: Record<string, unknown>): void {
     const event = domEvent(window, 'message');
-    Object.defineProperty(event, 'data', { value: graphMessage() });
+    Object.defineProperty(event, 'data', { value: message });
     window.dispatchEvent(event);
   }
 }
@@ -151,13 +180,13 @@ function createHarness(): GraphHarness {
 function graphMessage(): Record<string, unknown> {
   const strings = new Proxy<Record<string, string>>({
     title: 'ADR Relationships', refresh: 'Refresh', workspaceChanges: 'Refresh explicitly', nodes: 'ADRs', relationships: 'Relationships', resolved: 'Resolved', unresolved: 'Unresolved', ambiguous: 'Ambiguous',
-    filters: 'Graph filters', status: 'Status', allStatuses: 'All statuses', relationshipType: 'Relationship type', allRelationshipTypes: 'All relationship types', dependsOn: 'Depends on', supersedes: 'Supersedes', supersededBy: 'Superseded by', clearFilters: 'Clear filters',
-    direction: 'Arrows point from the declaring ADR to the declared target.', broken: 'Broken reference', cycle: 'Supersession cycle', details: 'ADR details', selectHint: 'Select an ADR', unknownTitle: 'Unknown title', unknownStatus: 'Unknown status', format: 'Format', path: 'Path', openAdr: 'Open ADR', focus: 'Focus direct relationships', clearFocus: 'Show complete graph', keyboardHelp: 'Keyboard help', diagnostics: 'Diagnostics', noMatches: 'No matches', empty: 'Empty', noRelationships: 'No relationships', focused: 'Focused', visibleNodes: '{0} of {1}', visualLimit: '{0}',
+    filters: 'Graph filters', search: 'Search ADRs', searchPlaceholder: 'ID, title, or path', status: 'Status', allStatuses: 'All statuses', relationshipType: 'Relationship type', allRelationshipTypes: 'All relationship types', dependsOn: 'Depends on', supersedes: 'Supersedes', supersededBy: 'Superseded by', clearFilters: 'Clear filters',
+    direction: 'Arrows point from the declaring ADR to the declared target.', broken: 'Broken reference', cycle: 'Supersession cycle', details: 'ADR details', selectHint: 'Select an ADR', unknownTitle: 'Unknown title', unknownStatus: 'Unknown status', format: 'Format', path: 'Path', openAdr: 'Open ADR', focus: 'Focus direct relationships', clearFocus: 'Show complete graph', keyboardHelp: 'Keyboard help', diagnostics: 'Diagnostics', noMatches: 'No matches', empty: 'Empty', noRelationships: 'No relationships', focused: 'Focused', visibleNodes: '{0} of {1}', visualLimit: '{0}', selectedAnnouncement: 'Selected {0}: {1}.', filtersAnnouncement: 'Filters updated. {0} matching ADRs.',
   }, { get: (target, key) => target[String(key)] ?? String(key) });
   return {
     type: 'graph', strings: { ...strings }, workspace: 'Workspace', directory: 'docs/adr',
     summary: { nodes: 2, relationships: 1, resolved: 1, unresolved: 0, ambiguous: 0, diagnostics: 0 },
-    statuses: ['Accepted', 'Proposed'], filters: { status: null, type: null, focusPath: null }, visibleLimit: 100, diagnostics: [],
+    statuses: ['Accepted', 'Proposed'], filters: { query: '', status: null, type: null, focusPath: null }, visibleLimit: 100, diagnostics: [],
     layout: {
       width: 580, height: 160, totalMatchingNodes: 2, truncated: false,
       nodes: [

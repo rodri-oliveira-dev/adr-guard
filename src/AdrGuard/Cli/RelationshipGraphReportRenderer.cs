@@ -18,7 +18,14 @@ internal static class RelationshipGraphReportRenderer
         AdrFormat format,
         TextWriter output)
     {
-        using var stream = new MemoryStream();
+        var newLine = output.NewLine;
+        var maximumJsonBytes = MaximumResponseBytes - Encoding.UTF8.GetByteCount(newLine);
+        if (maximumJsonBytes < 0)
+        {
+            throw ResponseTooLarge();
+        }
+
+        using var stream = new BoundedMemoryStream(maximumJsonBytes);
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
         {
             writer.WriteStartObject();
@@ -31,13 +38,8 @@ internal static class RelationshipGraphReportRenderer
             writer.WriteEndObject();
         }
 
-        if (stream.Length > MaximumResponseBytes)
-        {
-            throw new InvalidDataException(
-                $"Relationship graph response exceeds the {MaximumResponseBytes}-byte limit.");
-        }
-
-        output.WriteLine(Encoding.UTF8.GetString(stream.ToArray()));
+        output.Write(Encoding.UTF8.GetString(stream.GetBuffer(), 0, checked((int)stream.Length)));
+        output.Write(newLine);
     }
 
     private static void WriteSummary(
@@ -152,5 +154,37 @@ internal static class RelationshipGraphReportRenderer
     {
         if (value is null) writer.WriteNull(propertyName);
         else writer.WriteString(propertyName, value);
+    }
+
+    private static InvalidDataException ResponseTooLarge() => new(
+        $"Relationship graph response exceeds the {MaximumResponseBytes}-byte limit.");
+
+    private sealed class BoundedMemoryStream(int maximumBytes) : MemoryStream
+    {
+        public override void Write(byte[] buffer, int offset, int count)
+        {
+            EnsureCapacityFor(count);
+            base.Write(buffer, offset, count);
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
+        {
+            EnsureCapacityFor(buffer.Length);
+            base.Write(buffer);
+        }
+
+        public override void WriteByte(byte value)
+        {
+            EnsureCapacityFor(1);
+            base.WriteByte(value);
+        }
+
+        private void EnsureCapacityFor(int count)
+        {
+            if (Position > maximumBytes - count)
+            {
+                throw ResponseTooLarge();
+            }
+        }
     }
 }

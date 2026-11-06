@@ -5,10 +5,11 @@ export type RelationshipGraphMessage =
   | { readonly type: 'refresh' }
   | { readonly type: 'openAdr'; readonly path: string }
   | { readonly type: 'focus'; readonly path: string | null }
-  | { readonly type: 'filter'; readonly status: string | null; readonly relationshipType: RelationshipType | null };
+  | { readonly type: 'filter'; readonly query: string; readonly status: string | null; readonly relationshipType: RelationshipType | null };
 
 const maximumPathLength = 4_096;
 const maximumStatusLength = 32_768;
+const maximumQueryLength = 256;
 
 export function parseRelationshipGraphMessage(value: unknown): RelationshipGraphMessage | undefined {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
@@ -27,10 +28,12 @@ export function parseRelationshipGraphMessage(value: unknown): RelationshipGraph
       : undefined;
   }
   if (record.type !== 'filter'
-    || !hasExactKeys(record, ['type', 'status', 'relationshipType'])
+    || !hasExactKeys(record, ['type', 'query', 'status', 'relationshipType'])
+    || typeof record.query !== 'string'
+    || record.query.length > maximumQueryLength
     || (record.status !== null && !boundedText(record.status, maximumStatusLength))
     || !isRelationshipType(record.relationshipType)) return undefined;
-  return { type: 'filter', status: record.status, relationshipType: record.relationshipType };
+  return { type: 'filter', query: record.query, status: record.status, relationshipType: record.relationshipType };
 }
 
 function boundedText(value: unknown, maximumLength: number): value is string {

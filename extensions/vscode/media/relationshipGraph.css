@@ -1,9 +1,10 @@
 :root { color-scheme: light dark; }
 body { background: var(--vscode-editor-background); color: var(--vscode-foreground); font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); margin: 0; }
 main { box-sizing: border-box; margin: 0 auto; max-width: 1600px; padding: 24px; }
+.screen-reader-only { height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; width: 1px; clip-path: inset(50%); white-space: nowrap; }
 button { background: var(--vscode-button-background); border: 1px solid var(--vscode-button-border, transparent); color: var(--vscode-button-foreground); cursor: pointer; padding: 6px 12px; }
 button:hover { background: var(--vscode-button-hoverBackground); }
-button:focus-visible, select:focus-visible, .graph-node:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
+button:focus-visible, input:focus-visible, select:focus-visible, .graph-node:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
 button.secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
 button.secondary:hover { background: var(--vscode-button-secondaryHoverBackground); }
 .graph-header { align-items: start; display: flex; gap: 20px; justify-content: space-between; }
@@ -16,7 +17,8 @@ h1 { font-size: 1.6rem; margin: 0; }
 .metrics dd { font-weight: 700; order: -1; }
 .filters { align-items: end; background: var(--vscode-sideBar-background); border: 1px solid var(--vscode-panel-border); display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; padding: 12px; }
 .filters label { display: grid; font-weight: 600; gap: 5px; min-width: 180px; }
-.filters select { background: var(--vscode-dropdown-background); border: 1px solid var(--vscode-dropdown-border); color: var(--vscode-dropdown-foreground); min-height: 30px; padding: 4px 26px 4px 7px; }
+.filters input, .filters select { background: var(--vscode-dropdown-background); border: 1px solid var(--vscode-dropdown-border); color: var(--vscode-dropdown-foreground); min-height: 30px; padding: 4px 7px; }
+.filters select { padding-right: 26px; }
 .legend { align-items: center; display: flex; flex-wrap: wrap; gap: 10px 18px; margin: 10px 0; }
 .legend span { align-items: center; display: flex; gap: 7px; }
 .legend .direction { color: var(--vscode-descriptionForeground); flex-basis: 100%; margin: 0; }
@@ -41,7 +43,7 @@ h1 { font-size: 1.6rem; margin: 0; }
 .graph-node text { fill: var(--vscode-foreground); pointer-events: none; }
 .node-id { font-family: var(--vscode-editor-font-family); font-size: 13px; font-weight: 700; }
 .node-title { font-size: 12px; }
-.node-status { fill: var(--vscode-descriptionForeground) !important; font-size: 11px; }
+.graph-node .node-status { fill: var(--vscode-descriptionForeground); font-size: 11px; }
 .edge { fill: none; stroke-width: 2; }
 .edge.depends-on { stroke: var(--vscode-charts-blue); }
 .edge.supersedes { stroke: var(--vscode-charts-purple); }

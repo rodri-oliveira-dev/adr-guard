@@ -1,5 +1,7 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using AdrGuard.Cli;
+using Json.Schema;
 using Xunit;
 
 namespace AdrGuard.Tests.Cli;
@@ -7,20 +9,19 @@ namespace AdrGuard.Tests.Cli;
 public sealed class RelationshipsCommandIntegrationTests
 {
     [Fact]
-    public void PublishedSchemaDeclaresTheStrictVersionedContract()
+    public void PublishedSchemaValidatesReportsAndRejectsExtraNodeProperties()
     {
-        var path = Path.Combine(
-            AppContext.BaseDirectory,
-            "Schemas",
-            "adr-relationship-graph-v1.schema.json");
+        using var repository = new TestRepository();
+        repository.Write("0001-first.md", Canonical("First", "Accepted"));
+        var result = repository.Run(["relationships"]);
+        Assert.Equal(ExitCodes.Success, result.ExitCode);
 
-        using var schema = JsonDocument.Parse(File.ReadAllText(path));
+        var schema = LoadPublishedSchema();
+        Assert.True(Evaluate(schema, result.Output).IsValid);
 
-        Assert.False(schema.RootElement.GetProperty("additionalProperties").GetBoolean());
-        Assert.Equal("1.0", schema.RootElement.GetProperty("properties").GetProperty("schemaVersion").GetProperty("const").GetString());
-        Assert.Contains(
-            schema.RootElement.GetProperty("required").EnumerateArray(),
-            property => property.GetString() == "relationships");
+        var withExtraProperty = JsonNode.Parse(result.Output)!.AsObject();
+        withExtraProperty["nodes"]!.AsArray()[0]!.AsObject()["unexpected"] = true;
+        Assert.False(Evaluate(schema, withExtraProperty.ToJsonString()).IsValid);
     }
 
     [Fact]
@@ -202,7 +203,6 @@ public sealed class RelationshipsCommandIntegrationTests
     public void PreCanceledOperationFailsWithoutProducingPartialJson()
     {
         using var repository = new TestRepository();
-        repository.Write("0001-first.md", Canonical("First", "Accepted"));
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         Assert.True(RelationshipsCommandArguments.TryParse(["relationships"], out var arguments));
@@ -219,6 +219,23 @@ public sealed class RelationshipsCommandIntegrationTests
         Assert.Equal(ExitCodes.OperationalError, exitCode);
         Assert.Equal(string.Empty, output.ToString());
         Assert.Contains("canceled", error.ToString(), StringComparison.Ordinal);
+    }
+
+    private static JsonSchema LoadPublishedSchema()
+    {
+        var path = Path.Combine(
+            AppContext.BaseDirectory,
+            "Schemas",
+            "adr-relationship-graph-v1.schema.json");
+        return JsonSchema.FromText(File.ReadAllText(path));
+    }
+
+    private static EvaluationResults Evaluate(JsonSchema schema, string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return schema.Evaluate(
+            document.RootElement,
+            new EvaluationOptions { OutputFormat = OutputFormat.List });
     }
 
     private static string Canonical(string title, string status, string relationships = "") => $$"""

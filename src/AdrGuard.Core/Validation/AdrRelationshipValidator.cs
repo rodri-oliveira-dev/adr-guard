@@ -25,11 +25,12 @@ internal static class AdrRelationshipValidator
 
         var lifecycle = options.EffectiveLifecycle;
         var successors = new Dictionary<AdrDocument, IReadOnlyList<AdrDocument>>();
+        var relationshipsBySource = graph.Relationships.ToLookup(edge => edge.Source);
 
         foreach (var document in graph.Nodes)
         {
-            var declared = graph.Relationships
-                .Where(edge => edge.Source == document && edge.Type == "superseded-by")
+            var declared = relationshipsBySource[document]
+                .Where(edge => edge.Type == "superseded-by")
                 .ToArray();
             foreach (var unresolvedMadr in declared.Where(edge =>
                          edge.Origin == AdrRelationshipOrigin.MadrMetadata
@@ -58,8 +59,8 @@ internal static class AdrRelationshipValidator
         {
             var targets = successors[document];
             ValidateSupersessionTargets(document, targets, issues, lifecycle);
-            ValidateSupersedesDeclarations(document, graph, successors, issues, lifecycle);
-            ValidateDependencies(document, graph, issues, lifecycle);
+            ValidateSupersedesDeclarations(document, relationshipsBySource[document], successors, issues, lifecycle);
+            ValidateDependencies(document, relationshipsBySource[document], issues, lifecycle);
         }
 
         ValidateCycles(successors, issues);
@@ -99,14 +100,13 @@ internal static class AdrRelationshipValidator
 
     private static void ValidateSupersedesDeclarations(
         AdrDocument document,
-        AdrRelationshipGraph graph,
+        IEnumerable<AdrRelationshipEdge> relationships,
         Dictionary<AdrDocument, IReadOnlyList<AdrDocument>> successors,
         List<ValidationIssue> issues,
         AdrLifecyclePolicy lifecycle)
     {
-        foreach (var edge in graph.Relationships.Where(candidate =>
-                     candidate.Source == document
-                     && candidate.Type == "supersedes"
+        foreach (var edge in relationships.Where(candidate =>
+                     candidate.Type == "supersedes"
                      && candidate.Resolution == AdrRelationshipResolution.Resolved))
         {
             var predecessor = edge.Targets[0];
@@ -139,13 +139,12 @@ internal static class AdrRelationshipValidator
 
     private static void ValidateDependencies(
         AdrDocument document,
-        AdrRelationshipGraph graph,
+        IEnumerable<AdrRelationshipEdge> relationships,
         List<ValidationIssue> issues,
         AdrLifecyclePolicy lifecycle)
     {
-        foreach (var edge in graph.Relationships.Where(candidate =>
-                     candidate.Source == document
-                     && candidate.Type == "depends-on"
+        foreach (var edge in relationships.Where(candidate =>
+                     candidate.Type == "depends-on"
                      && candidate.Resolution == AdrRelationshipResolution.Resolved))
         {
             var dependency = edge.Targets[0];
