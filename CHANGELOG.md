@@ -6,7 +6,22 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
-## [1.11.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.11.0) — prepared 2026-11-05, not yet published
+- No additional CLI changes after the `1.12.0` release candidate baseline.
+
+## [1.12.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.12.0) — prepared 2026-11-06, not yet published
+
+### Added
+
+- Add the read-only `adr-guard relationships [directory] --format json` command and strict schema `1.0` for deterministic ADR nodes, declared edges, resolution states, matching candidates, and existing relationship diagnostics.
+- Centralize declared relationship discovery in the internal Core assembly for reuse by validation, CLI export, and the existing MCP relationship tool.
+
+### Compatibility
+
+- Preserve all existing CLI commands, exit codes `0`–`4`, deterministic validation, and check JSON/SARIF schemas. The graph reports only author-declared relationships and never infers or changes architectural decisions.
+- Prepare the coordinated CLI package, container images, exact `v1.12.0` tag, and moving `v1` Action tag without publishing them from this branch.
+- Full candidate notes: [English](docs/releases/v1.12.0.md) · [Português](docs/releases/v1.12.0.pt-BR.md).
+
+## [1.11.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.11.0) — 2026-11-05
 
 ### Added
 
@@ -16,9 +31,10 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 - Preserve the schema `1.0` `new --form` envelope and reuse its published field IDs for MADR without silently expanding the contract.
 - Preserve canonical output byte-for-byte, existing CLI exits `0`–`4`, atomic writes, and concurrent ID allocation.
-- CLI `1.10.0` remains the currently published package. CLI `1.11.0`, its containers, and matching exact/moving Action tags are prepared but unavailable until the manual `Release` workflow succeeds after merge.
-- MCP `1.0.1` was published independently on NuGet.org and GitHub Releases; VS Code `1.1.1` remains an independently versioned source candidate. Neither component is published by the CLI workflow.
-- Full candidate notes: [English](docs/releases/v1.11.0.md) · [Português](docs/releases/v1.11.0.pt-BR.md).
+- CLI `1.11.0` was published to NuGet.org, GitHub Packages, GitHub Releases, GHCR, and Docker Hub. Exact Action tag `v1.11.0` and moving tag `v1` point to the release commit.
+- MCP `1.0.1` was published independently on NuGet.org, GitHub Releases, and the MCP Registry; VS Code `1.1.1` was published independently in the Visual Studio Marketplace.
+- Full release notes: [English](docs/releases/v1.11.0.md) · [Português](docs/releases/v1.11.0.pt-BR.md).
+
 ## [1.10.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0) — 2026-11-05
 
 ### Added

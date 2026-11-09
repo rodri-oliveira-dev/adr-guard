@@ -2,7 +2,7 @@
 
 > Availability: `init`, `.adrguard.yml`, and structured `check` output were published in ADR Guard v1.2.0. MADR 4.0 format selection was published in v1.3.0. See [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) for exact artifacts.
 
-> Architecture impact analysis was introduced in v1.5.0, architectural drift in v1.6.0, and visual form contracts in v1.7.0. CLI 1.10.0 is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.10.0) and in its [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0). Native MADR generation is prepared for CLI 1.11.0 but is not yet published.
+> Architecture impact analysis was introduced in v1.5.0, architectural drift in v1.6.0, visual form contracts in v1.7.0, and native MADR generation in the published CLI 1.11.0. CLI 1.12.0 is prepared but not published and adds the relationship graph contract below.
 
 > The schema `1.0` visual-form contracts require CLI 1.7.0 or newer and a separately versioned compatible VS Code extension when used visually. CLI, extension, and MCP versions are independent.
 
@@ -15,6 +15,7 @@ This table mirrors the command dispatcher and built-in `--help`. Specialized gui
 | `init [repository]` | Optional ADR directory, template, workflow generation, `--dry-run`, `--overwrite` | Writes configuration/template/workflow only when explicitly requested; dry run does not write | `0`, `2`, `3` |
 | `doctor [repository]` | Optional repository directory; no other options | Read-only local diagnostics; one bounded `git --version` probe; no network, provider, installation, or fix | `0` without errors, `2`, `3` |
 | `check [directory]` | Text/JSON/SARIF, ADR format, lifecycle/supersession, filename/placeholder/metadata/profile policy, optional changed/base ref and diagnostic baseline | Read-only; local Git read for `--changed` | `0` valid, `1` findings, `2`, `3` |
+| `relationships [directory]` | JSON, ADR format, lifecycle/supersession, filename and profile policy | Read-only local graph export; no Git, provider, script execution or writes | `0` clean, `1` relationship diagnostics, `2`, `3` |
 | `baseline [directory] --output <file>` | Validation policy options; `--update` required to replace | Creates or explicitly replaces one versioned baseline | `0`, `2`, `3` |
 | `index [directory]` | Optional output, validation policy, `--catalog enriched` | Writes deterministic standard index or enriched catalog only after validation | `0`, `1`, `2`, `3` |
 | `new [directory]` | Human flow requires `--title`; structured flow requires `--form`; ADR format/template/culture/filename options | Preview is read-only; create writes one proposed canonical or MADR ADR atomically | `0`, `1`, `2`, `3` |
@@ -52,6 +53,21 @@ adr-guard doctor --help
 The command is local and read-only. It does not read ADR contents, inspect provider credentials, access the network or Git remotes, install tools, create files/directories, or apply fixes. Configuration uses the same strict 64 KiB schema 1 loader and contained-path protections as other commands. Git detection invokes only a bounded local `git --version` probe with no shell.
 
 Warnings, including missing optional Git or absent configuration with legacy defaults, return `0`. Any `ERROR` returns operational exit `3`; invalid arguments return `2` on stderr. Paths in the report are limited to `.`, `.adrguard.yml`, and validated repository-relative paths; absolute paths and raw local process errors are not emitted.
+
+## Export the declared relationship graph
+
+> Release status: `relationships` is prepared for CLI 1.12.0; it is not included in the currently published CLI 1.11.0 package.
+
+```text
+adr-guard relationships [directory] [--format json]
+  [--adr-format canonical|madr-4]
+  [--lifecycle-statuses <mapping>] [--conventional-supersession]
+  [--filename-policy <policy>] [--validation-profile <profile>]
+```
+
+The command writes only the strict [relationship graph schema `1.0`](schemas/adr-relationship-graph-v1.schema.json) to stdout. Nodes contain the effective ADR ID, title, status, repository-relative path and selected format. Each explicit `superseded-by`, `supersedes` or `depends-on` declaration records its source, literal declared target, resolution (`resolved`, `unresolved` or `ambiguous`) and zero, one or multiple candidate targets. Diagnostics reuse `ADR006`–`ADR008` and `ADR010`–`ADR014` when relevant. Existing check JSON and SARIF contracts are unchanged.
+
+Ordering is ordinal and reproducible. Exit `0` means the graph has no relationship diagnostics, `1` means JSON was produced with diagnostics, `2` means invalid usage/configuration, and `3` means an unsafe path, malformed input, resource limit, I/O failure or cancellation prevented a complete response. The command reads at most 1,000 ADR files, 512 KiB per file, 32 MiB in aggregate, and emits at most 1 MiB including the final newline. It rejects the ADR root outside the invocation repository, rejects reparse-point traversal, never executes workspace content, and never modifies ADRs. It recognizes only declarations described in [relationship governance](relationship-governance.md); narrative references, similarity and AI output cannot create edges.
 
 ## Configuration
 
@@ -102,7 +118,7 @@ The native `minimal` and `extended` canonical and MADR templates can be mapped t
 
 The schema `1.0` MADR form intentionally omits distinct fields for `Confirmation` and `Pros and Cons of the Options`; traditional extended generation still includes editable guidance for those sections. Adding new field IDs that existing clients reject would require a new form schema version rather than a silent `1.0` change.
 
-> Availability: native `new --adr-format madr-4` generation is prepared for CLI 1.11.0 but is not included in the published CLI 1.10.0.
+> Availability: native `new --adr-format madr-4` generation is published in CLI 1.11.0.
 
 Traditional creation uses the same format selection:
 

@@ -89,6 +89,13 @@ public sealed class AdrGuardConfigurationLoaderTests
         Assert.Contains("--adr-directory", configuredEdit);
         Assert.Contains(configuration.AdrDirectoryPath, configuredEdit);
 
+        var configuredRelationships = ConfigurationArguments.Apply(
+            ["relationships", "--format", "json"],
+            configuration);
+        Assert.Equal(configuration.AdrDirectoryPath, configuredRelationships[1]);
+        Assert.Contains("--adr-format", configuredRelationships);
+        Assert.Contains("madr-4", configuredRelationships);
+
         var explicitArgs = new[]
         {
             "new", "custom/adrs", "--title", "Explicit", "--template", "minimal",
@@ -105,6 +112,8 @@ public sealed class AdrGuardConfigurationLoaderTests
     [InlineData("check", "-h")]
     [InlineData("index", "--help")]
     [InlineData("index", "-h")]
+    [InlineData("relationships", "--help")]
+    [InlineData("relationships", "-h")]
     [InlineData("new", "--help")]
     [InlineData("new", "-h")]
     [InlineData("draft", "--help")]

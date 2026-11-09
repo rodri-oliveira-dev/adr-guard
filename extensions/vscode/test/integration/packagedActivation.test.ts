@@ -18,5 +18,6 @@ suite('Packaged ADR Guard extension', () => {
     assert.ok(commands.includes('adrGuard.validateAdrs'));
     assert.ok(commands.includes('adrGuard.refreshExplorer'));
     assert.ok(commands.includes('adrGuard.openVisual'));
+    assert.ok(commands.includes('adrGuard.openRelationshipGraph'));
   });
 });

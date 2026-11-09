@@ -28,6 +28,7 @@ internal static class CliApplication
           adr-guard init [repository] [options]
           adr-guard doctor [repository]
           adr-guard check [directory] [--format text|json|sarif] [--diagnostic-locations] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>] [--changed --base-ref <ref>] [--baseline <file>]
+          adr-guard relationships [directory] [--format json] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
           adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
           adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>] [--catalog enriched]
           adr-guard new [adr-directory] (--title <title> [--dry-run|--preview] | --form) [--adr-format canonical|madr-4] [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>]
@@ -42,6 +43,7 @@ internal static class CliApplication
           init     Initialize ADR Guard configuration in an existing repository.
           doctor   Diagnose the local repository and tool environment without changing them.
           check    Validate ADR files. Defaults to the current directory.
+          relationships Export the declared ADR relationship graph as versioned JSON.
           baseline Generate or explicitly update a versioned diagnostic baseline.
           index    Validate ADR files and generate an index. Defaults to README.md.
           new      Create a Proposed ADR from an offline Markdown template.
@@ -61,6 +63,23 @@ internal static class CliApplication
           2  Invalid command-line usage
           3  Operational error
           4  Deterministic review policy failed
+        """;
+
+    private const string RelationshipsHelpText = """
+        Usage:
+          adr-guard relationships [directory] [--format json] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
+
+        Export a deterministic, read-only schemaVersion 1.0 graph of declared ADR relationships.
+        The directory defaults to the configured ADR directory or current directory. Only JSON is supported.
+        Nodes include IDs, titles, statuses, repository-relative paths and formats. Relationships are limited
+        to explicit superseded-by, supersedes and depends-on declarations and report resolved, unresolved or
+        ambiguous targets. No textual, narrative or AI-based relationships are inferred.
+
+        Exit codes:
+          0  Graph generated without relationship diagnostics
+          1  Graph generated with relationship diagnostics
+          2  Invalid command-line usage or configuration
+          3  Unsafe path, malformed input, limit, I/O or cancellation failure
         """;
 
     private const string ImpactHelpText = """
@@ -354,9 +373,10 @@ internal static class CliApplication
         IReadOnlyList<string> effectiveArgs;
         try
         {
+            var effectiveInvocationDirectory = invocationDirectory ?? Directory.GetCurrentDirectory();
             var configuration = args[0] is "init" or "doctor"
                 ? null
-                : AdrGuardConfigurationLoader.Load(invocationDirectory ?? Directory.GetCurrentDirectory());
+                : AdrGuardConfigurationLoader.Load(effectiveInvocationDirectory);
             effectiveArgs = ConfigurationArguments.Apply(args, configuration);
         }
         catch (AdrGuardConfigurationException exception)
@@ -376,6 +396,12 @@ internal static class CliApplication
                 error,
                 cancellationToken),
             "check" => RunCheck(effectiveArgs, output, error, cancellationToken),
+            "relationships" => RunRelationships(
+                effectiveArgs,
+                invocationDirectory ?? Directory.GetCurrentDirectory(),
+                output,
+                error,
+                cancellationToken),
             "baseline" => RunBaseline(effectiveArgs, output, error, cancellationToken),
             "index" => RunIndex(effectiveArgs, output, error),
             "new" => NewCommand.Run(effectiveArgs, input, output, error, cancellationToken),
@@ -400,6 +426,27 @@ internal static class CliApplication
             "drift" => RunDrift(effectiveArgs, output, error, cancellationToken),
             _ => WriteUsageError(effectiveArgs, error),
         };
+    }
+
+    private static int RunRelationships(
+        IReadOnlyList<string> args,
+        string repositoryRoot,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken)
+    {
+        if (args.Count == 2 && IsHelpOption(args[1]))
+        {
+            output.WriteLine(RelationshipsHelpText);
+            return ExitCodes.Success;
+        }
+
+        if (!RelationshipsCommandArguments.TryParse(args, out var arguments))
+        {
+            return WriteCommandUsageError("relationships", error);
+        }
+
+        return RelationshipsCommand.Run(arguments, repositoryRoot, output, error, cancellationToken);
     }
 
     private static int RunDrift(IReadOnlyList<string> args, TextWriter output, TextWriter error, CancellationToken cancellationToken)

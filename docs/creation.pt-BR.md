@@ -8,7 +8,7 @@ O nome de arquivo padrão continua sendo `NNNN-kebab-case.md`. A configuração 
 
 > A criação e a edição visuais estruturadas estão implementadas para a linha 1.7.0 da CLI e exigem uma versão compatível da extensão VS Code, versionada separadamente. Confirme a publicação dos dois artefatos antes de depender dos formulários visuais; a implementação nesta branch não os torna disponíveis no NuGet ou no Visual Studio Marketplace.
 
-> A geração nativa MADR 4.0 está preparada para a CLI 1.11.0 e ainda não está disponível em pacotes ou imagens publicados. A CLI 1.10.0 continua sendo o baseline publicado.
+> A geração nativa MADR 4.0 está disponível na CLI e nos containers publicados na versão 1.11.0.
 
 ## Início rápido — sem IA, conta, chave de API ou rede
 

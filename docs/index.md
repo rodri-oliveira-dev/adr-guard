@@ -47,7 +47,7 @@ Architecture Decision Records (ADRs) preserve the context, choice, and consequen
 | CLI and configuration | [CLI reference](cli-reference.md), [offline creation](creation.md), [custom templates](custom-templates.md) |
 | Validation modes | [compatibility matrix](compatibility.md), [MADR 4.0](madr-4.md), [incremental validation and baselines](incremental-validation.md), [relationship governance](relationship-governance.md) |
 | Governance data | [optional metadata](metadata.md), [enriched catalog](catalog.md) |
-| Reports | [check reports](check-reports.md), [review report schema](adr-review-report-v1.md), [review policy](adr-review-policy-v1.md) |
+| Reports | [check reports](check-reports.md), [relationship graph schema](schemas/adr-relationship-graph-v1.schema.json), [review report schema](adr-review-report-v1.md), [review policy](adr-review-policy-v1.md) |
 | AI-assisted workflows | [draft templates and privacy](draft-templates.md), [ADR review](adr-review.md), [comparative review](comparative-review.md), [review security](adr-review-security.md) |
 | Integrations | [GitHub Action and real demo](github-action.md), [VS Code](../extensions/vscode/README.md), [MCP server](mcp.md), [MCP distribution](mcp-release.md), [container images](container.md) |
 | Audit evidence | [Implementation-to-documentation traceability](documentation-audit.md), [compatibility matrix](compatibility.md) |

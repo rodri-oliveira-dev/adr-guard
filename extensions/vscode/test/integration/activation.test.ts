@@ -14,6 +14,7 @@ suite('ADR Guard extension activation', () => {
       'onCommand:adrGuard.initializeRepository',
       'onCommand:adrGuard.createAdr',
       'onCommand:adrGuard.openVisual',
+      'onCommand:adrGuard.openRelationshipGraph',
       'onCommand:adrGuard.createAdrWithForm',
       'onCommand:adrGuard.validateAdrs',
       'onCommand:adrGuard.validateChangedAdrs',
@@ -45,6 +46,7 @@ suite('ADR Guard extension activation', () => {
       'adrGuard.initializeRepository',
       'adrGuard.createAdr',
       'adrGuard.openVisual',
+      'adrGuard.openRelationshipGraph',
       'adrGuard.createAdrWithForm',
       'adrGuard.validateAdrs',
       'adrGuard.validateChangedAdrs',
@@ -106,11 +108,12 @@ suite('ADR Guard extension activation', () => {
       'adrGuard.refreshExplorer',
       'adrGuard.revealCurrentAdr',
       'adrGuard.openVisual',
+      'adrGuard.openRelationshipGraph',
     ]);
     assert.deepEqual(viewTitleCommands.at(-1), {
-      command: 'adrGuard.openVisual',
+      command: 'adrGuard.openRelationshipGraph',
       when: 'view == adrGuard.adrExplorer',
-      group: 'navigation',
+      group: 'navigation@4',
     });
   });
 
@@ -132,6 +135,18 @@ suite('ADR Guard extension activation', () => {
     assert.equal(countWebviews(), 0);
     await vscode.commands.executeCommand('workbench.view.extension.adrGuard');
     await waitFor(() => countWebviews() === 1);
+    assert.equal(countWebviews(), 1);
+    await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
+  });
+
+  test('reuses the relationship graph panel when relationship support is unavailable', async () => {
+    const countWebviews = (): number => vscode.window.tabGroups.all.flatMap((group) => group.tabs)
+      .filter((tab) => tab.input instanceof vscode.TabInputWebview && tab.label === 'ADR Relationships').length;
+    assert.equal(countWebviews(), 0);
+    await vscode.commands.executeCommand('adrGuard.openRelationshipGraph');
+    await waitFor(() => countWebviews() === 1);
+    assert.equal(countWebviews(), 1);
+    await vscode.commands.executeCommand('adrGuard.openRelationshipGraph');
     assert.equal(countWebviews(), 1);
     await vscode.commands.executeCommand('workbench.action.closeActiveEditor');
   });

@@ -9,8 +9,8 @@ public sealed class McpDistributionContractTests
 {
     private const string ExpectedName = "io.github.rodri-oliveira-dev/adr-guard";
     private const string ExpectedPackage = "RodriOliveira.AdrGuard.Mcp";
-    private const string ExpectedCandidateVersion = "1.0.1";
-    private const string PublishedManifestVersion = "1.0.0";
+    private const string ExpectedCandidateVersion = "1.0.2";
+    private const string PublishedManifestVersion = "1.0.1";
     private const string ExpectedSchema = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 
     [Fact]

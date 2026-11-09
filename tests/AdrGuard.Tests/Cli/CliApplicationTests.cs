@@ -34,6 +34,7 @@ public sealed class CliApplicationTests
         Assert.Contains("--placeholder-policy", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--validation-profile", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("--catalog enriched", output.ToString(), StringComparison.Ordinal);
+        Assert.Contains("relationships", output.ToString(), StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
     }
 

@@ -5,7 +5,7 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 > **Published extension:** [ADR Guard for VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) is available on the Visual Studio Marketplace as `rodrioliveira.adr-guard`. The VS Code extension and .NET CLI are distributed and versioned separately; the extension does not bundle the CLI.
 
 <!-- vsix-package-status:start -->
-> **Release status (verified 2026-11-05):** version 1.1.0 is published in the Marketplace and adds the MCP provider and visual Impact, Drift, baseline, enriched catalog, AI Draft, and Technical Review workflows described below. Version 1.1.1 is a prepared maintenance candidate, not a published download. CLI 1.10.0 and MCP 1.0.1 are published independently; CLI 1.11.0 remains an unpublished candidate.
+> **Release status (verified 2026-11-06):** version 1.1.1 is published in the Marketplace. Version 1.2.0 is prepared but not published and adds the relationship graph described below. CLI 1.11.0 and MCP 1.0.1 are published independently; CLI 1.12.0 and MCP 1.0.2 are prepared candidates.
 <!-- vsix-package-status:end -->
 
 ## Features
@@ -19,6 +19,7 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 - Opt in to debounced validation after saving an ADR.
 - Generate an ADR index only after explicit confirmation.
 - Browse canonical and MADR 4.0 files in the native Explorer, including safe display-only status and relationship navigation.
+- Visualize declared ADR dependencies and supersession relationships from the CLI's strict graph JSON contract.
 - Run Git-aware changed-file validation against an explicit local base ref, with no hidden fetch.
 - Classify diagnostics against an existing read-only baseline.
 - Explicitly run visual Architecture Impact and Architectural Drift reports through strict CLI JSON contracts.
@@ -82,6 +83,7 @@ Open the Command Palette and choose the command under **ADR Guard**:
 | Initialize Repository | Previews `init --dry-run`, then asks before writing. Existing files are not overwritten. |
 | Create ADR | Runs the compatible traditional `new` flow and opens the verified created file. |
 | Open ADR Guard | Opens or reveals the visual ADR list without creating files or running validation. |
+| Open ADR Relationship Graph | Opens the read-only declared relationship graph for the selected workspace folder. |
 | Create ADR with Form | Opens the guided form, previews through the CLI, then creates only after explicit submission. |
 | Validate ADRs | Runs a full JSON validation and updates Problems. |
 | Validate Changed ADRs | Uses `--changed --base-ref`; it never performs `git fetch`. |
@@ -93,6 +95,16 @@ Open the Command Palette and choose the command under **ADR Guard**:
 
 Multi-root workspaces are supported. Commands use the active file's folder when possible and otherwise ask which folder to use. Settings with resource scope can differ by workspace folder.
 
+## ADR relationship graph
+
+Run **ADR Guard: Open ADR Relationship Graph** from the Command Palette or the ADR Explorer title. The separate read-only panel invokes `relationships <directory> --format json` and consumes only schema `1.0`; it does not parse Markdown, infer relationships, or modify decisions in TypeScript. Dependency, supersedes, and superseded-by edges have distinct colors and directional arrows. Existing CLI diagnostics highlight supersession cycles, unresolved references, and ambiguous declarations.
+
+Select a node to inspect its identifier, title, status, format, and path, then explicitly open its Markdown or focus the view on its direct incoming and outgoing links. Case-insensitive identifier, title, and path search plus status and relationship-type filters run against the complete loaded report, including nodes beyond the first visible page. Arrow-key navigation, roving focus, accessible labels, and visible focus states support keyboard use. Opening Markdown requires an exact path from the loaded report and a regular `.md` file that remains physically inside the selected workspace.
+
+The graph uses a deterministic layered layout and displays at most 100 matching nodes at once. Larger bounded reports remain available for search, filtering, and direct-link focus instead of being rendered in full. Workspace changes are loaded only through **Refresh** or by running **Open ADR Relationship Graph** again while its panel is open, preventing background graph processing. Loading, empty-directory, no-relationship, operational-error, incompatible-CLI, and safe report-limit states remain explicit. All contract text is inserted through text DOM APIs under a restrictive nonce-based Content Security Policy using extension-local resources.
+
+This capability is prepared for extension 1.2.0 with CLI 1.12.0. It is not present in the published extension 1.1.1 or published CLI 1.11.0. Older or malformed CLIs produce an explicit incompatible state; the extension never falls back to parsing ADR Markdown.
+
 ## Visual ADR list
 
 Run **ADR Guard: Open ADR Guard** from the Command Palette or the ADR Explorer title. The reusable visual panel starts on the selected workspace folder's configured ADR directory and shows available identifier, title, status, date, and relative path metadata. Search is case-insensitive across title, identifier, and path; status filters and deterministic number/title/date ordering run locally without invoking full CLI validation. Missing metadata remains visibly unknown and unnumbered records sort after numbered ADRs.
@@ -103,7 +115,7 @@ The list header groups refresh, installation check, repository initialization, c
 
 The list distinguishes loading, empty, filtered-empty, missing-directory, unavailable-workspace, and read-error states. It never creates a directory or initializes a repository while browsing. File changes are batched by the shared ADR Explorer watcher, and switching workspace folders cannot allow an older response to replace the current folder.
 
-**New ADR** opens the existing form in the same panel and keeps the folder, directory, search, filter, order, and scroll state for the return. Successful creation returns to the refreshed list, highlights the new ADR, refreshes the native Explorer, and offers **Open Markdown** without taking focus away automatically. If current filters hide the new record, the panel says so and offers an explicit reveal action. Cancel and **Back to ADR list** return without writing; leaving a dirty form through these controlled actions requires confirmation. The direct **Create ADR with Form** command remains available and returns to the list as well.
+**New ADR** opens the existing form in the same list panel and keeps the folder, directory, search, filter, order, and scroll state for the return. The relationship graph always remains a separate panel. Successful creation returns to the refreshed list, highlights the new ADR, refreshes the native Explorer, and offers **Open Markdown** without taking focus away automatically. If current filters hide the new record, the panel says so and offers an explicit reveal action. Cancel and **Back to ADR list** return without writing; leaving a dirty form through these controlled actions requires confirmation. The direct **Create ADR with Form** command remains available and returns to the list as well.
 
 Back and Cancel are navigation-only actions in creation, editing, and settings. They never invoke `new`, `edit --save`, `check`, or `index`; while a create, edit, or settings save is active, those controls remain disabled to prevent a competing transition. Refresh, search, filters, sorting, workspace selection, and Explorer file watchers likewise refresh read-only catalog state without starting ADR validation.
 
@@ -218,12 +230,13 @@ The manifest is authoritative. Resource values are saved per workspace folder by
 | Surface | Requirement |
 | --- | --- |
 | VS Code | `1.101.0` or newer in the `1.x` line. |
-| Extension 1.1.0 | Published in the Visual Studio Marketplace. Extension and CLI releases remain independent. |
-| Extension 1.1.1 | Prepared maintenance candidate; not yet published. |
+| Extension 1.1.1 | Published in the Visual Studio Marketplace. Extension and CLI releases remain independent. |
+| Extension 1.2.0 | Prepared relationship-graph release candidate; not yet published. |
 | Core CLI integration | Compatible `adr-guard` v1.3.0 or newer for the documented baseline commands. |
 | Visual create/edit | CLI 1.7.0 schema `1.0` form contracts. |
 | Impact, drift, baseline, enriched catalog, draft, review/compare | A CLI build whose `<command> --help` exposes the requested flags; the extension checks capabilities instead of assuming matching versions. |
-| MCP | Optional. Extensions 1.1.0/1.1.1 use the stable VS Code MCP provider API with separately installed MCP 1.0.0 or a compatible schema `1.0` build; the extension remains fully functional without it. |
+| Relationship graph | Extension 1.2.0 plus CLI 1.12.0, or a compatible CLI build exposing `relationships` schema `1.0`. |
+| MCP | Optional. Extensions 1.1.0+ use the stable VS Code MCP provider API with separately installed MCP 1.0.1 or a compatible schema `1.0` build; the extension remains fully functional without it. |
 
 ## Troubleshooting
 

@@ -2,20 +2,20 @@
 
 [English](mcp-configuration.md) · [Visão geral](mcp.pt-BR.md) · [Ferramentas](mcp-tools.pt-BR.md) · [Segurança](mcp-security.pt-BR.md)
 
-O MCP 1.0.0 é uma [.NET Tool publicada no NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), com [GitHub Release própria](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0) e entrada no Registry oficial. O NuGet.org continua sendo o canal recomendado; o GitHub Packages é um feed secundário autenticado que exige um backfill único para a versão 1.0.0.
+MCP 1.0.1 é uma [.NET Tool publicada no NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.1), com [GitHub Release própria](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.1), artifact no GitHub Packages e entrada no Registry oficial. O NuGet.org continua sendo o canal recomendado; GitHub Packages é um feed secundário autenticado.
 
-O MCP 1.0.1 está preparado como candidata de pacote local não publicada. Ele mantém as mesmas sete ferramentas e contratos no schema `1.0`, mas inclui a nova dependência interna direta do Core. Mantenha os exemplos públicos de instalação em 1.0.0 até que 1.0.1 esteja visível tanto no NuGet.org quanto no Registry.
+MCP 1.0.2 está preparado como patch não publicado. Ele preserva as mesmas sete ferramentas e contratos no schema `1.0`, reutilizando a descoberta de relacionamentos do Core na ferramenta existente.
 
 ## Instalação do pacote publicado
 
 O pacote exige o runtime .NET 10 e instala `adr-guard-mcp` independentemente da CLI tradicional `adr-guard`:
 
 ```shell
-dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0
+dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.1
 adr-guard-mcp --repository /caminho/absoluto/do/repositorio --adr-directory docs/adr
 ```
 
-Para um manifesto local de ferramentas, use `dotnet tool install --local RodriOliveira.AdrGuard.Mcp --version 1.0.0` e `dotnet tool run adr-guard-mcp -- --repository ...`. Confirme primeiro o pacote NuGet e a entrada no Registry; a existência do workflow não significa publicação.
+Para um manifesto local de ferramentas, use `dotnet tool install --local RodriOliveira.AdrGuard.Mcp --version 1.0.1` e `dotnet tool run adr-guard-mcp -- --repository ...`. Confirme primeiro o pacote NuGet e a entrada no Registry; a existência do workflow não significa publicação.
 
 ## Pré-requisitos e build do código-fonte
 

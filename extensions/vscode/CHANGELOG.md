@@ -2,13 +2,21 @@
 
 All notable changes to ADR Guard for VS Code are documented here. Extension versions are independent from ADR Guard CLI versions.
 
-## 1.1.1 — prepared 2026-11-05, not yet published
+## 1.2.0 — prepared 2026-11-06, not yet published
 
-- Prepare a maintenance patch over the published 1.1.0 extension with safer executable/workspace path handling, clearer bounded UI messages, and reduced adapter complexity.
+- Add a read-only ADR relationship graph panel backed exclusively by the CLI schema `1.0` contract, with node details, full-report search, status/type filters, direct-link focus, diagnostic cycle/broken/ambiguous highlights, directional legend, explicit refresh, keyboard accessibility, a 100-node visible limit, secure Markdown navigation, restrictive CSP, and explicit loading/empty/error/incompatible states.
+- Require a separately installed CLI exposing `relationships` schema `1.0`; prepared CLI `1.12.0` provides it. Older or malformed CLIs fail closed with an explicit incompatible state.
+- Keep all graph operations read-only: the panel cannot create, edit, approve, replace, or change the lifecycle status of ADRs and never infers undeclared relationships.
+- The repository workflow validates and packages `adr-guard-1.2.0.vsix` only. Marketplace publication remains a separate, explicitly authorized owner step.
+- See the [VS Code 1.2.0 release notes](../../docs/releases/vscode-v1.2.0.md) ([pt-BR](../../docs/releases/vscode-v1.2.0.pt-BR.md)).
+
+## 1.1.1 — 2026-11-05
+
+- Published the maintenance patch in the Visual Studio Marketplace with safer executable/workspace path handling, clearer bounded UI messages, and reduced adapter complexity.
 - Retain VS Code `1.101.0+`, schema `1.0` visual create/edit contracts, all existing commands/settings, and the optional default-off MCP provider.
-- Support the separately installed CLI 1.10.0 while preserving capability detection and fallback behavior for older compatible CLIs.
+- Support the separately installed CLI 1.11.0 while preserving capability detection and fallback behavior for older compatible CLIs.
 - Keep MCP optional and separately installed; MCP 1.0.1 remains independent and is not bundled in the VSIX.
-- The repository workflow validates and packages `adr-guard-1.1.1.vsix` only. Marketplace publication remains a separate, explicitly authorized manual step.
+- See the [VS Code 1.1.1 release notes](../../docs/releases/vscode-v1.1.1.md) ([pt-BR](../../docs/releases/vscode-v1.1.1.pt-BR.md)).
 
 ## 1.1.0 — 2026-10-20
 

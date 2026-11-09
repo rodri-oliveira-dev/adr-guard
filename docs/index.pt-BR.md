@@ -47,7 +47,7 @@ Architecture Decision Records (ADRs), ou Registros de Decisão de Arquitetura, p
 | CLI e configuração | [Referência da CLI](cli-reference.pt-BR.md), [criação offline](creation.pt-BR.md), [templates personalizados](custom-templates.pt-BR.md) |
 | Modos de validação | [matriz de compatibilidade](compatibility.pt-BR.md), [MADR 4.0](madr-4.pt-BR.md), [validação incremental e baselines](incremental-validation.pt-BR.md), [governança de relacionamentos](relationship-governance.pt-BR.md) |
 | Dados de governança | [metadados opcionais](metadata.pt-BR.md), [catálogo enriquecido](catalog.pt-BR.md) |
-| Relatórios | [relatórios de check](check-reports.pt-BR.md), [schema do relatório de review](adr-review-report-v1.md), [política de review](adr-review-policy-v1.pt-BR.md) |
+| Relatórios | [relatórios de check](check-reports.pt-BR.md), [schema do grafo de relacionamentos](schemas/adr-relationship-graph-v1.schema.json), [schema do relatório de review](adr-review-report-v1.md), [política de review](adr-review-policy-v1.pt-BR.md) |
 | Fluxos assistidos por IA | [templates e privacidade do draft](draft-templates.pt-BR.md), [review de ADRs](adr-review.pt-BR.md), [review comparativo](comparative-review.pt-BR.md), [segurança do review](adr-review-security.pt-BR.md) |
 | Integrações | [GitHub Action e demonstração real](github-action.pt-BR.md), [VS Code](../extensions/vscode/README.pt-BR.md), [servidor MCP](mcp.pt-BR.md), [distribuição MCP](mcp-release.pt-BR.md), [imagens de container](container.pt-BR.md) |
 | Evidência de auditoria | [Rastreabilidade entre implementação e documentação](documentation-audit.pt-BR.md), [matriz de compatibilidade](compatibility.pt-BR.md) |

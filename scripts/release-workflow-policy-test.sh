@@ -155,7 +155,7 @@ grep -Fq 'ADR_GUARD_BIN="${PWD}/.release-tools/adr-guard" bash scripts/template-
   exit 1
 }
 
-# Feature releases 1.1.0, 1.3.0, 1.5.0, 1.6.0, 1.8.0, 1.9.0, 1.10.0, and 1.11.0 use curated notes; other releases
+# Feature releases 1.1.0, 1.3.0, 1.5.0, 1.6.0, 1.8.0, 1.9.0, 1.10.0, 1.11.0, and 1.12.0 use curated notes; other releases
 # retain generated notes, and all tags remain immutable.
 grep -Fq 'ref: ${{ needs.build-and-pack.outputs.validated-sha }}' <<<"${release_block}"
 grep -Fq 'release_notes=(--generate-notes)' <<<"${release_block}"
@@ -176,6 +176,8 @@ grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.10.0 ]]; then' <<<"${release_block}"
 grep -Fq 'bash scripts/render-release-notes.sh docs/releases/v1.10.0.md "$rendered_notes"' <<<"${release_block}"
 grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.11.0 ]]; then' <<<"${release_block}"
 grep -Fq 'bash scripts/render-release-notes.sh docs/releases/v1.11.0.md "$rendered_notes"' <<<"${release_block}"
+grep -Fq 'elif [[ "${RELEASE_TAG}" == v1.12.0 ]]; then' <<<"${release_block}"
+grep -Fq 'bash scripts/render-release-notes.sh docs/releases/v1.12.0.md "$rendered_notes"' <<<"${release_block}"
 grep -Fq 'bash scripts/render-release-notes.sh "$notes" artifacts/mcp/RELEASE_NOTES.md' "${MCP_WORKFLOW}"
 grep -Fq -- '--notes-file artifacts/mcp/RELEASE_NOTES.md' "${MCP_WORKFLOW}"
 test -s "${ROOT_DIR}/docs/releases/v1.1.0.md"
@@ -194,6 +196,8 @@ test -s "${ROOT_DIR}/docs/releases/v1.10.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.10.0.pt-BR.md"
 test -s "${ROOT_DIR}/docs/releases/v1.11.0.md"
 test -s "${ROOT_DIR}/docs/releases/v1.11.0.pt-BR.md"
+test -s "${ROOT_DIR}/docs/releases/v1.12.0.md"
+test -s "${ROOT_DIR}/docs/releases/v1.12.0.pt-BR.md"
 
 bash -n "${RELEASE_NOTES_RENDERER}"
 notes_fixture="$(mktemp -d)"
@@ -203,10 +207,10 @@ for notes in \
   "${ROOT_DIR}/docs/releases/v1.9.0.pt-BR.md" \
   "${ROOT_DIR}/docs/releases/v1.10.0.md" \
   "${ROOT_DIR}/docs/releases/v1.10.0.pt-BR.md" \
-  "${ROOT_DIR}/docs/releases/v1.11.0.md" \
-  "${ROOT_DIR}/docs/releases/v1.11.0.pt-BR.md" \
-  "${ROOT_DIR}/docs/releases/mcp-v1.0.1.md" \
-  "${ROOT_DIR}/docs/releases/mcp-v1.0.1.pt-BR.md"; do
+  "${ROOT_DIR}/docs/releases/v1.12.0.md" \
+  "${ROOT_DIR}/docs/releases/v1.12.0.pt-BR.md" \
+  "${ROOT_DIR}/docs/releases/mcp-v1.0.2.md" \
+  "${ROOT_DIR}/docs/releases/mcp-v1.0.2.pt-BR.md"; do
   rendered_notes="${notes_fixture}/$(basename "${notes}")"
   grep -Fq '<!-- release-candidate-only:start -->' "${notes}"
   grep -Fq '<!-- release-candidate-only:end -->' "${notes}"
