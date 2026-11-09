@@ -26,7 +26,8 @@ WORKDIR /workspace
 
 # Impact analysis invokes the bounded local Git CLI. The runtime remains
 # non-root and the Action mounts consumer repositories read-only.
-RUN apk add --no-cache git=2.54.0-r0
+# Update the inherited zlib package to address CVE-2026-4738 (fixed in 1.4-r0).
+RUN apk add --no-cache git=2.54.0-r0 zlib=1.4-r0
 
 LABEL org.opencontainers.image.title="ADR Guard" \
       org.opencontainers.image.description="A .NET CLI for validating, maintaining, reviewing, analyzing impact, and verifying ADR-backed architectural drift." \
