@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # .NET SDK 10.0.403, Alpine 3.24.
-FROM mcr.microsoft.com/dotnet/sdk@sha256:cc02b814237a76c4735fb6eeee87181597b5e56f2ce458a435e527674d91f4d7 AS build
+FROM mcr.microsoft.com/dotnet/sdk@sha256:65f3c7c6a25a239ab3e6719f2896147e7b68242ff2d8818dd70498bde6ef8bea AS build
 WORKDIR /src
 
 COPY global.json Directory.Build.props Directory.Packages.props ./
