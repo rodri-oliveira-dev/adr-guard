@@ -74,7 +74,30 @@ if grep -Eq '^[[:space:]]+(drift-write-baseline|drift-update-baseline|script|com
   exit 1
 fi
 
-grep -Fq 'apk add --no-cache git=2.54.1-r0' "${ROOT_DIR}/Dockerfile"
+# Both stages must stay on explicit Alpine variants; a generic .NET digest can
+# silently select a non-Alpine distribution where apk is unavailable.
+grep -Eq '^FROM mcr\\.microsoft\\.com/dotnet/sdk:[0-9.]+-alpine[0-9.]+(@sha256:[a-f0-9]{64})? AS build
+grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"
+
+if grep -Eq '(^|[[:space:]])draft([[:space:]]|$)' "${ROOT_DIR}/action.yml"; then
+  echo "The default GitHub Action must not expose the AI draft command." >&2
+  exit 1
+fi
+
+echo "GitHub Action security checks passed for ${IMAGE} (${repo_digest})."
+ "${ROOT_DIR}/Dockerfile"
+grep -Eq '^FROM mcr\\.microsoft\\.com/dotnet/runtime:[0-9.]+-alpine[0-9.]+(@sha256:[a-f0-9]{64})? AS final
+grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"
+
+if grep -Eq '(^|[[:space:]])draft([[:space:]]|$)' "${ROOT_DIR}/action.yml"; then
+  echo "The default GitHub Action must not expose the AI draft command." >&2
+  exit 1
+fi
+
+echo "GitHub Action security checks passed for ${IMAGE} (${repo_digest})."
+ "${ROOT_DIR}/Dockerfile"
+# Install the latest security-fixed Git and zlib Alpine package revisions.
+grep -Fxq 'RUN apk add --no-cache --upgrade git zlib' "${ROOT_DIR}/Dockerfile"
 grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"
 
 if grep -Eq '(^|[[:space:]])draft([[:space:]]|$)' "${ROOT_DIR}/action.yml"; then
