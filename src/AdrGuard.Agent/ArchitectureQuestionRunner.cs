@@ -1,10 +1,11 @@
 using System.Text;
 using System.Text.Json;
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 
 namespace AdrGuard.Agent;
 
-internal sealed class ArchitectureQuestionRunner(
+internal sealed partial class ArchitectureQuestionRunner(
     IMcpClient mcpClient,
     ILanguageModel? languageModel,
     IArchitectureQuestionToolSelector? toolSelector = null,
@@ -13,6 +14,7 @@ internal sealed class ArchitectureQuestionRunner(
     IAdrProposalPreviewClient? proposalPreviewClient = null,
     IAdrProposalAuthorization? proposalAuthorization = null) : IAgentRunner
 {
+    private const string QuestionLabel = "Question: ";
     private static readonly string[] AnswerProperties =
     [
         "summary",
@@ -100,13 +102,14 @@ internal sealed class ArchitectureQuestionRunner(
             }
 
             return await AdrProposalWorkflowRunner.RunAsync(
-                configuration,
-                workflow,
-                instructionResult.Content,
-                evidence,
-                languageModel,
-                proposalPreviewClient,
-                proposalAuthorization,
+                new AdrProposalWorkflowRequest(
+                    configuration,
+                    workflow,
+                    instructionResult.Content,
+                    evidence,
+                    languageModel,
+                    proposalPreviewClient,
+                    proposalAuthorization),
                 cancellationToken).ConfigureAwait(false);
         }
 
@@ -130,8 +133,11 @@ internal sealed class ArchitectureQuestionRunner(
                 prompt,
                 configuration.Limits.MaxOutputTokens),
             cancellationToken).ConfigureAwait(false);
-        if (!string.Equals(response.Provider, configuration.Provider, StringComparison.Ordinal)
-            || !string.Equals(response.Model, configuration.Model, StringComparison.Ordinal))
+        if (!LanguageModelProvenance.Matches(
+                configuration.Provider,
+                configuration.Model,
+                response.Provider,
+                response.Model))
         {
             throw new AgentLanguageModelException(
                 "The language-model response provenance does not match the configured provider and model.");
@@ -218,7 +224,7 @@ internal sealed class ArchitectureQuestionRunner(
         prompt.AppendLine("summary (string), references (array of { evidenceId, claim }), tradeOffs (string array), uncertainties (string array), missingInformation (string array).");
         prompt.AppendLine("Every repository fact in summary must be supported by a reference to one of the supplied evidence IDs. If evidence is insufficient, say so in missingInformation.");
         prompt.AppendLine();
-        prompt.Append("Question: ").AppendLine(question);
+        prompt.Append(QuestionLabel).AppendLine(question);
         prompt.AppendLine();
         prompt.AppendLine("MCP evidence:");
         for (var index = 0; index < evidence.Count; index++)
@@ -262,11 +268,25 @@ internal sealed class ArchitectureQuestionRunner(
                 throw new AgentLanguageModelException(
                     "The language-model answer did not reference the supplied MCP evidence.");
             }
-            if (!references.Any(reference =>
-                    summary.Contains($"[{reference.EvidenceId}]", StringComparison.Ordinal)))
+            var summaryCitations = EvidenceCitationRegex()
+                .Matches(summary)
+                .Select(match => match.Groups[1].Value)
+                .ToArray();
+            if (summaryCitations.Length == 0)
             {
                 throw new AgentLanguageModelException(
                     "The language-model answer summary did not cite any supplied MCP evidence.");
+            }
+            var referencedEvidence = references
+                .Select(reference => reference.EvidenceId)
+                .ToHashSet(StringComparer.Ordinal);
+            var unknownCitation = summaryCitations.FirstOrDefault(
+                citation => !referencedEvidence.Contains(citation)
+                            || !IsKnownEvidenceId(citation, evidenceCount));
+            if (unknownCitation is not null)
+            {
+                throw new AgentLanguageModelException(
+                    $"The language-model answer summary cited unknown evidence '{unknownCitation}'.");
             }
 
             return new ArchitectureAnswer(
@@ -275,10 +295,6 @@ internal sealed class ArchitectureQuestionRunner(
                 ReadStringArray(root, "tradeOffs"),
                 ReadStringArray(root, "uncertainties"),
                 ReadStringArray(root, "missingInformation"));
-        }
-        catch (AgentLanguageModelException)
-        {
-            throw;
         }
         catch (JsonException exception)
         {
@@ -331,7 +347,9 @@ internal sealed class ArchitectureQuestionRunner(
         var items = new List<string>();
         foreach (var item in value.EnumerateArray())
         {
-            if (item.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(item.GetString()))
+            if (item.ValueKind != JsonValueKind.String
+                || string.IsNullOrWhiteSpace(item.GetString())
+                || item.GetString()!.Any(char.IsControl))
             {
                 throw InvalidAnswer();
             }
@@ -369,6 +387,9 @@ internal sealed class ArchitectureQuestionRunner(
         && number >= 1
         && number <= evidenceCount;
 
+    [GeneratedRegex(@"\[(E\d+)\]", RegexOptions.CultureInvariant)]
+    private static partial Regex EvidenceCitationRegex();
+
     private static AgentLanguageModelException InvalidAnswer() =>
         new("The language-model answer did not match the required bounded response shape.");
 
@@ -379,7 +400,7 @@ internal sealed class ArchitectureQuestionRunner(
         ArchitectureAnswer answer)
     {
         var output = new StringBuilder();
-        output.Append("Question: ").AppendLine(configuration.Question);
+        output.Append(QuestionLabel).AppendLine(configuration.Question);
         output.Append("Workflow: ").Append(workflow.Name)
             .Append(" (").Append(workflow.SkillName).AppendLine(")");
         output.Append("Model: ").Append(configuration.Provider).Append('/').AppendLine(configuration.Model);
@@ -419,7 +440,7 @@ internal sealed class ArchitectureQuestionRunner(
         IReadOnlyList<string> missingInformation)
     {
         var output = new StringBuilder();
-        output.Append("Question: ").AppendLine(question);
+        output.Append(QuestionLabel).AppendLine(question);
         output.Append("Workflow: ").Append(workflow.Name)
             .Append(" (").Append(workflow.SkillName).AppendLine(")");
         output.AppendLine();
@@ -437,7 +458,7 @@ internal sealed class ArchitectureQuestionRunner(
         IReadOnlyList<string> missingInformation)
     {
         var output = new StringBuilder();
-        output.Append("Question: ").AppendLine(configuration.Question);
+        output.Append(QuestionLabel).AppendLine(configuration.Question);
         output.Append("Workflow: ").Append(workflow.Name)
             .Append(" (").Append(workflow.SkillName).AppendLine(")");
         output.AppendLine("Model: disabled; no repository context was sent to a remote provider.");

@@ -20,8 +20,8 @@ public sealed class AdrProposalWorkflowTests
 
         Assert.Equal(1, previewClient.DescribeCalls);
         Assert.Equal(1, previewClient.PreviewCalls);
-        Assert.Single(model.Requests);
-        Assert.Contains("The CLI described template 'minimal'", model.Requests[0].Prompt, StringComparison.Ordinal);
+        var request = Assert.Single(model.Requests);
+        Assert.Contains("The CLI described template 'minimal'", request.Prompt, StringComparison.Ordinal);
         Assert.Contains("Proposal status: Proposed", result.Message, StringComparison.Ordinal);
         Assert.Contains("Proposed destination: docs/adr/0042-use-queue.md", result.Message, StringComparison.Ordinal);
         Assert.Contains("Evidence (MCP, read-only):", result.Message, StringComparison.Ordinal);

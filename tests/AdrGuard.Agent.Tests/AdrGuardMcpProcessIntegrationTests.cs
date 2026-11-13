@@ -120,17 +120,18 @@ public sealed class AdrGuardMcpProcessIntegrationTests
 
     private static AgentConfiguration CreateConfiguration(string repositoryRoot)
     {
+        var buildConfiguration = new DirectoryInfo(AppContext.BaseDirectory).Parent!.Name;
         var serverAssembly = Path.GetFullPath(
             Path.Combine(
                 AppContext.BaseDirectory,
-                "../../../../../src/AdrGuard.Mcp/bin/Release/net10.0/adr-guard-mcp.dll"));
+                $"../../../../../src/AdrGuard.Mcp/bin/{buildConfiguration}/net10.0/adr-guard-mcp.dll"));
         Assert.True(File.Exists(serverAssembly), $"MCP server build output was not found at '{serverAssembly}'.");
         return new AgentConfiguration(
             repositoryRoot,
             "docs/adr",
             "dotnet",
             [serverAssembly],
-            TimeSpan.FromSeconds(20),
+            TimeSpan.FromSeconds(90),
             "openai",
             "fake-model",
             "What decisions exist?",
@@ -227,6 +228,8 @@ public sealed class AdrGuardMcpProcessIntegrationTests
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
+            startInfo.Environment["GIT_CONFIG_GLOBAL"] = OperatingSystem.IsWindows() ? "NUL" : "/dev/null";
+            startInfo.Environment["GIT_CONFIG_NOSYSTEM"] = "1";
             foreach (var argument in arguments)
             {
                 startInfo.ArgumentList.Add(argument);

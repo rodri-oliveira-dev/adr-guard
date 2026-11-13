@@ -1,4 +1,8 @@
+using System.ClientModel;
+using System.ClientModel.Primitives;
+using System.Globalization;
 using Microsoft.Extensions.AI;
+using OpenAI;
 
 namespace AdrGuard.Agent;
 
@@ -8,7 +12,8 @@ internal static class LanguageModelFactory
 
     internal static ILanguageModel Create(
         AgentConfiguration configuration,
-        Func<string, string?>? getEnvironmentVariable = null)
+        Func<string, string?>? getEnvironmentVariable = null,
+        OpenAIClientOptions? clientOptions = null)
     {
         ArgumentNullException.ThrowIfNull(configuration);
         getEnvironmentVariable ??= Environment.GetEnvironmentVariable;
@@ -31,7 +36,12 @@ internal static class LanguageModelFactory
                 $"OpenAI credentials are not configured. Set the {OpenAiApiKeyEnvironmentVariable} environment variable.");
         }
 
-        IChatClient chatClient = new OpenAI.Chat.ChatClient(configuration.Model, apiKey).AsIChatClient();
+        clientOptions ??= new OpenAIClientOptions();
+        clientOptions.RetryPolicy = new ClientRetryPolicy(maxRetries: 0);
+        IChatClient chatClient = new OpenAI.Chat.ChatClient(
+            configuration.Model,
+            new ApiKeyCredential(apiKey),
+            clientOptions).AsIChatClient();
         return new OpenAiLanguageModel(chatClient);
     }
 }
@@ -64,17 +74,16 @@ internal sealed class OpenAiLanguageModel(IChatClient chatClient) : ILanguageMod
                 throw new AgentLanguageModelException("The configured language-model provider returned no text.");
             }
 
-            return new LanguageModelResponse(response.Text, request.Provider, request.Model);
+            return new LanguageModelResponse(
+                response.Text,
+                request.Provider,
+                response.ModelId ?? string.Empty);
         }
         catch (OperationCanceledException)
         {
             throw;
         }
-        catch (AgentLanguageModelException)
-        {
-            throw;
-        }
-        catch (Exception exception)
+        catch (Exception exception) when (exception is not AgentLanguageModelException)
         {
             throw new AgentLanguageModelException(
                 "The configured language-model provider request failed.",
@@ -83,4 +92,29 @@ internal sealed class OpenAiLanguageModel(IChatClient chatClient) : ILanguageMod
     }
 
     public void Dispose() => chatClient.Dispose();
+}
+
+internal static class LanguageModelProvenance
+{
+    internal static bool Matches(
+        string? configuredProvider,
+        string? configuredModel,
+        string responseProvider,
+        string responseModel) =>
+        string.Equals(responseProvider, configuredProvider, StringComparison.Ordinal)
+        && configuredModel is not null
+        && (string.Equals(responseModel, configuredModel, StringComparison.Ordinal)
+            || IsDatedSnapshot(configuredModel, responseModel));
+
+    private static bool IsDatedSnapshot(string configuredModel, string responseModel)
+    {
+        var prefix = $"{configuredModel}-";
+        return responseModel.StartsWith(prefix, StringComparison.Ordinal)
+            && DateOnly.TryParseExact(
+                responseModel.AsSpan(prefix.Length),
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out _);
+    }
 }

@@ -7,7 +7,9 @@ internal static class ProcessEnvironmentPolicy
     private static readonly string[] AllowedVariables =
     [
         "DOTNET_ROOT",
+        "DOTNET_ROOT_ARM64",
         "DOTNET_ROOT_X64",
+        "DOTNET_ROOT_X86",
         "HOME",
         "LANG",
         "LC_ALL",

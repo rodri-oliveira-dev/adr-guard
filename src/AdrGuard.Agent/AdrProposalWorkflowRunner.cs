@@ -26,15 +26,17 @@ internal static class AdrProposalWorkflowRunner
     private static readonly string[] ReferenceProperties = ["evidenceId", "claim"];
 
     internal static async Task<AgentRunResult> RunAsync(
-        AgentConfiguration configuration,
-        ArchitectureWorkflow workflow,
-        string workflowInstructions,
-        IReadOnlyList<McpEvidence> evidence,
-        ILanguageModel languageModel,
-        IAdrProposalPreviewClient previewClient,
-        IAdrProposalAuthorization? authorization,
+        AdrProposalWorkflowRequest request,
         CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        var configuration = request.Configuration;
+        var workflow = request.Workflow;
+        var workflowInstructions = request.WorkflowInstructions;
+        var evidence = request.Evidence;
+        var languageModel = request.LanguageModel;
+        var previewClient = request.PreviewClient;
+        var authorization = request.Authorization;
         ArgumentNullException.ThrowIfNull(configuration);
         ArgumentNullException.ThrowIfNull(workflow);
         ArgumentException.ThrowIfNullOrWhiteSpace(workflowInstructions);
@@ -69,8 +71,11 @@ internal static class AdrProposalWorkflowRunner
                 prompt,
                 configuration.Limits.MaxOutputTokens),
             cancellationToken).ConfigureAwait(false);
-        if (!string.Equals(response.Provider, configuration.Provider, StringComparison.Ordinal)
-            || !string.Equals(response.Model, configuration.Model, StringComparison.Ordinal))
+        if (!LanguageModelProvenance.Matches(
+                configuration.Provider,
+                configuration.Model,
+                response.Provider,
+                response.Model))
         {
             throw new AgentLanguageModelException(
                 "The ADR proposal response provenance does not match the configured provider and model.");
@@ -258,10 +263,6 @@ internal static class AdrProposalWorkflowRunner
                 references,
                 ReadStringArray(root, "uncertainties"),
                 ReadStringArray(root, "missingInformation"));
-        }
-        catch (AgentLanguageModelException)
-        {
-            throw;
         }
         catch (JsonException exception)
         {
@@ -521,3 +522,12 @@ internal static class AdrProposalWorkflowRunner
     private static AgentLanguageModelException InvalidProposal() =>
         new("The language-model ADR proposal did not match the required bounded response shape.");
 }
+
+internal sealed record AdrProposalWorkflowRequest(
+    AgentConfiguration Configuration,
+    ArchitectureWorkflow Workflow,
+    string WorkflowInstructions,
+    IReadOnlyList<McpEvidence> Evidence,
+    ILanguageModel LanguageModel,
+    IAdrProposalPreviewClient PreviewClient,
+    IAdrProposalAuthorization? Authorization);

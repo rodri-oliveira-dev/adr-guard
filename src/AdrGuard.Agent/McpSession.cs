@@ -57,7 +57,10 @@ internal sealed class SdkMcpSessionFactory : IMcpSessionFactory
                 transport,
                 new McpClientOptions { InitializationTimeout = configuration.McpTimeout },
                 cancellationToken: cancellationToken).ConfigureAwait(false);
-            var tools = await client.ListToolsAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            var tools = await McpDiscoveryTimeout.RunAsync<IList<McpClientTool>>(
+                token => client.ListToolsAsync(cancellationToken: token).AsTask(),
+                configuration.McpTimeout,
+                cancellationToken).ConfigureAwait(false);
             McpToolCatalog.ValidateDiscoveredTools(tools);
             return new SdkMcpSession(client);
         }
@@ -96,5 +99,26 @@ internal sealed class SdkMcpSessionFactory : IMcpSessionFactory
         }
 
         public ValueTask DisposeAsync() => client.DisposeAsync();
+    }
+}
+
+internal static class McpDiscoveryTimeout
+{
+    internal static async Task<T> RunAsync<T>(
+        Func<CancellationToken, Task<T>> operation,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutSource.CancelAfter(timeout);
+        try
+        {
+            return await operation(timeoutSource.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new AgentMcpException("MCP tool discovery timed out.");
+        }
     }
 }

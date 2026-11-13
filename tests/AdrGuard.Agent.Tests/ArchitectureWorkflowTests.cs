@@ -61,9 +61,9 @@ public sealed class ArchitectureWorkflowTests
             TestContext.Current.CancellationToken);
 
         Assert.Equal(["adr-guard-tradeoff-analysis"], loader.LoadedSkills);
-        Assert.Single(model.Requests);
-        Assert.Contains("SELECTED_TRADEOFF_INSTRUCTIONS", model.Requests[0].Prompt, StringComparison.Ordinal);
-        Assert.DoesNotContain("adr-guard-create", model.Requests[0].Prompt, StringComparison.Ordinal);
+        var request = Assert.Single(model.Requests);
+        Assert.Contains("SELECTED_TRADEOFF_INSTRUCTIONS", request.Prompt, StringComparison.Ordinal);
+        Assert.DoesNotContain("adr-guard-create", request.Prompt, StringComparison.Ordinal);
         Assert.Contains("adr-guard-tradeoff-analysis", result.Message, StringComparison.Ordinal);
     }
 
@@ -114,6 +114,31 @@ public sealed class ArchitectureWorkflowTests
         Assert.Contains(
             selection.Requests,
             request => request.Kind == ArchitectureToolKind.SearchAdrs);
+    }
+
+    [Fact]
+    public void ExchangeQuestionUsesAdrSearchWithoutImpactManifest()
+    {
+        var selection = ArchitectureQuestionToolSelector.Instance.Select(
+            CreateConfiguration("Why use a message exchange?"),
+            ArchitectureWorkflowCatalog.ConsultAndValidateAdrs);
+
+        Assert.Empty(selection.MissingInformation);
+        var request = Assert.Single(selection.Requests);
+        Assert.Equal(ArchitectureToolKind.SearchAdrs, request.Kind);
+        Assert.Equal("use message exchange", request.Argument);
+    }
+
+    [Fact]
+    public void ProposalSearchQueryKeepsOnlyDomainTerms()
+    {
+        var selection = ArchitectureQuestionToolSelector.Instance.Select(
+            CreateConfiguration("Prepare a proposal about Redis"),
+            ArchitectureWorkflowCatalog.PrepareAdrProposal);
+
+        var request = Assert.Single(selection.Requests);
+        Assert.Equal(ArchitectureToolKind.SearchAdrs, request.Kind);
+        Assert.Equal("Redis", request.Argument);
     }
 
     private static AgentConfiguration CreateConfiguration(string question) =>

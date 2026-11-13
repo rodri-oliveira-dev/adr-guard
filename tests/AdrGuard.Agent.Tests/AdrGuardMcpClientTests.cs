@@ -58,14 +58,21 @@ public sealed class AdrGuardMcpClientTests
     [InlineData("""{"schemaVersion":"2.0","total":0,"adrs":[]}""", "unsupported schema version")]
     [InlineData("""{"schemaVersion":"1.0","total":0,"adrs":[],"unexpected":true}""", "unsupported evidence shape")]
     [InlineData("""{"schemaVersion":"1.0","total":"zero","adrs":[]}""", "unsupported evidence shape")]
+    [InlineData("""{"schemaVersion":"1.0","advisory":true,"repository":{},"summary":{},"coverage":{},"uncertainty":{},"changedFiles":[],"decisions":[]}""", "unsupported evidence shape", "analyze_impact")]
+    [InlineData("""{"schemaVersion":"1.0","advisory":true,"repository":{},"summary":{},"coverage":{},"uncertainty":{"hasUnknowns":"true"},"changedFiles":[],"decisions":[]}""", "unsupported evidence shape", "analyze_impact")]
     [InlineData("""["not-an-object"]""", "unsupported evidence shape")]
     [InlineData("""{"schemaVersion":"1.0","schemaVersion":"1.0","total":0,"adrs":[]}""", "unsupported evidence shape")]
-    public async Task UnsupportedSchemaOrShapeFailsClosed(string json, string expectedMessage)
+    public async Task UnsupportedSchemaOrShapeFailsClosed(
+        string json,
+        string expectedMessage,
+        string toolName = "list_adrs")
     {
-        await using var client = await ConnectAsync(new FakeMcpSession("list_adrs", json));
+        await using var client = await ConnectAsync(new FakeMcpSession(toolName, json));
 
         var exception = await Assert.ThrowsAsync<AgentMcpException>(
-            () => client.ListAdrsAsync(TestContext.Current.CancellationToken));
+            () => toolName == "analyze_impact"
+                ? client.AnalyzeImpactAsync("HEAD", ".adrguard-impact.json", TestContext.Current.CancellationToken)
+                : client.ListAdrsAsync(TestContext.Current.CancellationToken));
 
         Assert.Contains(expectedMessage, exception.Message, StringComparison.Ordinal);
     }

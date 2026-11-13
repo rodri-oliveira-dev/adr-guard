@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace AdrGuard.Agent;
 
 internal interface IAgentRunner
@@ -194,6 +196,10 @@ internal sealed record AdrProposal(
     IReadOnlyList<string> Uncertainties,
     IReadOnlyList<string> MissingInformation);
 
+[SuppressMessage(
+    "Design",
+    "S3871:Exception types should be public",
+    Justification = "The development-only agent keeps all implementation contracts internal.")]
 internal class AgentExecutionException : Exception
 {
     internal AgentExecutionException(string message)

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 
 namespace AdrGuard.Agent;
@@ -9,13 +10,19 @@ internal sealed partial class ArchitectureQuestionToolSelector : IArchitectureQu
         "adr", "an", "and", "architecture", "architectural", "are", "as", "at", "chosen",
         "decision", "did", "do", "does", "for", "from", "how", "in", "is", "of", "on",
         "or", "our", "recorded", "the", "to", "was", "we", "were", "what", "which", "why",
+        "about", "create", "prepare", "proposal", "write",
         "arquitetura", "arquitetural", "como", "com", "da", "das", "de", "decisão",
         "do", "dos", "e", "em", "escolhida", "escolhido", "foi", "foram", "na", "nas", "no",
         "nos", "nossa", "nosso", "o", "os", "ou", "para", "por", "qual", "quais", "que", "uma", "um",
+        "criar", "escrever", "preparar", "proposta", "sobre",
     };
 
     internal static ArchitectureQuestionToolSelector Instance { get; } = new();
 
+    [SuppressMessage(
+        "Maintainability",
+        "S3776:Cognitive Complexity of methods should not be too high",
+        Justification = "The ordered closed-tool selection table is intentionally kept together for auditability.")]
     public ArchitectureToolSelection Select(
         AgentConfiguration configuration,
         ArchitectureWorkflow workflow)
@@ -28,7 +35,7 @@ internal sealed partial class ArchitectureQuestionToolSelector : IArchitectureQu
         var requests = new List<ArchitectureToolRequest>();
         var missingInformation = new List<string>();
 
-        if (ContainsAny(question, "impact", "impacto", "affected", "afetad", "change", "mudan"))
+        if (ContainsAnyWordPrefix(question, "impact", "impacto", "affected", "afetad", "change", "mudan"))
         {
             if (configuration.ImpactManifestPath is null)
             {
@@ -110,6 +117,12 @@ internal sealed partial class ArchitectureQuestionToolSelector : IArchitectureQu
 
     private static bool ContainsAny(string value, params string[] fragments) =>
         fragments.Any(fragment => value.Contains(fragment, StringComparison.OrdinalIgnoreCase));
+
+    private static bool ContainsAnyWordPrefix(string value, params string[] prefixes) =>
+        SearchTermSeparatorRegex()
+            .Split(value)
+            .Any(word => prefixes.Any(prefix =>
+                word.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)));
 
     private static string? ExtractIdentifier(string question)
     {

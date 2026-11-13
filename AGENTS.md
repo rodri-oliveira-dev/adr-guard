@@ -8,7 +8,7 @@ The repository has two established executable products, one development-only opt
 
 - `src/AdrGuard`: the authoritative .NET CLI executable and its command, presentation, provider, and filesystem adapters.
 - `src/AdrGuard.Mcp`: the read-only MCP executable, with seven versioned tools over stdio and a direct reference to Core.
-- `src/AdrGuard.Agent`: the development-only, read-only Architecture Agent executable. It consumes MCP by process, uses an explicitly configured model provider for advisory answers, and never references Core, CLI, or MCP assemblies. It is not a published product.
+- `src/AdrGuard.Agent`: the development-only Architecture Agent executable. Its MCP consultations are read-only; ADR creation is a separate, supervised CLI operation that requires an exact fingerprint confirmation. It uses an explicitly configured model provider for advisory answers and never references Core, CLI, or MCP assemblies. It is not a published product.
 - `src/AdrGuard.Core`: the internal, non-packable .NET class library that owns shared parsing, validation, configuration, Git inventory, impact, and drift behavior. It never references either executable.
 - `extensions/vscode`: a workspace-host TypeScript adapter. It discovers and invokes the CLI, validates versioned output contracts, and presents results in VS Code. It must not reimplement CLI business rules.
 - The root `action.yml` and container image adapt the released CLI contract for GitHub Actions.

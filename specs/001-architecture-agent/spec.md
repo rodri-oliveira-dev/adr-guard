@@ -116,7 +116,7 @@ Architecture Agent (.NET opcional)
 - **CA-002:** testes de contrato exercitam as sete ferramentas MCP schema `1.0` e rejeitam versão, campo ou forma não suportada conforme a política estrita definida para o cliente.
 - **CA-003:** testes demonstram que Markdown com instruções maliciosas não dispara ferramenta, CLI ou mudança de estado.
 - **CA-004:** testes demonstram que `unknown`, resposta incompleta, timeout, cancelamento e erro MCP não são apresentados como conformidade ou sucesso.
-- **CA-005:** sem aprovação, nenhuma tentativa de criação ou edição inicia a CLI e nenhum arquivo do repositório muda.
+- **CA-005:** sem aprovação válida, a CLI não executa `operation=create` e nenhum arquivo do repositório muda; `describe` e `preview` somente leitura ocorrem antes da confirmação.
 - **CA-006:** aprovação de uma proposta não autoriza proposta alterada; mudança de alvo, conteúdo, argumentos ou fingerprint exige nova aprovação.
 - **CA-007:** a invocação da CLI usa executável e argumentos discretos, shell desabilitado, timeout e cancelamento; testes cobrem exit codes `0` a `4` sem remapeamento indevido.
 - **CA-008:** um fluxo de criação autorizado usa um comando existente da CLI e produz somente `Proposed`; o agente não oferece ação de aprovação automática.

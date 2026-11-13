@@ -144,7 +144,7 @@ dotnet run --project src/AdrGuard.Agent/AdrGuard.Agent.csproj --configuration Re
   --enable-adr-creation \
   --provider openai \
   --model <id-explicito-do-modelo> \
-  --question "Preparar uma proposta de ADR para processamento assíncrono de pedidos" \
+  --question "Preparar uma proposta de ADR sobre a ADR-0008" \
   --allow-remote-context
 ```
 
@@ -152,7 +152,7 @@ O Agent exibe preview completo e fingerprint antes do prompt. A criação começ
 
 ## Autorização de contexto e privacidade
 
-`--allow-remote-context` autoriza a transmissão de três classes de dados nesta invocação: o texto da pergunta, o único arquivo de skill versionado selecionado e os payloads estruturados completos retornados pelas ferramentas MCP selecionadas. Esses payloads podem conter conteúdo e títulos de ADRs, paths relativos ao repositório, diagnósticos, mapeamentos, regras e evidências limitadas. Não use a flag sem confirmar que esse material pode ser enviado ao provider selecionado conforme a política de retenção, residência e privacidade da organização.
+`--allow-remote-context` autoriza o material enviado nesta invocação: o texto da pergunta, o único arquivo de skill versionado selecionado, os payloads estruturados completos retornados pelas ferramentas MCP selecionadas e, durante a preparação da proposta, o nome do template informado pela CLI, além do ID e da obrigatoriedade de cada campo do formulário. Esses payloads podem conter conteúdo e títulos de ADRs, paths relativos ao repositório, diagnósticos, mapeamentos, regras, evidências limitadas e detalhes de templates personalizados. Não use a flag sem confirmar que todo esse material pode ser enviado ao provider selecionado conforme a política de retenção, residência e privacidade da organização.
 
 O Agent não segue links das skills nem carrega arquivos referenciados e não transmite variáveis de ambiente, chave da API, arquivos arbitrários, outros arquivos de skill ou resultados MCP não selecionados. Ele não registra a credencial nem a resposta integral do provider. Conteúdo MCP permanece marcado como não confiável no prompt e o modelo não recebe ferramentas chamáveis.
 
@@ -175,7 +175,7 @@ Valores fora dos intervalos documentados são rejeitados como erro de uso. O cli
 
 Perguntas arquiteturais gerais usam busca limitada de ADRs. Linguagem explícita sobre listagem, identificador de ADR, relacionamentos, validação, impacto e drift seleciona somente a operação de leitura correspondente. Impacto exige `--impact-manifest` e aceita `--impact-base-reference`; drift exige `--architecture-rules` e aceita as entradas existentes `--architecture-evidence`, `--architecture-baseline` e `--architecture-policy`.
 
-Quando uma entrada explícita obrigatória está ausente, o Agent informa a lacuna e não chama MCP nem provider para aquele ramo sem suporte. Evidência `unknown` ou inconclusiva, findings determinísticos, erros operacionais e cancelamento permanecem visíveis e nunca são convertidos em sucesso.
+Quando uma entrada explícita obrigatória está ausente, o Agent informa a lacuna e não chama MCP nem provider para aquele ramo sem suporte. Evidência `unknown` ou inconclusiva e findings determinísticos permanecem visíveis. Uma execução consultiva com evidência inconclusiva termina com código `0`, mas esse código não estabelece conformidade nem um resultado conclusivo; erros operacionais e cancelamento terminam com código diferente de zero.
 
 ## Limite de confiança da saída
 

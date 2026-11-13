@@ -7,6 +7,13 @@ namespace AdrGuard.Agent;
 internal sealed class AdrNewFormPreviewClient : IAdrProposalPreviewClient
 {
     private const string SchemaVersion = "1.0";
+    private const string SchemaVersionProperty = "schemaVersion";
+    private const string TemplateProperty = "template";
+    private const string WrittenProperty = "written";
+    private const string FieldsProperty = "fields";
+    private const string DescribeOperation = "describe";
+    private const string PreviewOperation = "preview";
+    private const string CreateOperation = "create";
     private const int MaximumOutputCharacters = 1_048_576;
     private const int MaximumErrorCharacters = 16_384;
 
@@ -32,9 +39,9 @@ internal sealed class AdrNewFormPreviewClient : IAdrProposalPreviewClient
     {
         var response = await InvokeAsync(
             JsonSerializer.Serialize(
-                new { schemaVersion = SchemaVersion, operation = "describe" },
+                new { schemaVersion = SchemaVersion, operation = DescribeOperation },
                 JsonOptions),
-            "describe",
+            DescribeOperation,
             cancellationToken).ConfigureAwait(false);
         return ParseDescription(response);
     }
@@ -52,12 +59,12 @@ internal sealed class AdrNewFormPreviewClient : IAdrProposalPreviewClient
                 new
                 {
                     schemaVersion = SchemaVersion,
-                    operation = "preview",
+                    operation = PreviewOperation,
                     title,
                     fields,
                 },
                 JsonOptions),
-            "preview",
+            PreviewOperation,
             cancellationToken).ConfigureAwait(false);
         return ParsePreview(response);
     }
@@ -88,12 +95,12 @@ internal sealed class AdrNewFormPreviewClient : IAdrProposalPreviewClient
                 new
                 {
                     schemaVersion = SchemaVersion,
-                    operation = "create",
+                    operation = CreateOperation,
                     title = proposal.Title,
                     fields = proposal.Fields,
                 },
                 JsonOptions),
-            "create",
+            CreateOperation,
             cancellationToken).ConfigureAwait(false);
         var creation = ParseCreation(response);
 
@@ -213,14 +220,14 @@ internal sealed class AdrNewFormPreviewClient : IAdrProposalPreviewClient
     {
         using var document = ParseResponse(response);
         var root = document.RootElement;
-        RequireExactProperties(root, "schemaVersion", "operation", "template", "written");
-        RequireEnvelope(root, "describe");
-        if (root.GetProperty("written").ValueKind != JsonValueKind.False)
+        RequireExactProperties(root, SchemaVersionProperty, "operation", TemplateProperty, WrittenProperty);
+        RequireEnvelope(root, DescribeOperation);
+        if (root.GetProperty(WrittenProperty).ValueKind != JsonValueKind.False)
         {
-            throw InvalidResponse("describe");
+            throw InvalidResponse(DescribeOperation);
         }
 
-        return ParseTemplate(root.GetProperty("template"), "describe");
+        return ParseTemplate(root.GetProperty(TemplateProperty), DescribeOperation);
     }
 
     private AdrFormPreview ParsePreview(string response)
@@ -229,23 +236,23 @@ internal sealed class AdrNewFormPreviewClient : IAdrProposalPreviewClient
         var root = document.RootElement;
         RequireExactProperties(
             root,
-            "schemaVersion",
+            SchemaVersionProperty,
             "operation",
-            "template",
+            TemplateProperty,
             "path",
             "markdown",
-            "written");
-        RequireEnvelope(root, "preview");
-        if (root.GetProperty("written").ValueKind != JsonValueKind.False)
+            WrittenProperty);
+        RequireEnvelope(root, PreviewOperation);
+        if (root.GetProperty(WrittenProperty).ValueKind != JsonValueKind.False)
         {
             throw new AgentCliException(
                 "The ADR Guard CLI reported a write during proposal preview; the result was rejected.");
         }
 
-        _ = ParseTemplate(root.GetProperty("template"), "preview");
+        _ = ParseTemplate(root.GetProperty(TemplateProperty), PreviewOperation);
 
-        var path = ReadRequiredString(root, "path", "preview");
-        var markdown = ReadRequiredString(root, "markdown", "preview", allowLineBreaks: true);
+        var path = ReadRequiredString(root, "path", PreviewOperation);
+        var markdown = ReadRequiredString(root, "markdown", PreviewOperation, allowLineBreaks: true);
         var fullPath = Path.GetFullPath(path, configuration.RepositoryRoot);
         var adrRoot = Path.GetFullPath(configuration.AdrDirectory, configuration.RepositoryRoot);
         var relativeToAdrRoot = Path.GetRelativePath(adrRoot, fullPath);
@@ -266,16 +273,16 @@ internal sealed class AdrNewFormPreviewClient : IAdrProposalPreviewClient
     {
         using var document = ParseResponse(response);
         var root = document.RootElement;
-        RequireExactProperties(root, "schemaVersion", "operation", "template", "path", "written");
-        RequireEnvelope(root, "create");
-        if (root.GetProperty("written").ValueKind != JsonValueKind.True)
+        RequireExactProperties(root, SchemaVersionProperty, "operation", TemplateProperty, "path", WrittenProperty);
+        RequireEnvelope(root, CreateOperation);
+        if (root.GetProperty(WrittenProperty).ValueKind != JsonValueKind.True)
         {
             throw new AgentCliException(
                 "The ADR Guard CLI did not confirm the authorized ADR creation.");
         }
 
-        _ = ParseTemplate(root.GetProperty("template"), "create");
-        var path = ReadRequiredString(root, "path", "create");
+        _ = ParseTemplate(root.GetProperty(TemplateProperty), CreateOperation);
+        var path = ReadRequiredString(root, "path", CreateOperation);
         var fullPath = Path.GetFullPath(path, configuration.RepositoryRoot);
         var adrRoot = Path.GetFullPath(configuration.AdrDirectory, configuration.RepositoryRoot);
         var relativeToAdrRoot = Path.GetRelativePath(adrRoot, fullPath);
@@ -303,22 +310,22 @@ internal sealed class AdrNewFormPreviewClient : IAdrProposalPreviewClient
 
         if (compatible.ValueKind == JsonValueKind.False)
         {
-            RequireExactProperties(template, "name", "compatible", "reason", "fields");
+            RequireExactProperties(template, "name", "compatible", "reason", FieldsProperty);
             _ = ReadRequiredString(template, "reason", operation);
             throw new AgentCliException(
                 "The selected ADR template is not compatible with the structured proposal workflow.");
         }
 
-        RequireExactProperties(template, "name", "compatible", "fields");
+        RequireExactProperties(template, "name", "compatible", FieldsProperty);
         var name = ReadRequiredString(template, "name", operation);
-        if (template.GetProperty("fields").ValueKind != JsonValueKind.Array)
+        if (template.GetProperty(FieldsProperty).ValueKind != JsonValueKind.Array)
         {
             throw InvalidResponse(operation);
         }
 
         var fields = new List<AdrFormField>();
         var identifiers = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var item in template.GetProperty("fields").EnumerateArray())
+        foreach (var item in template.GetProperty(FieldsProperty).EnumerateArray())
         {
             RequireExactProperties(item, "id", "required");
             var identifier = ReadRequiredString(item, "id", operation);
@@ -374,7 +381,7 @@ internal sealed class AdrNewFormPreviewClient : IAdrProposalPreviewClient
 
     private static void RequireEnvelope(JsonElement root, string operation)
     {
-        if (ReadRequiredString(root, "schemaVersion", operation) != SchemaVersion
+        if (ReadRequiredString(root, SchemaVersionProperty, operation) != SchemaVersion
             || ReadRequiredString(root, "operation", operation) != operation)
         {
             throw InvalidResponse(operation);

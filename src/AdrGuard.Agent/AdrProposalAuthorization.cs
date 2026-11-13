@@ -25,7 +25,7 @@ internal static class AdrCreationProposalFactory
         var arguments = cli.CliArguments
             .Concat(["new", configuration.AdrDirectory, "--form"])
             .ToArray();
-        var fingerprint = ComputeFingerprint(
+        var fingerprint = ComputeFingerprint(new FingerprintMaterial(
             configuration.AdrDirectory,
             cli.CliCommand,
             arguments,
@@ -33,7 +33,7 @@ internal static class AdrCreationProposalFactory
             description.Template,
             proposal.Title,
             fields,
-            preview.Markdown);
+            preview.Markdown));
 
         return new AdrCreationProposal(
             fingerprint,
@@ -64,7 +64,7 @@ internal static class AdrCreationProposalFactory
             && proposal.CliArguments.SequenceEqual(expectedArguments, StringComparer.Ordinal)
             && string.Equals(
                 proposal.Fingerprint,
-                ComputeFingerprint(
+                ComputeFingerprint(new FingerprintMaterial(
                     proposal.TargetDirectory,
                     proposal.CliCommand,
                     proposal.CliArguments,
@@ -72,21 +72,13 @@ internal static class AdrCreationProposalFactory
                     proposal.Template,
                     proposal.Title,
                     proposal.Fields,
-                    proposal.Preview.Markdown),
+                    proposal.Preview.Markdown)),
                 StringComparison.Ordinal);
     }
 
-    private static string ComputeFingerprint(
-        string targetDirectory,
-        string cliCommand,
-        IReadOnlyList<string> cliArguments,
-        TimeSpan cliTimeout,
-        string template,
-        string title,
-        IReadOnlyDictionary<string, string> fields,
-        string markdown)
+    private static string ComputeFingerprint(FingerprintMaterial material)
     {
-        var orderedFields = fields
+        var orderedFields = material.Fields
             .OrderBy(item => item.Key, StringComparer.Ordinal)
             .ToDictionary(item => item.Key, item => item.Value, StringComparer.Ordinal);
         var fingerprintInput = JsonSerializer.Serialize(
@@ -94,19 +86,29 @@ internal static class AdrCreationProposalFactory
             {
                 schemaVersion = "1.0",
                 operation = "create",
-                targetDirectory,
-                cliCommand,
-                cliArguments,
-                cliTimeoutTicks = cliTimeout.Ticks,
-                template,
-                title,
+                targetDirectory = material.TargetDirectory,
+                cliCommand = material.CliCommand,
+                cliArguments = material.CliArguments,
+                cliTimeoutTicks = material.CliTimeout.Ticks,
+                template = material.Template,
+                title = material.Title,
                 fields = orderedFields,
-                markdown,
+                markdown = material.Markdown,
             },
             JsonOptions);
         return Convert.ToHexString(
             SHA256.HashData(Encoding.UTF8.GetBytes(fingerprintInput)));
     }
+
+    private sealed record FingerprintMaterial(
+        string TargetDirectory,
+        string CliCommand,
+        IReadOnlyList<string> CliArguments,
+        TimeSpan CliTimeout,
+        string Template,
+        string Title,
+        IReadOnlyDictionary<string, string> Fields,
+        string Markdown);
 }
 
 internal sealed class ConsoleAdrProposalAuthorization(

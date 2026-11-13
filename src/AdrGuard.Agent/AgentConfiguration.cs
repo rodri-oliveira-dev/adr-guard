@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace AdrGuard.Agent;
 
 internal sealed record AgentConfiguration(
@@ -23,6 +25,10 @@ internal sealed record AgentConfiguration(
     private const int DefaultCliTimeoutSeconds = 30;
     private const int MaximumQuestionCharacters = 4_096;
 
+    [SuppressMessage(
+        "Maintainability",
+        "S3776:Cognitive Complexity of methods should not be too high",
+        Justification = "The explicit CLI option table keeps parsing and validation auditable at one security boundary.")]
     internal static AgentConfiguration Parse(IReadOnlyList<string> args)
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -53,9 +59,10 @@ internal sealed record AgentConfiguration(
         var cliTimeoutSeconds = DefaultCliTimeoutSeconds;
         var allowAdrCreation = false;
 
-        for (var index = 0; index < args.Count; index++)
+        var index = 0;
+        while (index < args.Count)
         {
-            var option = args[index];
+            var option = args[index++];
             if (option == "--allow-remote-context")
             {
                 if (allowRemoteContext)
@@ -85,12 +92,12 @@ internal sealed record AgentConfiguration(
                 throw new AgentConfigurationException($"Unknown argument '{option}'.");
             }
 
-            if (++index >= args.Count || string.IsNullOrWhiteSpace(args[index]))
+            if (index >= args.Count || string.IsNullOrWhiteSpace(args[index]))
             {
                 throw new AgentConfigurationException($"Option '{option}' requires a value.");
             }
 
-            var value = args[index];
+            var value = args[index++];
             switch (option)
             {
                 case "--repository":
@@ -437,6 +444,10 @@ internal sealed record AgentLimits(
         SearchLimit: 20);
 }
 
+[SuppressMessage(
+    "Design",
+    "S3871:Exception types should be public",
+    Justification = "The development-only agent keeps its CLI parsing contract internal.")]
 internal sealed class AgentConfigurationException : Exception
 {
     internal AgentConfigurationException(string message)

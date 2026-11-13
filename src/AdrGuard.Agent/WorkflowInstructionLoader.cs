@@ -5,6 +5,7 @@ namespace AdrGuard.Agent;
 internal sealed class WorkflowInstructionLoader : IWorkflowInstructionLoader
 {
     internal const int MaximumInstructionCharacters = 32_768;
+    private const string SkillsDirectoryName = "skills";
 
     internal static WorkflowInstructionLoader Instance { get; } = new();
 
@@ -21,7 +22,7 @@ internal sealed class WorkflowInstructionLoader : IWorkflowInstructionLoader
                 StringComparer.Ordinal)
             || !string.Equals(
                 workflow.SkillPath,
-                $"skills/{workflow.SkillName}/SKILL.md",
+                $"{SkillsDirectoryName}/{workflow.SkillName}/SKILL.md",
                 StringComparison.Ordinal))
         {
             throw new AgentExecutionException(
@@ -30,7 +31,7 @@ internal sealed class WorkflowInstructionLoader : IWorkflowInstructionLoader
 
         var instructionPath = Path.GetFullPath(workflow.SkillPath, configuration.RepositoryRoot);
         var expectedPath = Path.GetFullPath(
-            Path.Combine("skills", workflow.SkillName, "SKILL.md"),
+            Path.Combine(SkillsDirectoryName, workflow.SkillName, "SKILL.md"),
             configuration.RepositoryRoot);
         if (!string.Equals(instructionPath, expectedPath, PathComparison))
         {
@@ -109,12 +110,25 @@ internal sealed class WorkflowInstructionLoader : IWorkflowInstructionLoader
             return false;
         }
 
+        var matchingNameDeclarations = 0;
+        var nameDeclarations = 0;
         string? line;
-        while ((line = reader.ReadLine()) is not null && line != "---")
+        while ((line = reader.ReadLine()) is not null)
         {
+            if (line == "---")
+            {
+                return nameDeclarations == 1 && matchingNameDeclarations == 1;
+            }
+
+            if (!line.StartsWith("name:", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            nameDeclarations++;
             if (string.Equals(line, $"name: {skillName}", StringComparison.Ordinal))
             {
-                return true;
+                matchingNameDeclarations++;
             }
         }
 
@@ -125,9 +139,9 @@ internal sealed class WorkflowInstructionLoader : IWorkflowInstructionLoader
     {
         var paths = new[]
         {
-            Path.Combine(repositoryRoot, "skills"),
-            Path.Combine(repositoryRoot, "skills", skillName),
-            Path.Combine(repositoryRoot, "skills", skillName, "SKILL.md"),
+            Path.Combine(repositoryRoot, SkillsDirectoryName),
+            Path.Combine(repositoryRoot, SkillsDirectoryName, skillName),
+            Path.Combine(repositoryRoot, SkillsDirectoryName, skillName, "SKILL.md"),
         };
         if (paths.Any(path => (File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0))
         {

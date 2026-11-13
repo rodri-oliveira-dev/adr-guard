@@ -144,7 +144,7 @@ dotnet run --project src/AdrGuard.Agent/AdrGuard.Agent.csproj --configuration Re
   --enable-adr-creation \
   --provider openai \
   --model <explicit-model-id> \
-  --question "Prepare an ADR proposal for asynchronous order processing" \
+  --question "Prepare an ADR proposal about ADR-0008" \
   --allow-remote-context
 ```
 
@@ -152,7 +152,7 @@ The Agent displays the complete preview and fingerprint before prompting. Creati
 
 ## Context authorization and privacy
 
-`--allow-remote-context` authorizes transmission of three data classes for this invocation: the question text, the one selected checked-in skill file, and the complete structured payloads returned by the selected MCP tools. Those payloads can contain ADR content, titles, repository-relative paths, diagnostics, mappings, rules, and bounded evidence. Do not pass the flag unless that material may be sent to the selected provider under your organization's retention, residency, and privacy policy.
+`--allow-remote-context` authorizes the material sent in this invocation: the question text, the one selected checked-in skill file, the complete structured payloads returned by the selected MCP tools, and—during proposal preparation—the CLI-reported template name plus each form field ID and whether it is required. Those payloads can contain ADR content, titles, repository-relative paths, diagnostics, mappings, rules, bounded evidence, and details from customized templates. Do not pass the flag unless all of this material may be sent to the selected provider under your organization's retention, residency, and privacy policy.
 
 The Agent does not follow skill links or load referenced files, and it does not transmit environment variables, the API key, arbitrary files, other skill files, or unselected MCP results. It does not log the credential or full provider response. MCP content remains marked as untrusted in the prompt, and the model receives no callable tools.
 
@@ -175,7 +175,7 @@ Values outside their documented ranges are rejected as usage errors. The MCP cli
 
 General architectural questions use bounded ADR search. Explicit list, ADR identifier, relationship, validation, impact, and drift language select only the corresponding read operation. Impact requires `--impact-manifest` and optionally `--impact-base-reference`; drift requires `--architecture-rules` and accepts existing `--architecture-evidence`, `--architecture-baseline`, and `--architecture-policy` inputs.
 
-When a required explicit input is absent, the Agent reports the missing information and makes neither an MCP call nor a provider request for that unsupported branch. `unknown`, inconclusive evidence, deterministic findings, operational errors, and cancellation remain visible and are never converted to success.
+When a required explicit input is absent, the Agent reports the missing information and makes neither an MCP call nor a provider request for that unsupported branch. `unknown` or inconclusive evidence and deterministic findings remain visible. An advisory run with inconclusive evidence exits with code `0`, but that code does not establish compliance or a conclusive result; operational errors and cancellation exit with a nonzero code.
 
 ## Output trust boundary
 

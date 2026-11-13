@@ -49,7 +49,7 @@ As tarefas abaixo registram o backlog e a implementação incremental. Itens mar
 - [x] **T026** Invalidar aprovação em qualquer mudança material, timeout configurado ou alteração do estado observado.
 - [ ] **T027** Implementar recusa, edição e cancelamento sem efeitos.
 - [ ] **T028** Implementar trilha sanitizada de proposta, decisão humana e resultado.
-- [x] **T029** Provar com adaptador CLI fake que nenhuma chamada ocorre sem aprovação válida.
+- [x] **T029** Provar com adaptador CLI fake que `describe` e `preview` não executam `operation=create` sem aprovação válida.
 
 ## M4 — Escrita mínima via CLI
 

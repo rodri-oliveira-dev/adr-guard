@@ -7,17 +7,26 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
 {
     internal const int MaximumResponseBytes = 1_048_576;
     private const string SupportedSchemaVersion = "1.0";
+    private const string SchemaVersionProperty = "schemaVersion";
+    private const string TotalProperty = "total";
+    private const string PolicyProperty = "policy";
+    private const string CoverageProperty = "coverage";
+    private const string RepositoryProperty = "repository";
+    private const string UncertaintyProperty = "uncertainty";
+    private const string ValidateAdrsTool = "validate_adrs";
+    private const string AnalyzeImpactTool = "analyze_impact";
+    private const string VerifyArchitectureTool = "verify_architecture";
 
     private static readonly Dictionary<string, ToolContract> Contracts =
         new Dictionary<string, ToolContract>(StringComparer.Ordinal)
         {
-            ["list_adrs"] = new(["schemaVersion", "total", "adrs"]),
-            ["get_adr"] = new(["schemaVersion", "adr", "contentIsUntrusted", "content"], ContentIsUntrusted: true),
-            ["search_adrs"] = new(["schemaVersion", "query", "excerptsAreUntrusted", "total", "matches"], ContentIsUntrusted: true),
-            ["get_adr_relationships"] = new(["schemaVersion", "relationships", "issues"]),
-            ["validate_adrs"] = new(["schemaVersion", "valid", "files", "policy", "diagnostics"]),
-            ["analyze_impact"] = new(["schemaVersion", "advisory", "repository", "summary", "coverage", "uncertainty", "changedFiles", "decisions"]),
-            ["verify_architecture"] = new(["schemaVersion", "policy", "repository", "coverage", "findings", "inconclusive", "policyFailed"]),
+            ["list_adrs"] = new([SchemaVersionProperty, TotalProperty, "adrs"]),
+            ["get_adr"] = new([SchemaVersionProperty, "adr", "contentIsUntrusted", "content"], ContentIsUntrusted: true),
+            ["search_adrs"] = new([SchemaVersionProperty, "query", "excerptsAreUntrusted", TotalProperty, "matches"], ContentIsUntrusted: true),
+            ["get_adr_relationships"] = new([SchemaVersionProperty, "relationships", "issues"]),
+            [ValidateAdrsTool] = new([SchemaVersionProperty, "valid", "files", PolicyProperty, "diagnostics"]),
+            [AnalyzeImpactTool] = new([SchemaVersionProperty, "advisory", RepositoryProperty, "summary", CoverageProperty, UncertaintyProperty, "changedFiles", "decisions"]),
+            [VerifyArchitectureTool] = new([SchemaVersionProperty, PolicyProperty, RepositoryProperty, CoverageProperty, "findings", "inconclusive", "policyFailed"]),
         };
 
     private readonly IMcpSession session;
@@ -64,7 +73,7 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
         string? validationProfile,
         CancellationToken cancellationToken) =>
         CallAsync(
-            "validate_adrs",
+            ValidateAdrsTool,
             OptionalArgument("validationProfile", validationProfile),
             cancellationToken);
 
@@ -73,7 +82,7 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
         string manifestPath,
         CancellationToken cancellationToken) =>
         CallAsync(
-            "analyze_impact",
+            AnalyzeImpactTool,
             new Dictionary<string, object?>
             {
                 ["baseReference"] = baseReference,
@@ -91,7 +100,7 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
         var arguments = new Dictionary<string, object?>
         {
             ["rulesPath"] = rulesPath,
-            ["policy"] = policy,
+            [PolicyProperty] = policy,
         };
         if (evidencePaths is not null)
         {
@@ -103,7 +112,7 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
             arguments["baselinePath"] = baselinePath;
         }
 
-        return CallAsync("verify_architecture", arguments, cancellationToken);
+        return CallAsync(VerifyArchitectureTool, arguments, cancellationToken);
     }
 
     public ValueTask DisposeAsync() => session.DisposeAsync();
@@ -188,7 +197,7 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
             throw new AgentMcpException($"MCP tool '{toolName}' returned an unsupported evidence shape.");
         }
 
-        if (!content.TryGetProperty("schemaVersion", out var schemaVersion)
+        if (!content.TryGetProperty(SchemaVersionProperty, out var schemaVersion)
             || schemaVersion.ValueKind != JsonValueKind.String
             || schemaVersion.GetString() is not SupportedSchemaVersion)
         {
@@ -208,15 +217,15 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
 
     private static McpEvidenceStatus DetermineStatus(string toolName, JsonElement content)
     {
-        if (toolName == "analyze_impact"
-            && content.GetProperty("uncertainty").ValueKind == JsonValueKind.Object
-            && content.GetProperty("uncertainty").TryGetProperty("hasUnknowns", out var hasUnknowns)
+        if (toolName == AnalyzeImpactTool
+            && content.GetProperty(UncertaintyProperty).ValueKind == JsonValueKind.Object
+            && content.GetProperty(UncertaintyProperty).TryGetProperty("hasUnknowns", out var hasUnknowns)
             && hasUnknowns.ValueKind == JsonValueKind.True)
         {
             return McpEvidenceStatus.Inconclusive;
         }
 
-        if (toolName == "verify_architecture")
+        if (toolName == VerifyArchitectureTool)
         {
             if (content.GetProperty("inconclusive").ValueKind == JsonValueKind.True)
             {
@@ -229,7 +238,7 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
             }
         }
 
-        if (toolName == "validate_adrs" && content.GetProperty("valid").ValueKind == JsonValueKind.False)
+        if (toolName == ValidateAdrsTool && content.GetProperty("valid").ValueKind == JsonValueKind.False)
         {
             return McpEvidenceStatus.Findings;
         }
@@ -238,34 +247,35 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
     }
 
     private static bool HasExpectedPropertyTypes(string toolName, JsonElement content) =>
-        IsKind(content, "schemaVersion", JsonValueKind.String)
+        IsKind(content, SchemaVersionProperty, JsonValueKind.String)
         && toolName switch
         {
-            "list_adrs" => IsKind(content, "total", JsonValueKind.Number)
+            "list_adrs" => IsKind(content, TotalProperty, JsonValueKind.Number)
                            && IsKind(content, "adrs", JsonValueKind.Array),
             "get_adr" => IsKind(content, "adr", JsonValueKind.Object)
                          && IsBoolean(content, "contentIsUntrusted")
                          && IsKind(content, "content", JsonValueKind.String),
             "search_adrs" => IsKind(content, "query", JsonValueKind.String)
                              && IsBoolean(content, "excerptsAreUntrusted")
-                             && IsKind(content, "total", JsonValueKind.Number)
+                             && IsKind(content, TotalProperty, JsonValueKind.Number)
                              && IsKind(content, "matches", JsonValueKind.Array),
             "get_adr_relationships" => IsKind(content, "relationships", JsonValueKind.Array)
                                        && IsKind(content, "issues", JsonValueKind.Array),
-            "validate_adrs" => IsBoolean(content, "valid")
+            ValidateAdrsTool => IsBoolean(content, "valid")
                                && IsKind(content, "files", JsonValueKind.Number)
-                               && IsKind(content, "policy", JsonValueKind.Object)
+                               && IsKind(content, PolicyProperty, JsonValueKind.Object)
                                && IsKind(content, "diagnostics", JsonValueKind.Array),
-            "analyze_impact" => IsBoolean(content, "advisory")
-                                && IsKind(content, "repository", JsonValueKind.Object)
+            AnalyzeImpactTool => IsBoolean(content, "advisory")
+                                && IsKind(content, RepositoryProperty, JsonValueKind.Object)
                                 && IsKind(content, "summary", JsonValueKind.Object)
-                                && IsKind(content, "coverage", JsonValueKind.Object)
-                                && IsKind(content, "uncertainty", JsonValueKind.Object)
+                                && IsKind(content, CoverageProperty, JsonValueKind.Object)
+                                && IsKind(content, UncertaintyProperty, JsonValueKind.Object)
+                                && IsBoolean(content.GetProperty(UncertaintyProperty), "hasUnknowns")
                                 && IsKind(content, "changedFiles", JsonValueKind.Array)
                                 && IsKind(content, "decisions", JsonValueKind.Array),
-            "verify_architecture" => IsKind(content, "policy", JsonValueKind.String)
-                                     && IsKind(content, "repository", JsonValueKind.Object)
-                                     && IsKind(content, "coverage", JsonValueKind.Object)
+            VerifyArchitectureTool => IsKind(content, PolicyProperty, JsonValueKind.String)
+                                     && IsKind(content, RepositoryProperty, JsonValueKind.Object)
+                                     && IsKind(content, CoverageProperty, JsonValueKind.Object)
                                      && IsKind(content, "findings", JsonValueKind.Array)
                                      && IsBoolean(content, "inconclusive")
                                      && IsBoolean(content, "policyFailed"),
