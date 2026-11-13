@@ -74,10 +74,34 @@ if grep -Eq '^[[:space:]]+(drift-write-baseline|drift-update-baseline|script|com
   exit 1
 fi
 
-# Validate explicitly tagged Alpine SDK/runtime images (optional immutable digests).
-# A digest without a distro tag may silently pull an image without apk.
-grep -Eq '^FROM mcr\.microsoft\.com/dotnet/sdk:[0-9.]+-alpine[0-9.]+(@sha256:[a-f0-9]{64})? AS build$' "${ROOT_DIR}/Dockerfile"
-grep -Eq '^FROM mcr\.microsoft\.com/dotnet/runtime:[0-9.]+-alpine[0-9.]+(@sha256:[a-f0-9]{64})? AS final$' "${ROOT_DIR}/Dockerfile"
+# Both images must use immutable digests, with the audited Alpine version
+# documented alongside each FROM. Docker smoke tests verify Alpine runtime.
+grep -Eq '^# \.NET SDK 10\.0\.403, Alpine 3\.24' "${ROOT_DIR}/Dockerfile"
+grep -Eq '^# \.NET Runtime 10\.0\.15, Alpine 3\.24' "${ROOT_DIR}/Dockerfile"
+grep -Eq '^FROM mcr\.microsoft\.com/dotnet/sdk@sha256:[a-f0-9]{64} AS build
+# Latest patched APK revisions are checked by the container smoke and Trivy CI jobs.
+grep -Fxq 'RUN apk add --no-cache --upgrade git zlib' "${ROOT_DIR}/Dockerfile"
+grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"
+
+if grep -Eq '(^|[[:space:]])draft([[:space:]]|$)' "${ROOT_DIR}/action.yml"; then
+  echo "The default GitHub Action must not expose the AI draft command." >&2
+  exit 1
+fi
+
+echo "GitHub Action security checks passed for ${IMAGE} (${repo_digest})."
+ "${ROOT_DIR}/Dockerfile"
+grep -Eq '^FROM mcr\.microsoft\.com/dotnet/runtime@sha256:[a-f0-9]{64} AS final
+# Latest patched APK revisions are checked by the container smoke and Trivy CI jobs.
+grep -Fxq 'RUN apk add --no-cache --upgrade git zlib' "${ROOT_DIR}/Dockerfile"
+grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"
+
+if grep -Eq '(^|[[:space:]])draft([[:space:]]|$)' "${ROOT_DIR}/action.yml"; then
+  echo "The default GitHub Action must not expose the AI draft command." >&2
+  exit 1
+fi
+
+echo "GitHub Action security checks passed for ${IMAGE} (${repo_digest})."
+ "${ROOT_DIR}/Dockerfile"
 # Latest patched APK revisions are checked by the container smoke and Trivy CI jobs.
 grep -Fxq 'RUN apk add --no-cache --upgrade git zlib' "${ROOT_DIR}/Dockerfile"
 grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"
