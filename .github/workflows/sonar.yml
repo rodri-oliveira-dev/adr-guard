@@ -145,7 +145,7 @@ jobs:
           } else {
             @($report.CoverageSession.Modules.Module | ForEach-Object { [string]$_.ModuleName })
           }
-          foreach ($expected in @('AdrGuard.Core', 'adr-guard', 'adr-guard-mcp')) {
+          foreach ($expected in @('AdrGuard.Core', 'adr-guard', 'adr-guard-agent', 'adr-guard-mcp')) {
             $found = @($names | Where-Object {
               [IO.Path]::GetFileNameWithoutExtension($_) -ieq $expected
             })

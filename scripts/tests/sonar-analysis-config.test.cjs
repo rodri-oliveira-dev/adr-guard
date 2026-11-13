@@ -22,3 +22,30 @@ test('Sonar excludes generated coverage artifacts while importing LCOV data', ()
     'LCOV coverage import must remain available'
   );
 });
+
+test('Sonar coverage includes every production .NET assembly', () => {
+  const settings = readFileSync(
+    resolve(__dirname, '../../eng/sonar-coverage.settings.xml'),
+    'utf8'
+  );
+  const workflow = readFileSync(
+    resolve(__dirname, '../../.github/workflows/sonar.yml'),
+    'utf8'
+  );
+
+  for (const assembly of [
+    'AdrGuard\\.Core',
+    'adr-guard',
+    'adr-guard-agent',
+    'adr-guard-mcp'
+  ]) {
+    assert.ok(
+      settings.includes(assembly),
+      `coverage settings must include ${assembly}`
+    );
+    assert.ok(
+      workflow.includes(assembly.replace('\\.', '.')),
+      `coverage verification must require ${assembly}`
+    );
+  }
+});

@@ -3,7 +3,7 @@
   <CodeCoverage>
     <ModulePaths>
       <Include>
-        <ModulePath>(^|.*[\\/])(AdrGuard\.Core|adr-guard|adr-guard-mcp)\.dll$</ModulePath>
+        <ModulePath>(^|.*[\\/])(AdrGuard\.Core|adr-guard|adr-guard-agent|adr-guard-mcp)\.dll$</ModulePath>
       </Include>
       <Exclude>
         <ModulePath>.*(Tests|Benchmarks)\.dll$</ModulePath>

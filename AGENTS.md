@@ -4,10 +4,11 @@
 
 ADR Guard is a .NET tool for creating, validating, indexing, reviewing, impact-mapping, and deterministically checking Architecture Decision Records (ADRs). The product treats ADRs as human decisions: AI integrations may provide bounded evidence or advice, but must never imply architectural approval or compliance.
 
-The repository has two executable products and several adapters and distribution surfaces:
+The repository has two established executable products, one development-only optional executable, and several adapters and distribution surfaces:
 
 - `src/AdrGuard`: the authoritative .NET CLI executable and its command, presentation, provider, and filesystem adapters.
 - `src/AdrGuard.Mcp`: the read-only MCP executable, with seven versioned tools over stdio and a direct reference to Core.
+- `src/AdrGuard.Agent`: the development-only Architecture Agent executable. Its MCP consultations are read-only; ADR creation is a separate, supervised CLI operation that requires an exact fingerprint confirmation. It uses an explicitly configured model provider for advisory answers and never references Core, CLI, or MCP assemblies. It is not a published product.
 - `src/AdrGuard.Core`: the internal, non-packable .NET class library that owns shared parsing, validation, configuration, Git inventory, impact, and drift behavior. It never references either executable.
 - `extensions/vscode`: a workspace-host TypeScript adapter. It discovers and invokes the CLI, validates versioned output contracts, and presents results in VS Code. It must not reimplement CLI business rules.
 - The root `action.yml` and container image adapt the released CLI contract for GitHub Actions.
@@ -26,6 +27,7 @@ The root composite GitHub Action is also an adapter around the released CLI/cont
 | `src/AdrGuard/{Generation,Indexing,Baselines}` | CLI-owned write workflows and presentation-specific baseline/index orchestration. |
 | `src/AdrGuard/Review` | Optional provider adapters, bounded review context, policy, security boundary, and versioned reports. |
 | `src/AdrGuard.Mcp` | MCP stdio host, versioned tool contracts, transport DTOs, and workspace adapter. |
+| `src/AdrGuard.Agent` | Development-only architectural-question orchestration, bounded model-provider adapters, and a process-level read-only MCP client. |
 | `tests/AdrGuard.Tests` | xUnit v3 Core/CLI unit, contract, and integration tests, organized to mirror production areas. |
 | `tests/AdrGuard.Mcp.Tests` | xUnit v3 MCP protocol, workspace, security, and packaged-tool tests. |
 | `tests/AdrGuard.Tests/Fixtures` | Checked-in deterministic compatibility and contract fixtures. |
@@ -48,6 +50,7 @@ The root composite GitHub Action is also an adapter around the released CLI/cont
 - Keep parsing, policy, validation, impact, and drift rules in the .NET core. The VS Code extension and GitHub Action invoke and adapt the CLI; they do not maintain parallel rule engines.
 - Preserve separation between pure decisions and adapters for files, Git, processes, HTTP providers, console rendering, VS Code, and GitHub Actions.
 - Keep the project graph `AdrGuard -> AdrGuard.Core` and `AdrGuard.Mcp -> AdrGuard.Core`, with no Core-to-executable, MCP-to-CLI, or CLI-to-MCP dependency. Automated graph guards enforce these boundaries.
+- Keep `AdrGuard.Agent` outside that assembly graph: it communicates with MCP by process and must not reference `AdrGuard.Core`, `AdrGuard`, or `AdrGuard.Mcp` assemblies.
 - Move reusable rules to Core by cohesive dependency seam. Keep CLI presentation, command routing and exit-code adaptation in the CLI, and keep MCP transport/contracts in MCP; never duplicate rules between adapters.
 - Keep Core implementation types `internal` by default. Grant only assembly-specific test or consumer visibility when required; do not widen public APIs merely to cross a project boundary.
 - Treat JSON/SARIF schemas, CLI arguments and exit codes, Action inputs/outputs, configuration formats, report fields, extension settings/commands, and skill frontmatter as versioned public contracts.

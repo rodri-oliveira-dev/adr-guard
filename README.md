@@ -87,9 +87,12 @@ See the [selection matrix](docs/decision-design/choosing-a-template.md), [comple
 | GitHub Action | Validate, index, or explicitly run AI review/architecture impact; current development source also adapts read-only drift verification | [Consumer guide](docs/github-action.md) |
 | VS Code | Visual ADR management, architecture/governance workflows, commands, Problems diagnostics, and ADR Explorer through a compatible installed CLI | [Extension guide](extensions/vscode/README.md) |
 | MCP server | Give compatible agents structured, read-only access to ADR discovery, validation, impact, and drift tools | [MCP overview](docs/mcp.md) |
+| Architecture Agent (source only) | Query local MCP evidence without a model, optionally request bounded OpenAI synthesis, and supervise one fingerprint-authorized `Proposed` creation through the CLI | [Development guide](docs/architecture-agent.md) |
 | Containers | Run the same versioned CLI from GHCR or Docker Hub | [Container and supply-chain guide](docs/container.md) |
 | CI reports | Produce text, JSON, or SARIF validation output | [Check reports](docs/check-reports.md) |
 | Agent Skills | Give agents portable instructions for human-controlled ADR and CLI workflows | [Skills guide](docs/skills/README.md) |
+
+The development-only Architecture Agent is distinct from the published CLI, MCP server, and portable Skills: it orchestrates them but has no package, installer, container, manifest, or release channel. See the guide for local build prerequisites, explicit configuration, architecture diagram, privacy/cost boundaries, supervised creation, troubleshooting, and current distribution status.
 
 ### See ADR Guard in action
 

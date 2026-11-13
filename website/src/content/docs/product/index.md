@@ -15,6 +15,7 @@ ADR Guard keeps architecture judgment with people while automating repeatable do
 | [GitHub Action](./github-action/) | Pull requests should validate or review ADR changes | Runs in GitHub Actions with workflow permissions and pinned inputs |
 | [VS Code extension](./vscode-extension/) · [Visual guide](./vscode-visual-guide/) | Contributors want visual ADR creation/editing, explorer, commands, and diagnostics in the editor | Workspace-hosted; trusted local file workspaces only; invokes an existing compatible CLI |
 | [MCP server](./mcp/) | Compatible agents need structured, read-only ADR Guard tools | MCP 1.0.1 published on NuGet.org and GitHub Releases; checked-in Registry manifest remains at 1.0.0; one bounded repository per `stdio` process |
+| [Architecture Agent](./architecture-agent/) | Source contributors want local MCP evidence, optional bounded model synthesis, or one supervised ADR proposal | Development-only source project; provider-free local read-only mode; optional fingerprint-authorized `Proposed` creation through the CLI; no published package |
 | [Container](./containers/) | You want an isolated, reproducible CLI runtime | Mount only required files and pass configuration deliberately |
 | [Agent Skills](../skills/) | You want a coding agent to guide ADR decisions and CLI workflows | Portable agent instructions; no bundled CLI or automatic architectural approval |
 
@@ -40,6 +41,8 @@ Both workflows keep evidence traceable and architecture judgment human-owned. Do
 ## AI and human confirmation
 
 Drafting and review send selected context to the configured provider. Provider output is untrusted, bounded, parsed, and presented for human evaluation. It does not approve decisions, edit accepted history automatically, or replace security and architecture review.
+
+The source-only [Architecture Agent](./architecture-agent/) adds five controlled workflows over the existing eleven-skill allowlist. A deterministic orchestrator selects from the closed MCP catalog and can present local evidence without a provider; when remote synthesis is explicitly enabled, it loads only the selected skill before sending authorized context. Model function calling is not enabled, and no layer approves decisions. ADR proposals use the existing CLI schema `1.0` `new --form` `describe` and `preview` operations; after a separate interactive fingerprint confirmation, the Agent may invoke only `operation=create` for the exact fields shown, producing one new `Proposed` ADR through the CLI's atomic no-overwrite boundary.
 
 ## MCP status
 

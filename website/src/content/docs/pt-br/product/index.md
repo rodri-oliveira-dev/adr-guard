@@ -15,6 +15,7 @@ O ADR Guard mantém o julgamento arquitetural com pessoas e automatiza verifica�
 | [GitHub Action](./github-action/) | Pull requests devem validar ou revisar mudanças | Executa no GitHub Actions com permissões e entradas definidas |
 | [Extensão VS Code](./vscode-extension/) · [Guia visual](./vscode-visual-guide/) | Colaboradores querem criação/edição visual, explorer, comandos e diagnósticos | Executa no host do workspace; aceita apenas workspaces locais confiáveis; invoca uma CLI compatível existente |
 | [Servidor MCP](./mcp/) | Agentes compatíveis precisam de ferramentas estruturadas e somente leitura do ADR Guard | MCP 1.0.1 publicado no NuGet.org e em GitHub Releases; manifesto versionado do Registry permanece em 1.0.0; um repositório limitado por processo `stdio` |
+| [Architecture Agent](./architecture-agent/) | Pessoas contribuindo no código-fonte querem evidência MCP local, síntese limitada opcional ou uma proposta de ADR supervisionada | Projeto-fonte somente para desenvolvimento; modo local somente leitura sem provider; criação `Proposed` opcional autorizada por fingerprint e feita pela CLI; sem pacote publicado |
 | [Contêiner](./containers/) | Você quer runtime isolado e reproduzível | Monte apenas arquivos necessários e passe configuração conscientemente |
 | [Agent Skills](../skills/) | Você quer orientação de um agente para decisões e fluxos da CLI | Instruções portáteis; não incluem a CLI nem aprovam arquitetura |
 
@@ -40,6 +41,8 @@ Os dois fluxos mantêm evidências rastreáveis e o julgamento arquitetural sob 
 ## IA e confirmação humana
 
 Rascunho e revisão enviam contexto selecionado ao provedor configurado. A saída é não confiável, limitada, analisada e apresentada para avaliação humana. Ela não aprova decisões, não edita histórico aceito automaticamente e não substitui revisões de segurança e arquitetura.
+
+O [Architecture Agent](./architecture-agent/), disponível somente no código-fonte, adiciona cinco workflows controlados sobre a allowlist das onze skills existentes. Um orquestrador determinístico escolhe operações no catálogo MCP fechado e pode apresentar evidência local sem provider; quando a síntese remota é habilitada explicitamente, ele carrega apenas a skill selecionada antes de enviar o contexto autorizado. Function calling do modelo não é habilitado e nenhuma camada aprova decisões. Propostas de ADR usam as operações existentes `describe` e `preview` do schema `1.0` de `new --form`; após confirmação interativa separada do fingerprint, o Agent pode invocar somente `operation=create` para os campos exatos exibidos, produzindo uma nova ADR `Proposed` pela fronteira atômica e sem sobrescrita da CLI.
 
 ## Status do MCP
 

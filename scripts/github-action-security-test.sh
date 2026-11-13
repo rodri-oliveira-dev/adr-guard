@@ -74,7 +74,7 @@ if grep -Eq '^[[:space:]]+(drift-write-baseline|drift-update-baseline|script|com
   exit 1
 fi
 
-grep -Fq 'apk add --no-cache git=2.54.0-r0' "${ROOT_DIR}/Dockerfile"
+grep -Fq 'apk add --no-cache git=2.54.1-r0' "${ROOT_DIR}/Dockerfile"
 grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"
 
 if grep -Eq '(^|[[:space:]])draft([[:space:]]|$)' "${ROOT_DIR}/action.yml"; then

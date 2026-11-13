@@ -20,14 +20,14 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     --no-self-contained \
     /p:UseAppHost=true
 
-# .NET Runtime 10.0.14, Alpine 3.24.
-FROM mcr.microsoft.com/dotnet/runtime@sha256:54d48f739ebffdef82388056d420af37ed39c722b8d5ee5dedca6878537c2737 AS final
+# .NET Runtime 10.0.15, Alpine 3.24.
+FROM mcr.microsoft.com/dotnet/runtime@sha256:7518aaad9e4328001518006a7e8b3fcf6ce8f8816355574f7264c1fa0a0ce188 AS final
 WORKDIR /workspace
 
 # Impact analysis invokes the bounded local Git CLI. The runtime remains
 # non-root and the Action mounts consumer repositories read-only.
 # Update the inherited zlib package to address CVE-2026-4738 (fixed in 1.4-r0).
-RUN apk add --no-cache git=2.54.0-r0 zlib=1.4-r0
+RUN apk add --no-cache git=2.54.1-r0 zlib=1.4-r0
 
 LABEL org.opencontainers.image.title="ADR Guard" \
       org.opencontainers.image.description="A .NET CLI for validating, maintaining, reviewing, analyzing impact, and verifying ADR-backed architectural drift." \
