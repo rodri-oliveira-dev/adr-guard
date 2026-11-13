@@ -74,7 +74,13 @@ if grep -Eq '^[[:space:]]+(drift-write-baseline|drift-update-baseline|script|com
   exit 1
 fi
 
-grep -Fq 'apk add --no-cache git=2.54.1-r0' "${ROOT_DIR}/Dockerfile"
+# Verify digest-only images with the audited Alpine release documented above each FROM.
+grep -Eq '^# \.NET SDK 10\.0\.403, Alpine 3\.24' "${ROOT_DIR}/Dockerfile"
+grep -Eq '^# \.NET Runtime 10\.0\.15, Alpine 3\.24' "${ROOT_DIR}/Dockerfile"
+grep -Eq '^FROM mcr\.microsoft\.com/dotnet/sdk@sha256:[a-f0-9]{64} AS build' "${ROOT_DIR}/Dockerfile"
+grep -Eq '^FROM mcr\.microsoft\.com/dotnet/runtime@sha256:[a-f0-9]{64} AS final' "${ROOT_DIR}/Dockerfile"
+# Security-patched packages are validated by the container smoke and Trivy CI checks.
+grep -Fxq 'RUN apk add --no-cache --upgrade git zlib' "${ROOT_DIR}/Dockerfile"
 grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"
 
 if grep -Eq '(^|[[:space:]])draft([[:space:]]|$)' "${ROOT_DIR}/action.yml"; then
