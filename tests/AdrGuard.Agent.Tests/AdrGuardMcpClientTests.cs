@@ -55,6 +55,32 @@ public sealed class AdrGuardMcpClientTests
     }
 
     [Theory]
+    [InlineData(false, false, 1, "Findings")]
+    [InlineData(false, true, 0, "Findings")]
+    [InlineData(true, false, 1, "Inconclusive")]
+    public async Task ArchitectureFindingsAreIndependentFromPolicyFailure(
+        bool inconclusive,
+        bool policyFailed,
+        int findingCount,
+        string expectedStatus)
+    {
+        var findings = findingCount == 0 ? "[]" : "[{\"ruleId\":\"architecture-boundary\"}]";
+        var json = $$"""
+            {"schemaVersion":"1.0","policy":"advisory","repository":{},"coverage":{},"findings":{{findings}},"inconclusive":{{inconclusive.ToString().ToLowerInvariant()}},"policyFailed":{{policyFailed.ToString().ToLowerInvariant()}}}
+            """;
+        await using var client = await ConnectAsync(new FakeMcpSession("verify_architecture", json));
+
+        var evidence = await client.VerifyArchitectureAsync(
+            ".adrguard-fitness.json",
+            null,
+            null,
+            "advisory",
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(expectedStatus, evidence.Status.ToString());
+    }
+
+    [Theory]
     [InlineData("""{"schemaVersion":"2.0","total":0,"adrs":[]}""", "unsupported schema version")]
     [InlineData("""{"schemaVersion":"1.0","total":0,"adrs":[],"unexpected":true}""", "unsupported evidence shape")]
     [InlineData("""{"schemaVersion":"1.0","total":"zero","adrs":[]}""", "unsupported evidence shape")]

@@ -133,12 +133,12 @@ public sealed class ArchitectureWorkflowTests
     public void ProposalSearchQueryKeepsOnlyDomainTerms()
     {
         var selection = ArchitectureQuestionToolSelector.Instance.Select(
-            CreateConfiguration("Prepare a proposal about Redis"),
+            CreateConfiguration("Prepare an ADR proposal for asynchronous order processing"),
             ArchitectureWorkflowCatalog.PrepareAdrProposal);
 
         var request = Assert.Single(selection.Requests);
         Assert.Equal(ArchitectureToolKind.SearchAdrs, request.Kind);
-        Assert.Equal("Redis", request.Argument);
+        Assert.Equal("asynchronous order processing", request.Argument);
     }
 
     [Theory]

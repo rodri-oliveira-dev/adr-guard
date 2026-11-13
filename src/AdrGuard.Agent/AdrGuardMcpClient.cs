@@ -235,7 +235,8 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
                 return McpEvidenceStatus.Inconclusive;
             }
 
-            if (content.GetProperty("policyFailed").ValueKind == JsonValueKind.True)
+            if (content.GetProperty("findings").GetArrayLength() > 0
+                || content.GetProperty("policyFailed").ValueKind == JsonValueKind.True)
             {
                 return McpEvidenceStatus.Findings;
             }
