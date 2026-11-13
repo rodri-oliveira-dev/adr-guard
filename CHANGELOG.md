@@ -6,6 +6,15 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
+### Added
+
+- Add a development-only `AdrGuard.Agent` source project with a first read-only architectural-question flow over the seven existing MCP schema `1.0` tools. It uses an explicitly selected OpenAI model through `Microsoft.Extensions.AI`, environment-only credentials, bounded context/tokens/duration/tool calls, strict evidence references, and offline fake-model tests.
+- Integrate the source-only Architecture Agent with the existing eleven-skill allowlist and five controlled workflows: deciding when to record, trade-off analysis, ADR consultation/validation, advisory technical review, and ADR proposal preparation. Each run loads only the selected authorized `SKILL.md`; MCP remains the deterministic evidence source and no workflow approves decisions.
+- Add a supervised ADR proposal flow to the development-only Agent. It grounds one structured proposal in MCP evidence, fixes status to `Proposed`, discovers fields with the existing `adr-guard new --form` schema `1.0` `describe` operation, displays the exact `preview`, and permits `operation=create` only after a separate interactive fingerprint confirmation. Non-interactive, denied, canceled, stale, or malformed authorization fails closed; the CLI retains atomic ID allocation and no-overwrite persistence, and the Agent never edits lifecycle or existing ADRs.
+- Add equivalent English and Brazilian Portuguese development documentation. No Agent package, installer, container, manifest, or release is published, and the supervised flow never performs architectural approval or lifecycle changes.
+- Add a provider-free local read-only Agent mode that returns selected MCP evidence without remote synthesis, plus versioned offline evaluation scenarios for tool selection, grounding, insufficient context, prompt injection, repository/process isolation, limits, credentials, and unauthorized writes.
+- Harden Agent boundaries by requiring evidence citations in advisory summaries, rejecting duplicate JSON properties, binding CLI timeout to the authorized proposal fingerprint, and filtering provider credentials from the CLI child-process environment.
+
 ## [1.11.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.11.0) — prepared 2026-11-05, not yet published
 
 ### Added

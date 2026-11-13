@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>AdrGuard.Agent.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/AdrGuard.Agent/AdrGuard.Agent.csproj" />
+    <ProjectReference Include="../../src/AdrGuard/AdrGuard.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../../src/AdrGuard.Mcp/AdrGuard.Mcp.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Fixtures/architecture-agent-evaluations.v1.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

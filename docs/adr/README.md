@@ -10,3 +10,4 @@
 | [0006](0006-analyze-architecture-impact-from-explicit-mappings.md) | Analyze architecture impact from explicit local mappings | Accepted |
 | [0007](0007-verify-architecture-rules-from-bounded-evidence.md) | Verify architecture rules from bounded evidence | Accepted |
 | [0008](0008-extract-an-internal-shared-core.md) | Extract an internal shared Core | Accepted |
+| [0009](0009-introduce-an-optional-architecture-agent.md) | Introduce an optional Architecture Agent over MCP and CLI boundaries | Proposed |
