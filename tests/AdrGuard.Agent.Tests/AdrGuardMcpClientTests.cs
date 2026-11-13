@@ -11,7 +11,7 @@ public sealed class AdrGuardMcpClientTests
         var session = new FakeMcpSession(new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["list_adrs"] = """{"schemaVersion":"1.0","total":0,"adrs":[]}""",
-            ["get_adr"] = """{"schemaVersion":"1.0","adr":{},"contentIsUntrusted":true,"content":"untrusted"}""",
+            ["get_adr"] = """{"schemaVersion":"1.0","adr":{"identifier":"ADR-1","title":"Boundary","status":"Accepted","path":"docs/adr/0001-boundary.md","format":"canonical"},"contentIsUntrusted":true,"content":"untrusted"}""",
             ["search_adrs"] = """{"schemaVersion":"1.0","query":"boundary","excerptsAreUntrusted":true,"total":0,"matches":[]}""",
             ["get_adr_relationships"] = """{"schemaVersion":"1.0","relationships":[],"issues":[]}""",
             ["validate_adrs"] = """{"schemaVersion":"1.0","valid":false,"files":1,"policy":{},"diagnostics":[]}""",
@@ -60,6 +60,9 @@ public sealed class AdrGuardMcpClientTests
     [InlineData("""{"schemaVersion":"1.0","total":"zero","adrs":[]}""", "unsupported evidence shape")]
     [InlineData("""{"schemaVersion":"1.0","advisory":true,"repository":{},"summary":{},"coverage":{},"uncertainty":{},"changedFiles":[],"decisions":[]}""", "unsupported evidence shape", "analyze_impact")]
     [InlineData("""{"schemaVersion":"1.0","advisory":true,"repository":{},"summary":{},"coverage":{},"uncertainty":{"hasUnknowns":"true"},"changedFiles":[],"decisions":[]}""", "unsupported evidence shape", "analyze_impact")]
+    [InlineData("""{"schemaVersion":"1.0","adr":{},"contentIsUntrusted":true,"content":"untrusted"}""", "unsupported evidence shape", "get_adr")]
+    [InlineData("""{"schemaVersion":"1.0","adr":{"identifier":"ADR-1","title":1,"status":null,"path":"docs/adr/0001.md","format":"canonical"},"contentIsUntrusted":true,"content":"untrusted"}""", "unsupported evidence shape", "get_adr")]
+    [InlineData("""{"schemaVersion":"1.0","adr":{"identifier":"ADR-1","title":null,"status":null,"path":"docs/adr/0001.md","format":"canonical","extra":true},"contentIsUntrusted":true,"content":"untrusted"}""", "unsupported evidence shape", "get_adr")]
     [InlineData("""["not-an-object"]""", "unsupported evidence shape")]
     [InlineData("""{"schemaVersion":"1.0","schemaVersion":"1.0","total":0,"adrs":[]}""", "unsupported evidence shape")]
     public async Task UnsupportedSchemaOrShapeFailsClosed(
@@ -69,10 +72,15 @@ public sealed class AdrGuardMcpClientTests
     {
         await using var client = await ConnectAsync(new FakeMcpSession(toolName, json));
 
-        var exception = await Assert.ThrowsAsync<AgentMcpException>(
-            () => toolName == "analyze_impact"
-                ? client.AnalyzeImpactAsync("HEAD", ".adrguard-impact.json", TestContext.Current.CancellationToken)
-                : client.ListAdrsAsync(TestContext.Current.CancellationToken));
+        var exception = await Assert.ThrowsAsync<AgentMcpException>(() => toolName switch
+        {
+            "analyze_impact" => client.AnalyzeImpactAsync(
+                "HEAD",
+                ".adrguard-impact.json",
+                TestContext.Current.CancellationToken),
+            "get_adr" => client.GetAdrAsync("ADR-1", TestContext.Current.CancellationToken),
+            _ => client.ListAdrsAsync(TestContext.Current.CancellationToken),
+        });
 
         Assert.Contains(expectedMessage, exception.Message, StringComparison.Ordinal);
     }

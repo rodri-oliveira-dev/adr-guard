@@ -136,7 +136,8 @@ internal sealed class ConsoleAdrProposalAuthorization(
             $"To create this exact Proposed ADR, type: create {proposal.Fingerprint}").ConfigureAwait(false);
         await output.WriteLineAsync("Type 'deny' to refuse or 'cancel' to cancel.").ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        var response = await input.ReadLineAsync(cancellationToken).ConfigureAwait(false);
+        var readTask = input.ReadLineAsync(cancellationToken).AsTask();
+        var response = await readTask.WaitAsync(cancellationToken).ConfigureAwait(false);
         if (response is null || string.Equals(response.Trim(), "cancel", StringComparison.OrdinalIgnoreCase))
         {
             return AdrProposalAuthorizationDecision.Canceled;
@@ -150,5 +151,24 @@ internal sealed class ConsoleAdrProposalAuthorization(
         }
 
         return AdrProposalAuthorizationDecision.Denied;
+    }
+}
+
+internal sealed class CancelableConsoleReader : TextReader
+{
+    internal static CancelableConsoleReader Instance { get; } = new();
+
+    private CancelableConsoleReader()
+    {
+    }
+
+    public override ValueTask<string?> ReadLineAsync(CancellationToken cancellationToken) =>
+        new(ReadConsoleLineAsync(cancellationToken));
+
+    private static async Task<string?> ReadConsoleLineAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var readTask = Task.Run(static () => Console.ReadLine(), CancellationToken.None);
+        return await readTask.WaitAsync(cancellationToken).ConfigureAwait(false);
     }
 }

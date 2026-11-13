@@ -141,6 +141,21 @@ public sealed class ArchitectureWorkflowTests
         Assert.Equal("Redis", request.Argument);
     }
 
+    [Theory]
+    [InlineData("Show the Markdown for ADR-8.")]
+    [InlineData("Mostre o Markdown da ADR-8.")]
+    public void DocumentedAdrQuerySelectsGetAdr(string question)
+    {
+        var workflow = ArchitectureWorkflowSelector.Instance.Select(question);
+        var selection = ArchitectureQuestionToolSelector.Instance.Select(
+            CreateConfiguration(question),
+            workflow);
+
+        var request = Assert.Single(selection.Requests);
+        Assert.Equal(ArchitectureToolKind.GetAdr, request.Kind);
+        Assert.Equal("ADR-8", request.Argument);
+    }
+
     private static AgentConfiguration CreateConfiguration(string question) =>
         new(
             Path.GetFullPath("."),

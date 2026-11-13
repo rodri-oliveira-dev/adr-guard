@@ -228,6 +228,12 @@ public sealed class AdrGuardMcpProcessIntegrationTests
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
             };
+            foreach (var name in startInfo.Environment.Keys
+                         .Where(name => name.StartsWith("GIT_", StringComparison.OrdinalIgnoreCase))
+                         .ToArray())
+            {
+                startInfo.Environment.Remove(name);
+            }
             startInfo.Environment["GIT_CONFIG_GLOBAL"] = OperatingSystem.IsWindows() ? "NUL" : "/dev/null";
             startInfo.Environment["GIT_CONFIG_NOSYSTEM"] = "1";
             foreach (var argument in arguments)

@@ -110,7 +110,7 @@ dotnet run --project src/AdrGuard.Agent/AdrGuard.Agent.csproj --configuration Re
   --adr-directory docs/adr \
   --mcp-command dotnet \
   --mcp-argument src/AdrGuard.Mcp/bin/Release/net10.0/adr-guard-mcp.dll \
-  --question "Which ADR defines the domain dependency boundary?"
+  --question "Show the Markdown for ADR-8."
 ```
 
 To request advisory synthesis, add the provider, model, explicit remote-context authorization, and environment-only credential:
@@ -123,7 +123,7 @@ dotnet run --project src/AdrGuard.Agent/AdrGuard.Agent.csproj --configuration Re
   --mcp-argument src/AdrGuard.Mcp/bin/Release/net10.0/adr-guard-mcp.dll \
   --provider openai \
   --model <explicit-model-id> \
-  --question "Which ADR defines the domain dependency boundary, and what trade-offs does it record?" \
+  --question "Show the Markdown for ADR-8 and summarize its recorded trade-offs." \
   --allow-remote-context
 ```
 

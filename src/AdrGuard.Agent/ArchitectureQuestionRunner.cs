@@ -84,9 +84,10 @@ internal sealed partial class ArchitectureQuestionRunner(
             cancellationToken).ConfigureAwait(false);
         if (instructionResult.Content is null)
         {
-            return new AgentRunResult(RenderMissingEvidence(
+            return new AgentRunResult(RenderEvidenceGap(
                 configuration.Question,
                 workflow,
+                evidence,
                 [instructionResult.MissingInformation
                     ?? "The selected workflow instructions are unavailable."]));
         }
@@ -95,9 +96,10 @@ internal sealed partial class ArchitectureQuestionRunner(
         {
             if (proposalPreviewClient is null)
             {
-                return new AgentRunResult(RenderMissingEvidence(
+                return new AgentRunResult(RenderEvidenceGap(
                     configuration.Question,
                     workflow,
+                    evidence,
                     ["ADR proposal operations require an explicitly configured --cli-command."]));
             }
 
@@ -107,6 +109,7 @@ internal sealed partial class ArchitectureQuestionRunner(
                     workflow,
                     instructionResult.Content,
                     evidence,
+                    selection.MissingInformation,
                     languageModel,
                     proposalPreviewClient,
                     proposalAuthorization),
@@ -445,6 +448,32 @@ internal sealed partial class ArchitectureQuestionRunner(
             .Append(" (").Append(workflow.SkillName).AppendLine(")");
         output.AppendLine();
         output.AppendLine("Evidence (MCP, read-only): none selected because required explicit inputs are missing.");
+        AppendSection(output, "Missing information", missingInformation);
+        output.AppendLine();
+        output.Append("No model request, file write, or action outside the read-only MCP allowlist was executed.");
+        return output.ToString();
+    }
+
+    private static string RenderEvidenceGap(
+        string question,
+        ArchitectureWorkflow workflow,
+        List<McpEvidence> evidence,
+        IReadOnlyList<string> missingInformation)
+    {
+        var output = new StringBuilder();
+        output.Append(QuestionLabel).AppendLine(question);
+        output.Append("Workflow: ").Append(workflow.Name)
+            .Append(" (").Append(workflow.SkillName).AppendLine(")");
+        output.AppendLine();
+        output.AppendLine("Evidence (MCP, read-only):");
+        for (var index = 0; index < evidence.Count; index++)
+        {
+            var item = evidence[index];
+            output.Append("- E").Append(index + 1).Append(": ").Append(item.ToolName)
+                .Append(' ').Append(item.ArgumentsJson)
+                .Append("; schema ").Append(item.SchemaVersion)
+                .Append("; status ").AppendLine(item.Status.ToString());
+        }
         AppendSection(output, "Missing information", missingInformation);
         output.AppendLine();
         output.Append("No model request, file write, or action outside the read-only MCP allowlist was executed.");

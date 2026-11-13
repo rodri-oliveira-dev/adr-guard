@@ -206,6 +206,43 @@ public sealed class AdrNewFormPreviewClientTests
         Assert.Equal(2, Directory.EnumerateFiles(repository.AdrDirectory).Count());
     }
 
+    [Fact]
+    public void CreationPathRejectsSymbolicLinkEscapingPhysicalAdrDirectory()
+    {
+        using var paths = new SymbolicLinkFixture();
+        var outsideFile = paths.Write("outside.md", "outside");
+        var linkedFile = Path.Combine(paths.AdrDirectory, "0001-linked.md");
+        if (!SymbolicLinkFixture.TryCreateFileLink(linkedFile, outsideFile))
+        {
+            return;
+        }
+
+        var exception = Assert.Throws<AgentCliException>(
+            () => AdrNewFormPreviewClient.EnsurePhysicalCreationPathContained(
+                paths.AdrDirectory,
+                linkedFile));
+
+        Assert.Contains("physical ADR directory", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CreationPathAllowsAdrDirectoryReachedThroughSymbolicLink()
+    {
+        using var paths = new SymbolicLinkFixture(createAdrDirectory: false);
+        var physicalAdrDirectory = Path.Combine(paths.Root, "physical-adrs");
+        Directory.CreateDirectory(physicalAdrDirectory);
+        if (!SymbolicLinkFixture.TryCreateDirectoryLink(paths.AdrDirectory, physicalAdrDirectory))
+        {
+            return;
+        }
+        var destination = Path.Combine(physicalAdrDirectory, "0001-valid.md");
+        File.WriteAllText(destination, "valid");
+
+        AdrNewFormPreviewClient.EnsurePhysicalCreationPathContained(
+            paths.AdrDirectory,
+            Path.Combine(paths.AdrDirectory, "0001-valid.md"));
+    }
+
     private static IReadOnlyDictionary<string, string> RequiredFields { get; } =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -291,6 +328,69 @@ public sealed class AdrNewFormPreviewClientTests
             if (Directory.Exists(RepositoryRoot))
             {
                 Directory.Delete(RepositoryRoot, recursive: true);
+            }
+        }
+    }
+
+    private sealed class SymbolicLinkFixture : IDisposable
+    {
+        internal SymbolicLinkFixture(bool createAdrDirectory = true)
+        {
+            Root = Path.Combine(Path.GetTempPath(), $"adr-guard-agent-links-{Guid.NewGuid():N}");
+            AdrDirectory = Path.Combine(Root, "docs", "adr");
+            Directory.CreateDirectory(Path.GetDirectoryName(AdrDirectory)!);
+            if (createAdrDirectory)
+            {
+                Directory.CreateDirectory(AdrDirectory);
+            }
+        }
+
+        internal string Root { get; }
+
+        internal string AdrDirectory { get; }
+
+        internal string Write(string relativePath, string content)
+        {
+            var path = Path.Combine(Root, relativePath);
+            File.WriteAllText(path, content);
+            return path;
+        }
+
+        internal static bool TryCreateFileLink(string linkPath, string targetPath)
+        {
+            try
+            {
+                File.CreateSymbolicLink(linkPath, targetPath);
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException
+                or UnauthorizedAccessException
+                or PlatformNotSupportedException)
+            {
+                return false;
+            }
+        }
+
+        internal static bool TryCreateDirectoryLink(string linkPath, string targetPath)
+        {
+            try
+            {
+                Directory.CreateSymbolicLink(linkPath, targetPath);
+                return true;
+            }
+            catch (Exception exception) when (exception is IOException
+                or UnauthorizedAccessException
+                or PlatformNotSupportedException)
+            {
+                return false;
+            }
+        }
+
+        public void Dispose()
+        {
+            if (Directory.Exists(Root))
+            {
+                Directory.Delete(Root, recursive: true);
             }
         }
     }

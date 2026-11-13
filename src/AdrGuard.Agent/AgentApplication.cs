@@ -100,7 +100,7 @@ internal static class AgentApplication
 
         runner ??= new ConfiguredArchitectureQuestionRunner(
             new ConsoleAdrProposalAuthorization(
-                input ?? Console.In,
+                input ?? CancelableConsoleReader.Instance,
                 output,
                 isInteractive ?? !Console.IsInputRedirected));
         try

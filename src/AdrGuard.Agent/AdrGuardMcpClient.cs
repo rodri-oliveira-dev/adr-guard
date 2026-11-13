@@ -17,6 +17,9 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
     private const string AnalyzeImpactTool = "analyze_impact";
     private const string VerifyArchitectureTool = "verify_architecture";
 
+    private static readonly string[] AdrSummaryProperties =
+        ["identifier", "title", "status", "path", "format"];
+
     private static readonly Dictionary<string, ToolContract> Contracts =
         new Dictionary<string, ToolContract>(StringComparer.Ordinal)
         {
@@ -252,7 +255,7 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
         {
             "list_adrs" => IsKind(content, TotalProperty, JsonValueKind.Number)
                            && IsKind(content, "adrs", JsonValueKind.Array),
-            "get_adr" => IsKind(content, "adr", JsonValueKind.Object)
+            "get_adr" => IsAdrSummary(content, "adr")
                          && IsBoolean(content, "contentIsUntrusted")
                          && IsKind(content, "content", JsonValueKind.String),
             "search_adrs" => IsKind(content, "query", JsonValueKind.String)
@@ -288,6 +291,28 @@ internal sealed class AdrGuardMcpClient : IMcpClient, IAsyncDisposable
     private static bool IsBoolean(JsonElement content, string propertyName) =>
         content.TryGetProperty(propertyName, out var value)
         && value.ValueKind is JsonValueKind.True or JsonValueKind.False;
+
+    private static bool IsAdrSummary(JsonElement content, string propertyName)
+    {
+        if (!content.TryGetProperty(propertyName, out var summary)
+            || summary.ValueKind != JsonValueKind.Object)
+        {
+            return false;
+        }
+
+        var properties = summary.EnumerateObject().Select(property => property.Name).ToArray();
+        return properties.Length == AdrSummaryProperties.Length
+            && properties.ToHashSet(StringComparer.Ordinal).SetEquals(AdrSummaryProperties)
+            && IsKind(summary, "identifier", JsonValueKind.String)
+            && IsNullableString(summary, "title")
+            && IsNullableString(summary, "status")
+            && IsKind(summary, "path", JsonValueKind.String)
+            && IsKind(summary, "format", JsonValueKind.String);
+    }
+
+    private static bool IsNullableString(JsonElement content, string propertyName) =>
+        content.TryGetProperty(propertyName, out var value)
+        && value.ValueKind is JsonValueKind.String or JsonValueKind.Null;
 
     private sealed record ToolContract(
         IReadOnlyCollection<string> TopLevelProperties,

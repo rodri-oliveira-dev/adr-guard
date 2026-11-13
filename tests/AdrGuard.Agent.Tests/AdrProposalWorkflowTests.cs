@@ -173,6 +173,29 @@ public sealed class AdrProposalWorkflowTests
         Assert.Equal("Proposed", authorization.Proposal?.Preview.Markdown.Split("\n")[4]);
     }
 
+    [Fact]
+    public async Task SelectorMissingInformationIsPreservedInProposalPreview()
+    {
+        var model = new FakeLanguageModel(ValidProposal);
+        var previewClient = new FakePreviewClient();
+        var selector = new FixedToolSelector(new ArchitectureToolSelection(
+            [new ArchitectureToolRequest(ArchitectureToolKind.SearchAdrs, "order processing")],
+            ["Impact analysis requires an explicit manifest."]));
+        var runner = new ArchitectureQuestionRunner(
+            new FakeMcpClient(total: 1),
+            model,
+            selector,
+            instructionLoader: FakeInstructionLoader.Instance,
+            proposalPreviewClient: previewClient);
+
+        var result = await runner.RunAsync(
+            CreateConfiguration(),
+            TestContext.Current.CancellationToken);
+
+        Assert.Contains("No load test was supplied.", result.Message, StringComparison.Ordinal);
+        Assert.Contains("Impact analysis requires an explicit manifest.", result.Message, StringComparison.Ordinal);
+    }
+
     private static ArchitectureQuestionRunner CreateRunner(
         IMcpClient mcpClient,
         ILanguageModel model,
@@ -242,6 +265,14 @@ public sealed class AdrProposalWorkflowTests
                 "Prepare a reviewable ADR proposal without writing it.",
                 null));
         }
+    }
+
+    private sealed class FixedToolSelector(ArchitectureToolSelection selection)
+        : IArchitectureQuestionToolSelector
+    {
+        public ArchitectureToolSelection Select(
+            AgentConfiguration configuration,
+            ArchitectureWorkflow workflow) => selection;
     }
 
     private sealed class FakeLanguageModel(string content) : ILanguageModel

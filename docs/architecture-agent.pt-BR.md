@@ -110,7 +110,7 @@ dotnet run --project src/AdrGuard.Agent/AdrGuard.Agent.csproj --configuration Re
   --adr-directory docs/adr \
   --mcp-command dotnet \
   --mcp-argument src/AdrGuard.Mcp/bin/Release/net10.0/adr-guard-mcp.dll \
-  --question "Qual ADR define o limite de dependência do domínio?"
+  --question "Mostre o Markdown da ADR-8."
 ```
 
 Para solicitar síntese consultiva, adicione provider, modelo, autorização explícita de contexto remoto e credencial somente por ambiente:
@@ -123,7 +123,7 @@ dotnet run --project src/AdrGuard.Agent/AdrGuard.Agent.csproj --configuration Re
   --mcp-argument src/AdrGuard.Mcp/bin/Release/net10.0/adr-guard-mcp.dll \
   --provider openai \
   --model <id-explicito-do-modelo> \
-  --question "Qual ADR define o limite de dependência do domínio e quais trade-offs ela registra?" \
+  --question "Mostre o Markdown da ADR-8 e resuma os trade-offs registrados nela." \
   --allow-remote-context
 ```
 

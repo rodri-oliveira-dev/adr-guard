@@ -62,6 +62,27 @@ public sealed class AdrProposalAuthorizationTests
         Assert.Equal((AdrProposalAuthorizationDecision)expectedValue, decision);
     }
 
+    [Fact]
+    public async Task CancellationAbandonsLateApprovalInput()
+    {
+        var input = new DeferredTextReader();
+        var authorization = new ConsoleAdrProposalAuthorization(
+            input,
+            TextWriter.Null,
+            isInteractive: true);
+        using var cancellationSource = new CancellationTokenSource();
+
+        var authorizationTask = authorization.AuthorizeAsync(
+            Proposal,
+            "exact preview",
+            cancellationSource.Token);
+        cancellationSource.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => authorizationTask);
+        input.Complete($"create {Proposal.Fingerprint}");
+        Assert.True(authorizationTask.IsCanceled);
+    }
+
     private static AdrCreationProposal Proposal { get; } = new(
         new string('A', 64),
         "docs/adr",
@@ -78,4 +99,15 @@ public sealed class AdrProposalAuthorizationTests
         new AdrFormPreview(
             "docs/adr/0001-use-a-queue.md",
             "# Use a queue\n\n## Status\n\nProposed\n"));
+
+    private sealed class DeferredTextReader : TextReader
+    {
+        private readonly TaskCompletionSource<string?> completion =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        internal void Complete(string value) => completion.TrySetResult(value);
+
+        public override ValueTask<string?> ReadLineAsync(CancellationToken cancellationToken) =>
+            new(completion.Task);
+    }
 }

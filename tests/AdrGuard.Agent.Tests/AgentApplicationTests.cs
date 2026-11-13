@@ -2,8 +2,18 @@ using Xunit;
 
 namespace AdrGuard.Agent.Tests;
 
-public sealed class AgentApplicationTests
+public sealed class AgentApplicationTests : IDisposable
 {
+    private readonly string repositoryRoot;
+
+    public AgentApplicationTests()
+    {
+        repositoryRoot = Path.Combine(
+            Path.GetTempPath(),
+            $"adr-guard-agent-application-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(Path.Combine(repositoryRoot, "docs", "adr"));
+    }
+
     [Fact]
     public async Task HelpDocumentsExplicitConfigurationWithoutRunningAgent()
     {
@@ -44,7 +54,7 @@ public sealed class AgentApplicationTests
         Assert.Equal(0, result.ExitCode);
         Assert.Equal($"ready{Environment.NewLine}", result.Output);
         Assert.Equal(string.Empty, result.Error);
-        Assert.Equal(RepositoryRoot, runner.Configuration?.RepositoryRoot);
+        Assert.Equal(repositoryRoot, runner.Configuration?.RepositoryRoot);
         Assert.Equal("docs/adr", runner.Configuration?.AdrDirectory);
         Assert.Equal("dotnet", runner.Configuration?.McpCommand);
         Assert.Equal(["fake-server.dll"], runner.Configuration?.McpArguments);
@@ -133,7 +143,7 @@ public sealed class AgentApplicationTests
     {
         var result = await RunAsync(
             [
-                "--repository", RepositoryRoot,
+                "--repository", repositoryRoot,
                 "--adr-directory", adrDirectory,
                 "--mcp-command", "dotnet",
                 "--provider", "openai",
@@ -278,9 +288,9 @@ public sealed class AgentApplicationTests
         return (exitCode, output.ToString(), error.ToString());
     }
 
-    private static string[] ValidArguments =>
+    private string[] ValidArguments =>
     [
-        "--repository", RepositoryRoot,
+        "--repository", repositoryRoot,
         "--adr-directory", "docs/adr",
         "--mcp-command", "dotnet",
         "--mcp-argument", "fake-server.dll",
@@ -292,8 +302,13 @@ public sealed class AgentApplicationTests
         "--max-tool-calls", "3",
     ];
 
-    private static string RepositoryRoot => Path.GetFullPath(
-        Path.Combine(AppContext.BaseDirectory, "../../../../../"));
+    public void Dispose()
+    {
+        if (Directory.Exists(repositoryRoot))
+        {
+            Directory.Delete(repositoryRoot, recursive: true);
+        }
+    }
 
     private sealed class FakeAgentRunner : IAgentRunner
     {

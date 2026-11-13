@@ -89,6 +89,28 @@ public sealed class ArchitectureQuestionRunnerTests
     }
 
     [Fact]
+    public async Task MissingWorkflowInstructionsPreserveCollectedEvidenceStatus()
+    {
+        var mcp = new FakeMcpClient { Status = McpEvidenceStatus.Inconclusive };
+        var model = new FakeLanguageModel(ValidAnswer);
+        var runner = new ArchitectureQuestionRunner(
+            mcp,
+            model,
+            instructionLoader: UnavailableWorkflowInstructionLoader.Instance);
+
+        var result = await runner.RunAsync(
+            CreateConfiguration("Why was the boundary chosen?"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(["search_adrs"], mcp.Calls);
+        Assert.Empty(model.Requests);
+        Assert.Contains("E1: search_adrs", result.Message, StringComparison.Ordinal);
+        Assert.Contains("status Inconclusive", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("none selected", result.Message, StringComparison.Ordinal);
+        Assert.Contains("Workflow instructions unavailable", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ToolCallLimitFailsBeforeAnyToolRuns()
     {
         var mcp = new FakeMcpClient();
@@ -480,6 +502,22 @@ public sealed class ArchitectureQuestionRunnerTests
             return Task.FromResult(new WorkflowInstructionLoadResult(
                 $"Controlled instructions for {workflow.SkillName}.",
                 null));
+        }
+    }
+
+    private sealed class UnavailableWorkflowInstructionLoader : IWorkflowInstructionLoader
+    {
+        internal static UnavailableWorkflowInstructionLoader Instance { get; } = new();
+
+        public Task<WorkflowInstructionLoadResult> LoadAsync(
+            AgentConfiguration configuration,
+            ArchitectureWorkflow workflow,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new WorkflowInstructionLoadResult(
+                null,
+                "Workflow instructions unavailable."));
         }
     }
 

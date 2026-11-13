@@ -294,9 +294,61 @@ internal sealed class AdrNewFormPreviewClient : IAdrProposalPreviewClient
                 "The ADR Guard CLI returned a creation destination outside the configured ADR directory.");
         }
 
+        EnsurePhysicalCreationPathContained(adrRoot, fullPath);
+
         return new AdrFormCreation(
             Path.GetRelativePath(configuration.RepositoryRoot, fullPath)
                 .Replace(Path.DirectorySeparatorChar, '/'));
+    }
+
+    internal static void EnsurePhysicalCreationPathContained(string adrRoot, string fullPath)
+    {
+        var physicalAdrRoot = ResolvePhysicalPath(adrRoot);
+        var physicalDestination = ResolvePhysicalPath(fullPath);
+        var relative = Path.GetRelativePath(physicalAdrRoot, physicalDestination);
+        if (relative == ".."
+            || relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+            || Path.IsPathRooted(relative))
+        {
+            throw new AgentCliException(
+                "The ADR Guard CLI returned a creation destination outside the physical ADR directory.");
+        }
+    }
+
+    private static string ResolvePhysicalPath(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var root = Path.GetPathRoot(fullPath)
+            ?? throw new AgentCliException("The ADR creation path has no filesystem root.");
+        var current = root;
+        var relative = Path.GetRelativePath(root, fullPath);
+        if (relative == ".")
+        {
+            return Path.TrimEndingDirectorySeparator(Path.GetFullPath(current));
+        }
+
+        foreach (var segment in relative.Split(
+                     [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+                     StringSplitOptions.RemoveEmptyEntries))
+        {
+            current = Path.Combine(current, segment);
+            FileSystemInfo entry = Directory.Exists(current)
+                ? new DirectoryInfo(current)
+                : new FileInfo(current);
+            if (!entry.Exists)
+            {
+                throw new AgentCliException(
+                    "The created ADR path could not be resolved for physical containment verification.");
+            }
+
+            var target = entry.ResolveLinkTarget(returnFinalTarget: true);
+            if (target is not null)
+            {
+                current = target.FullName;
+            }
+        }
+
+        return Path.TrimEndingDirectorySeparator(Path.GetFullPath(current));
     }
 
     private static AdrFormDescription ParseTemplate(JsonElement template, string operation)

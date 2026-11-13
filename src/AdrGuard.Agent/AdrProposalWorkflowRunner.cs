@@ -34,6 +34,7 @@ internal static class AdrProposalWorkflowRunner
         var workflow = request.Workflow;
         var workflowInstructions = request.WorkflowInstructions;
         var evidence = request.Evidence;
+        var selectedMissingInformation = request.MissingInformation;
         var languageModel = request.LanguageModel;
         var previewClient = request.PreviewClient;
         var authorization = request.Authorization;
@@ -41,6 +42,7 @@ internal static class AdrProposalWorkflowRunner
         ArgumentNullException.ThrowIfNull(workflow);
         ArgumentException.ThrowIfNullOrWhiteSpace(workflowInstructions);
         ArgumentNullException.ThrowIfNull(evidence);
+        ArgumentNullException.ThrowIfNull(selectedMissingInformation);
         ArgumentNullException.ThrowIfNull(languageModel);
         ArgumentNullException.ThrowIfNull(previewClient);
 
@@ -81,7 +83,14 @@ internal static class AdrProposalWorkflowRunner
                 "The ADR proposal response provenance does not match the configured provider and model.");
         }
 
-        var proposal = ParseProposal(response.Content, description, evidence.Count);
+        var parsedProposal = ParseProposal(response.Content, description, evidence.Count);
+        var proposal = parsedProposal with
+        {
+            MissingInformation = parsedProposal.MissingInformation
+                .Concat(selectedMissingInformation)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray(),
+        };
         var preview = await previewClient.PreviewAsync(
             proposal.Title,
             proposal.Fields,
@@ -528,6 +537,7 @@ internal sealed record AdrProposalWorkflowRequest(
     ArchitectureWorkflow Workflow,
     string WorkflowInstructions,
     IReadOnlyList<McpEvidence> Evidence,
+    IReadOnlyList<string> MissingInformation,
     ILanguageModel LanguageModel,
     IAdrProposalPreviewClient PreviewClient,
     IAdrProposalAuthorization? Authorization);
