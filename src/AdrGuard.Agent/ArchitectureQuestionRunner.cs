@@ -88,8 +88,10 @@ internal sealed partial class ArchitectureQuestionRunner(
                 configuration.Question,
                 workflow,
                 evidence,
-                [instructionResult.MissingInformation
-                    ?? "The selected workflow instructions are unavailable."]));
+                CombineMissingInformation(
+                    selection.MissingInformation,
+                    instructionResult.MissingInformation
+                        ?? "The selected workflow instructions are unavailable.")));
         }
 
         if (workflow.Kind == ArchitectureWorkflowKind.PrepareAdrProposal)
@@ -100,7 +102,9 @@ internal sealed partial class ArchitectureQuestionRunner(
                     configuration.Question,
                     workflow,
                     evidence,
-                    ["ADR proposal operations require an explicitly configured --cli-command."]));
+                    CombineMissingInformation(
+                        selection.MissingInformation,
+                        "ADR proposal operations require an explicitly configured --cli-command.")));
             }
 
             return await AdrProposalWorkflowRunner.RunAsync(
@@ -479,6 +483,14 @@ internal sealed partial class ArchitectureQuestionRunner(
         output.Append("No model request, file write, or action outside the read-only MCP allowlist was executed.");
         return output.ToString();
     }
+
+    private static string[] CombineMissingInformation(
+        IReadOnlyList<string> selectedMissingInformation,
+        string specificMissingInformation) =>
+        selectedMissingInformation
+            .Append(specificMissingInformation)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
 
     private static string RenderLocalEvidence(
         AgentConfiguration configuration,

@@ -99,15 +99,32 @@ public sealed class ArchitectureQuestionRunnerTests
             instructionLoader: UnavailableWorkflowInstructionLoader.Instance);
 
         var result = await runner.RunAsync(
-            CreateConfiguration("Why was the boundary chosen?"),
+            CreateConfiguration("Prepare an ADR proposal for the impact of changing order processing"),
             TestContext.Current.CancellationToken);
 
-        Assert.Equal(["search_adrs"], mcp.Calls);
+        Assert.Contains("search_adrs", mcp.Calls);
         Assert.Empty(model.Requests);
         Assert.Contains("E1: search_adrs", result.Message, StringComparison.Ordinal);
         Assert.Contains("status Inconclusive", result.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("none selected", result.Message, StringComparison.Ordinal);
         Assert.Contains("Workflow instructions unavailable", result.Message, StringComparison.Ordinal);
+        Assert.Contains("--impact-manifest", result.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task MissingProposalCliPreservesSelectorGaps()
+    {
+        var mcp = new FakeMcpClient();
+        var model = new FakeLanguageModel(ValidAnswer);
+        var runner = CreateRunner(mcp, model);
+
+        var result = await runner.RunAsync(
+            CreateConfiguration("Prepare an ADR proposal for the impact of changing order processing"),
+            TestContext.Current.CancellationToken);
+
+        Assert.Empty(model.Requests);
+        Assert.Contains("--cli-command", result.Message, StringComparison.Ordinal);
+        Assert.Contains("--impact-manifest", result.Message, StringComparison.Ordinal);
     }
 
     [Fact]

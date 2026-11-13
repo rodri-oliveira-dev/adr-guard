@@ -1,4 +1,5 @@
 using Xunit;
+using Xunit.v3;
 
 namespace AdrGuard.Agent.Tests;
 
@@ -212,10 +213,7 @@ public sealed class AdrNewFormPreviewClientTests
         using var paths = new SymbolicLinkFixture();
         var outsideFile = paths.Write("outside.md", "outside");
         var linkedFile = Path.Combine(paths.AdrDirectory, "0001-linked.md");
-        if (!SymbolicLinkFixture.TryCreateFileLink(linkedFile, outsideFile))
-        {
-            return;
-        }
+        SymbolicLinkFixture.CreateFileLinkOrSkip(linkedFile, outsideFile);
 
         var exception = Assert.Throws<AgentCliException>(
             () => AdrNewFormPreviewClient.EnsurePhysicalCreationPathContained(
@@ -231,10 +229,7 @@ public sealed class AdrNewFormPreviewClientTests
         using var paths = new SymbolicLinkFixture(createAdrDirectory: false);
         var physicalAdrDirectory = Path.Combine(paths.Root, "physical-adrs");
         Directory.CreateDirectory(physicalAdrDirectory);
-        if (!SymbolicLinkFixture.TryCreateDirectoryLink(paths.AdrDirectory, physicalAdrDirectory))
-        {
-            return;
-        }
+        SymbolicLinkFixture.CreateDirectoryLinkOrSkip(paths.AdrDirectory, physicalAdrDirectory);
         var destination = Path.Combine(physicalAdrDirectory, "0001-valid.md");
         File.WriteAllText(destination, "valid");
 
@@ -356,35 +351,43 @@ public sealed class AdrNewFormPreviewClientTests
             return path;
         }
 
-        internal static bool TryCreateFileLink(string linkPath, string targetPath)
+        internal static void CreateFileLinkOrSkip(string linkPath, string targetPath)
         {
             try
             {
                 File.CreateSymbolicLink(linkPath, targetPath);
-                return true;
             }
-            catch (Exception exception) when (exception is IOException
-                or UnauthorizedAccessException
-                or PlatformNotSupportedException)
+            catch (Exception exception) when (exception is UnauthorizedAccessException
+                or PlatformNotSupportedException
+                || IsMissingSymbolicLinkPrivilege(exception))
             {
-                return false;
+                throw DynamicSkip(exception);
             }
         }
 
-        internal static bool TryCreateDirectoryLink(string linkPath, string targetPath)
+        internal static void CreateDirectoryLinkOrSkip(string linkPath, string targetPath)
         {
             try
             {
                 Directory.CreateSymbolicLink(linkPath, targetPath);
-                return true;
             }
-            catch (Exception exception) when (exception is IOException
-                or UnauthorizedAccessException
-                or PlatformNotSupportedException)
+            catch (Exception exception) when (exception is UnauthorizedAccessException
+                or PlatformNotSupportedException
+                || IsMissingSymbolicLinkPrivilege(exception))
             {
-                return false;
+                throw DynamicSkip(exception);
             }
         }
+
+        private static InvalidOperationException DynamicSkip(Exception exception) =>
+            new(
+                $"{DynamicSkipToken.Value}Symbolic-link creation is unavailable: {exception.Message}",
+                exception);
+
+        private static bool IsMissingSymbolicLinkPrivilege(Exception exception) =>
+            OperatingSystem.IsWindows()
+            && exception is IOException ioException
+            && (ioException.HResult & 0xFFFF) == 1314;
 
         public void Dispose()
         {
