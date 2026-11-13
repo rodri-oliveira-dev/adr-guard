@@ -76,7 +76,7 @@ fi
 
 # Both stages must stay on explicit Alpine variants; a generic .NET digest can
 # silently select a non-Alpine distribution where apk is unavailable.
-grep -Eq '^FROM mcr\\.microsoft\\.com/dotnet/sdk:[0-9.]+-alpine[0-9.]+(@sha256:[a-f0-9]{64})? AS build
+grep -Eq '^FROM mcr\.microsoft\.com/dotnet/sdk:[0-9.]+-alpine[0-9.]+(@sha256:[a-f0-9]{64})? AS build
 grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"
 
 if grep -Eq '(^|[[:space:]])draft([[:space:]]|$)' "${ROOT_DIR}/action.yml"; then
@@ -86,7 +86,7 @@ fi
 
 echo "GitHub Action security checks passed for ${IMAGE} (${repo_digest})."
  "${ROOT_DIR}/Dockerfile"
-grep -Eq '^FROM mcr\\.microsoft\\.com/dotnet/runtime:[0-9.]+-alpine[0-9.]+(@sha256:[a-f0-9]{64})? AS final
+grep -Eq '^FROM mcr\.microsoft\.com/dotnet/runtime:[0-9.]+-alpine[0-9.]+(@sha256:[a-f0-9]{64})? AS final
 grep -Fq 'USER $APP_UID' "${ROOT_DIR}/Dockerfile"
 
 if grep -Eq '(^|[[:space:]])draft([[:space:]]|$)' "${ROOT_DIR}/action.yml"; then
