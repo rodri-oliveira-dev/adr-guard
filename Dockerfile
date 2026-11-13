@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # .NET SDK 10.0.403, Alpine 3.24.
-FROM mcr.microsoft.com/dotnet/sdk@sha256:cc02b814237a76c4735fb6eeee87181597b5e56f2ce458a435e527674d91f4d7 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403-alpine3.24 AS build
 WORKDIR /src
 
 COPY global.json Directory.Build.props Directory.Packages.props ./
@@ -21,13 +21,16 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     /p:UseAppHost=true
 
 # .NET Runtime 10.0.15, Alpine 3.24.
-FROM mcr.microsoft.com/dotnet/runtime@sha256:7518aaad9e4328001518006a7e8b3fcf6ce8f8816355574f7264c1fa0a0ce188 AS final
+FROM mcr.microsoft.com/dotnet/runtime:10.0.15-alpine3.24 AS final
 WORKDIR /workspace
 
 # Impact analysis invokes the bounded local Git CLI. The runtime remains
 # non-root and the Action mounts consumer repositories read-only.
-# Update the inherited zlib package to address CVE-2026-4738 (fixed in 1.4-r0).
-RUN apk add --no-cache git=2.54.1-r0 zlib=1.4-r0
+# Always upgrade inherited zlib for CVE-2026-4738 (fixed in 1.4-r0).
+# Alpine security updates replace exact -rN package revisions. Upgrade at build
+# time to avoid stale constraints while retaining explicit Alpine base versions.
+# hadolint ignore=DL3018
+RUN apk add --no-cache --upgrade git zlib
 
 LABEL org.opencontainers.image.title="ADR Guard" \
       org.opencontainers.image.description="A .NET CLI for validating, maintaining, reviewing, analyzing impact, and verifying ADR-backed architectural drift." \
