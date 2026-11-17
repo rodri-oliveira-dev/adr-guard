@@ -2,6 +2,8 @@
 
 [Português (Brasil)](mcp.pt-BR.md)
 
+[![ADR Guard MCP - Glama quality and maintenance](https://glama.ai/mcp/servers/rodri-oliveira-dev/adr-guard/badges/score.svg)](https://glama.ai/mcp/servers/rodri-oliveira-dev/adr-guard)
+
 The ADR Guard MCP server is a local, read-only adapter that exposes ADR Guard domain capabilities to Model Context Protocol clients. It lets a compatible agent list, read, search, relate, validate, and analyze ADRs without replacing the CLI or embedding an AI model in ADR Guard.
 
 > **Availability:** MCP `1.0.0` is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0), and the official MCP Registry. MCP `1.0.1` is an unpublished candidate; do not use its version in public installation commands until both NuGet.org and the Registry are verified. GitHub Packages is an authenticated secondary feed with an independently triggered backfill for the already published 1.0.0 release. See [MCP release distribution](mcp-release.md).

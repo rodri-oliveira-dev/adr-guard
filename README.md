@@ -3,6 +3,7 @@
 [![CI](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/ci.yml)
 [![CLI NuGet](https://img.shields.io/nuget/v/RodriOliveira.AdrGuard.svg?label=CLI%20NuGet)](https://www.nuget.org/packages/RodriOliveira.AdrGuard)
 [![MCP NuGet](https://img.shields.io/nuget/v/RodriOliveira.AdrGuard.Mcp.svg?label=MCP%20NuGet)](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp)
+**MCP:** [![ADR Guard MCP - Glama quality and maintenance](https://glama.ai/mcp/servers/rodri-oliveira-dev/adr-guard/badges/score.svg)](https://glama.ai/mcp/servers/rodri-oliveira-dev/adr-guard)
 [![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/rodrioliveira.adr-guard?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard)
 [![CLI GitHub Release](https://img.shields.io/github/v/release/rodri-oliveira-dev/adr-guard?filter=v*&sort=semver&label=CLI%20release)](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0)
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
