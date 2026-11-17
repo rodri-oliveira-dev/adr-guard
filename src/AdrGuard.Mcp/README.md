@@ -2,6 +2,8 @@
 
 <!-- mcp-name: io.github.rodri-oliveira-dev/adr-guard -->
 
+[![ADR Guard MCP - Glama quality and maintenance](https://glama.ai/mcp/servers/rodri-oliveira-dev/adr-guard/badges/score.svg)](https://glama.ai/mcp/servers/rodri-oliveira-dev/adr-guard)
+
 ADR Guard MCP is a local, read-only adapter that gives compatible Model Context Protocol clients structured access to ADR discovery, validation, impact analysis, and architectural drift verification. It reuses the authoritative ADR Guard domain implementation; it does not approve architectural decisions or turn advisory evidence into compliance.
 
 > **Publication status:** version `1.0.0` is published on NuGet.org, in the dedicated `mcp/v1.0.0` GitHub Release, and in the MCP Registry. Version `1.0.1` is an unpublished release candidate that directly references the internal `AdrGuard.Core` assembly while preserving the seven tools and schema `1.0` contracts. GitHub Packages is an optional authenticated secondary channel whose `1.0.0` backfill remains a separate manual step.
