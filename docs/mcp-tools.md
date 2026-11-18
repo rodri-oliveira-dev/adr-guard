@@ -50,7 +50,7 @@ Ordering follows deterministic ADR discovery and stops at `limit`; this is not s
 
 ## `get_adr_relationships`
 
-With no input, inspects all configured ADRs. With `identifier`, limits source relationships and diagnostics to one resolved ADR. The response separates declared `relationships` from validation `issues`. Relationship records include source, type (`superseded-by`, `supersedes`, or `depends-on`), declared target, resolved target when available, and resolution state.
+With no input, inspects all configured ADRs. With `identifier`, limits source relationships and diagnostics to one resolved ADR. The response separates declared `relationships` from validation `issues`. Relationship records include source, type (`superseded-by`, `supersedes`, or `depends-on`), declared target, resolved target when available, and resolution state: `valid` for exactly one target, `ambiguous` for multiple candidates, or `unresolved` for no target.
 
 Example input:
 

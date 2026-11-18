@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "adrs": [
+    {
+      "identifier": "ADR-1",
+      "path": "docs/adr/0001-accepted.md",
+      "title": "Accepted decision",
+      "status": "Accepted"
+    },
+    {
+      "identifier": "ADR-2",
+      "path": "docs/adr/0002-proposed.md",
+      "title": "Proposed decision",
+      "status": "Proposed"
+    },
+    {
+      "identifier": "ADR-3",
+      "path": "docs/adr/0003-deprecated.md",
+      "title": "Deprecated decision",
+      "status": "Deprecated"
+    },
+    {
+      "identifier": "ADR-4",
+      "path": "docs/adr/0004-superseded.md",
+      "title": "Superseded decision",
+      "status": "Superseded"
+    },
+    {
+      "identifier": "ADR-5",
+      "path": "docs/adr/0005-invalid-status.md",
+      "title": "Decision with invalid status",
+      "status": null
+    }
+  ],
+  "relationships": [
+    {
+      "sourceIdentifier": "ADR-4",
+      "sourcePath": "docs/adr/0004-superseded.md",
+      "type": "superseded-by",
+      "declaredTarget": "0001-accepted.md",
+      "targetIdentifier": "ADR-1",
+      "targetPath": "docs/adr/0001-accepted.md",
+      "resolution": "valid"
+    }
+  ],
+  "issues": [
+    {
+      "code": "ADR004",
+      "message": "Status 'Approved' is invalid. Allowed values: Accepted, Deprecated, Proposed, Superseded.",
+      "path": "docs/adr/0005-invalid-status.md",
+      "severity": "error"
+    }
+  ]
+}

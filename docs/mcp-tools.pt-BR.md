@@ -50,7 +50,7 @@ A ordem segue a descoberta determinística e para em `limit`; não é pesquisa s
 
 ## `get_adr_relationships`
 
-Sem entrada, inspeciona todas as ADRs configuradas. Com `identifier`, limita relações de origem e diagnósticos a uma ADR resolvida. A resposta separa `relationships` declarados de `issues` de validação. Relações incluem origem, tipo (`superseded-by`, `supersedes` ou `depends-on`), destino declarado, destino resolvido quando disponível e estado da resolução.
+Sem entrada, inspeciona todas as ADRs configuradas. Com `identifier`, limita relações de origem e diagnósticos a uma ADR resolvida. A resposta separa `relationships` declarados de `issues` de validação. Relações incluem origem, tipo (`superseded-by`, `supersedes` ou `depends-on`), destino declarado, destino resolvido quando disponível e estado da resolução: `valid` para exatamente um destino, `ambiguous` para múltiplas candidatas ou `unresolved` quando não há destino.
 
 Exemplo:
 

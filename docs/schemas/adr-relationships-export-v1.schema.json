@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/schemas/adr-relationships-export-v1.schema.json",
+  "title": "ADR Guard relationships export v1",
+  "description": "Version 1.0 of the deterministic ADR relationship exchange contract. Major versions are incompatible; minor versions are additive and preserve existing field semantics.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "adrs", "relationships", "issues"],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "adrs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/adr" }
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relationship" }
+    },
+    "issues": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/issue" }
+    }
+  },
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\])(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+(?:/[^\\\\]+)*$"
+    },
+    "adr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identifier", "path", "title", "status"],
+      "properties": {
+        "identifier": { "type": "string", "minLength": 1 },
+        "path": { "$ref": "#/$defs/path" },
+        "title": { "type": ["string", "null"] },
+        "status": {
+          "oneOf": [
+            { "enum": ["Accepted", "Proposed", "Deprecated", "Superseded"] },
+            { "type": "null" }
+          ],
+          "description": "Null means the source status is missing, unknown, or invalid; a related issue explains the uncertainty."
+        }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceIdentifier", "sourcePath", "type", "declaredTarget", "targetIdentifier", "targetPath", "resolution"],
+      "properties": {
+        "sourceIdentifier": { "type": "string", "minLength": 1 },
+        "sourcePath": { "$ref": "#/$defs/path" },
+        "type": { "enum": ["supersedes", "superseded-by", "depends-on"] },
+        "declaredTarget": { "type": "string", "minLength": 1 },
+        "targetIdentifier": { "type": ["string", "null"] },
+        "targetPath": {
+          "oneOf": [
+            { "$ref": "#/$defs/path" },
+            { "type": "null" }
+          ]
+        },
+        "resolution": {
+          "enum": ["valid", "ambiguous", "unresolved"],
+          "description": "Matches get_adr_relationships: valid resolves to exactly one ADR, ambiguous resolves to more than one candidate, and unresolved resolves to none."
+        }
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message", "path", "severity"],
+      "properties": {
+        "code": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "path": { "$ref": "#/$defs/path" },
+        "severity": { "enum": ["warning", "error"] }
+      }
+    }
+  }
+}
