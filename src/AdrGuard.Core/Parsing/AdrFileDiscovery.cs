@@ -3,11 +3,23 @@ namespace AdrGuard.Parsing;
 internal static class AdrFileDiscovery
 {
     internal static IReadOnlyList<string> FindMarkdownFiles(string directoryPath)
+        => FindMarkdownFiles(directoryPath, skipReparsePoints: false);
+
+    internal static IReadOnlyList<string> FindMarkdownFiles(
+        string directoryPath,
+        bool skipReparsePoints)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directoryPath);
 
+        var enumerationOptions = new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            IgnoreInaccessible = false,
+            AttributesToSkip = skipReparsePoints ? FileAttributes.ReparsePoint : (FileAttributes)0,
+            ReturnSpecialDirectories = false,
+        };
         return Directory
-            .EnumerateFiles(directoryPath, "*", SearchOption.AllDirectories)
+            .EnumerateFiles(directoryPath, "*", enumerationOptions)
             .Where(IsAdrMarkdownFile)
             .Order(StringComparer.Ordinal)
             .ToArray();

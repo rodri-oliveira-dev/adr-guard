@@ -28,7 +28,7 @@
       "declaredTarget": "0002-managed-storage.md",
       "targetIdentifier": "ADR-2",
       "targetPath": "docs/adr/0002-managed-storage.md",
-      "resolution": "valid"
+      "resolution": "resolved"
     },
     {
       "sourceIdentifier": "ADR-2",
@@ -37,7 +37,7 @@
       "declaredTarget": "0003-encryption.md",
       "targetIdentifier": "ADR-3",
       "targetPath": "docs/adr/0003-encryption.md",
-      "resolution": "valid"
+      "resolution": "resolved"
     }
   ],
   "issues": []

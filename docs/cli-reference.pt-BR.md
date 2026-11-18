@@ -183,7 +183,11 @@ adr-guard export relationships [diretório] [--output <arquivo.json>]
 
 O comando exporta metadados de ADR no schema `1.0`, todos os relacionamentos declarados suportados e issues atribuíveis da validação do Core. A saída padrão é `<raiz-do-repositório>/.adr-guard/relationships.json`; `--output` é relativo à raiz do repositório. A saída deve usar `.json`, permanecer dentro do repositório e evitar travessia por links simbólicos/reparse points. Diretórios ausentes são criados, e um artefato existente só é substituído pela promoção de um arquivo temporário UTF-8 completo no mesmo diretório.
 
+A entrada é limitada a 1.000 arquivos Markdown com até 524.288 bytes cada e deve conter UTF-8 válido; links simbólicos e reparse points são ignorados antes da leitura do conteúdo. A `resolution` do relacionamento é `resolved`, `ambiguous` ou `unresolved`. `resolved` comprova apenas que o destino declarado identifica uma ADR; falhas semânticas, como ciclos, permanecem explícitas em `issues`.
+
 Ordem estável de campos/arrays, caminhos portáteis relativos ao repositório e ausência de timestamps tornam execuções equivalentes byte a byte idênticas. Issues de validação não impedem a geração nem alteram o exit code de sucesso `0`. Uso/configuração inválidos retornam `2`; entrada/saída insegura, cancelamento e falhas de I/O retornam `3`. O comando é offline, usa o mesmo produtor de relacionamentos do Core que o MCP e não edita ADRs, índice Markdown, configuração ou Git. `generatedFrom` foi omitido para evitar estado Git implícito e preservar o menor contrato determinístico. Consulte o [schema e contrato de integração](adr-relationships-export-v1.pt-BR.md).
+
+Uma exportação bem-sucedida significa que o artefato foi gravado; ela não significa que todos os relacionamentos são válidos. O [exemplo de GitHub Actions](examples/github-action-relationships-export.yml) faz upload do artefato para consumo externo e mantém o enforcement consultivo ou obrigatório de `check` como uma etapa separada.
 
 ## Impacto arquitetural
 

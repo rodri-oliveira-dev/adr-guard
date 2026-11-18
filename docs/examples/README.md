@@ -6,6 +6,8 @@ For executable architecture evidence, see the bilingual [architectural-drift cas
 
 This library contains **ADR document examples** that show how to record decisions. For an **automation example** that shows those documents being validated in a real pull request, use the [GitHub Actions demo](../github-action.md#real-github-actions-demo).
 
+For external relationship consumers, see the [versioned JSON fixtures](adr-relationships-export-v1/) and the [GitHub Actions export example](github-action-relationships-export.yml). The workflow uploads the export independently from advisory validation; artifact creation is not proof that every relationship is valid.
+
 These examples express the same decision—using PostgreSQL as the order system of record—at three levels of structure. They contain completed reasoning rather than template prompts. Each language and format lives in a separate directory because every sample intentionally uses ADR ID `0001` and format selection applies to the whole validated set.
 
 | Example | Why this form fits |

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using AdrGuard.Cli;
+using AdrGuard.Parsing;
 using AdrGuard.Validation;
 using Xunit;
 
@@ -24,6 +25,9 @@ public sealed class ExportRelationshipsCommandIntegrationTests
         Assert.Equal("1.0", json.RootElement.GetProperty("schemaVersion").GetString());
         Assert.Equal(2, json.RootElement.GetProperty("adrs").GetArrayLength());
         Assert.Equal(2, json.RootElement.GetProperty("relationships").GetArrayLength());
+        Assert.All(
+            json.RootElement.GetProperty("relationships").EnumerateArray(),
+            relationship => Assert.Equal("resolved", relationship.GetProperty("resolution").GetString()));
         Assert.All(
             json.RootElement.GetProperty("adrs").EnumerateArray(),
             adr => Assert.StartsWith("docs/adr/", adr.GetProperty("path").GetString(), StringComparison.Ordinal));
@@ -191,6 +195,89 @@ public sealed class ExportRelationshipsCommandIntegrationTests
         {
             outside.Delete(recursive: true);
         }
+    }
+
+    [Fact]
+    public void RejectsAbsoluteOutputPath()
+    {
+        using var repository = new TemporaryRepository();
+        var outside = Path.Combine(Path.GetTempPath(), $"adr-guard-export-{Guid.NewGuid():N}.json");
+        try
+        {
+            var result = Run(
+                repository,
+                ["export", "relationships", repository.AdrDirectory, "--output", outside]);
+
+            Assert.Equal(ExitCodes.OperationalError, result.Code);
+            Assert.False(File.Exists(outside));
+        }
+        finally
+        {
+            File.Delete(outside);
+        }
+    }
+
+    [Fact]
+    public void SkipsSymbolicLinkedInputWithoutReadingOutsideRepository()
+    {
+        using var repository = new TemporaryRepository();
+        var outside = Path.Combine(Path.GetTempPath(), $"adr-guard-export-outside-{Guid.NewGuid():N}.md");
+        File.WriteAllText(outside, Adr("Outside", "Accepted"));
+        var link = Path.Combine(repository.AdrDirectory, "0001-linked.md");
+        try
+        {
+            try
+            {
+                File.CreateSymbolicLink(link, outside);
+            }
+            catch (Exception exception) when (exception is IOException
+                or UnauthorizedAccessException
+                or PlatformNotSupportedException)
+            {
+                return;
+            }
+
+            var result = Run(repository, ["export", "relationships", repository.AdrDirectory]);
+
+            Assert.Equal(ExitCodes.Success, result.Code);
+            using var json = repository.ReadDefaultExport();
+            Assert.Empty(json.RootElement.GetProperty("adrs").EnumerateArray());
+            Assert.DoesNotContain("Outside", File.ReadAllText(repository.DefaultExportPath), StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(outside);
+        }
+    }
+
+    [Fact]
+    public void RejectsMalformedUtf8WithoutWritingArtifact()
+    {
+        using var repository = new TemporaryRepository();
+        File.WriteAllBytes(
+            Path.Combine(repository.AdrDirectory, "0001-invalid.md"),
+            [0x23, 0x20, 0xC3, 0x28]);
+
+        var result = Run(repository, ["export", "relationships", repository.AdrDirectory]);
+
+        Assert.Equal(ExitCodes.OperationalError, result.Code);
+        Assert.False(File.Exists(repository.DefaultExportPath));
+        Assert.Contains("Unable to export ADR relationships", result.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RejectsOversizedAdrWithoutWritingArtifact()
+    {
+        using var repository = new TemporaryRepository();
+        File.WriteAllBytes(
+            Path.Combine(repository.AdrDirectory, "0001-large.md"),
+            new byte[AdrDocumentLoader.MaximumBoundedAdrBytes + 1]);
+
+        var result = Run(repository, ["export", "relationships", repository.AdrDirectory]);
+
+        Assert.Equal(ExitCodes.OperationalError, result.Code);
+        Assert.False(File.Exists(repository.DefaultExportPath));
+        Assert.Contains("exceeds", result.Error, StringComparison.Ordinal);
     }
 
     [Fact]

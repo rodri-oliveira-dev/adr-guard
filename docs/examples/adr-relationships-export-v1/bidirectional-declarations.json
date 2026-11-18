@@ -22,7 +22,7 @@
       "declaredTarget": "0002-new-queue.md",
       "targetIdentifier": "ADR-2",
       "targetPath": "docs/adr/0002-new-queue.md",
-      "resolution": "valid"
+      "resolution": "resolved"
     },
     {
       "sourceIdentifier": "ADR-2",
@@ -31,7 +31,7 @@
       "declaredTarget": "0001-old-queue.md",
       "targetIdentifier": "ADR-1",
       "targetPath": "docs/adr/0001-old-queue.md",
-      "resolution": "valid"
+      "resolution": "resolved"
     }
   ],
   "issues": []

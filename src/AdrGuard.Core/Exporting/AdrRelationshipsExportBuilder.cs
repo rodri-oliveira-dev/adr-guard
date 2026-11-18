@@ -183,7 +183,7 @@ internal static class AdrRelationshipsExportBuilder
             targets.Length == 1 ? Relative(repositoryRoot, targets[0].FilePath) : null,
             targets.Length switch
             {
-                1 => AdrRelationshipExportResolution.Valid,
+                1 => AdrRelationshipExportResolution.Resolved,
                 > 1 => AdrRelationshipExportResolution.Ambiguous,
                 _ => AdrRelationshipExportResolution.Unresolved,
             });
@@ -204,10 +204,10 @@ internal static class AdrRelationshipsExportBuilder
             };
         }
 
-        if (options.ConventionalSupersession
-            && AdrReference.FindInStatusText(document, options.RepositoryRoot).Count == 1
-            || options.Format == AdrFormat.Madr4
-            && document.Status?.StartsWith("superseded by ADR-", StringComparison.OrdinalIgnoreCase) == true)
+        if ((options.ConventionalSupersession
+                && AdrReference.FindInStatusText(document, options.RepositoryRoot).Count == 1)
+            || (options.Format == AdrFormat.Madr4
+                && document.Status?.StartsWith("superseded by ADR-", StringComparison.OrdinalIgnoreCase) == true))
         {
             return AdrRelationshipExportStatus.Superseded;
         }

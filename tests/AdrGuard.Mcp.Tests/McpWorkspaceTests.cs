@@ -78,6 +78,26 @@ public sealed class McpWorkspaceTests
     }
 
     [Fact]
+    public void RelationshipsPreserveVersionOneResolutionWhileReportingSemanticDiagnostics()
+    {
+        using var repository = TemporaryMcpRepository.Create();
+        repository.Write(
+            "docs/adr/0001-first.md",
+            AcceptedAdr + "\n## Superseded by\n\n[Second](0002-second.md).\n");
+        repository.Write(
+            "docs/adr/0002-second.md",
+            AcceptedAdr.Replace("safe boundary", "second", StringComparison.Ordinal)
+            + "\n## Superseded by\n\n[First](0001-first.md).\n");
+
+        var result = CreateWorkspace(repository).GetRelationships(null, TestContext.Current.CancellationToken);
+
+        Assert.Equal("1.0", result.SchemaVersion);
+        Assert.Equal(2, result.Relationships.Count);
+        Assert.All(result.Relationships, relationship => Assert.Equal("valid", relationship.Resolution));
+        Assert.Equal(2, result.Issues.Count(issue => issue.Code == "ADR010"));
+    }
+
+    [Fact]
     public void ValidationDiagnosticsAreSuccessfulDomainResults()
     {
         using var repository = TemporaryMcpRepository.Create();

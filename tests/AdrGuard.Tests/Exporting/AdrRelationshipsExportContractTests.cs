@@ -110,6 +110,9 @@ public sealed class AdrRelationshipsExportContractTests
             var json = File.ReadAllText(Path.Combine(fixtureRoot, fixtureName!));
             var export = JsonSerializer.Deserialize<AdrRelationshipsExport>(json, JsonOptions);
             Assert.NotNull(export);
+            using var serialized = new StringWriter();
+            AdrRelationshipsExportSerializer.Write(export, serialized);
+            Assert.Equal(json, serialized.ToString());
             Assert.Equal(AdrRelationshipsExportContract.SchemaVersion, export.SchemaVersion);
             Assert.DoesNotContain("generatedAt", json, StringComparison.Ordinal);
             Assert.DoesNotContain("markdown", json, StringComparison.OrdinalIgnoreCase);
@@ -218,7 +221,7 @@ public sealed class AdrRelationshipsExportContractTests
             ["schemaVersion", "adrs", "relationships", "issues"],
             root.GetProperty("required").EnumerateArray().Select(item => item.GetString()));
         Assert.Equal(
-            ["valid", "ambiguous", "unresolved"],
+            ["resolved", "ambiguous", "unresolved"],
             root.GetProperty("$defs").GetProperty("relationship").GetProperty("properties")
                 .GetProperty("resolution").GetProperty("enum").EnumerateArray().Select(item => item.GetString()));
     }

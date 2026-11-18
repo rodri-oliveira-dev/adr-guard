@@ -22,7 +22,7 @@
   "issues": [
     {
       "code": "ADR007",
-      "message": "ADR relationship '0099-missing.md' does not resolve to an ADR in the validated set.",
+      "message": "ADR relationship \u00270099-missing.md\u0027 does not resolve to an ADR in the validated set.",
       "path": "docs/adr/0001-service.md",
       "severity": "error"
     }

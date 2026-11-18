@@ -183,7 +183,11 @@ adr-guard export relationships [directory] [--output <file.json>]
 
 The command exports schema `1.0` ADR metadata, every declared supported relationship, and attributable Core validation issues. The default output is `<repository-root>/.adr-guard/relationships.json`; `--output` is repository-root-relative. Output must use `.json`, remain within the repository, and avoid symbolic-link/reparse-point traversal. Missing directories are created, and an existing artifact is replaced only by promoting a complete UTF-8 temporary file in the same directory.
 
+Input is bounded to 1,000 Markdown files of 524,288 bytes each and must be valid UTF-8; symbolic links and reparse points are skipped before content is read. Relationship `resolution` is `resolved`, `ambiguous`, or `unresolved`. `resolved` proves only that the declared target identifies one ADR; semantic failures such as cycles remain explicit in `issues`.
+
 Stable field/array ordering, portable repository-relative paths, and the absence of timestamps make repeated equivalent runs byte-identical. Validation issues do not block generation or change success exit `0`. Invalid usage/configuration returns `2`; unsafe input/output, cancellation, and I/O failures return `3`. The command is offline, uses the same Core relationship producer as MCP, and does not edit ADRs, the Markdown index, configuration, or Git. `generatedFrom` is omitted to avoid implicit Git state and preserve the smallest deterministic contract. See the [schema and integration contract](adr-relationships-export-v1.md).
+
+A successful export means that the artifact was written; it does not mean that every relationship is valid. The [GitHub Actions example](examples/github-action-relationships-export.yml) uploads the artifact for external consumption while keeping advisory or mandatory `check` enforcement as a separate step.
 
 ## Architecture impact
 

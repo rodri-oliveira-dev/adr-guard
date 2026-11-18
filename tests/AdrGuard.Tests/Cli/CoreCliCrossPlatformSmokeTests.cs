@@ -43,6 +43,26 @@ public sealed class CoreCliCrossPlatformSmokeTests
                 Assert.Equal("1.0", report.RootElement.GetProperty("schemaVersion").GetString());
             }
 
+            var export = await RunCliAsync(repository, "export", "relationships", adrDirectory);
+            AssertExitCode("export relationships", ExitCodes.Success, export);
+            var exportPath = Path.Combine(repository, ".adr-guard", "relationships.json");
+            var firstExport = await File.ReadAllBytesAsync(
+                exportPath,
+                TestContext.Current.CancellationToken);
+            using (var relationshipExport = JsonDocument.Parse(firstExport))
+            {
+                Assert.Equal("1.0", relationshipExport.RootElement.GetProperty("schemaVersion").GetString());
+                var adr = Assert.Single(relationshipExport.RootElement.GetProperty("adrs").EnumerateArray());
+                Assert.StartsWith("docs/adr/", adr.GetProperty("path").GetString(), StringComparison.Ordinal);
+                Assert.Empty(relationshipExport.RootElement.GetProperty("relationships").EnumerateArray());
+            }
+
+            var exportAgain = await RunCliAsync(repository, "export", "relationships", adrDirectory);
+            AssertExitCode("export relationships deterministic rerun", ExitCodes.Success, exportAgain);
+            Assert.Equal(
+                firstExport,
+                await File.ReadAllBytesAsync(exportPath, TestContext.Current.CancellationToken));
+
             var index = await RunCliAsync(repository, "index", adrDirectory);
             AssertExitCode("index", ExitCodes.Success, index);
             var indexPath = Path.Combine(adrDirectory, "README.md");

@@ -49,7 +49,10 @@ internal static class ExportRelationshipsCommand
                 placeholderPolicy: null,
                 validateMetadata: false,
                 arguments.ValidationProfile);
-            var documents = AdrDocumentLoader.LoadDirectory(arguments.DirectoryPath, cancellationToken);
+            var documents = AdrDocumentLoader.LoadBoundedDirectory(
+                arguments.DirectoryPath,
+                repositoryRoot,
+                cancellationToken);
             var export = AdrRelationshipsExportBuilder.Create(documents, repositoryRoot, options);
             using var content = new StringWriter(System.Globalization.CultureInfo.InvariantCulture);
             AdrRelationshipsExportSerializer.Write(export, content);

@@ -53,8 +53,8 @@ internal enum AdrRelationshipExportType
 [JsonConverter(typeof(JsonStringEnumConverter<AdrRelationshipExportResolution>))]
 internal enum AdrRelationshipExportResolution
 {
-    [JsonStringEnumMemberName("valid")]
-    Valid,
+    [JsonStringEnumMemberName("resolved")]
+    Resolved,
 
     [JsonStringEnumMemberName("ambiguous")]
     Ambiguous,

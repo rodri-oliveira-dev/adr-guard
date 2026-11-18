@@ -439,7 +439,7 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
 
     private static string RelationshipResolution(AdrRelationshipExportResolution resolution) => resolution switch
     {
-        AdrRelationshipExportResolution.Valid => "valid",
+        AdrRelationshipExportResolution.Resolved => "valid",
         AdrRelationshipExportResolution.Ambiguous => "ambiguous",
         AdrRelationshipExportResolution.Unresolved => "unresolved",
         _ => throw new ArgumentOutOfRangeException(nameof(resolution), resolution, "Unsupported ADR relationship resolution."),

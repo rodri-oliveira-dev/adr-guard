@@ -61,8 +61,8 @@
           ]
         },
         "resolution": {
-          "enum": ["valid", "ambiguous", "unresolved"],
-          "description": "Matches get_adr_relationships: valid resolves to exactly one ADR, ambiguous resolves to more than one candidate, and unresolved resolves to none."
+          "enum": ["resolved", "ambiguous", "unresolved"],
+          "description": "Resolved means the declared target identifies exactly one ADR; it does not assert semantic validity. Ambiguous identifies more than one candidate, and unresolved identifies none."
         }
       }
     },

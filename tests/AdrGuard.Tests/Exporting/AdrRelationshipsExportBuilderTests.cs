@@ -65,7 +65,7 @@ public sealed class AdrRelationshipsExportBuilderTests
         Assert.Contains(export.Relationships, relationship =>
             relationship.SourceIdentifier == "ADR-1"
             && relationship.DeclaredTarget == "0001-first.md"
-            && relationship.Resolution == AdrRelationshipExportResolution.Valid
+            && relationship.Resolution == AdrRelationshipExportResolution.Resolved
             && relationship.TargetIdentifier == "ADR-1");
         Assert.Contains(export.Relationships, relationship =>
             relationship.SourceIdentifier == "ADR-1"
