@@ -220,7 +220,14 @@ internal static class AdrRelationshipsExportBuilder
         var fullPath = Path.GetFullPath(path);
         var relative = Path.GetRelativePath(repositoryRoot, fullPath);
         RepositoryPath.ResolveContained(repositoryRoot, relative);
-        return relative.Replace(Path.DirectorySeparatorChar, '/');
+        var portable = relative.Replace(Path.DirectorySeparatorChar, '/');
+        if (portable.Contains('\\'))
+        {
+            throw new InvalidDataException(
+                $"Repository path '{portable}' cannot be represented by the portable export contract.");
+        }
+
+        return portable;
     }
 
     private static string TypeName(AdrRelationshipExportType type) => type switch

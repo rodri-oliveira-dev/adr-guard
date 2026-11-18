@@ -162,6 +162,24 @@ public sealed class AdrRelationshipsExportBuilderTests
             new AdrValidationOptions(AdrFormat.Canonical)));
     }
 
+    [Fact]
+    public void CreateRejectsPathsWithLiteralBackslashesOnPlatformsThatPermitThem()
+    {
+        if (OperatingSystem.IsWindows()) return;
+
+        using var repository = new TemporaryRepository();
+        var document = AdrMarkdownParser.Parse(
+            Path.Combine(repository.Root, "docs", "adr", "0001-invalid\\name.md"),
+            Canonical("Invalid portable path", "Accepted"));
+
+        var exception = Assert.Throws<InvalidDataException>(() => AdrRelationshipsExportBuilder.Create(
+            [document],
+            repository.Root,
+            new AdrValidationOptions(AdrFormat.Canonical)));
+
+        Assert.Contains("portable export contract", exception.Message, StringComparison.Ordinal);
+    }
+
     private static AdrDocument Parse(TemporaryRepository repository, string relativePath, string markdown) =>
         AdrMarkdownParser.Parse(Path.Combine(repository.Root, relativePath.Replace('/', Path.DirectorySeparatorChar)), markdown);
 
