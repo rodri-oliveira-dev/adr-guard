@@ -17,6 +17,7 @@ Esta tabela espelha o dispatcher e o `--help` embutido. Os guias especializados 
 | `check [diretório]` | Texto/JSON/SARIF, formato, lifecycle/supersession, políticas de nome/placeholder/metadados/perfil, changed/base ref e baseline opcionais | Somente leitura; lê Git local com `--changed` | `0` válido, `1` achados, `2`, `3` |
 | `baseline [diretório] --output <arquivo>` | Opções de política; `--update` obrigatório para substituir | Cria ou substitui explicitamente um baseline versionado | `0`, `2`, `3` |
 | `index [diretório]` | Saída e política opcionais; `--catalog enriched` | Grava índice padrão determinístico ou catálogo enriquecido somente após validação | `0`, `1`, `2`, `3` |
+| `export relationships [diretório]` | Saída JSON opcional relativa ao repositório e políticas de validação/formato | Cria ou substitui atomicamente um artefato determinístico de relacionamentos; ADRs e Git permanecem inalterados | `0`, `2`, `3` |
 | `new [diretório]` | Fluxo humano exige `--title`; fluxo estruturado exige `--form`; opções de formato/template/cultura/nome | Prévia não grava; criação persiste uma ADR canônica ou MADR proposta atomicamente | `0`, `1`, `2`, `3` |
 | `edit <arquivo-adr> --form` | Requisição stdin schema `1.0`, opções de formato/política e diretório ADR opcional | `load` é somente leitura; `save` com fingerprint atualiza atomicamente apenas a ADR selecionada | `0`, `1`, `2`, `3` |
 | `draft [diretório]` | Título, contexto, provider e modelo; endpoint/arquivos/ADRs/template/cultura/prévia opcionais | Chama o provider; prévia não grava; criação persiste uma ADR `Proposed` | `0`, `1`, `2`, `3` |
@@ -79,7 +80,7 @@ A precedência é:
 2. Valor de `.adrguard.yml`.
 3. Default legado do comando.
 
-O diretório configurado é aplicado quando o argumento posicional é omitido em `check`, `index`, `new` e `draft`. O template configurado é aplicado somente quando `new`/`draft` não recebem opção explícita. `adr-format` configurado agora vale para `new`; `--adr-format` explícito prevalece e a omissão preserva `canonical`. `review` continua exigindo target explícito.
+O diretório configurado é aplicado quando o argumento posicional é omitido em `check`, `index`, `export relationships`, `new` e `draft`. O template configurado é aplicado somente quando `new`/`draft` não recebem opção explícita. As políticas configuradas de formato, ciclo de vida, substituição, nome de arquivo e perfil de validação se aplicam à exportação; opções explícitas da CLI prevalecem. `adr-format` configurado também vale para `new`; `--adr-format` explícito prevalece e a omissão preserva `canonical`. `review` continua exigindo target explícito.
 
 ## Criar uma ADR por um cliente estruturado
 
@@ -168,6 +169,21 @@ adr-guard check [diretório] [--format text|json|sarif] [--diagnostic-locations]
 ```
 
 `text` permanece como default. JSON usa schema `1.0`; SARIF usa `2.1.0`. `--diagnostic-locations` habilita linha/coluna baseadas em um ou regiões SARIF somente quando há evidência; posições não comprovadas são omitidas. Sem a flag, o formato existente do relatório é preservado para clientes estritos. Ambos são gravados no stdout em sucesso e falha de validação; diagnósticos operacionais usam stderr. Os exit codes continuam `0` para válido, `1` para diagnósticos ADR, `2` para uso/configuração inválida e `3` para falha operacional.
+
+## Exportar relacionamentos ADR
+
+> Disponibilidade: este comando está implementado na candidata atual em código-fonte e não faz parte da release publicada da CLI 1.10.0.
+
+```text
+adr-guard export relationships [diretório] [--output <arquivo.json>]
+  [--adr-format canonical|madr-4]
+  [--lifecycle-statuses <mapeamento>] [--conventional-supersession]
+  [--filename-policy <política>] [--validation-profile <perfil>]
+```
+
+O comando exporta metadados de ADR no schema `1.0`, todos os relacionamentos declarados suportados e issues atribuíveis da validação do Core. A saída padrão é `<raiz-do-repositório>/.adr-guard/relationships.json`; `--output` é relativo à raiz do repositório. A saída deve usar `.json`, permanecer dentro do repositório e evitar travessia por links simbólicos/reparse points. Diretórios ausentes são criados, e um artefato existente só é substituído pela promoção de um arquivo temporário UTF-8 completo no mesmo diretório.
+
+Ordem estável de campos/arrays, caminhos portáteis relativos ao repositório e ausência de timestamps tornam execuções equivalentes byte a byte idênticas. Issues de validação não impedem a geração nem alteram o exit code de sucesso `0`. Uso/configuração inválidos retornam `2`; entrada/saída insegura, cancelamento e falhas de I/O retornam `3`. O comando é offline, usa o mesmo produtor de relacionamentos do Core que o MCP e não edita ADRs, índice Markdown, configuração ou Git. `generatedFrom` foi omitido para evitar estado Git implícito e preservar o menor contrato determinístico. Consulte o [schema e contrato de integração](adr-relationships-export-v1.pt-BR.md).
 
 ## Impacto arquitetural
 

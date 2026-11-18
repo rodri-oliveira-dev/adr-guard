@@ -2,9 +2,22 @@
 
 [Português (Brasil)](adr-relationships-export-v1.pt-BR.md)
 
-This document freezes the JSON exchange contract prepared for Align CLI integration. Core can now produce this deterministic data and the MCP relationship tool reuses that implementation without changing its contract. The ADR Guard CLI export command is not implemented or published yet.
+This document freezes the JSON exchange contract prepared for Align CLI integration. Core produces this deterministic data, and both the MCP relationship tool and the source-stage CLI adapter reuse that implementation without changing the MCP contract. The CLI command is implemented in the repository but is not in a published release yet.
 
 The authoritative machine-readable definition is [`adr-relationships-export-v1.schema.json`](schemas/adr-relationships-export-v1.schema.json). Representative integration fixtures are in [`docs/examples/adr-relationships-export-v1`](examples/adr-relationships-export-v1/).
+
+## CLI export
+
+```text
+adr-guard export relationships docs/adr
+adr-guard export relationships docs/adr --output artifacts/relationships.json
+```
+
+The default destination is `<repository-root>/.adr-guard/relationships.json`. A custom destination is relative to the detected repository root, must use a `.json` extension, must remain inside that root, and cannot traverse symbolic links or reparse points. Missing destination directories are created. The complete UTF-8 document is written to a temporary file in the destination directory and then atomically promoted over any existing artifact; a failed write leaves the previous artifact intact.
+
+The command returns `0` whenever it safely writes the artifact, including when `issues` is non-empty. Invalid command syntax or configuration returns `2`; input, path, security, cancellation, and write failures return `3`. It neither edits ADRs or indexes nor modifies configuration or Git state, and it requires no MCP server, model provider, credentials, or network connection.
+
+The optional `generatedFrom` commit SHA is deliberately omitted from schema `1.0`. Reading implicit Git state would add a changing value and a Git dependency to an otherwise repository-format-only export. A future compatible contract may add explicit provenance if a consumer demonstrates that requirement without weakening deterministic output.
 
 ## Envelope and ADR metadata
 

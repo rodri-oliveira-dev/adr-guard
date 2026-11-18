@@ -30,6 +30,7 @@ Está começando? Siga o guia progressivo:
 - valida estrutura canônica, nomes, status, seções, links, IDs e relacionamentos de substituição;
 - suporta validação MADR 4.0 separada e opcional;
 - gera um índice Markdown determinístico somente depois da validação;
+- exporta metadados de ADR, relacionamentos declarados e issues de validação como JSON determinístico no schema `1.0` para integrações externas;
 - oferece checks incrementais com Git, baselines de diagnóstico e relatórios JSON/SARIF;
 - oferece [análise consultiva de impacto arquitetural](docs/guides/architecture-impact-analysis.pt-BR.md), opcional e baseada em mapeamentos ADR-código explícitos;
 - verifica [drift arquitetural e evidências de fitness](docs/guides/architectural-drift.pt-BR.md) de forma opcional, sem avaliar MSBuild nem tratar evidência ausente como conformidade;
@@ -63,9 +64,10 @@ Edite a ADR `Proposed` gerada e substitua as instruções por contexto, decisão
 ```bash
 adr-guard check docs/adr
 adr-guard index docs/adr
+adr-guard export relationships docs/adr
 ```
 
-`check` valida o conjunto. `index` valida novamente e cria ou atualiza `docs/adr/README.md`; `new` não atualiza o índice automaticamente. Leia o [tutorial da primeira ADR](docs/guides/getting-started.pt-BR.md) para o fluxo completo.
+`check` valida o conjunto. `index` valida novamente e cria ou atualiza `docs/adr/README.md`; `new` não atualiza o índice automaticamente. O comando de exportação presente apenas no código-fonte grava `.adr-guard/relationships.json` para ferramentas como o Align e conclui com sucesso mesmo quando o artefato registra issues de validação; ele ainda não está na CLI publicada. Leia o [tutorial da primeira ADR](docs/guides/getting-started.pt-BR.md) para o fluxo completo e o [contrato de exportação](docs/adr-relationships-export-v1.pt-BR.md) para detalhes de integração.
 
 A CLI 1.10.0 publicada inclui o comando somente leitura `adr-guard doctor [repositório]` para diagnóstico local da CLI, repositório, configuração, diretório de ADRs, .NET e Git opcional. Ele nunca aplica correções nem acessa a rede. Consulte a [referência da CLI](docs/cli-reference.pt-BR.md#diagnosticar-o-ambiente-local); o comando não está disponível no pacote anterior da CLI 1.9.0.
 

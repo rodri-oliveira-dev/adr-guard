@@ -31,6 +31,7 @@ New to the practice? Follow the progressive guide:
 - validates canonical structure, filenames, statuses, required sections, links, IDs, and supersession relationships;
 - supports separate, opt-in MADR 4.0 validation;
 - generates a deterministic Markdown index only after validation succeeds;
+- exports deterministic ADR metadata, declared relationships, and validation issues as schema `1.0` JSON for external integrations;
 - supports Git-aware incremental checks, diagnostic baselines, and JSON/SARIF reports;
 - offers opt-in, advisory [architecture impact analysis](docs/guides/architecture-impact-analysis.md) from explicit ADR-to-code mappings;
 - verifies opt-in [architectural drift and fitness evidence](docs/guides/architectural-drift.md) without evaluating MSBuild or treating missing evidence as compliance;
@@ -64,9 +65,10 @@ Edit the generated `Proposed` ADR to replace its guidance with your real context
 ```bash
 adr-guard check docs/adr
 adr-guard index docs/adr
+adr-guard export relationships docs/adr
 ```
 
-`check` validates the ADR set. `index` validates again and creates or updates `docs/adr/README.md`; `new` does not update the index automatically. Read the [first ADR tutorial](docs/guides/getting-started.md) for the complete workflow.
+`check` validates the ADR set. `index` validates again and creates or updates `docs/adr/README.md`; `new` does not update the index automatically. The source-only export command writes `.adr-guard/relationships.json` for tools such as Align and succeeds even when the artifact records validation issues; it is not in the currently published CLI. Read the [first ADR tutorial](docs/guides/getting-started.md) for the complete workflow and the [export contract](docs/adr-relationships-export-v1.md) for integration details.
 
 Published CLI 1.10.0 includes the read-only `adr-guard doctor [repository]` command for local CLI, repository, configuration, ADR-directory, .NET, and optional Git diagnostics. It never applies fixes or accesses the network. See the [CLI reference](docs/cli-reference.md#diagnose-a-local-environment); the command is not available in the older CLI 1.9.0 package.
 

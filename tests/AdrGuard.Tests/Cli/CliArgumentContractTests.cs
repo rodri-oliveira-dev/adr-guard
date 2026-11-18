@@ -60,6 +60,9 @@ public sealed class CliArgumentContractTests
         },
         { "index", ["index", "--catalog", "basic"] },
         { "index", ["index", "--output", "README.md", "--output", "index.md"] },
+        { "export relationships", ["export", "relationships", "--output"] },
+        { "export relationships", ["export", "relationships", "first", "second"] },
+        { "export relationships", ["export", "unknown"] },
         {
             "index",
             [
@@ -118,12 +121,16 @@ public sealed class CliArgumentContractTests
     [InlineData("baseline")]
     [InlineData("impact")]
     [InlineData("drift")]
+    [InlineData("export relationships")]
     public void CommandSpecificHelpBypassesRequiredArguments(string command)
     {
         using var output = new StringWriter();
         using var error = new StringWriter();
 
-        var exitCode = RunInIsolatedDirectory([command, "--help"], output, error);
+        var arguments = command == "export relationships"
+            ? new[] { "export", "relationships", "--help" }
+            : [command, "--help"];
+        var exitCode = RunInIsolatedDirectory(arguments, output, error);
 
         Assert.Equal(ExitCodes.Success, exitCode);
         Assert.StartsWith($"Usage:\n  adr-guard {command} ", output.ToString());

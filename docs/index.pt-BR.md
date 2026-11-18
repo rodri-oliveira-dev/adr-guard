@@ -44,7 +44,7 @@ Architecture Decision Records (ADRs), ou Registros de Decisão de Arquitetura, p
 
 | Área | Documentação |
 | --- | --- |
-| CLI e configuração | [Referência da CLI](cli-reference.pt-BR.md), [criação offline](creation.pt-BR.md), [templates personalizados](custom-templates.pt-BR.md) |
+| CLI e configuração | [Referência da CLI](cli-reference.pt-BR.md), [exportação de relacionamentos](adr-relationships-export-v1.pt-BR.md), [criação offline](creation.pt-BR.md), [templates personalizados](custom-templates.pt-BR.md) |
 | Modos de validação | [matriz de compatibilidade](compatibility.pt-BR.md), [MADR 4.0](madr-4.pt-BR.md), [validação incremental e baselines](incremental-validation.pt-BR.md), [governança de relacionamentos](relationship-governance.pt-BR.md) |
 | Dados de governança | [metadados opcionais](metadata.pt-BR.md), [catálogo enriquecido](catalog.pt-BR.md) |
 | Relatórios | [relatórios de check](check-reports.pt-BR.md), [schema do relatório de review](adr-review-report-v1.md), [política de review](adr-review-policy-v1.pt-BR.md) |
