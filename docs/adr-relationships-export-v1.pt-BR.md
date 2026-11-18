@@ -2,7 +2,7 @@
 
 [English](adr-relationships-export-v1.md)
 
-Este documento congela o contrato de intercâmbio JSON preparado para integração com o Align CLI. Ele descreve um contrato e fixtures em desenvolvimento; o comando de exportação da CLI do ADR Guard ainda não está implementado nem publicado.
+Este documento congela o contrato de intercâmbio JSON preparado para integração com o Align CLI. O Core agora pode produzir esses dados determinísticos, e a ferramenta de relacionamentos do MCP reutiliza essa implementação sem alterar seu contrato. O comando de exportação da CLI do ADR Guard ainda não está implementado nem publicado.
 
 A definição legível por máquina autoritativa é [`adr-relationships-export-v1.schema.json`](schemas/adr-relationships-export-v1.schema.json). As fixtures representativas de integração estão em [`docs/examples/adr-relationships-export-v1`](examples/adr-relationships-export-v1/).
 

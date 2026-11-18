@@ -2,7 +2,7 @@
 
 [Português (Brasil)](adr-relationships-export-v1.pt-BR.md)
 
-This document freezes the JSON exchange contract prepared for Align CLI integration. It describes a contract and fixtures under development; the ADR Guard CLI export command is not implemented or published yet.
+This document freezes the JSON exchange contract prepared for Align CLI integration. Core can now produce this deterministic data and the MCP relationship tool reuses that implementation without changing its contract. The ADR Guard CLI export command is not implemented or published yet.
 
 The authoritative machine-readable definition is [`adr-relationships-export-v1.schema.json`](schemas/adr-relationships-export-v1.schema.json). Representative integration fixtures are in [`docs/examples/adr-relationships-export-v1`](examples/adr-relationships-export-v1/).
 

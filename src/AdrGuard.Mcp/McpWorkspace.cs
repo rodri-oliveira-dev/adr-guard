@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using AdrGuard.Configuration;
 using AdrGuard.Drift;
+using AdrGuard.Exporting;
 using AdrGuard.Git;
 using AdrGuard.Impact;
 using AdrGuard.Model;
@@ -115,37 +116,24 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         var sources = identifier is null
             ? context.Documents
             : [ResolveDocument(context, identifier)];
-        var byPath = context.Documents.ToLookup(
-            item => Path.GetFullPath(item.Document.FilePath),
-            PathComparer);
-        var relationships = new List<AdrRelationshipResult>();
-        foreach (var source in sources)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            AddSectionRelationships(context, source.Document, byPath, "superseded-by", relationships, "Superseded by");
-            AddSectionRelationships(context, source.Document, byPath, "supersedes", relationships, "Supersedes");
-            AddSectionRelationships(context, source.Document, byPath, "depends-on", relationships, "Depends on", "Dependencies");
-            if (context.ValidationOptions.ConventionalSupersession)
-            {
-                AddReferences(
-                    context,
-                    source.Document,
-                    "superseded-by",
-                    AdrReference.FindInStatusText(source.Document, serverOptions.RepositoryRoot),
-                    byPath,
-                    relationships);
-            }
-
-            AddMadrSupersession(context, source.Document, relationships);
-        }
-
-        var sourcePaths = sources.Select(item => item.Document.FilePath).ToHashSet(PathComparer);
-        var issues = AdrValidator.Validate(
-                context.Documents.Select(item => item.Document).ToArray(),
-                additionalKnownPaths: null,
-                context.ValidationOptions)
-            .Issues
-            .Where(issue => sourcePaths.Contains(issue.FilePath)
+        var export = AdrRelationshipsExportBuilder.Create(
+            context.Documents.Select(item => item.Document).ToArray(),
+            serverOptions.RepositoryRoot,
+            context.ValidationOptions);
+        var sourcePaths = sources.Select(item => Relative(item.Document.FilePath)).ToHashSet(PathComparer);
+        var relationships = export.Relationships
+            .Where(relationship => sourcePaths.Contains(relationship.SourcePath))
+            .Select(relationship => new AdrRelationshipResult(
+                relationship.SourceIdentifier,
+                relationship.SourcePath,
+                RelationshipType(relationship.Type),
+                relationship.DeclaredTarget,
+                relationship.TargetIdentifier,
+                relationship.TargetPath,
+                RelationshipResolution(relationship.Resolution)))
+            .ToArray();
+        var issues = export.Issues
+            .Where(issue => sourcePaths.Contains(issue.Path)
                             && issue.Code is ValidationCodes.BrokenReference
                                 or ValidationCodes.MissingSupersededBy
                                 or ValidationCodes.DuplicateId
@@ -157,18 +145,11 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
             .Select(issue => new AdrRelationshipIssue(
                 issue.Code,
                 issue.Message,
-                Relative(issue.FilePath),
-                Severity(issue.Severity)))
+                issue.Path,
+                IssueSeverity(issue.Severity)))
             .ToArray();
 
-        var ordered = relationships
-            .Distinct()
-            .OrderBy(item => item.SourceIdentifier, StringComparer.Ordinal)
-            .ThenBy(item => item.SourcePath, StringComparer.Ordinal)
-            .ThenBy(item => item.Type, StringComparer.Ordinal)
-            .ThenBy(item => item.DeclaredTarget, StringComparer.Ordinal)
-            .ToArray();
-        return McpResponseLimit.Ensure(new GetAdrRelationshipsResult("1.0", ordered, issues));
+        return McpResponseLimit.Ensure(new GetAdrRelationshipsResult("1.0", relationships, issues));
     }
 
     internal ValidateAdrsResult ValidateAdrs(
@@ -408,75 +389,6 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         };
     }
 
-    private void AddSectionRelationships(
-        WorkspaceContext context,
-        AdrDocument source,
-        ILookup<string, LoadedAdr> byPath,
-        string type,
-        List<AdrRelationshipResult> output,
-        params string[] headings) =>
-        AddReferences(
-            context,
-            source,
-            type,
-            AdrReference.FindInSections(source, headings, serverOptions.RepositoryRoot),
-            byPath,
-            output);
-
-    private void AddReferences(
-        WorkspaceContext context,
-        AdrDocument source,
-        string type,
-        IReadOnlyList<AdrReference> references,
-        ILookup<string, LoadedAdr> byPath,
-        List<AdrRelationshipResult> output)
-    {
-        foreach (var reference in references)
-        {
-            var targets = reference.ResolvedPath.Length == 0
-                ? []
-                : byPath[Path.GetFullPath(reference.ResolvedPath)].ToArray();
-            output.Add(new AdrRelationshipResult(
-                Identifier(source),
-                Relative(source.FilePath),
-                type,
-                reference.Target,
-                targets.Length == 1 ? Identifier(targets[0].Document) : null,
-                targets.Length == 1 ? Relative(targets[0].Document.FilePath) : null,
-                targets.Length switch
-                {
-                    1 => "valid",
-                    > 1 => "ambiguous",
-                    _ => "unresolved",
-                }));
-        }
-    }
-
-    private void AddMadrSupersession(
-        WorkspaceContext context,
-        AdrDocument source,
-        List<AdrRelationshipResult> output)
-    {
-        const string prefix = "superseded by ADR-";
-        if (context.DocumentFormat != AdrFormat.Madr4
-            || source.Status?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) != true
-            || !int.TryParse(source.Status[prefix.Length..].Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var id)
-            || id <= 0)
-        {
-            return;
-        }
-
-        var targets = context.Documents.Where(item => item.Document.Id == id).ToArray();
-        output.Add(new AdrRelationshipResult(
-            Identifier(source),
-            Relative(source.FilePath),
-            "superseded-by",
-            $"ADR-{id}",
-            targets.Length == 1 ? Identifier(targets[0].Document) : null,
-            targets.Length == 1 ? Relative(targets[0].Document.FilePath) : null,
-            targets.Length switch { 1 => "valid", > 1 => "ambiguous", _ => "unresolved" }));
-    }
-
     private string? TryReadCommit(CancellationToken cancellationToken)
     {
         try
@@ -507,15 +419,31 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
             .Replace(Path.DirectorySeparatorChar, '/');
 
     private static string Identifier(AdrDocument document) =>
-        document.StableId
-        ?? (document.Id is null
-            ? $"path:{document.FileName}"
-            : $"ADR-{document.Id.Value.ToString(CultureInfo.InvariantCulture)}");
+        AdrRelationshipsExportBuilder.Identifier(document);
 
     private static string Format(AdrFormat format) => format == AdrFormat.Madr4 ? "madr-4" : "canonical";
 
     private static string Severity(ValidationSeverity severity) =>
         severity == ValidationSeverity.Warning ? "warning" : "error";
+
+    private static string IssueSeverity(AdrRelationshipExportIssueSeverity severity) =>
+        severity == AdrRelationshipExportIssueSeverity.Warning ? "warning" : "error";
+
+    private static string RelationshipType(AdrRelationshipExportType type) => type switch
+    {
+        AdrRelationshipExportType.Supersedes => "supersedes",
+        AdrRelationshipExportType.SupersededBy => "superseded-by",
+        AdrRelationshipExportType.DependsOn => "depends-on",
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported ADR relationship type."),
+    };
+
+    private static string RelationshipResolution(AdrRelationshipExportResolution resolution) => resolution switch
+    {
+        AdrRelationshipExportResolution.Valid => "valid",
+        AdrRelationshipExportResolution.Ambiguous => "ambiguous",
+        AdrRelationshipExportResolution.Unresolved => "unresolved",
+        _ => throw new ArgumentOutOfRangeException(nameof(resolution), resolution, "Unsupported ADR relationship resolution."),
+    };
 
     private static string Excerpt(string content, IReadOnlyList<string> terms)
     {
