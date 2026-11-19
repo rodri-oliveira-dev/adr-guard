@@ -65,10 +65,17 @@ Edit the generated `Proposed` ADR to replace its guidance with your real context
 ```bash
 adr-guard check docs/adr
 adr-guard index docs/adr
-adr-guard export relationships docs/adr
 ```
 
-`check` validates the ADR set. `index` validates again and creates or updates `docs/adr/README.md`; `new` does not update the index automatically. The source-only export command writes `.adr-guard/relationships.json` for tools such as Align and succeeds even when the artifact records validation issues; it is not in the currently published CLI. Read the [first ADR tutorial](docs/guides/getting-started.md) for the complete workflow and the [export contract](docs/adr-relationships-export-v1.md) for integration details.
+`check` validates the ADR set. `index` validates again and creates or updates `docs/adr/README.md`; `new` does not update the index automatically. Read the [first ADR tutorial](docs/guides/getting-started.md) for the complete published workflow.
+
+The relationship exporter is available only from the current source candidate, not from the published CLI 1.10.0. After cloning this repository and restoring the pinned .NET 10 SDK, run it from the repository root with:
+
+```bash
+dotnet run --project src/AdrGuard/AdrGuard.csproj -- export relationships docs/adr
+```
+
+It writes `.adr-guard/relationships.json` for tools such as Align and succeeds even when the artifact records validation issues. See the [export contract](docs/adr-relationships-export-v1.md) for integration details.
 
 Published CLI 1.10.0 includes the read-only `adr-guard doctor [repository]` command for local CLI, repository, configuration, ADR-directory, .NET, and optional Git diagnostics. It never applies fixes or accesses the network. See the [CLI reference](docs/cli-reference.md#diagnose-a-local-environment); the command is not available in the older CLI 1.9.0 package.
 

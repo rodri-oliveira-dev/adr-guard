@@ -13,7 +13,7 @@ adr-guard export relationships docs/adr
 adr-guard export relationships docs/adr --output artifacts/relationships.json
 ```
 
-O destino padrão é `<raiz-do-repositório>/.adr-guard/relationships.json`. Um destino personalizado é relativo à raiz detectada do repositório, deve usar a extensão `.json`, permanecer dentro dessa raiz e não pode atravessar links simbólicos nem reparse points. Diretórios de destino ausentes são criados. O documento UTF-8 completo é gravado em um arquivo temporário no diretório de destino e depois promovido atomicamente sobre qualquer artefato existente; uma falha de escrita preserva o artefato anterior.
+O destino padrão é `<raiz-do-repositório>/.adr-guard/relationships.json`. Um destino personalizado é relativo à raiz detectada do repositório, usa separadores portáveis `/`, deve usar a extensão `.json`, permanecer dentro dessa raiz e não pode atravessar links simbólicos nem reparse points. Diretórios de destino ausentes são criados. O documento UTF-8 completo é gravado em um arquivo temporário no diretório de destino e depois promovido atomicamente sobre qualquer artefato existente; uma falha de escrita preserva o artefato anterior.
 
 O comando retorna `0` sempre que grava o artefato com segurança, inclusive quando `issues` não está vazio. Sintaxe ou configuração inválida retorna `2`; falhas de entrada, caminho, segurança, cancelamento ou escrita retornam `3`. Ele não edita ADRs ou índices nem modifica configuração ou estado do Git, e não exige servidor MCP, provedor de modelo, credenciais ou conexão de rede.
 

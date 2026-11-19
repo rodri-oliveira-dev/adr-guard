@@ -50,7 +50,11 @@ internal static class AdrDocumentLoader
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
 
         var root = Path.GetFullPath(repositoryRoot);
-        var paths = AdrFileDiscovery.FindMarkdownFiles(directoryPath, skipReparsePoints: true);
+        var paths = AdrFileDiscovery.FindMarkdownFiles(
+            directoryPath,
+            skipReparsePoints: true,
+            MaximumBoundedAdrFiles,
+            cancellationToken);
         if (paths.Count > MaximumBoundedAdrFiles)
         {
             throw new InvalidDataException(

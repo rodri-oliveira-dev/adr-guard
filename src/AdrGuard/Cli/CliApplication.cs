@@ -72,7 +72,7 @@ internal static class CliApplication
         Export ADR metadata, declared relationships and validation issues as deterministic JSON schemaVersion 1.0.
         The directory defaults to the configured ADR directory or current directory.
         The output defaults to <repository-root>/.adr-guard/relationships.json.
-        Custom output paths are repository-root-relative, must end in .json, stay inside the repository,
+        Custom output paths are repository-root-relative, use / separators, must end in .json, stay inside the repository,
         and cannot traverse symbolic links or reparse points. Missing output directories are created.
         Existing output is safely replaced only after the complete UTF-8 document is written.
         Issues remain in the artifact and do not prevent a successful export.

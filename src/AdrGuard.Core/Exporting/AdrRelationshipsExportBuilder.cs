@@ -10,7 +10,8 @@ internal static class AdrRelationshipsExportBuilder
     internal static AdrRelationshipsExport Create(
         IReadOnlyList<AdrDocument> documents,
         string repositoryRoot,
-        AdrValidationOptions options)
+        AdrValidationOptions options,
+        bool makeIssueMessagesPortable = true)
     {
         ArgumentNullException.ThrowIfNull(documents);
         ArgumentException.ThrowIfNullOrWhiteSpace(repositoryRoot);
@@ -24,12 +25,17 @@ internal static class AdrRelationshipsExportBuilder
         var byPath = normalizedDocuments.ToLookup(
             document => Path.GetFullPath(document.FilePath),
             PathComparer);
-        var adrs = normalizedDocuments
-            .Select(document => new AdrRelationshipExportAdr(
-                Identifier(document),
-                Relative(root, document.FilePath),
-                document.Title,
-                Status(document, effectiveOptions)))
+        var documentsWithAdrs = normalizedDocuments
+            .Select(document => (
+                Document: document,
+                Adr: new AdrRelationshipExportAdr(
+                    Identifier(document),
+                    Relative(root, document.FilePath),
+                    document.Title,
+                    Status(document, effectiveOptions))))
+            .ToArray();
+        var adrs = documentsWithAdrs
+            .Select(item => item.Adr)
             .OrderBy(adr => adr.Identifier, StringComparer.Ordinal)
             .ThenBy(adr => adr.Path, StringComparer.Ordinal)
             .ToArray();
@@ -77,12 +83,36 @@ internal static class AdrRelationshipsExportBuilder
             .Issues
             .Select(issue => new AdrRelationshipExportIssue(
                 issue.Code,
-                issue.Message,
+                makeIssueMessagesPortable
+                    ? PortableIssueMessage(root, issue.Message, normalizedDocuments)
+                    : issue.Message,
                 Relative(root, issue.FilePath),
                 issue.Severity == ValidationSeverity.Warning
                     ? AdrRelationshipExportIssueSeverity.Warning
                     : AdrRelationshipExportIssueSeverity.Error))
-            .ToArray();
+            .ToList();
+
+        if (effectiveOptions.Format == AdrFormat.Madr4)
+        {
+            foreach (var item in documentsWithAdrs.Where(item => item.Adr.Status is null))
+            {
+                var path = item.Adr.Path;
+                if (issues.Any(issue => issue.Path == path
+                    && issue.Code is ValidationCodes.MissingStatus or ValidationCodes.InvalidStatus))
+                {
+                    continue;
+                }
+
+                var missing = string.IsNullOrWhiteSpace(item.Document.Status);
+                issues.Add(new AdrRelationshipExportIssue(
+                    missing ? ValidationCodes.MissingStatus : ValidationCodes.InvalidStatus,
+                    missing
+                        ? "MADR 4.0 status is missing; export status is unknown."
+                        : $"MADR 4.0 status '{item.Document.Status}' is not recognized by relationships export schema 1.0.",
+                    path,
+                    AdrRelationshipExportIssueSeverity.Error));
+            }
+        }
 
         return new AdrRelationshipsExport(
             AdrRelationshipsExportContract.SchemaVersion,
@@ -94,7 +124,11 @@ internal static class AdrRelationshipsExportBuilder
                 .ThenBy(relationship => TypeName(relationship.Type), StringComparer.Ordinal)
                 .ThenBy(relationship => relationship.DeclaredTarget, StringComparer.Ordinal)
                 .ToArray(),
-            issues);
+            issues
+                .OrderBy(issue => issue.Path, StringComparer.Ordinal)
+                .ThenBy(issue => issue.Code, StringComparer.Ordinal)
+                .ThenBy(issue => issue.Message, StringComparer.Ordinal)
+                .ToArray());
     }
 
     internal static string Identifier(AdrDocument document) =>
@@ -147,15 +181,8 @@ internal static class AdrRelationshipsExportBuilder
         AdrFormat format,
         List<AdrRelationshipExportDeclaration> output)
     {
-        const string prefix = "superseded by ADR-";
         if (format != AdrFormat.Madr4
-            || source.Status?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) != true
-            || !int.TryParse(
-                source.Status[prefix.Length..].Trim(),
-                NumberStyles.None,
-                CultureInfo.InvariantCulture,
-                out var id)
-            || id <= 0)
+            || !TryParseMadrSupersedingId(source.Status, out var id))
         {
             return;
         }
@@ -207,12 +234,44 @@ internal static class AdrRelationshipsExportBuilder
         if ((options.ConventionalSupersession
                 && AdrReference.FindInStatusText(document, options.RepositoryRoot).Count == 1)
             || (options.Format == AdrFormat.Madr4
-                && document.Status?.StartsWith("superseded by ADR-", StringComparison.OrdinalIgnoreCase) == true))
+                && TryParseMadrSupersedingId(document.Status, out _)))
         {
             return AdrRelationshipExportStatus.Superseded;
         }
 
         return null;
+    }
+
+    private static bool TryParseMadrSupersedingId(string? status, out int id)
+    {
+        const string prefix = "superseded by ADR-";
+        id = 0;
+        return status?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) == true
+            && int.TryParse(
+                status[prefix.Length..].Trim(),
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out id)
+            && id > 0;
+    }
+
+    private static string PortableIssueMessage(
+        string repositoryRoot,
+        string message,
+        IReadOnlyList<AdrDocument> documents)
+    {
+        foreach (var documentPath in documents
+                     .Select(document => Path.GetFullPath(document.FilePath))
+                     .Distinct(PathComparer)
+                     .OrderByDescending(path => path.Length))
+        {
+            message = message.Replace(
+                documentPath,
+                Relative(repositoryRoot, documentPath),
+                PathComparison);
+        }
+
+        return message;
     }
 
     private static string Relative(string repositoryRoot, string path)
@@ -240,4 +299,7 @@ internal static class AdrRelationshipsExportBuilder
 
     private static StringComparer PathComparer =>
         OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+
+    private static StringComparison PathComparison =>
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 }

@@ -116,10 +116,14 @@ internal sealed class McpWorkspace(McpServerOptions serverOptions)
         var sources = identifier is null
             ? context.Documents
             : [ResolveDocument(context, identifier)];
+        cancellationToken.ThrowIfCancellationRequested();
         var export = AdrRelationshipsExportBuilder.Create(
             context.Documents.Select(item => item.Document).ToArray(),
             serverOptions.RepositoryRoot,
-            context.ValidationOptions);
+            context.ValidationOptions,
+            // MCP schema 1.0 preserves its historical diagnostic messages.
+            makeIssueMessagesPortable: false);
+        cancellationToken.ThrowIfCancellationRequested();
         var sourcePaths = sources.Select(item => Relative(item.Document.FilePath)).ToHashSet(PathComparer);
         var relationships = export.Relationships
             .Where(relationship => sourcePaths.Contains(relationship.SourcePath))

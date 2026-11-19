@@ -13,7 +13,7 @@ adr-guard export relationships docs/adr
 adr-guard export relationships docs/adr --output artifacts/relationships.json
 ```
 
-The default destination is `<repository-root>/.adr-guard/relationships.json`. A custom destination is relative to the detected repository root, must use a `.json` extension, must remain inside that root, and cannot traverse symbolic links or reparse points. Missing destination directories are created. The complete UTF-8 document is written to a temporary file in the destination directory and then atomically promoted over any existing artifact; a failed write leaves the previous artifact intact.
+The default destination is `<repository-root>/.adr-guard/relationships.json`. A custom destination is relative to the detected repository root, uses portable `/` separators, must use a `.json` extension, must remain inside that root, and cannot traverse symbolic links or reparse points. Missing destination directories are created. The complete UTF-8 document is written to a temporary file in the destination directory and then atomically promoted over any existing artifact; a failed write leaves the previous artifact intact.
 
 The command returns `0` whenever it safely writes the artifact, including when `issues` is non-empty. Invalid command syntax or configuration returns `2`; input, path, security, cancellation, and write failures return `3`. It neither edits ADRs or indexes nor modifies configuration or Git state, and it requires no MCP server, model provider, credentials, or network connection.
 

@@ -149,6 +149,65 @@ public sealed class AdrRelationshipsExportBuilderTests
     }
 
     [Fact]
+    public void CreateRemovesAbsoluteDocumentPathsFromIssueMessages()
+    {
+        using var repository = new TemporaryRepository();
+        var first = Parse(repository, "docs/adr/0001-first.md", Canonical("First", "Accepted"));
+        var duplicate = Parse(repository, "docs/adr/nested/0001-second.md", Canonical("Second", "Accepted"));
+
+        var export = AdrRelationshipsExportBuilder.Create(
+            [first, duplicate],
+            repository.Root,
+            new AdrValidationOptions(AdrFormat.Canonical));
+
+        var duplicateIssues = export.Issues.Where(issue => issue.Code == ValidationCodes.DuplicateId).ToArray();
+        Assert.Equal(2, duplicateIssues.Length);
+        Assert.All(duplicateIssues, issue =>
+        {
+            Assert.DoesNotContain(repository.Root, issue.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("docs/adr/", issue.Message, StringComparison.Ordinal);
+            Assert.DoesNotContain('\\', issue.Message);
+        });
+    }
+
+    [Fact]
+    public void CreateExplainsUnknownAndMissingMadrStatusesWithoutGuessing()
+    {
+        using var repository = new TemporaryRepository();
+        var validSupersession = Parse(
+            repository,
+            "docs/adr/0001-valid.md",
+            Madr("Valid supersession", "superseded by ADR-0099"));
+        var malformedSupersession = Parse(
+            repository,
+            "docs/adr/0002-malformed.md",
+            Madr("Malformed supersession", "superseded by ADR-xyz"));
+        var unknown = Parse(repository, "docs/adr/0003-unknown.md", Madr("Unknown", "Approved"));
+        var missing = Parse(repository, "docs/adr/0004-missing.md", MadrWithoutStatus("Missing"));
+
+        var export = AdrRelationshipsExportBuilder.Create(
+            [validSupersession, malformedSupersession, unknown, missing],
+            repository.Root,
+            new AdrValidationOptions(AdrFormat.Madr4));
+
+        Assert.Equal(AdrRelationshipExportStatus.Superseded, export.Adrs[0].Status);
+        Assert.Null(export.Adrs[1].Status);
+        Assert.Null(export.Adrs[2].Status);
+        Assert.Null(export.Adrs[3].Status);
+        var relationship = Assert.Single(export.Relationships);
+        Assert.Equal(AdrRelationshipExportResolution.Unresolved, relationship.Resolution);
+        Assert.Contains(export.Issues, issue =>
+            issue.Path.EndsWith("0002-malformed.md", StringComparison.Ordinal)
+            && issue.Code == ValidationCodes.InvalidStatus);
+        Assert.Contains(export.Issues, issue =>
+            issue.Path.EndsWith("0003-unknown.md", StringComparison.Ordinal)
+            && issue.Code == ValidationCodes.InvalidStatus);
+        Assert.Contains(export.Issues, issue =>
+            issue.Path.EndsWith("0004-missing.md", StringComparison.Ordinal)
+            && issue.Code == ValidationCodes.MissingStatus);
+    }
+
+    [Fact]
     public void CreateRejectsDocumentPathsOutsideRepositoryRoot()
     {
         using var repository = new TemporaryRepository();
@@ -209,6 +268,19 @@ public sealed class AdrRelationshipsExportBuilderTests
         $"""
         ---
         status: "{status}"
+        ---
+        # {title}
+        ## Context and Problem Statement
+        Context.
+        ## Considered Options
+        * Option
+        ## Decision Outcome
+        Chosen option: "Option".
+        """;
+
+    private static string MadrWithoutStatus(string title) =>
+        $"""
+        ---
         ---
         # {title}
         ## Context and Problem Statement

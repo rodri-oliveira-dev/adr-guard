@@ -51,6 +51,22 @@ public sealed class ExportRelationshipsCommandIntegrationTests
     }
 
     [Fact]
+    public void DuplicateIdDiagnosticsDoNotExposeTheAbsoluteRepositoryPath()
+    {
+        using var repository = new TemporaryRepository();
+        repository.WriteAdr("0001-first.md", Adr("First", "Accepted"));
+        repository.WriteAdr("0001-second.md", Adr("Second", "Accepted"));
+
+        var result = Run(repository, ["export", "relationships", repository.AdrDirectory]);
+
+        Assert.Equal(ExitCodes.Success, result.Code);
+        var json = File.ReadAllText(repository.DefaultExportPath);
+        Assert.DoesNotContain(repository.Root, json, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("docs/adr/0001-first.md", json, StringComparison.Ordinal);
+        Assert.Contains("docs/adr/0001-second.md", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExportsAdrDirectoryWithoutRelationships()
     {
         using var repository = new TemporaryRepository();
@@ -217,6 +233,25 @@ public sealed class ExportRelationshipsCommandIntegrationTests
         }
     }
 
+    [Theory]
+    [InlineData(@"C:\temp\relationships.json")]
+    [InlineData("C:/temp/relationships.json")]
+    [InlineData(@"\\server\share\relationships.json")]
+    public void RejectsWindowsStyleOutputPathOnUnix(string outputPath)
+    {
+        if (OperatingSystem.IsWindows()) return;
+
+        using var repository = new TemporaryRepository();
+
+        var result = Run(
+            repository,
+            ["export", "relationships", repository.AdrDirectory, "--output", outputPath]);
+
+        Assert.Equal(ExitCodes.OperationalError, result.Code);
+        Assert.False(File.Exists(Path.Combine(repository.Root, outputPath)));
+        Assert.Contains("portable relative path", result.Error, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void SkipsSymbolicLinkedInputWithoutReadingOutsideRepository()
     {
@@ -362,9 +397,12 @@ public sealed class ExportRelationshipsCommandIntegrationTests
 
     private sealed class TemporaryRepository : IDisposable
     {
+        private readonly string ownedRoot;
+
         internal TemporaryRepository()
         {
-            Root = Path.Combine(Path.GetTempPath(), $"adr-guard-cli-export-{Guid.NewGuid():N}");
+            ownedRoot = Path.Combine(Path.GetTempPath(), $"adr-guard-cli-export-{Guid.NewGuid():N}");
+            Root = Path.Combine(ownedRoot, "repository");
             AdrDirectory = Path.Combine(Root, "docs", "adr");
             Directory.CreateDirectory(Path.Combine(Root, ".git"));
             Directory.CreateDirectory(AdrDirectory);
@@ -382,7 +420,7 @@ public sealed class ExportRelationshipsCommandIntegrationTests
 
         public void Dispose()
         {
-            if (Directory.Exists(Root)) Directory.Delete(Root, recursive: true);
+            if (Directory.Exists(ownedRoot)) Directory.Delete(ownedRoot, recursive: true);
         }
     }
 }

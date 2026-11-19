@@ -32,6 +32,7 @@ internal static class ExportRelationshipsCommand
             var repositoryRoot = AdrRepositoryRoot.Resolve(arguments.DirectoryPath);
             ValidateInputDirectory(repositoryRoot, arguments.DirectoryPath);
             var relativeOutputPath = arguments.OutputPath ?? DefaultOutputPath;
+            ValidatePortableOutputPath(relativeOutputPath);
             ValidateOutputExtension(relativeOutputPath);
             var outputPath = RepositoryPath.ResolveContained(repositoryRoot, relativeOutputPath);
             var outputDirectory = Path.GetDirectoryName(outputPath)
@@ -91,6 +92,17 @@ internal static class ExportRelationshipsCommand
         if (!string.Equals(Path.GetExtension(path), ".json", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Relationships export output must use a .json extension.", nameof(path));
+        }
+    }
+
+    private static void ValidatePortableOutputPath(string path)
+    {
+        if (path.Contains('\\')
+            || (path.Length >= 2 && char.IsAsciiLetter(path[0]) && path[1] == ':'))
+        {
+            throw new ArgumentException(
+                "Relationships export output must use a portable relative path with '/' separators.",
+                nameof(path));
         }
     }
 

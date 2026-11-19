@@ -64,10 +64,17 @@ Edite a ADR `Proposed` gerada e substitua as instruções por contexto, decisão
 ```bash
 adr-guard check docs/adr
 adr-guard index docs/adr
-adr-guard export relationships docs/adr
 ```
 
-`check` valida o conjunto. `index` valida novamente e cria ou atualiza `docs/adr/README.md`; `new` não atualiza o índice automaticamente. O comando de exportação presente apenas no código-fonte grava `.adr-guard/relationships.json` para ferramentas como o Align e conclui com sucesso mesmo quando o artefato registra issues de validação; ele ainda não está na CLI publicada. Leia o [tutorial da primeira ADR](docs/guides/getting-started.pt-BR.md) para o fluxo completo e o [contrato de exportação](docs/adr-relationships-export-v1.pt-BR.md) para detalhes de integração.
+`check` valida o conjunto. `index` valida novamente e cria ou atualiza `docs/adr/README.md`; `new` não atualiza o índice automaticamente. Leia o [tutorial da primeira ADR](docs/guides/getting-started.pt-BR.md) para o fluxo publicado completo.
+
+O exportador de relacionamentos está disponível apenas na candidata atual do código-fonte, não na CLI 1.10.0 publicada. Depois de clonar este repositório e restaurar o SDK .NET 10 fixado, execute-o a partir da raiz do repositório com:
+
+```bash
+dotnet run --project src/AdrGuard/AdrGuard.csproj -- export relationships docs/adr
+```
+
+Ele grava `.adr-guard/relationships.json` para ferramentas como o Align e conclui com sucesso mesmo quando o artefato registra issues de validação. Consulte o [contrato de exportação](docs/adr-relationships-export-v1.pt-BR.md) para detalhes de integração.
 
 A CLI 1.10.0 publicada inclui o comando somente leitura `adr-guard doctor [repositório]` para diagnóstico local da CLI, repositório, configuração, diretório de ADRs, .NET e Git opcional. Ele nunca aplica correções nem acessa a rede. Consulte a [referência da CLI](docs/cli-reference.pt-BR.md#diagnosticar-o-ambiente-local); o comando não está disponível no pacote anterior da CLI 1.9.0.
 
