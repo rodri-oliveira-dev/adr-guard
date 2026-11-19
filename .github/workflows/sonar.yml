@@ -106,7 +106,7 @@ jobs:
             /d:sonar.cs.vscoveragexml.reportsPaths="artifacts/coverage/sonar/coverage.xml" \
             /d:sonar.javascript.lcov.reportPaths="artifacts/coverage/sonar/vscode/lcov.info" \
             /d:sonar.exclusions="tests/**,benchmarks/**,website/**,scripts/**,skills/**,artifacts/**,**/bin/**,**/obj/**,**/*.g.cs,**/*.generated.cs" \
-            /d:sonar.coverage.exclusions="tests/**,benchmarks/**,eng/**,website/**,scripts/**,skills/**,**/*.g.cs,**/*.generated.cs" \
+            /d:sonar.coverage.exclusions="tests/**,benchmarks/**,eng/**,website/**,scripts/**,skills/**,extensions/vscode/scripts/verify-vsix.mjs,**/*.g.cs,**/*.generated.cs" \
             /d:sonar.qualitygate.wait="${IS_PR}" \
             /d:sonar.qualitygate.timeout=300
 
