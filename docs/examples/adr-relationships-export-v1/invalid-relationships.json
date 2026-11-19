@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0",
+  "adrs": [
+    {
+      "identifier": "ADR-1",
+      "path": "docs/adr/0001-first.md",
+      "title": "First decision",
+      "status": "Superseded"
+    },
+    {
+      "identifier": "ADR-2",
+      "path": "docs/adr/0002-second.md",
+      "title": "Second decision",
+      "status": "Superseded"
+    }
+  ],
+  "relationships": [
+    {
+      "sourceIdentifier": "ADR-1",
+      "sourcePath": "docs/adr/0001-first.md",
+      "type": "superseded-by",
+      "declaredTarget": "0002-second.md",
+      "targetIdentifier": "ADR-2",
+      "targetPath": "docs/adr/0002-second.md",
+      "resolution": "resolved"
+    },
+    {
+      "sourceIdentifier": "ADR-2",
+      "sourcePath": "docs/adr/0002-second.md",
+      "type": "superseded-by",
+      "declaredTarget": "0001-first.md",
+      "targetIdentifier": "ADR-1",
+      "targetPath": "docs/adr/0001-first.md",
+      "resolution": "resolved"
+    }
+  ],
+  "issues": [
+    {
+      "code": "ADR010",
+      "message": "ADR participates in a cycle of superseding decisions.",
+      "path": "docs/adr/0001-first.md",
+      "severity": "error"
+    },
+    {
+      "code": "ADR010",
+      "message": "ADR participates in a cycle of superseding decisions.",
+      "path": "docs/adr/0002-second.md",
+      "severity": "error"
+    }
+  ]
+}

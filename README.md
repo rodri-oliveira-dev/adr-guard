@@ -31,6 +31,7 @@ New to the practice? Follow the progressive guide:
 - validates canonical structure, filenames, statuses, required sections, links, IDs, and supersession relationships;
 - supports separate, opt-in MADR 4.0 validation;
 - generates a deterministic Markdown index only after validation succeeds;
+- exports deterministic ADR metadata, declared relationships, and validation issues as schema `1.0` JSON for external integrations;
 - supports Git-aware incremental checks, diagnostic baselines, and JSON/SARIF reports;
 - offers opt-in, advisory [architecture impact analysis](docs/guides/architecture-impact-analysis.md) from explicit ADR-to-code mappings;
 - verifies opt-in [architectural drift and fitness evidence](docs/guides/architectural-drift.md) without evaluating MSBuild or treating missing evidence as compliance;
@@ -66,7 +67,15 @@ adr-guard check docs/adr
 adr-guard index docs/adr
 ```
 
-`check` validates the ADR set. `index` validates again and creates or updates `docs/adr/README.md`; `new` does not update the index automatically. Read the [first ADR tutorial](docs/guides/getting-started.md) for the complete workflow.
+`check` validates the ADR set. `index` validates again and creates or updates `docs/adr/README.md`; `new` does not update the index automatically. Read the [first ADR tutorial](docs/guides/getting-started.md) for the complete published workflow.
+
+The relationship exporter is available only from the current source candidate, not from the published CLI 1.10.0. After cloning this repository and restoring the pinned .NET 10 SDK, keep the terminal at the root of your repository. If the ADR Guard clone is a sibling directory named `adr-guard`, run:
+
+```bash
+dotnet run --project ../adr-guard/src/AdrGuard/AdrGuard.csproj -- export relationships docs/adr
+```
+
+It writes `.adr-guard/relationships.json` for tools such as Align and succeeds even when the artifact records validation issues. See the [export contract](docs/adr-relationships-export-v1.md) for integration details.
 
 Published CLI 1.10.0 includes the read-only `adr-guard doctor [repository]` command for local CLI, repository, configuration, ADR-directory, .NET, and optional Git diagnostics. It never applies fixes or accesses the network. See the [CLI reference](docs/cli-reference.md#diagnose-a-local-environment); the command is not available in the older CLI 1.9.0 package.
 

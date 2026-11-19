@@ -138,6 +138,37 @@ public sealed class AdrRelationshipValidatorTests
     }
 
     [Fact]
+    public void RepositoryRootAllowsSiblingRelationshipsButRejectsEscapes()
+    {
+        var repositoryRoot = Path.Combine(Path.GetTempPath(), $"adr-guard-relationships-{Guid.NewGuid():N}");
+        var inactive = ParseAtRoot(
+            repositoryRoot,
+            "docs/adr/shared/0002-old.md",
+            Canonical("Old", "Deprecated"));
+        var dependency = ParseAtRoot(
+            repositoryRoot,
+            "docs/adr/nested/0001-dependent.md",
+            Canonical("Dependent", "Accepted", "## Depends on\n[Old](../shared/0002-old.md)"));
+        var escaping = ParseAtRoot(
+            repositoryRoot,
+            "docs/adr/nested/0003-escaping.md",
+            Canonical("Escaping", "Accepted", "## Depends on\n[Outside](../../../../outside.md)"));
+        var options = new AdrValidationOptions(AdrFormat.Canonical, RepositoryRoot: repositoryRoot);
+
+        var result = AdrValidator.Validate([dependency, inactive, escaping], null, options);
+
+        Assert.Contains(result.Issues, issue =>
+            issue.Code == ValidationCodes.InactiveDependency
+            && issue.FilePath.EndsWith("0001-dependent.md", StringComparison.Ordinal));
+        Assert.Contains(result.Issues, issue =>
+            issue.Code == ValidationCodes.BrokenReference
+            && issue.FilePath.EndsWith("0003-escaping.md", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Issues, issue =>
+            issue.Code == ValidationCodes.InactiveDependency
+            && issue.FilePath.EndsWith("0003-escaping.md", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void CanonicalStatusSectionCannotBeOverriddenByFrontMatter()
     {
         var accepted = Parse(
@@ -214,6 +245,11 @@ public sealed class AdrRelationshipValidatorTests
 
     private static AdrDocument Parse(string path, string markdown) =>
         AdrMarkdownParser.Parse(Path.Combine("docs", "adr", path), markdown);
+
+    private static AdrDocument ParseAtRoot(string root, string path, string markdown) =>
+        AdrMarkdownParser.Parse(
+            Path.Combine(root, path.Replace('/', Path.DirectorySeparatorChar)),
+            markdown);
 
     private static string Canonical(string title, string status, string additional = "") =>
         $"""

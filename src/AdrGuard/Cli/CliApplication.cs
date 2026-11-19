@@ -30,6 +30,7 @@ internal static class CliApplication
           adr-guard check [directory] [--format text|json|sarif] [--diagnostic-locations] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>] [--changed --base-ref <ref>] [--baseline <file>]
           adr-guard baseline [directory] --output <file> [--update] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
           adr-guard index [directory] [--output <file>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>] [--catalog enriched]
+          adr-guard export relationships [directory] [--output <file.json>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
           adr-guard new [adr-directory] (--title <title> [--dry-run|--preview] | --form) [--adr-format canonical|madr-4] [--template minimal|extended] [--template-file <path>] [--culture en-US|pt-BR] [--filename-policy <policy>]
           adr-guard edit <adr-file> --form [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--placeholder-policy off|warn|error] [--validate-metadata] [--validation-profile <profile>]
           adr-guard draft [directory] --title <title> --context <context> --provider <provider> --model <model> [--culture <name>] [--template minimal|extended | --template-file <path>] [--endpoint <uri>] [--context-file <path>]... [--include-existing-adrs] [--dry-run|--preview]
@@ -44,6 +45,7 @@ internal static class CliApplication
           check    Validate ADR files. Defaults to the current directory.
           baseline Generate or explicitly update a versioned diagnostic baseline.
           index    Validate ADR files and generate an index. Defaults to README.md.
+          export   Export versioned ADR data for external integrations.
           new      Create a Proposed ADR from an offline Markdown template.
           edit     Safely load or update one existing ADR through a versioned form contract.
           draft    Generate a Proposed ADR draft through a configured AI provider.
@@ -61,6 +63,25 @@ internal static class CliApplication
           2  Invalid command-line usage
           3  Operational error
           4  Deterministic review policy failed
+        """;
+
+    private const string ExportRelationshipsHelpText = """
+        Usage:
+          adr-guard export relationships [directory] [--output <file.json>] [--adr-format canonical|madr-4] [--lifecycle-statuses <mapping>] [--conventional-supersession] [--filename-policy <policy>] [--validation-profile <profile>]
+
+        Export ADR metadata, declared relationships and validation issues as deterministic JSON schemaVersion 1.0.
+        The directory defaults to the configured ADR directory or current directory.
+        The output defaults to <repository-root>/.adr-guard/relationships.json.
+        Custom output paths are repository-root-relative, use / separators, must end in .json, stay inside the repository,
+        and cannot traverse symbolic links or reparse points. Missing output directories are created.
+        Existing output is safely replaced only after the complete UTF-8 document is written.
+        Issues remain in the artifact and do not prevent a successful export.
+        The command is offline and does not modify ADRs, indexes, configuration, or Git state.
+
+        Exit codes:
+          0  Artifact written, including when validation issues are present
+          2  Invalid command-line usage or configuration
+          3  Input, path, security, cancellation or write failure
         """;
 
     private const string ImpactHelpText = """
@@ -378,6 +399,7 @@ internal static class CliApplication
             "check" => RunCheck(effectiveArgs, output, error, cancellationToken),
             "baseline" => RunBaseline(effectiveArgs, output, error, cancellationToken),
             "index" => RunIndex(effectiveArgs, output, error),
+            "export" => RunExport(effectiveArgs, output, error, cancellationToken),
             "new" => NewCommand.Run(effectiveArgs, input, output, error, cancellationToken),
             "edit" => EditFormCommand.Run(effectiveArgs, input, output, error, cancellationToken),
             "draft" => RunDraft(
@@ -724,6 +746,27 @@ internal static class CliApplication
             indexArguments.EnrichedCatalog,
             output,
             error);
+    }
+
+    private static int RunExport(
+        IReadOnlyList<string> args,
+        TextWriter output,
+        TextWriter error,
+        CancellationToken cancellationToken)
+    {
+        if ((args.Count == 2 && IsHelpOption(args[1]))
+            || (args.Count == 3 && args[1] == "relationships" && IsHelpOption(args[2])))
+        {
+            output.WriteLine(ExportRelationshipsHelpText);
+            return ExitCodes.Success;
+        }
+
+        if (!ExportRelationshipsCommandArguments.TryParse(args, out var arguments))
+        {
+            return WriteCommandUsageError("export relationships", error);
+        }
+
+        return ExportRelationshipsCommand.Run(arguments, output, error, cancellationToken);
     }
 
     private static int RunReview(

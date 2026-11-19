@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0",
+  "adrs": [
+    {
+      "identifier": "ADR-1",
+      "path": "docs/adr/0001-legacy-storage.md",
+      "title": "Use legacy storage",
+      "status": "Superseded"
+    },
+    {
+      "identifier": "ADR-2",
+      "path": "docs/adr/0002-managed-storage.md",
+      "title": "Use managed storage",
+      "status": "Accepted"
+    },
+    {
+      "identifier": "ADR-3",
+      "path": "docs/adr/0003-encryption.md",
+      "title": "Encrypt stored data",
+      "status": "Accepted"
+    }
+  ],
+  "relationships": [
+    {
+      "sourceIdentifier": "ADR-1",
+      "sourcePath": "docs/adr/0001-legacy-storage.md",
+      "type": "superseded-by",
+      "declaredTarget": "0002-managed-storage.md",
+      "targetIdentifier": "ADR-2",
+      "targetPath": "docs/adr/0002-managed-storage.md",
+      "resolution": "resolved"
+    },
+    {
+      "sourceIdentifier": "ADR-2",
+      "sourcePath": "docs/adr/0002-managed-storage.md",
+      "type": "depends-on",
+      "declaredTarget": "0003-encryption.md",
+      "targetIdentifier": "ADR-3",
+      "targetPath": "docs/adr/0003-encryption.md",
+      "resolution": "resolved"
+    }
+  ],
+  "issues": []
+}

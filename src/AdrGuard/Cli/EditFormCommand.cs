@@ -48,9 +48,14 @@ internal static class EditFormCommand
             var requestError = ValidateRequest(parsedRequest);
             if (requestError is not null) return UsageError(requestError, error);
 
+            var adrDirectory = parsed.AdrDirectory is null
+                ? Path.GetDirectoryName(Path.GetFullPath(parsed.FilePath))
+                    ?? throw new InvalidOperationException("Unable to resolve the ADR directory.")
+                : Path.GetFullPath(parsed.AdrDirectory);
+            var validationRoot = AdrRepositoryRoot.Resolve(adrDirectory);
             var options = AdrValidationOptionsFactory.Create(
                 parsed.Format,
-                Directory.GetCurrentDirectory(),
+                validationRoot,
                 parsed.LifecycleStatuses,
                 parsed.ConventionalSupersession,
                 parsed.FilenamePolicy,

@@ -1,0 +1,45 @@
+name: Export ADR relationships
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "docs/adr/**"
+      - ".adrguard.yml"
+      - ".config/dotnet-tools.json"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: "10.0.x"
+
+      # Commit a .config/dotnet-tools.json that pins a released ADR Guard
+      # version containing `export relationships` before enabling this job.
+      - name: Restore pinned tools
+        run: dotnet tool restore
+
+      - name: Export relationships for external consumers
+        run: dotnet tool run adr-guard export relationships docs/adr
+
+      - name: Upload relationship artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: adr-relationships
+          path: .adr-guard/relationships.json
+          if-no-files-found: error
+
+      # Export success only proves that the JSON was written. Validation is a
+      # separate policy decision; this advisory example does not block upload.
+      - name: Validate ADRs separately (advisory)
+        continue-on-error: true
+        run: dotnet tool run adr-guard check docs/adr

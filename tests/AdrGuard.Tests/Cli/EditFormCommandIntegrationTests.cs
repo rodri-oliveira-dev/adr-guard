@@ -302,6 +302,66 @@ public sealed class EditFormCommandIntegrationTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LoadAcceptsDocumentLinksOutsideTheAdrDirectoryButInsideTheRepository(
+        bool useExplicitAdrDirectory)
+    {
+        var root = CreateDirectory();
+        var docsDirectory = Path.Combine(root, "docs");
+        var adrDirectory = Path.Combine(docsDirectory, "adr");
+        var path = Path.Combine(adrDirectory, "0001-choice.md");
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, ".git"));
+            Directory.CreateDirectory(adrDirectory);
+            File.WriteAllText(Path.Combine(docsDirectory, "guide.md"), "# Guide\n");
+            File.WriteAllText(
+                path,
+                Canonical.Replace("Context.", "See the [guide](../guide.md).", StringComparison.Ordinal));
+
+            var load = Run(
+                path,
+                LoadRequest(),
+                "canonical",
+                useExplicitAdrDirectory ? adrDirectory : null);
+
+            Assert.Equal(ExitCodes.Success, load.Code);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void LoadRejectsDocumentLinksOutsideTheRepository()
+    {
+        var root = CreateDirectory();
+        var repositoryRoot = Path.Combine(root, "repository");
+        var adrDirectory = Path.Combine(repositoryRoot, "docs", "adr");
+        var path = Path.Combine(adrDirectory, "0001-choice.md");
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(repositoryRoot, ".git"));
+            Directory.CreateDirectory(adrDirectory);
+            File.WriteAllText(Path.Combine(root, "outside.md"), "# Outside\n");
+            File.WriteAllText(
+                path,
+                Canonical.Replace("Context.", "See [outside](../../../outside.md).", StringComparison.Ordinal));
+
+            var load = Run(path, LoadRequest(), "canonical", adrDirectory);
+
+            Assert.Equal(ExitCodes.ValidationFailed, load.Code);
+            Assert.Contains(ValidationCodes.BrokenReference, load.Error, StringComparison.Ordinal);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
     [Fact]
     public void LoadDoesNotExposeHeadingsInsideLongerFencedCodeBlocks()
     {

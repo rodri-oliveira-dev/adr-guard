@@ -17,6 +17,7 @@ This table mirrors the command dispatcher and built-in `--help`. Specialized gui
 | `check [directory]` | Text/JSON/SARIF, ADR format, lifecycle/supersession, filename/placeholder/metadata/profile policy, optional changed/base ref and diagnostic baseline | Read-only; local Git read for `--changed` | `0` valid, `1` findings, `2`, `3` |
 | `baseline [directory] --output <file>` | Validation policy options; `--update` required to replace | Creates or explicitly replaces one versioned baseline | `0`, `2`, `3` |
 | `index [directory]` | Optional output, validation policy, `--catalog enriched` | Writes deterministic standard index or enriched catalog only after validation | `0`, `1`, `2`, `3` |
+| `export relationships [directory]` | Optional repository-relative JSON output and validation/format policy | Atomically creates or replaces one deterministic relationship artifact; ADRs and Git remain unchanged | `0`, `2`, `3` |
 | `new [directory]` | Human flow requires `--title`; structured flow requires `--form`; ADR format/template/culture/filename options | Preview is read-only; create writes one proposed canonical or MADR ADR atomically | `0`, `1`, `2`, `3` |
 | `edit <adr-file> --form` | Schema `1.0` stdin request plus format/policy options and optional ADR directory | `load` is read-only; fingerprint-checked `save` atomically updates only the selected ADR | `0`, `1`, `2`, `3` |
 | `draft [directory]` | Title, context, provider, model; optional endpoint/files/existing ADRs/template/culture/preview | Calls the selected provider; preview does not write, create writes one `Proposed` ADR | `0`, `1`, `2`, `3` |
@@ -79,7 +80,7 @@ Precedence is:
 2. `.adrguard.yml` value.
 3. The command's legacy default.
 
-Configured ADR directories apply when the positional directory is omitted from `check`, `index`, `new`, and `draft`. Configured templates apply only when `new`/`draft` do not receive an explicit template option. Configured `adr-format` now applies to `new`; explicit `--adr-format` wins and omission preserves `canonical`. `review` continues to require an explicit target.
+Configured ADR directories apply when the positional directory is omitted from `check`, `index`, `export relationships`, `new`, and `draft`. Configured templates apply only when `new`/`draft` do not receive an explicit template option. Configured format, lifecycle, supersession, filename, and validation-profile policy applies to relationship export; explicit CLI options win. Configured `adr-format` also applies to `new`; explicit `--adr-format` wins and omission preserves `canonical`. `review` continues to require an explicit target.
 
 ## Create an ADR through a structured client
 
@@ -168,6 +169,25 @@ adr-guard check [directory] [--format text|json|sarif] [--diagnostic-locations]
 ```
 
 `text` remains the default. JSON uses schema version `1.0`; SARIF uses version `2.1.0`. `--diagnostic-locations` opts machine reports into evidenced one-based line/column properties or SARIF regions; it omits locations that cannot be proven. Without the flag, the existing report shape is preserved for strict clients. Both formats are written to stdout on success and ADR validation failure, while operational diagnostics use stderr. Exit codes remain `0` for valid, `1` for ADR diagnostics, `2` for invalid usage/configuration, and `3` for operational failure.
+
+## Export ADR relationships
+
+> Availability: this command is implemented in the current source candidate and is not in the published CLI 1.10.0 release.
+
+```text
+adr-guard export relationships [directory] [--output <file.json>]
+  [--adr-format canonical|madr-4]
+  [--lifecycle-statuses <mapping>] [--conventional-supersession]
+  [--filename-policy <policy>] [--validation-profile <profile>]
+```
+
+The command exports schema `1.0` ADR metadata, every declared supported relationship, and attributable Core validation issues. The default output is `<repository-root>/.adr-guard/relationships.json`; `--output` is repository-root-relative. Output must use `.json`, remain within the repository, and avoid symbolic-link/reparse-point traversal. Missing directories are created, and an existing artifact is replaced only by promoting a complete UTF-8 temporary file in the same directory.
+
+Input is bounded to 1,000 Markdown files of 524,288 bytes each and must be valid UTF-8; symbolic links and reparse points are skipped before content is read. Relationship `resolution` is `resolved`, `ambiguous`, or `unresolved`. `resolved` proves only that the declared target identifies one ADR; semantic failures such as cycles remain explicit in `issues`.
+
+Stable field/array ordering, portable repository-relative paths, and the absence of timestamps make repeated equivalent runs byte-identical. Validation issues do not block generation or change success exit `0`. Invalid usage/configuration returns `2`; unsafe input/output, cancellation, and I/O failures return `3`. The command is offline, uses the same Core relationship producer as MCP, and does not edit ADRs, the Markdown index, configuration, or Git. `generatedFrom` is omitted to avoid implicit Git state and preserve the smallest deterministic contract. See the [schema and integration contract](adr-relationships-export-v1.md).
+
+A successful export means that the artifact was written; it does not mean that every relationship is valid. The [GitHub Actions example](examples/github-action-relationships-export.yml) uploads the artifact for external consumption while keeping advisory or mandatory `check` enforcement as a separate step.
 
 ## Architecture impact
 

@@ -10,7 +10,9 @@ internal static class ConfigurationArguments
 
         // Preserve unmodified help handling even with repository configuration.
         if (configuration is null || args.Count == 0
-            || (args.Count == 2 && args[1] is "-h" or "--help"))
+            || (args.Count == 2 && args[1] is "-h" or "--help")
+            || (args.Count == 3 && args[0] == "export"
+                && args[1] == "relationships" && args[2] is "-h" or "--help"))
         {
             return args;
         }
@@ -22,6 +24,14 @@ internal static class ConfigurationArguments
             case "index":
             case "baseline":
                 AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath);
+                AddAdrFormatIfMissing(configured, configuration);
+                AddLifecyclePolicyIfMissing(configured, configuration);
+                AddConventionalSupersessionIfMissing(configured, configuration);
+                AddFilenamePolicyIfMissing(configured, configuration);
+                AddValidationProfileIfMissing(configured, configuration);
+                break;
+            case "export" when args.Count > 1 && args[1] == "relationships":
+                AddDirectoryIfMissing(configured, configuration.AdrDirectoryPath, startIndex: 2);
                 AddAdrFormatIfMissing(configured, configuration);
                 AddLifecyclePolicyIfMissing(configured, configuration);
                 AddConventionalSupersessionIfMissing(configured, configuration);
@@ -61,17 +71,20 @@ internal static class ConfigurationArguments
         return configured;
     }
 
-    private static void AddDirectoryIfMissing(List<string> args, string directory)
+    private static void AddDirectoryIfMissing(
+        List<string> args,
+        string directory,
+        int startIndex = 1)
     {
-        if (!HasPositionalDirectory(args))
+        if (!HasPositionalDirectory(args, startIndex))
         {
-            args.Insert(1, directory);
+            args.Insert(startIndex, directory);
         }
     }
 
-    private static bool HasPositionalDirectory(List<string> args)
+    private static bool HasPositionalDirectory(List<string> args, int startIndex)
     {
-        for (var index = 1; index < args.Count; index++)
+        for (var index = startIndex; index < args.Count; index++)
         {
             var argument = args[index];
             if (!argument.StartsWith('-'))

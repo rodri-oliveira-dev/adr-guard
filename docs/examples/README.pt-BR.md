@@ -6,6 +6,8 @@ Para evidência arquitetural executável, consulte o [estudo de caso de drift ar
 
 Esta biblioteca reúne **exemplos de documentos ADR**, que mostram como registrar decisões. Para um **exemplo de automação**, com esses documentos validados em um pull request real, consulte a [demonstração no GitHub Actions](../github-action.pt-BR.md#demonstração-real-no-github-actions).
 
+Para consumidores externos de relacionamentos, consulte as [fixtures JSON versionadas](adr-relationships-export-v1/) e o [exemplo de exportação no GitHub Actions](github-action-relationships-export.yml). O workflow faz upload da exportação independentemente da validação consultiva; criar o artefato não comprova que todos os relacionamentos são válidos.
+
 Estes exemplos expressam a mesma decisão — usar PostgreSQL como sistema de registro de pedidos — em três níveis de estrutura. Eles contêm justificativas completas, não instruções de template. Cada idioma e formato fica em diretório separado porque toda amostra usa intencionalmente o ID `0001` e a seleção de formato vale para o conjunto validado inteiro.
 
 | Exemplo | Por que esta forma serve |

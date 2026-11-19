@@ -53,8 +53,14 @@ internal static class AdrRelationshipValidator
         {
             var targets = successors[document];
             ValidateSupersessionTargets(document, targets, issues, lifecycle);
-            ValidateSupersedesDeclarations(document, byPath, successors, issues, lifecycle);
-            ValidateDependencies(document, byPath, issues, lifecycle);
+            ValidateSupersedesDeclarations(
+                document,
+                byPath,
+                successors,
+                issues,
+                lifecycle,
+                options.RepositoryRoot);
+            ValidateDependencies(document, byPath, issues, lifecycle, options.RepositoryRoot);
         }
 
         ValidateCycles(successors, issues);
@@ -67,7 +73,10 @@ internal static class AdrRelationshipValidator
         List<ValidationIssue> issues,
         AdrValidationOptions options)
     {
-        foreach (var reference in AdrReference.FindInSections(document, "Superseded by"))
+        foreach (var reference in AdrReference.FindInSections(
+                     document,
+                     ["Superseded by"],
+                     options.RepositoryRoot))
         {
             if (byPath.TryGetValue(reference.ResolvedPath, out var target))
             {
@@ -140,9 +149,13 @@ internal static class AdrRelationshipValidator
         Dictionary<string, AdrDocument> byPath,
         Dictionary<AdrDocument, IReadOnlyList<AdrDocument>> successors,
         List<ValidationIssue> issues,
-        AdrLifecyclePolicy lifecycle)
+        AdrLifecyclePolicy lifecycle,
+        string? repositoryRoot)
     {
-        foreach (var reference in AdrReference.FindInSections(document, "Supersedes"))
+        foreach (var reference in AdrReference.FindInSections(
+                     document,
+                     ["Supersedes"],
+                     repositoryRoot))
         {
             if (!byPath.TryGetValue(reference.ResolvedPath, out var predecessor))
             {
@@ -179,9 +192,13 @@ internal static class AdrRelationshipValidator
         AdrDocument document,
         Dictionary<string, AdrDocument> byPath,
         List<ValidationIssue> issues,
-        AdrLifecyclePolicy lifecycle)
+        AdrLifecyclePolicy lifecycle,
+        string? repositoryRoot)
     {
-        foreach (var reference in AdrReference.FindInSections(document, "Depends on", "Dependencies"))
+        foreach (var reference in AdrReference.FindInSections(
+                     document,
+                     ["Depends on", "Dependencies"],
+                     repositoryRoot))
         {
             if (!byPath.TryGetValue(reference.ResolvedPath, out var dependency)
                 || !IsInactive(dependency.Status, lifecycle))
