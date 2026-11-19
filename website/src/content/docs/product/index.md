@@ -27,7 +27,7 @@ ADR Guard keeps architecture judgment with people while automating repeatable do
 - Use [Architectural Drift](./architectural-drift/) to verify explicit ADR-backed fitness rules from bounded evidence. Results distinguish conformance, violation, and insufficient evidence; opt-in enforcement applies only within the implemented deterministic limits.
 - Produce [machine-readable and human-readable reports](./reports/).
 - Opt into [AI-assisted drafting](./ai-drafting/) or [review](./ai-review/) with explicit providers and security controls.
-- Validate MADR 4.0 documents in a [separate opt-in mode](./madr-4/); native generation is prepared for unpublished CLI 1.11.0.
+- Validate and generate MADR 4.0 documents in a [separate opt-in mode](./madr-4/) with published CLI 1.11.0; canonical remains the default.
 
 ## Impact and drift are different
 
@@ -46,7 +46,7 @@ The source-only [Architecture Agent](./architecture-agent/) adds five controlled
 
 ## MCP status
 
-The standalone MCP 1.0.1 server is published on NuGet.org and GitHub Releases, while the checked-in MCP Registry manifest remains at 1.0.0; the optional provider is published in VS Code extension 1.1.0. The server exposes seven read-only tools over `stdio` and is installed separately from the extension. CLI 1.10.0 is published on NuGet.org and GitHub Releases; CLI 1.11.0 remains an unpublished source candidate. Do not treat source, a release, or workflow artifacts as proof of availability in another registry.
+The standalone MCP 1.0.1 server is published on NuGet.org and GitHub Releases, while the checked-in MCP Registry manifest remains at 1.0.0; the optional provider is published in VS Code extension 1.1.0. The server exposes seven read-only tools over `stdio` and is installed separately from the extension. CLI 1.11.0 is published on NuGet.org and GitHub Releases; CLI 1.12.0 remains an unpublished source candidate. Do not treat source, a release, or workflow artifacts as proof of availability in another registry.
 
 Use the [MCP overview](./mcp/), [configuration guide](./mcp-configuration/), [available tools](./mcp-tools/), and [security model](./mcp-security/) for the implemented contract and local-development instructions.
 
