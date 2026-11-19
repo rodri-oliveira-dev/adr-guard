@@ -269,10 +269,22 @@ grep -Fq '## Distribution scope' "${rendered_v112_en}"
 grep -Fq '## Destaques' "${rendered_v112_pt}"
 grep -Fq '## Comportamento dos códigos de saída' "${rendered_v112_pt}"
 grep -Fq '## Escopo de distribuição' "${rendered_v112_pt}"
-! grep -Fq '<!-- release-candidate-only:' "${rendered_v112_en}"
-! grep -Fq '<!-- release-candidate-only:' "${rendered_v112_pt}"
-! grep -Fq 'Do not dispatch it from this preparation branch.' "${rendered_v112_en}"
-! grep -Fq 'Não dispare o workflow a partir desta branch de preparação.' "${rendered_v112_pt}"
+if grep -Fq '<!-- release-candidate-only:' "${rendered_v112_en}"; then
+  echo "Rendered v1.12.0 English notes must not retain candidate-only markers." >&2
+  exit 1
+fi
+if grep -Fq '<!-- release-candidate-only:' "${rendered_v112_pt}"; then
+  echo "Rendered v1.12.0 Portuguese notes must not retain candidate-only markers." >&2
+  exit 1
+fi
+if grep -Fq 'Do not dispatch it from this preparation branch.' "${rendered_v112_en}"; then
+  echo "Rendered v1.12.0 English notes must not retain preparation instructions." >&2
+  exit 1
+fi
+if grep -Fq 'Não dispare o workflow a partir desta branch de preparação.' "${rendered_v112_pt}"; then
+  echo "Rendered v1.12.0 Portuguese notes must not retain preparation instructions." >&2
+  exit 1
+fi
 
 printf '%s\n' '# Missing markers' > "${notes_fixture}/missing-markers.md"
 if bash "${RELEASE_NOTES_RENDERER}" "${notes_fixture}/missing-markers.md" "${notes_fixture}/missing-rendered.md" >/dev/null 2>&1; then
