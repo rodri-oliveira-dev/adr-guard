@@ -8,7 +8,6 @@ import { downloadAndUnzipVSCode, runVSCodeCommand } from '@vscode/test-electron'
 const root = path.resolve(import.meta.dirname, '..');
 const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
 const extensionIdentifier = `${manifest.publisher}.${manifest.name}`;
-const installedIdentifier = `${extensionIdentifier}@${manifest.version}`.toLowerCase();
 const vsixPath = path.join(root, `${manifest.name}-${manifest.version}.vsix`);
 const workspaceFolder = path.join(root, 'test', 'fixtures', 'workspace');
 const testHarness = path.join(root, 'test', 'fixtures', 'extension-test-harness');
@@ -30,12 +29,18 @@ try {
     [...profileArgs, '--install-extension', vsixPath, '--force'],
     { version: '1.101.0' },
   );
-  const installed = await runVSCodeCommand(
-    [...profileArgs, '--list-extensions', '--show-versions'],
-    { version: '1.101.0' },
+  const installedManifestPath = path.join(
+    extensionsDirectory,
+    `${extensionIdentifier}-${manifest.version}`,
+    'package.json',
   );
-  if (!installed.stdout.toLowerCase().includes(installedIdentifier)) {
-    throw new Error(`Installed extension list does not contain ${installedIdentifier}: ${installed.stdout}`);
+  const installedManifest = JSON.parse(await readFile(installedManifestPath, 'utf8'));
+  if (
+    installedManifest.publisher !== manifest.publisher
+    || installedManifest.name !== manifest.name
+    || installedManifest.version !== manifest.version
+  ) {
+    throw new Error(`Installed extension manifest does not match ${extensionIdentifier}@${manifest.version}.`);
   }
 
   const executable = await downloadAndUnzipVSCode({ version: '1.101.0' });

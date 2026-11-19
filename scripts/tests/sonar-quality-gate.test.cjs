@@ -16,6 +16,14 @@ test('excludes repository automation from coverage but retains static analysis',
 
   assert.match(coverageExclusions, /(?:^|,)eng\/\*\*(?:,|$)/);
   assert.doesNotMatch(sourceExclusions, /(?:^|,)eng\/\*\*(?:,|$)/);
+  assert.match(
+    coverageExclusions,
+    /(?:^|,)extensions\/vscode\/scripts\/verify-vsix\.mjs(?:,|$)/,
+  );
+  assert.doesNotMatch(
+    sourceExclusions,
+    /(?:^|,)extensions\/vscode\/scripts\/verify-vsix\.mjs(?:,|$)/,
+  );
 });
 
 function createFake(existingBody = '') {

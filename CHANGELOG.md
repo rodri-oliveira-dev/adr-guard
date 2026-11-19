@@ -6,9 +6,30 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
+No changes have been assigned beyond the prepared `1.12.0` release candidate.
+
+## [1.12.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.12.0) — prepared 2026-11-19, not yet published
+
 ### Added
 
-- Add the development-stage `adr-guard export relationships` command and the ADR relationships export JSON contract `1.0`, including reusable Core DTOs and deterministic producer, bounded safe input, atomic CLI persistence, schema, bilingual reference, six byte-canonical Align-oriented fixtures, and a least-privilege GitHub Actions example. Export `resolved` means one referential target, never semantic validation; the MCP relationship tool consumes the shared Core producer while preserving its existing `valid` response value and contract. This source change is not published yet.
+- Add `adr-guard export relationships [directory]` and the ADR relationships export JSON contract `1.0`, including reusable Core DTOs and a deterministic producer, bounded safe input, atomic CLI persistence, schema, bilingual reference, six byte-canonical Align-oriented fixtures, and a least-privilege GitHub Actions example.
+- Export ADR identity, repository-relative paths, validated statuses, every declared `supersedes`, `superseded-by`, and `depends-on` relationship, and attributable validation diagnostics. Target resolution is classified as `resolved`, `ambiguous`, or `unresolved`; `resolved` means one referential target and never semantic validity or compliance.
+
+### Changed
+
+- Reuse the Core relationships producer in the current MCP source while preserving the published MCP schema `1.0` response and its historical `valid` value. This internal adaptation is not an MCP release.
+- Refresh pinned build, test, workflow, and container dependencies. The coordinated CLI container updates its .NET runtime base and upgrades Alpine Git/zlib during the image build without changing CLI contracts.
+
+### Compatibility and publication
+
+- Preserve all prior CLI commands, schemas, deterministic findings, and exit codes. The export command returns `0` after writing the artifact even when `issues` is non-empty, `2` for usage or configuration errors, and `3` for input, security, cancellation, or I/O failures; enforcement remains a separate `check` operation.
+- CLI `1.11.0` remains the currently published package, container, GitHub Release, and Action baseline. CLI `1.12.0` is prepared but unavailable until the manual `Release` workflow succeeds after merge.
+- MCP remains independently published at `1.0.1`; VS Code remains independently versioned at source candidate `1.1.1`. Neither version changes in this release preparation.
+- The unversioned Architecture Agent remains development-only source with no package, installer, container, manifest, or release channel and is not part of the CLI `1.12.0` distribution.
+- Full candidate notes: [English](docs/releases/v1.12.0.md) · [Português](docs/releases/v1.12.0.pt-BR.md).
+
+### Development-only source not included in the CLI release
+
 - Add a development-only `AdrGuard.Agent` source project with a first read-only architectural-question flow over the seven existing MCP schema `1.0` tools. It uses an explicitly selected OpenAI model through `Microsoft.Extensions.AI`, environment-only credentials, bounded context/tokens/duration/tool calls, strict evidence references, and offline fake-model tests.
 - Integrate the source-only Architecture Agent with the existing eleven-skill allowlist and five controlled workflows: deciding when to record, trade-off analysis, ADR consultation/validation, advisory technical review, and ADR proposal preparation. Each run loads only the selected authorized `SKILL.md`; MCP remains the deterministic evidence source and no workflow approves decisions.
 - Add a supervised ADR proposal flow to the development-only Agent. It grounds one structured proposal in MCP evidence, fixes status to `Proposed`, discovers fields with the existing `adr-guard new --form` schema `1.0` `describe` operation, displays the exact `preview`, and permits `operation=create` only after a separate interactive fingerprint confirmation. Non-interactive, denied, canceled, stale, or malformed authorization fails closed; the CLI retains atomic ID allocation and no-overwrite persistence, and the Agent never edits lifecycle or existing ADRs.
@@ -16,7 +37,7 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 - Add a provider-free local read-only Agent mode that returns selected MCP evidence without remote synthesis, plus versioned offline evaluation scenarios for tool selection, grounding, insufficient context, prompt injection, repository/process isolation, limits, credentials, and unauthorized writes.
 - Harden Agent boundaries by requiring evidence citations in advisory summaries, rejecting duplicate JSON properties, binding CLI timeout to the authorized proposal fingerprint, and filtering provider credentials from the CLI child-process environment.
 
-## [1.11.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.11.0) — prepared 2026-11-05, not yet published
+## [1.11.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.11.0) — 2026-11-05
 
 ### Added
 
@@ -26,9 +47,9 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 - Preserve the schema `1.0` `new --form` envelope and reuse its published field IDs for MADR without silently expanding the contract.
 - Preserve canonical output byte-for-byte, existing CLI exits `0`–`4`, atomic writes, and concurrent ID allocation.
-- CLI `1.10.0` remains the currently published package. CLI `1.11.0`, its containers, and matching exact/moving Action tags are prepared but unavailable until the manual `Release` workflow succeeds after merge.
+- CLI `1.11.0` was published to NuGet.org, GitHub Packages, GitHub Releases, GHCR, and Docker Hub. Exact Action tag `v1.11.0` and moving major tag `v1` resolve to the release commit.
 - MCP `1.0.1` was published independently on NuGet.org and GitHub Releases; VS Code `1.1.1` remains an independently versioned source candidate. Neither component is published by the CLI workflow.
-- Full candidate notes: [English](docs/releases/v1.11.0.md) · [Português](docs/releases/v1.11.0.pt-BR.md).
+- Full release notes: [English](docs/releases/v1.11.0.md) · [Português](docs/releases/v1.11.0.pt-BR.md).
 ## [1.10.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0) — 2026-11-05
 
 ### Added

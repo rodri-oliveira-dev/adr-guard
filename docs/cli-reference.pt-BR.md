@@ -2,7 +2,7 @@
 
 > Disponibilidade: `init`, `.adrguard.yml` e a saída estruturada de `check` foram publicados no ADR Guard v1.2.0. A seleção do formato MADR 4.0 foi publicada na v1.3.0. Consulte as [Releases do GitHub](https://github.com/rodri-oliveira-dev/adr-guard/releases) para os artefatos exatos.
 
-> A análise de impacto arquitetural foi introduzida na v1.5.0, o drift arquitetural na v1.6.0 e os contratos de formulário visual na v1.7.0. A CLI 1.10.0 está publicada no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.10.0) e em sua [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.10.0). A geração MADR nativa está preparada para a CLI 1.11.0, mas ainda não foi publicada.
+> A análise de impacto arquitetural foi introduzida na v1.5.0, o drift arquitetural na v1.6.0 e os contratos de formulário visual na v1.7.0. A CLI 1.11.0 está publicada no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.11.0) e em sua [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.11.0), incluindo a geração MADR nativa. A CLI 1.12.0, incluindo a exportação de relacionamentos, está preparada, mas não publicada.
 
 > Os contratos de formulário visual no schema `1.0` exigem CLI 1.7.0 ou superior e, no uso visual, uma extensão VS Code compatível e versionada separadamente. Versões da CLI, extensão e MCP são independentes.
 
@@ -103,7 +103,7 @@ Os templates nativos `minimal` e `extended`, canônicos ou MADR, podem ser mapea
 
 O formulário MADR schema `1.0` omite intencionalmente campos distintos para `Confirmation` e `Pros and Cons of the Options`; a geração extended tradicional ainda inclui orientação editável nessas seções. Adicionar IDs novos que clientes existentes rejeitam exigiria uma nova versão do schema de formulário, não uma mudança silenciosa em `1.0`.
 
-> Disponibilidade: a geração nativa por `new --adr-format madr-4` está preparada para a CLI 1.11.0, mas não está incluída na CLI 1.10.0 publicada.
+> Disponibilidade: a geração nativa por `new --adr-format madr-4` está publicada na CLI 1.11.0.
 
 A criação tradicional usa a mesma seleção de formato:
 
@@ -172,7 +172,7 @@ adr-guard check [diretório] [--format text|json|sarif] [--diagnostic-locations]
 
 ## Exportar relacionamentos ADR
 
-> Disponibilidade: este comando está implementado na candidata atual em código-fonte e não faz parte da release publicada da CLI 1.10.0.
+> Disponibilidade: este comando está preparado para a CLI 1.12.0 e não faz parte da release publicada da CLI 1.11.0.
 
 ```text
 adr-guard export relationships [diretório] [--output <arquivo.json>]

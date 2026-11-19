@@ -13,7 +13,7 @@ Use `--evidence path.json` repeatedly for explicit external artifacts. Use `--wr
 
 ## CI recipe
 
-The composite Action publishes read-only `drift` on `@v1` and exact `v1.10.0`. No secret or write permission is required.
+The composite Action publishes read-only `drift` on `@v1` and the current exact `v1.11.0` release. No secret or write permission is required.
 
 ```yaml
 permissions:
@@ -24,7 +24,7 @@ steps:
       persist-credentials: false
   - uses: rodri-oliveira-dev/adr-guard@<commit-sha>
     with:
-      version: 1.10.0
+      version: 1.11.0
       command: drift
       drift-rules: .adrguard-fitness.json
       drift-policy: enforce

@@ -5,7 +5,7 @@ ADR Guard for VS Code is a workspace extension that presents the existing ADR Gu
 > **Published extension:** [ADR Guard for VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) is available on the Visual Studio Marketplace as `rodrioliveira.adr-guard`. The VS Code extension and .NET CLI are distributed and versioned separately; the extension does not bundle the CLI.
 
 <!-- vsix-package-status:start -->
-> **Release status (verified 2026-11-05):** version 1.1.0 is published in the Marketplace and adds the MCP provider and visual Impact, Drift, baseline, enriched catalog, AI Draft, and Technical Review workflows described below. Version 1.1.1 is a prepared maintenance candidate, not a published download. CLI 1.10.0 and MCP 1.0.1 are published independently; CLI 1.11.0 remains an unpublished candidate.
+> **Release status (verified 2026-11-19):** version 1.1.0 is published in the Marketplace and adds the MCP provider and visual Impact, Drift, baseline, enriched catalog, AI Draft, and Technical Review workflows described below. Version 1.1.1 is a prepared maintenance candidate, not a published download. CLI 1.11.0 and MCP 1.0.1 are published independently; CLI 1.12.0 remains an unpublished candidate.
 <!-- vsix-package-status:end -->
 
 ## Features
@@ -113,7 +113,7 @@ Each list item also provides **Edit**. The same visual panel loads the selected 
 
 Run **ADR Guard: Create ADR with Form** from the Command Palette or use the new-file action in the ADR Explorer title. The form keeps workspace folder and document language separate from the VS Code interface language, initializes the destination from `adrGuard.validation.directory`, uses the folder's default document language and creation template, and still permits per-document changes.
 
-The form supports the native `minimal` and `extended` creation templates. Minimal requires Context, Decision, and Consequences. Extended exposes those required fields plus optional Decision Drivers, Options Considered, Rationale, Positive/Negative Consequences, Risks, and References; optional empty sections are omitted. Creation remains canonical—the `canonical`/`madr-4` validation format setting is a separate concern and is not presented as a creation-template choice.
+The form respects the repository's `adr-format` when the configured template is selected. In canonical repositories, the native `minimal` template requires Context, Decision, and Consequences; `extended` adds optional Decision Drivers, Options Considered, Rationale, Positive/Negative Consequences, Risks, and References, and omits empty optional sections. When `adr-format: madr-4` is configured, the extension leaves that format unchanged and renders the MADR fields described by the CLI's `new --form` contract. The format remains distinct from the per-document creation-template choice.
 
 Configured custom templates cannot be mapped to fields safely. The form reports that limitation and offers **Use traditional creation** without replacing the custom template. The traditional **Create ADR** command remains available for all supported custom templates and older CLIs.
 

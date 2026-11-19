@@ -27,7 +27,7 @@ O ADR Guard mantém o julgamento arquitetural com pessoas e automatiza verifica�
 - Use o [Drift Arquitetural](./architectural-drift/) para verificar regras de fitness explícitas e ligadas a ADRs com evidências limitadas. Os resultados diferenciam conformidade, violação e evidência insuficiente; o enforcement opcional atua somente dentro dos limites determinísticos implementados.
 - Produza [relatórios legíveis e estruturados](./reports/).
 - Ative [rascunho assistido por IA](./ai-drafting/) ou [revisão](./ai-review/) com provedores explícitos e controles de segurança.
-- Valide MADR 4.0 em [modo opcional separado](./madr-4/); a geração nativa está preparada para a CLI 1.11.0 ainda não publicada.
+- Valide e gere MADR 4.0 em [modo opcional separado](./madr-4/) com a CLI 1.11.0 publicada; o formato canônico continua sendo o padrão.
 
 ## Impacto e drift são diferentes
 
@@ -46,7 +46,7 @@ O [Architecture Agent](./architecture-agent/), disponível somente no código-fo
 
 ## Status do MCP
 
-O servidor MCP 1.0.1 independente está publicado no NuGet.org e em GitHub Releases, enquanto o manifesto versionado do MCP Registry permanece em 1.0.0; o provider opcional está publicado na extensão VS Code 1.1.0. O servidor expõe sete ferramentas somente leitura por `stdio` e é instalado separadamente da extensão. A CLI 1.10.0 está publicada no NuGet.org e no GitHub Releases; a CLI 1.11.0 continua sendo uma candidata não publicada no código-fonte. Não trate código-fonte, uma release ou artifacts de workflow como prova de disponibilidade em outro registro.
+O servidor MCP 1.0.1 independente está publicado no NuGet.org e em GitHub Releases, enquanto o manifesto versionado do MCP Registry permanece em 1.0.0; o provider opcional está publicado na extensão VS Code 1.1.0. O servidor expõe sete ferramentas somente leitura por `stdio` e é instalado separadamente da extensão. A CLI 1.11.0 está publicada no NuGet.org e no GitHub Releases; a CLI 1.12.0 continua sendo uma candidata não publicada no código-fonte. Não trate código-fonte, uma release ou artifacts de workflow como prova de disponibilidade em outro registro.
 
 Consulte a [visão geral do MCP](./mcp/), o [guia de configuração](./mcp-configuration/), as [ferramentas disponíveis](./mcp-tools/) e o [modelo de segurança](./mcp-security/) para o contrato implementado e instruções de desenvolvimento local.
 
