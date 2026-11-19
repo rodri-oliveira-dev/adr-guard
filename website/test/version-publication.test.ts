@@ -58,7 +58,11 @@ describe('published product version documentation', () => {
     expect(extensionPt).toContain(`a extensão \`${version}\` está publicada`);
     expect(portal).toContain(`VS Code extension ${version}`);
     expect(portalPt).toContain(`extensão VS Code ${version}`);
-    expect(extension).toContain('RodriOliveira.AdrGuard.Mcp --version 1.0.1');
-    expect(extensionPt).toContain('RodriOliveira.AdrGuard.Mcp --version 1.0.1');
+    const manifest = JSON.parse(
+      await readFile(new URL('../../.mcp/server.json', import.meta.url), 'utf8'),
+    ) as { version: string; packages: { version: string }[] };
+    expect(manifest.packages[0]?.version).toBe(manifest.version);
+    expect(extension).toContain(`RodriOliveira.AdrGuard.Mcp --version ${manifest.version}`);
+    expect(extensionPt).toContain(`RodriOliveira.AdrGuard.Mcp --version ${manifest.version}`);
   });
 });
