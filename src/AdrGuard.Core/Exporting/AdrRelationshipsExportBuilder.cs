@@ -34,6 +34,14 @@ internal static class AdrRelationshipsExportBuilder
                     document.Title,
                     Status(document, effectiveOptions))))
             .ToArray();
+        IReadOnlyList<PortablePathReplacement> portablePathReplacements = makeIssueMessagesPortable
+            ? normalizedDocuments
+                .Select(document => Path.GetFullPath(document.FilePath))
+                .Distinct(PathComparer)
+                .OrderByDescending(path => path.Length)
+                .Select(path => new PortablePathReplacement(path, Relative(root, path)))
+                .ToArray()
+            : [];
         var adrs = documentsWithAdrs
             .Select(item => item.Adr)
             .OrderBy(adr => adr.Identifier, StringComparer.Ordinal)
@@ -84,7 +92,7 @@ internal static class AdrRelationshipsExportBuilder
             .Select(issue => new AdrRelationshipExportIssue(
                 issue.Code,
                 makeIssueMessagesPortable
-                    ? PortableIssueMessage(root, issue.Message, normalizedDocuments)
+                    ? PortableIssueMessage(issue.Message, portablePathReplacements)
                     : issue.Message,
                 Relative(root, issue.FilePath),
                 issue.Severity == ValidationSeverity.Warning
@@ -256,23 +264,21 @@ internal static class AdrRelationshipsExportBuilder
     }
 
     private static string PortableIssueMessage(
-        string repositoryRoot,
         string message,
-        IReadOnlyList<AdrDocument> documents)
+        IReadOnlyList<PortablePathReplacement> replacements)
     {
-        foreach (var documentPath in documents
-                     .Select(document => Path.GetFullPath(document.FilePath))
-                     .Distinct(PathComparer)
-                     .OrderByDescending(path => path.Length))
+        foreach (var replacement in replacements)
         {
             message = message.Replace(
-                documentPath,
-                Relative(repositoryRoot, documentPath),
+                replacement.AbsolutePath,
+                replacement.RelativePath,
                 PathComparison);
         }
 
         return message;
     }
+
+    private sealed record PortablePathReplacement(string AbsolutePath, string RelativePath);
 
     private static string Relative(string repositoryRoot, string path)
     {

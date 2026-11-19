@@ -68,10 +68,10 @@ adr-guard index docs/adr
 
 `check` valida o conjunto. `index` valida novamente e cria ou atualiza `docs/adr/README.md`; `new` não atualiza o índice automaticamente. Leia o [tutorial da primeira ADR](docs/guides/getting-started.pt-BR.md) para o fluxo publicado completo.
 
-O exportador de relacionamentos está disponível apenas na candidata atual do código-fonte, não na CLI 1.10.0 publicada. Depois de clonar este repositório e restaurar o SDK .NET 10 fixado, execute-o a partir da raiz do repositório com:
+O exportador de relacionamentos está disponível apenas na candidata atual do código-fonte, não na CLI 1.10.0 publicada. Depois de clonar este repositório e restaurar o SDK .NET 10 fixado, mantenha o terminal na raiz do seu repositório. Se o clone do ADR Guard estiver em um diretório irmão chamado `adr-guard`, execute:
 
 ```bash
-dotnet run --project src/AdrGuard/AdrGuard.csproj -- export relationships docs/adr
+dotnet run --project ../adr-guard/src/AdrGuard/AdrGuard.csproj -- export relationships docs/adr
 ```
 
 Ele grava `.adr-guard/relationships.json` para ferramentas como o Align e conclui com sucesso mesmo quando o artefato registra issues de validação. Consulte o [contrato de exportação](docs/adr-relationships-export-v1.pt-BR.md) para detalhes de integração.
