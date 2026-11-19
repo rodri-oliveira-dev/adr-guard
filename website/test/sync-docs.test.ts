@@ -48,10 +48,24 @@ describe('synchronized documentation', () => {
       readFile(new URL('product/mcp-release.md', generatedRoot), 'utf8'),
       readFile(new URL('pt-br/product/mcp-release.md', generatedRoot), 'utf8'),
     ]);
-    expect(overview).toContain('MCP `1.0.0` is published on');
-    expect(overviewPt).toContain('MCP `1.0.0` está publicado no');
-    expect(overview).toContain('GitHub Packages is an authenticated secondary feed');
-    expect(overviewPt).toContain('GitHub Packages é um feed secundário autenticado');
+    // The checked-in Registry manifest is the publication baseline for both locales.
+    const manifest = JSON.parse(await readFile(new URL('../../.mcp/server.json', import.meta.url), 'utf8')) as {
+      version: string;
+      packages: { version: string }[];
+    };
+    const version = manifest.version;
+    expect(manifest.packages[0]?.version).toBe(version);
+
+    expect(overview).toContain(`MCP \`${version}\` is published on`);
+    expect(overviewPt).toContain(`O MCP \`${version}\` está publicado no`);
+    for (const markdown of [overview, overviewPt]) {
+      expect(markdown).toContain(`RodriOliveira.AdrGuard.Mcp/${version}`);
+      expect(markdown).toContain(`mcp/v${version}`);
+    }
+    expect(overview).toContain('GitHub Packages remains a separately authenticated feed');
+    expect(overviewPt).toContain('O GitHub Packages continua sendo um feed autenticado separado');
+    expect(release).toContain(`published Registry version \`${version}\``);
+    expect(releasePt).toContain(`versão \`${version}\` publicada no Registry`);
     expect(release).toContain('MCP GitHub Packages Backfill');
     expect(releasePt).toContain('MCP GitHub Packages Backfill');
     const tools = await readFile(new URL('product/mcp-tools.md', generatedRoot), 'utf8');
