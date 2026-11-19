@@ -21,7 +21,7 @@
     <PackageReleaseNotes Condition="'$(VersionPrefix)' == '1.12.0'">Adds adr-guard export relationships for deterministic schema 1.0 JSON exports of ADRs, declared relationships, and attributable diagnostics.
 Classifies target identity as resolved, ambiguous, or unresolved without treating resolution as semantic validity or compliance.
 Uses bounded UTF-8 input, portable repository-relative paths, deterministic ordering, and atomic output for external consumers such as Align.
-Full prepared release notes: https://github.com/rodri-oliveira-dev/adr-guard/blob/main/docs/releases/v1.12.0.md</PackageReleaseNotes>
+Full release notes: https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.12.0</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/rodri-oliveira-dev/adr-guard</PackageProjectUrl>
     <RepositoryUrl>https://github.com/rodri-oliveira-dev/adr-guard</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
