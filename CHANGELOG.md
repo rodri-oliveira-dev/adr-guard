@@ -6,9 +6,9 @@ Version links below point to GitHub Releases. Dates and previously shipped highl
 
 ## Unreleased
 
-No changes have been assigned beyond the prepared `1.12.0` release candidate.
+No changes have been assigned since the published `1.12.0` release.
 
-## [1.12.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.12.0) — prepared 2026-11-19, not yet published
+## [1.12.0](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.12.0) — 2026-11-19 (published)
 
 ### Added
 
@@ -23,10 +23,10 @@ No changes have been assigned beyond the prepared `1.12.0` release candidate.
 ### Compatibility and publication
 
 - Preserve all prior CLI commands, schemas, deterministic findings, and exit codes. The export command returns `0` after writing the artifact even when `issues` is non-empty, `2` for usage or configuration errors, and `3` for input, security, cancellation, or I/O failures; enforcement remains a separate `check` operation.
-- CLI `1.11.0` remains the currently published package, container, GitHub Release, and Action baseline. CLI `1.12.0` is prepared but unavailable until the manual `Release` workflow succeeds after merge.
-- MCP remains independently published at `1.0.1`; VS Code remains independently versioned at source candidate `1.1.1`. Neither version changes in this release preparation.
+- CLI `1.12.0` is published on NuGet.org and in the exact GitHub Release; coordinated distribution includes the container images and the `@v1.12.0` / moving `@v1` Action references.
+- MCP remains independently published at `1.0.1`; VS Code `1.1.1` is published independently on the Visual Studio Marketplace. Neither product is versioned by this CLI release.
 - The unversioned Architecture Agent remains development-only source with no package, installer, container, manifest, or release channel and is not part of the CLI `1.12.0` distribution.
-- Full candidate notes: [English](docs/releases/v1.12.0.md) · [Português](docs/releases/v1.12.0.pt-BR.md).
+- Full release notes: [English](docs/releases/v1.12.0.md) · [Português](docs/releases/v1.12.0.pt-BR.md).
 
 ### Development-only source not included in the CLI release
 

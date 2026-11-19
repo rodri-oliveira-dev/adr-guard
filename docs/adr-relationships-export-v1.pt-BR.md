@@ -2,7 +2,7 @@
 
 [English](adr-relationships-export-v1.md)
 
-Este documento congela o contrato de intercâmbio JSON preparado para integração com o Align CLI. O Core produz esses dados determinísticos, e tanto a ferramenta de relacionamentos do MCP quanto o adaptador CLI em estágio de código-fonte reutilizam essa implementação sem alterar o contrato MCP. O comando CLI está implementado no repositório, mas ainda não faz parte de uma release publicada.
+Este documento congela o contrato de intercâmbio JSON preparado para integração com o Align CLI. O Core produz esses dados determinísticos, e tanto a ferramenta de relacionamentos do MCP quanto o comando de exportação da CLI reutilizam essa implementação sem alterar o contrato MCP. A exportação pela CLI está publicada na versão `1.12.0`.
 
 A definição legível por máquina autoritativa é [`adr-relationships-export-v1.schema.json`](schemas/adr-relationships-export-v1.schema.json). As fixtures representativas de integração estão em [`docs/examples/adr-relationships-export-v1`](examples/adr-relationships-export-v1/).
 
@@ -23,7 +23,7 @@ O exportador lê no máximo 1.000 arquivos Markdown de ADR com até 524.288 byte
 
 ## GitHub Actions e Align
 
-[`github-action-relationships-export.yml`](examples/github-action-relationships-export.yml) mostra um job de privilégio mínimo que restaura uma ferramenta ADR Guard fixada por manifesto, grava `.adr-guard/relationships.json` e faz upload para um consumidor externo como o Align. Faça commit de um `.config/dotnet-tools.json` fixado em uma versão publicada que contenha este comando antes de habilitar o exemplo; a CLI publicada atualmente ainda não o contém.
+[`github-action-relationships-export.yml`](examples/github-action-relationships-export.yml) mostra um job de privilégio mínimo que restaura uma ferramenta ADR Guard fixada por manifesto, grava `.adr-guard/relationships.json` e faz upload para um consumidor externo como o Align. Antes de habilitar o exemplo, fixe `.config/dotnet-tools.json` na CLI `1.12.0` publicada ou em uma versão compatível posterior.
 
 O Align pode baixar ou receber o artefato e combinar cada `path` relativo ao repositório com sua árvore de documentação importada. Ele deve aceitar somente `resolution: "resolved"` como destino identificado de forma única e ainda deve inspecionar `issues` antes de tratar a aresta como semanticamente válida.
 

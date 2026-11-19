@@ -2,7 +2,7 @@
 
 > **Status da publicação:** a Action reutilizável está publicada, e a tag de compatibilidade `v1` está publicada e é móvel. A linha pública `v1` suporta `check`, `index` e `review` opt-in desde a `v1.1.6`; `new` e `draft` continuam fluxos exclusivos de CLI/container. A [listagem no GitHub Marketplace](https://github.com/marketplace/actions/adr-guard-architecture-decision-validator) foi acessada de forma independente e sem autenticação em 09/10/2026.
 
-> **Status das releases de impact e drift:** os inputs de `impact` estão disponíveis no runtime público coordenado v1.5.0 / `@v1`. Os inputs de `drift` estão disponíveis na Action publicada `@v1.11.0` e na referência móvel `@v1` (atualmente em `v1.11.0`); a versão anterior `@v1.9.0` não os expõe. A CLI `1.12.0` é uma candidata não publicada. A geração MADR nativa e `export relationships` são comandos da CLI e não são expostos pela Action. Verifique a referência selecionada e a versão correspondente do container antes do uso.
+> **Status das releases de impact e drift:** os inputs de `impact` estão disponíveis desde a versão coordenada v1.5.0; os inputs de `drift`, desde `@v1.10.0`. A Action exata `@v1.12.0` está publicada e a referência móvel `@v1` aponta atualmente para `v1.12.0`. A geração MADR nativa e `export relationships` são comandos da CLI `1.12.0`, não expostos pela Action. Verifique a referência selecionada e a imagem correspondente antes do uso.
 
 A composite Action do ADR Guard executa o container publicado selecionado do ADR Guard. O consumidor não precisa do .NET SDK. É necessário um runner Linux com Docker e checkout prévio do repositório; `review`, `impact` e `drift` somente leitura também exigem Python 3 no runner para renderização limitada de summaries.
 
@@ -71,7 +71,7 @@ steps:
       persist-credentials: false
 
   - name: Verificar regras arquiteturais ligadas a ADRs
-    uses: rodri-oliveira-dev/adr-guard@v1.11.0
+    uses: rodri-oliveira-dev/adr-guard@v1.12.0
     with:
       command: drift
       drift-rules: .adrguard-fitness.json

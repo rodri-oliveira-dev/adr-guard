@@ -2,7 +2,7 @@
 
 > Availability: `init`, `.adrguard.yml`, and structured `check` output were published in ADR Guard v1.2.0. MADR 4.0 format selection was published in v1.3.0. See [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases) for exact artifacts.
 
-> Architecture impact analysis was introduced in v1.5.0, architectural drift in v1.6.0, and visual form contracts in v1.7.0. CLI 1.11.0 is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.11.0) and in its [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.11.0), including native MADR generation. CLI 1.12.0, including relationship export, is prepared but not published.
+> Architecture impact analysis was introduced in v1.5.0, architectural drift in v1.6.0, and visual form contracts in v1.7.0. CLI `1.12.0` is published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard/1.12.0) and in the [GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/v1.12.0), including relationship export; native MADR generation has been available since `1.11.0`.
 
 > The schema `1.0` visual-form contracts require CLI 1.7.0 or newer and a separately versioned compatible VS Code extension when used visually. CLI, extension, and MCP versions are independent.
 
@@ -172,7 +172,7 @@ adr-guard check [directory] [--format text|json|sarif] [--diagnostic-locations]
 
 ## Export ADR relationships
 
-> Availability: this command is prepared for CLI 1.12.0 and is not in the published CLI 1.11.0 release.
+> Availability: `export relationships` is published in CLI `1.12.0`.
 
 ```text
 adr-guard export relationships [directory] [--output <file.json>]

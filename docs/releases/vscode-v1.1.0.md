@@ -22,7 +22,7 @@ The independently versioned **ADR Guard for VS Code 1.1.0** is published in the 
 
 - VS Code `1.101.0+`, a trusted local `file:` workspace, and the Node workspace extension host.
 - A separately installed compatible CLI. CLI `1.7.0+` supplies schema `1.0` visual create/edit; published CLI `1.9.0` supports the documented architecture, governance, and AI workflows and adds precise diagnostic locations. The extension falls back safely with older compatible CLIs.
-- MCP is optional. Published MCP `1.0.0` is compatible; MCP `1.0.1` is an independent unpublished candidate with unchanged schema `1.0` tool contracts.
+- MCP is optional. MCP `1.0.0` remains compatible; `1.0.1` was published independently on 2026-11-05 with unchanged schema `1.0` tool contracts.
 
 ## Behavior changes
 
@@ -42,16 +42,16 @@ Install the published extension from the Extensions view by searching for **ADR 
 code --install-extension rodrioliveira.adr-guard
 ```
 
-Confirm that VS Code reports version `1.1.0`. Install the CLI and optional MCP server separately in the workspace-host environment.
+This page records the historical `1.1.0` release; the command above installs the current Marketplace version (`1.1.1`, verified 2026-11-19). Install the CLI and optional MCP server separately in the workspace-host environment.
 
 ## Validated VSIX path
 
-The manual [VS Code VSIX Package workflow](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/vscode-extension-release.yml) still validates and builds `adr-guard-1.1.0.vsix`, then retains the `adr-guard-vscode-1.1.0` artifact for 21 days (subject to repository limits). It does **not** contain Marketplace credentials or execute `vsce publish`; a successful workflow artifact is not publication evidence.
+At the time of version 1.1.0, the manual [VS Code VSIX Package workflow](https://github.com/rodri-oliveira-dev/adr-guard/actions/workflows/vscode-extension-release.yml) validated and built `adr-guard-1.1.0.vsix`, retaining the artifact for 21 days (subject to repository limits). The workflow remains artifact-only and never publishes to the Marketplace.
 
-## Publication follow-up checklist
+## Historical 1.1.0 publication record
 
 - Marketplace `rodrioliveira.adr-guard` reports `1.1.0`: verified 2026-11-03.
-- Keep `extensions/vscode/package.json` at `1.1.0`; do not increment it as part of CLI/MCP release preparation.
+- The extension manifest was independently updated to `1.1.1`; CLI/MCP release versions do not govern extension versioning.
 - Keep VSIX CI/package workflows artifact-only and document any future Marketplace publication path separately.
 - Do not infer a Git tag, GitHub Release, or CLI/MCP availability from the Marketplace listing; verify each channel independently.
 

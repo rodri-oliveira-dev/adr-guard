@@ -21,13 +21,13 @@ O ADR Guard mantém o julgamento arquitetural com pessoas e automatiza verifica�
 
 ## Fluxos principais
 
-- [Crie ADRs canônicos](./creation/) Minimal, Extended ou com templates customizados restritos. Formulários compatíveis do VS Code usam os contratos estruturados de criação e edição da CLI 1.7.0 quando esses artefatos, versionados separadamente, forem publicados.
+- [Crie ADRs canônicos](./creation/) Minimal, Extended ou com templates customizados restritos. Formulários compatíveis do VS Code usam os contratos estruturados de criação e edição disponíveis desde a CLI 1.7.0; CLI 1.12.0 e extensão VS Code 1.1.1 estão publicadas independentemente.
 - [Valide relações](./relationships/), arquivos alterados e [baselines de diagnósticos](./incremental-validation/).
 - Use a [Análise de Impacto Arquitetural](./architecture-impact/) para identificar decisões associadas a arquivos alterados por mapeamentos ADR-código explícitos. O resultado convida à revisão; não representa uma violação arquitetural.
 - Use o [Drift Arquitetural](./architectural-drift/) para verificar regras de fitness explícitas e ligadas a ADRs com evidências limitadas. Os resultados diferenciam conformidade, violação e evidência insuficiente; o enforcement opcional atua somente dentro dos limites determinísticos implementados.
 - Produza [relatórios legíveis e estruturados](./reports/).
 - Ative [rascunho assistido por IA](./ai-drafting/) ou [revisão](./ai-review/) com provedores explícitos e controles de segurança.
-- Valide e gere MADR 4.0 em [modo opcional separado](./madr-4/) com a CLI 1.11.0 publicada; o formato canônico continua sendo o padrão.
+- Valide e gere MADR 4.0 em [modo opcional separado](./madr-4/), disponível desde a CLI 1.11.0 e incluído na CLI 1.12.0 publicada; o formato canônico continua sendo o padrão.
 
 ## Impacto e drift são diferentes
 
@@ -46,7 +46,7 @@ O [Architecture Agent](./architecture-agent/), disponível somente no código-fo
 
 ## Status do MCP
 
-O servidor MCP 1.0.1 independente está publicado no NuGet.org e em GitHub Releases, enquanto o manifesto versionado do MCP Registry agora registra 1.0.1; o provider opcional está publicado na extensão VS Code 1.1.0. O servidor expõe sete ferramentas somente leitura por `stdio` e é instalado separadamente da extensão. A CLI 1.11.0 está publicada no NuGet.org e no GitHub Releases; a CLI 1.12.0 continua sendo uma candidata não publicada no código-fonte. Não trate código-fonte, uma release ou artifacts de workflow como prova de disponibilidade em outro registro.
+O servidor MCP 1.0.1 independente está publicado no NuGet.org, em GitHub Releases e no MCP Registry; o manifesto versionado registra 1.0.1. O provider MCP opcional está publicado na extensão VS Code 1.1.1. O servidor expõe sete ferramentas somente leitura por `stdio` e é instalado separadamente da extensão. A CLI 1.12.0 está publicada no NuGet.org e em GitHub Releases, incluindo `export relationships`. O Architecture Agent continua disponível somente pelo código-fonte, sem pacote público.
 
 Consulte a [visão geral do MCP](./mcp/), o [guia de configuração](./mcp-configuration/), as [ferramentas disponíveis](./mcp-tools/) e o [modelo de segurança](./mcp-security/) para o contrato implementado e instruções de desenvolvimento local.
 
