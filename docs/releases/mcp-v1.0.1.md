@@ -3,7 +3,7 @@
 [Português (Brasil)](mcp-v1.0.1.pt-BR.md)
 
 <!-- release-candidate-only:start -->
-ADR Guard MCP `1.0.1` is prepared in source control but, as of 2026-11-05, is **not published** on NuGet.org, GitHub Releases, GitHub Packages, or the MCP Registry. The current public MCP release remains `1.0.0`. This patch candidate changes internal composition and fixes platform handling while preserving every public MCP contract.
+> Publication status: MCP `1.0.1` was published on [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.1), in the [dedicated GitHub Release](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.1), and in the official MCP Registry. GitHub Packages availability is verified separately.
 <!-- release-candidate-only:end -->
 
 ## Highlights
@@ -39,18 +39,10 @@ No intentional public behavior changes. The macOS path fix prevents a valid repo
 ## Install or update
 
 <!-- release-candidate-only:start -->
-Before publication, install only the locally validated package:
-
-```shell
-dotnet tool install --tool-path ./.mcp-tools RodriOliveira.AdrGuard.Mcp \
-  --version 1.0.1 --add-source ./artifacts/mcp
-./.mcp-tools/adr-guard-mcp --repository /absolute/path/to/repository --adr-directory docs/adr
-```
-
-Continue using `1.0.0` for public NuGet installations until `1.0.1` is independently visible in NuGet.org and the MCP Registry.
+<!-- Local pre-release installation instructions retired after publication. -->
 <!-- release-candidate-only:end -->
 
-When NuGet.org lists the exact version, install it with:
+Install the published package from NuGet.org:
 
 ```shell
 dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.1
@@ -58,13 +50,5 @@ adr-guard-mcp --repository /absolute/path/to/repository --adr-directory docs/adr
 ```
 
 <!-- release-candidate-only:start -->
-## Post-publication checklist
-
-After publication is explicitly authorized and completed:
-
-- verify `1.0.1` on NuGet.org, its package provenance and contents, and a clean installation;
-- verify the immutable `mcp/v1.0.1` GitHub Release and assets;
-- verify the official Registry entry names `1.0.1`, points to the same NuGet package, and still declares `stdio`;
-- verify GitHub Packages separately; do not run the historical `1.0.0` backfill as part of this release;
-- only then update the checked-in `.mcp/server.json`, installation defaults, changelog status, README files, compatibility matrix, and portal sources from candidate to published.
+<!-- NuGet.org, GitHub Releases, and MCP Registry publication verified. GitHub Packages remains a separate channel. -->
 <!-- release-candidate-only:end -->

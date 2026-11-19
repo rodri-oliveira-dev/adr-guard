@@ -9,12 +9,12 @@ public sealed class McpDistributionContractTests
 {
     private const string ExpectedName = "io.github.rodri-oliveira-dev/adr-guard";
     private const string ExpectedPackage = "RodriOliveira.AdrGuard.Mcp";
-    private const string ExpectedCandidateVersion = "1.0.1";
-    private const string PublishedManifestVersion = "1.0.0";
+    private const string ExpectedProjectVersion = "1.0.1";
+    private const string PublishedManifestVersion = "1.0.1";
     private const string ExpectedSchema = "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json";
 
     [Fact]
-    public void CheckedInManifestPreservesPublishedVersionAndReleaseGeneratesCandidate()
+    public void CheckedInManifestMatchesPublishedVersionAndReleaseCanGenerateFutureVersions()
     {
         var root = FindRepositoryRoot();
         var manifest = LoadManifest(root);
@@ -23,8 +23,9 @@ public sealed class McpDistributionContractTests
         var candidateVersion = project.Descendants("VersionPrefix").Single().Value;
         var workflow = File.ReadAllText(Path.Combine(root, ".github", "workflows", "mcp-release.yml"));
 
-        Assert.Equal(ExpectedCandidateVersion, candidateVersion);
+        Assert.Equal(ExpectedProjectVersion, candidateVersion);
         Assert.Empty(Validate(manifest, PublishedManifestVersion, readme));
+        Assert.Contains($"--version {PublishedManifestVersion}", readme, StringComparison.Ordinal);
         Assert.Contains("jq --arg version \"$VERSION\" '.version = $version | .packages = (.packages | map(.version = $version))'", workflow, StringComparison.Ordinal);
         Assert.Contains("test \"$(jq -r '.version' .mcp/server.json)\" = \"$VERSION\"", workflow, StringComparison.Ordinal);
         Assert.Contains("test \"$(jq -r '.packages[0].version' .mcp/server.json)\" = \"$VERSION\"", workflow, StringComparison.Ordinal);
@@ -96,7 +97,7 @@ public sealed class McpDistributionContractTests
         using var nuspecReader = new StreamReader(nuspec.Open());
         var metadata = XDocument.Parse(nuspecReader.ReadToEnd());
         Assert.Equal(ExpectedPackage, metadata.Descendants().Single(element => element.Name.LocalName == "id").Value);
-        Assert.Equal(ExpectedCandidateVersion, metadata.Descendants().Single(element => element.Name.LocalName == "version").Value);
+        Assert.Equal(ExpectedProjectVersion, metadata.Descendants().Single(element => element.Name.LocalName == "version").Value);
         Assert.Equal("README.md", metadata.Descendants().Single(element => element.Name.LocalName == "readme").Value);
     }
 
