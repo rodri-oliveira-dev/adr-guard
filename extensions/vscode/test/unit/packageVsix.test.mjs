@@ -27,6 +27,19 @@ const changelog = `# Changelog
 ## ${version} — prepared 2026-11-05, not yet published
 `;
 
+const publishedEnglishReadme = englishReadme.replace(
+  'Prepared maintenance candidate; not yet published.',
+  'Published on the Visual Studio Marketplace; remains independently versioned from the CLI and MCP.',
+);
+const publishedPortugueseReadme = portugueseReadme.replace(
+  'Candidata de manutenção preparada; ainda não publicada.',
+  'Publicada no Visual Studio Marketplace; versionada independentemente da CLI e do MCP.',
+);
+const publishedChangelog = changelog.replace(
+  'prepared 2026-11-05, not yet published',
+  'published (verified 2026-11-19)',
+);
+
 test('prepares bilingual package metadata without claiming Marketplace publication', () => {
   const english = prepareReadme(englishReadme, 'en', version);
   const portuguese = prepareReadme(portugueseReadme, 'pt-BR', version);
@@ -45,6 +58,18 @@ test('prepares the changelog heading for the packaged VSIX', () => {
   );
 });
 
+test('packages already published source metadata without losing strict version validation', () => {
+  const en = prepareReadme(publishedEnglishReadme, 'en', version);
+  const pt = prepareReadme(publishedPortugueseReadme, 'pt-BR', version);
+  assert.match(en, /Package version:.*1\.1\.1/);
+  assert.match(pt, /Versão deste pacote:.*1\.1\.1/);
+  assert.doesNotMatch(en + pt, /vsix-package-status/);
+  assert.equal(
+    prepareChangelog(publishedChangelog, version),
+    `# Changelog\n\n## ${version} — published (verified 2026-11-19)\n`,
+  );
+});
+
 test('fails closed when required source markers are missing or duplicated', () => {
   assert.throws(
     () => prepareReadme('# Missing markers\n', 'en', version),
@@ -52,7 +77,7 @@ test('fails closed when required source markers are missing or duplicated', () =
   );
   assert.throws(
     () => prepareChangelog(`${changelog}${changelog}`, version),
-    /Expected exactly one prepared 1\.1\.1 changelog heading; found 2/,
+    /Expected exactly one prepared or published 1\.1\.1 changelog heading; found 2/,
   );
 });
 

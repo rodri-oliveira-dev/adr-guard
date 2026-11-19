@@ -25,8 +25,356 @@ export function prepareReadme(content, locale, version) {
     ? `| Extensão ${version} | Versão deste pacote; confirme a disponibilidade pública no Visual Studio Marketplace. |`
     : `| Extension ${version} | This package version; verify public availability in the Visual Studio Marketplace. |`;
   const compatibilityPattern = locale === 'pt-BR'
-    ? new RegExp(`^\\| Extensão ${escapedVersion} \\| Candidata de manutenção preparada; ainda não publicada\\. \\|$`, 'gm')
-    : new RegExp(`^\\| Extension ${escapedVersion} \\| Prepared maintenance candidate; not yet published\\. \\|$`, 'gm');
+    ? new RegExp(
+      '^\\| Extensão ' + escapedVersion + ' \\| (?:Candidata de manutenção preparada; ainda não publicada|Publicada no Visual Studio Marketplace; versionada independentemente da CLI e do MCP)\\. \\|
+  let prepared = replaceExactlyOnce(
+    content,
+    /<!-- vsix-package-status:start -->[\s\S]*?<!-- vsix-package-status:end -->/g,
+    packageStatus,
+    'VSIX package status block',
+  );
+  prepared = replaceExactlyOnce(
+    prepared,
+    compatibilityPattern,
+    compatibility,
+    'VSIX package compatibility row',
+  );
+  return prepared;
+}
+
+export function prepareChangelog(content, version) {
+  const escapedVersion = version.replaceAll('.', '\\.');
+  const statusPattern = new RegExp(
+    '^## ' + escapedVersion + ' — (?:prepared (\\d{4}-\\d{2}-\\d{2}), not yet published|published \\(verified (\\d{4}-\\d{2}-\\d{2})\\))({ root, packageArguments }) {
+  const vsceCli = require.resolve('@vscode/vsce/vsce');
+  return spawnSync(
+    process.execPath,
+    [vsceCli, 'package', '--no-dependencies', ...packageArguments],
+    { cwd: root, stdio: 'inherit' },
+  );
+}
+
+export async function packageVsix({
+  root = defaultRoot,
+  packageArguments = process.argv.slice(2),
+  executePackage = executeVsce,
+} = {}) {
+  const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+  const documents = ['README.md', 'README.pt-BR.md', 'CHANGELOG.md'];
+  const originals = new Map();
+  let packageResult;
+
+  try {
+    for (const document of documents) {
+      const documentPath = path.join(root, document);
+      const content = await readFile(documentPath, 'utf8');
+      originals.set(documentPath, content);
+      const prepared = document === 'CHANGELOG.md'
+        ? prepareChangelog(content, manifest.version)
+        : prepareReadme(content, document.includes('pt-BR') ? 'pt-BR' : 'en', manifest.version);
+      await writeFile(documentPath, prepared, 'utf8');
+    }
+
+    packageResult = executePackage({ root, packageArguments });
+  } finally {
+    await Promise.all(
+      [...originals].map(([documentPath, content]) => writeFile(documentPath, content, 'utf8')),
+    );
+  }
+
+  if (packageResult.error) throw packageResult.error;
+  if (packageResult.signal) throw new Error(`VSIX packaging terminated by ${packageResult.signal}.`);
+  return packageResult.status ?? 1;
+}
+
+const isMain = process.argv[1] !== undefined
+  && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+if (isMain) process.exitCode = await packageVsix();
+,
+      'gm',
+    )
+    : new RegExp(
+      '^\\| Extension ' + escapedVersion + ' \\| (?:Prepared maintenance candidate; not yet published|Published on the Visual Studio Marketplace; remains independently versioned from the CLI and MCP)\\. \\|
+  let prepared = replaceExactlyOnce(
+    content,
+    /<!-- vsix-package-status:start -->[\s\S]*?<!-- vsix-package-status:end -->/g,
+    packageStatus,
+    'VSIX package status block',
+  );
+  prepared = replaceExactlyOnce(
+    prepared,
+    compatibilityPattern,
+    compatibility,
+    'VSIX package compatibility row',
+  );
+  return prepared;
+}
+
+export function prepareChangelog(content, version) {
+  const escapedVersion = version.replaceAll('.', '\\.');
+  return replaceExactlyOnce(
+    content,
+    new RegExp(`^## ${escapedVersion} — prepared (\\d{4}-\\d{2}-\\d{2}), not yet published$`, 'gm'),
+    `## ${version} — $1`,
+    `prepared ${version} changelog heading`,
+  );
+}
+
+function executeVsce({ root, packageArguments }) {
+  const vsceCli = require.resolve('@vscode/vsce/vsce');
+  return spawnSync(
+    process.execPath,
+    [vsceCli, 'package', '--no-dependencies', ...packageArguments],
+    { cwd: root, stdio: 'inherit' },
+  );
+}
+
+export async function packageVsix({
+  root = defaultRoot,
+  packageArguments = process.argv.slice(2),
+  executePackage = executeVsce,
+} = {}) {
+  const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+  const documents = ['README.md', 'README.pt-BR.md', 'CHANGELOG.md'];
+  const originals = new Map();
+  let packageResult;
+
+  try {
+    for (const document of documents) {
+      const documentPath = path.join(root, document);
+      const content = await readFile(documentPath, 'utf8');
+      originals.set(documentPath, content);
+      const prepared = document === 'CHANGELOG.md'
+        ? prepareChangelog(content, manifest.version)
+        : prepareReadme(content, document.includes('pt-BR') ? 'pt-BR' : 'en', manifest.version);
+      await writeFile(documentPath, prepared, 'utf8');
+    }
+
+    packageResult = executePackage({ root, packageArguments });
+  } finally {
+    await Promise.all(
+      [...originals].map(([documentPath, content]) => writeFile(documentPath, content, 'utf8')),
+    );
+  }
+
+  if (packageResult.error) throw packageResult.error;
+  if (packageResult.signal) throw new Error(`VSIX packaging terminated by ${packageResult.signal}.`);
+  return packageResult.status ?? 1;
+}
+
+const isMain = process.argv[1] !== undefined
+  && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+if (isMain) process.exitCode = await packageVsix();
+,
+      'gm',
+    );
+
+  let prepared = replaceExactlyOnce(
+    content,
+    /<!-- vsix-package-status:start -->[\s\S]*?<!-- vsix-package-status:end -->/g,
+    packageStatus,
+    'VSIX package status block',
+  );
+  prepared = replaceExactlyOnce(
+    prepared,
+    compatibilityPattern,
+    compatibility,
+    'VSIX package compatibility row',
+  );
+  return prepared;
+}
+
+export function prepareChangelog(content, version) {
+  const escapedVersion = version.replaceAll('.', '\\.');
+  return replaceExactlyOnce(
+    content,
+    new RegExp(`^## ${escapedVersion} — prepared (\\d{4}-\\d{2}-\\d{2}), not yet published$`, 'gm'),
+    `## ${version} — $1`,
+    `prepared ${version} changelog heading`,
+  );
+}
+
+function executeVsce({ root, packageArguments }) {
+  const vsceCli = require.resolve('@vscode/vsce/vsce');
+  return spawnSync(
+    process.execPath,
+    [vsceCli, 'package', '--no-dependencies', ...packageArguments],
+    { cwd: root, stdio: 'inherit' },
+  );
+}
+
+export async function packageVsix({
+  root = defaultRoot,
+  packageArguments = process.argv.slice(2),
+  executePackage = executeVsce,
+} = {}) {
+  const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+  const documents = ['README.md', 'README.pt-BR.md', 'CHANGELOG.md'];
+  const originals = new Map();
+  let packageResult;
+
+  try {
+    for (const document of documents) {
+      const documentPath = path.join(root, document);
+      const content = await readFile(documentPath, 'utf8');
+      originals.set(documentPath, content);
+      const prepared = document === 'CHANGELOG.md'
+        ? prepareChangelog(content, manifest.version)
+        : prepareReadme(content, document.includes('pt-BR') ? 'pt-BR' : 'en', manifest.version);
+      await writeFile(documentPath, prepared, 'utf8');
+    }
+
+    packageResult = executePackage({ root, packageArguments });
+  } finally {
+    await Promise.all(
+      [...originals].map(([documentPath, content]) => writeFile(documentPath, content, 'utf8')),
+    );
+  }
+
+  if (packageResult.error) throw packageResult.error;
+  if (packageResult.signal) throw new Error(`VSIX packaging terminated by ${packageResult.signal}.`);
+  return packageResult.status ?? 1;
+}
+
+const isMain = process.argv[1] !== undefined
+  && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+if (isMain) process.exitCode = await packageVsix();
+,
+    'gm',
+  );
+  return replaceExactlyOnce(
+    content,
+    statusPattern,
+    (_match, preparedDate, verifiedDate) => preparedDate
+      ? '## ' + version + ' — ' + preparedDate
+      : '## ' + version + ' — published (verified ' + verifiedDate + ')',
+    'prepared or published ' + version + ' changelog heading',
+  );
+}
+
+function executeVsce({ root, packageArguments }) {
+  const vsceCli = require.resolve('@vscode/vsce/vsce');
+  return spawnSync(
+    process.execPath,
+    [vsceCli, 'package', '--no-dependencies', ...packageArguments],
+    { cwd: root, stdio: 'inherit' },
+  );
+}
+
+export async function packageVsix({
+  root = defaultRoot,
+  packageArguments = process.argv.slice(2),
+  executePackage = executeVsce,
+} = {}) {
+  const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+  const documents = ['README.md', 'README.pt-BR.md', 'CHANGELOG.md'];
+  const originals = new Map();
+  let packageResult;
+
+  try {
+    for (const document of documents) {
+      const documentPath = path.join(root, document);
+      const content = await readFile(documentPath, 'utf8');
+      originals.set(documentPath, content);
+      const prepared = document === 'CHANGELOG.md'
+        ? prepareChangelog(content, manifest.version)
+        : prepareReadme(content, document.includes('pt-BR') ? 'pt-BR' : 'en', manifest.version);
+      await writeFile(documentPath, prepared, 'utf8');
+    }
+
+    packageResult = executePackage({ root, packageArguments });
+  } finally {
+    await Promise.all(
+      [...originals].map(([documentPath, content]) => writeFile(documentPath, content, 'utf8')),
+    );
+  }
+
+  if (packageResult.error) throw packageResult.error;
+  if (packageResult.signal) throw new Error(`VSIX packaging terminated by ${packageResult.signal}.`);
+  return packageResult.status ?? 1;
+}
+
+const isMain = process.argv[1] !== undefined
+  && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+if (isMain) process.exitCode = await packageVsix();
+,
+      'gm',
+    )
+    : new RegExp(
+      '^\\| Extension ' + escapedVersion + ' \\| (?:Prepared maintenance candidate; not yet published|Published on the Visual Studio Marketplace; remains independently versioned from the CLI and MCP)\\. \\|
+  let prepared = replaceExactlyOnce(
+    content,
+    /<!-- vsix-package-status:start -->[\s\S]*?<!-- vsix-package-status:end -->/g,
+    packageStatus,
+    'VSIX package status block',
+  );
+  prepared = replaceExactlyOnce(
+    prepared,
+    compatibilityPattern,
+    compatibility,
+    'VSIX package compatibility row',
+  );
+  return prepared;
+}
+
+export function prepareChangelog(content, version) {
+  const escapedVersion = version.replaceAll('.', '\\.');
+  return replaceExactlyOnce(
+    content,
+    new RegExp(`^## ${escapedVersion} — prepared (\\d{4}-\\d{2}-\\d{2}), not yet published$`, 'gm'),
+    `## ${version} — $1`,
+    `prepared ${version} changelog heading`,
+  );
+}
+
+function executeVsce({ root, packageArguments }) {
+  const vsceCli = require.resolve('@vscode/vsce/vsce');
+  return spawnSync(
+    process.execPath,
+    [vsceCli, 'package', '--no-dependencies', ...packageArguments],
+    { cwd: root, stdio: 'inherit' },
+  );
+}
+
+export async function packageVsix({
+  root = defaultRoot,
+  packageArguments = process.argv.slice(2),
+  executePackage = executeVsce,
+} = {}) {
+  const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+  const documents = ['README.md', 'README.pt-BR.md', 'CHANGELOG.md'];
+  const originals = new Map();
+  let packageResult;
+
+  try {
+    for (const document of documents) {
+      const documentPath = path.join(root, document);
+      const content = await readFile(documentPath, 'utf8');
+      originals.set(documentPath, content);
+      const prepared = document === 'CHANGELOG.md'
+        ? prepareChangelog(content, manifest.version)
+        : prepareReadme(content, document.includes('pt-BR') ? 'pt-BR' : 'en', manifest.version);
+      await writeFile(documentPath, prepared, 'utf8');
+    }
+
+    packageResult = executePackage({ root, packageArguments });
+  } finally {
+    await Promise.all(
+      [...originals].map(([documentPath, content]) => writeFile(documentPath, content, 'utf8')),
+    );
+  }
+
+  if (packageResult.error) throw packageResult.error;
+  if (packageResult.signal) throw new Error(`VSIX packaging terminated by ${packageResult.signal}.`);
+  return packageResult.status ?? 1;
+}
+
+const isMain = process.argv[1] !== undefined
+  && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+if (isMain) process.exitCode = await packageVsix();
+,
+      'gm',
+    );
 
   let prepared = replaceExactlyOnce(
     content,
