@@ -4,6 +4,12 @@ on:
   push:
     paths:
       - 'AGENTS.md'
+      - 'src/AdrGuard/AdrGuard.csproj'
+      - 'src/AdrGuard.Mcp/AdrGuard.Mcp.csproj'
+      - 'extensions/vscode/package.json'
+      - 'extensions/vscode/package-lock.json'
+      - '.mcp/server.json'
+      - 'scripts/validate-version-documentation.py'
       - 'skills/**'
       - '.agents/skills/**'
       - '.agents/skill-overlays/**'
@@ -16,6 +22,12 @@ on:
   pull_request:
     paths:
       - 'AGENTS.md'
+      - 'src/AdrGuard/AdrGuard.csproj'
+      - 'src/AdrGuard.Mcp/AdrGuard.Mcp.csproj'
+      - 'extensions/vscode/package.json'
+      - 'extensions/vscode/package-lock.json'
+      - '.mcp/server.json'
+      - 'scripts/validate-version-documentation.py'
       - 'skills/**'
       - '.agents/skills/**'
       - '.agents/skill-overlays/**'
@@ -42,5 +54,7 @@ jobs:
         run: python3 scripts/validate-agent-skills.py
       - name: Validate development skills
         run: python3 scripts/validate-development-skills.py
+      - name: Validate component version documentation
+        run: python3 scripts/validate-version-documentation.py
       - name: Validator regression tests
         run: python3 -m unittest discover -s tests/agent_skills -p 'test_*.py'

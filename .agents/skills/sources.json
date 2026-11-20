@@ -11,6 +11,14 @@
       "licenseFile": "../licenses/adr-guard-MIT.txt"
     },
     {
+      "name": "product-version-documentation",
+      "origin": "repository-local",
+      "repository": "rodri-oliveira-dev/adr-guard",
+      "path": ".agents/skills/product-version-documentation",
+      "license": "MIT",
+      "licenseFile": "../licenses/adr-guard-MIT.txt"
+    },
+    {
       "name": "dotnet-issue-implementation",
       "origin": "catalog-curated-adaptation",
       "repository": "rodri-oliveira-dev/agent-skills-catalog",

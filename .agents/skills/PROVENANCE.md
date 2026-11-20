@@ -13,6 +13,7 @@ All imported skills are pinned to `rodri-oliveira-dev/agent-skills-catalog@90930
 | `dotnet-security-review` | Installed | Fits the CLI, file/path handling, provider integrations, Actions, and supply-chain surface. |
 | `run-tests` | Installed with repository overlay | Correctly distinguishes native Microsoft.Testing.Platform and xUnit v3 syntax. |
 | `repository-governance-sdd` | Installed | Covers recurring changes to AGENTS.md, skills, ADRs, and process documentation. |
+| `product-version-documentation` | Installed, repository-local | Coordinates per-product version/publication changes with bilingual guides, release notes, portal and examples; paired with an offline CI consistency gate. |
 | `csharp-refactoring` | Installed | Adds behavior-preserving refactoring safeguards and public-contract checks. |
 | `msbuild` | Not installed | The current build has no custom targets or recurring MSBuild diagnostics; the complete official bundle is large and should be added when that workflow becomes recurrent. |
 | `docker-build-strategies` | Not installed | Docker is already covered by a small Dockerfile plus Hadolint, smoke tests, and Trivy; the broad skill would add low-frequency guidance and executable assets. |
@@ -20,3 +21,5 @@ All imported skills are pinned to `rodri-oliveira-dev/agent-skills-catalog@90930
 | `test-anti-patterns` | Not installed | Useful for dedicated audits, but too broad for routine activation and overlaps the deterministic testing guidance retained in AGENTS.md. |
 
 No ADR Guard-specific drift-development skill was added. The current recurring invariants fit the root architecture rules, while implementation and regression work route cleanly through the .NET issue, bug, security, refactoring, and testing skills.
+
+The repository-local `product-version-documentation` skill is authored in ADR Guard and tracked in `sources.json`; it is not an imported catalog skill. The global documentation rules remain in `AGENTS.md`, while the component-specific matrix and release workflow live in the skill.
