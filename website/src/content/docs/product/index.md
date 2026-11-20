@@ -14,20 +14,20 @@ ADR Guard keeps architecture judgment with people while automating repeatable do
 | [CLI](./cli/) | You need the complete local command surface | Runs locally with explicit arguments and configuration |
 | [GitHub Action](./github-action/) | Pull requests should validate or review ADR changes | Runs in GitHub Actions with workflow permissions and pinned inputs |
 | [VS Code extension](./vscode-extension/) · [Visual guide](./vscode-visual-guide/) | Contributors want visual ADR creation/editing, explorer, commands, and diagnostics in the editor | Workspace-hosted; trusted local file workspaces only; invokes an existing compatible CLI |
-| [MCP server](./mcp/) | Compatible agents need structured, read-only ADR Guard tools | MCP 1.0.1 published on NuGet.org and GitHub Releases; checked-in Registry manifest remains at 1.0.0; one bounded repository per `stdio` process |
+| [MCP server](./mcp/) | Compatible agents need structured, read-only ADR Guard tools | MCP 1.0.1 published on NuGet.org and GitHub Releases; checked-in Registry manifest now records 1.0.1; one bounded repository per `stdio` process |
 | [Architecture Agent](./architecture-agent/) | Source contributors want local MCP evidence, optional bounded model synthesis, or one supervised ADR proposal | Development-only source project; provider-free local read-only mode; optional fingerprint-authorized `Proposed` creation through the CLI; no published package |
 | [Container](./containers/) | You want an isolated, reproducible CLI runtime | Mount only required files and pass configuration deliberately |
 | [Agent Skills](../skills/) | You want a coding agent to guide ADR decisions and CLI workflows | Portable agent instructions; no bundled CLI or automatic architectural approval |
 
 ## Core workflows
 
-- [Create canonical ADRs](./creation/) with Minimal, Extended, or constrained custom templates. Compatible VS Code forms use the CLI 1.7.0 structured creation and editing contracts when those separately versioned artifacts are published.
+- [Create canonical ADRs](./creation/) with Minimal, Extended, or constrained custom templates. Compatible VS Code forms use structured creation and editing contracts available since CLI 1.7.0; CLI 1.12.0 and VS Code extension 1.1.1 are published independently.
 - [Validate relationships](./relationships/), changed files, and [diagnostic baselines](./incremental-validation/).
 - Use [Architecture Impact Analysis](./architecture-impact/) to identify decisions that explicit ADR-to-code mappings associate with changed files. The result is a review prompt, not an architecture violation.
 - Use [Architectural Drift](./architectural-drift/) to verify explicit ADR-backed fitness rules from bounded evidence. Results distinguish conformance, violation, and insufficient evidence; opt-in enforcement applies only within the implemented deterministic limits.
 - Produce [machine-readable and human-readable reports](./reports/).
 - Opt into [AI-assisted drafting](./ai-drafting/) or [review](./ai-review/) with explicit providers and security controls.
-- Validate and generate MADR 4.0 documents in a [separate opt-in mode](./madr-4/) with published CLI 1.11.0; canonical remains the default.
+- Validate and generate MADR 4.0 documents in a [separate opt-in mode](./madr-4/), available since CLI 1.11.0 and included in published CLI 1.12.0; canonical remains the default.
 
 ## Impact and drift are different
 
@@ -46,7 +46,7 @@ The source-only [Architecture Agent](./architecture-agent/) adds five controlled
 
 ## MCP status
 
-The standalone MCP 1.0.1 server is published on NuGet.org and GitHub Releases, while the checked-in MCP Registry manifest remains at 1.0.0; the optional provider is published in VS Code extension 1.1.0. The server exposes seven read-only tools over `stdio` and is installed separately from the extension. CLI 1.11.0 is published on NuGet.org and GitHub Releases; CLI 1.12.0 remains an unpublished source candidate. Do not treat source, a release, or workflow artifacts as proof of availability in another registry.
+The standalone MCP 1.0.1 server is published on NuGet.org, in GitHub Releases and in the MCP Registry; the checked-in manifest records 1.0.1. The optional MCP provider is published in VS Code extension 1.1.1. The server exposes seven read-only tools over `stdio` and is installed separately from the extension. CLI 1.12.0 is published on NuGet.org and GitHub Releases, including `export relationships`. The Architecture Agent remains development-only source without a public package.
 
 Use the [MCP overview](./mcp/), [configuration guide](./mcp-configuration/), [available tools](./mcp-tools/), and [security model](./mcp-security/) for the implemented contract and local-development instructions.
 

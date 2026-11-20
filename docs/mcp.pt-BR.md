@@ -4,9 +4,9 @@
 
 O servidor MCP do ADR Guard é um adaptador local e somente leitura que expõe capacidades de domínio do ADR Guard a clientes do Model Context Protocol. Ele permite que um agente compatível liste, leia, pesquise, relacione, valide e analise ADRs sem substituir a CLI nem incorporar um modelo de IA ao ADR Guard.
 
-> **Disponibilidade:** o MCP `1.0.0` está publicado no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.0), em [GitHub Releases](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.0) e no MCP Registry oficial. MCP `1.0.1` é uma candidata não publicada; não use sua versão em comandos públicos de instalação até verificar NuGet.org e Registry. GitHub Packages é um feed secundário autenticado, com backfill independente para a versão 1.0.0 já publicada. Veja [distribuição do MCP](mcp-release.pt-BR.md).
+> **Disponibilidade:** O MCP `1.0.1` está publicado no [NuGet.org](https://www.nuget.org/packages/RodriOliveira.AdrGuard.Mcp/1.0.1), em uma [GitHub Release própria](https://github.com/rodri-oliveira-dev/adr-guard/releases/tag/mcp/v1.0.1) e no MCP Registry oficial. Ele preserva as sete ferramentas somente leitura e os contratos no schema `1.0`, usando a biblioteca interna `AdrGuard.Core`. O GitHub Packages continua sendo um feed autenticado separado; confira de forma independente o backfill histórico de `1.0.0`. Veja [distribuição do MCP](mcp-release.pt-BR.md).
 
-O nome preparado no Registry é `io.github.rodri-oliveira-dev/adr-guard`, associado ao pacote NuGet `RodriOliveira.AdrGuard.Mcp`. O Registry fornece metadados de descoberta para clientes compatíveis; ele não garante instalação automática pelo cliente. O único transporte é `stdio` local.
+O nome registrado no Registry é `io.github.rodri-oliveira-dev/adr-guard`, associado ao pacote NuGet `RodriOliveira.AdrGuard.Mcp`. O Registry fornece metadados de descoberta para clientes compatíveis; ele não garante instalação automática pelo cliente. O único transporte é `stdio` local.
 
 ## Arquitetura
 
@@ -22,7 +22,7 @@ flowchart LR
   CLI --> Core
 ```
 
-O processo MCP e a CLI são executáveis separados que referenciam diretamente a mesma implementação interna e não empacotável `AdrGuard.Core`. Pacotes candidatos MCP contêm MCP mais Core e excluem o executável da CLI; pacotes candidatos da CLI contêm CLI mais Core e excluem MCP. Core não tem pacote nem linha de release. Os comandos visuais da extensão continuam invocando `adr-guard` diretamente. O registro MCP é opcional e apenas permite que o VS Code gerencie um processo `adr-guard-mcp` independente para a pasta selecionada do workspace.
+O processo MCP e a CLI são executáveis separados que referenciam diretamente a mesma implementação interna e não empacotável `AdrGuard.Core`. Pacotes MCP contêm MCP mais Core e excluem o executável da CLI; pacotes da CLI contêm CLI mais Core e excluem MCP. Core não tem pacote nem linha de release. Os comandos visuais da extensão continuam invocando `adr-guard` diretamente. O registro MCP é opcional e apenas permite que o VS Code gerencie um processo `adr-guard-mcp` independente para a pasta selecionada do workspace.
 
 O ADR Guard fornece ferramentas estruturadas e evidências. O agente cliente realiza a interpretação em linguagem natural. Nem o servidor nem um agente podem aprovar uma ADR, estabelecer conformidade arquitetural além das regras determinísticas declaradas ou alterar o status do ciclo de vida.
 
@@ -48,5 +48,5 @@ As capacidades determinísticas relacionadas continuam documentadas em [Análise
 
 - Esta implementação não possui transporte de rede, serviço remoto hospedado, ferramenta de escrita, resource, prompt ou agente autônomo.
 - O servidor não instala a si próprio, não busca refs Git, não executa builds/testes/scripts, não gera baselines, não cria ADRs nem atualiza índices.
-- A .NET Tool MCP pública para .NET 10 pode ser instalada pelo NuGet.org com `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0`; o GitHub Packages exige autenticação após a conclusão do backfill. A compilação pelo código-fonte permanece disponível.
+- A .NET Tool MCP pública para .NET 10 pode ser instalada pelo NuGet.org com `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.1`; o GitHub Packages exige autenticação e verificação independente de disponibilidade. A compilação pelo código-fonte permanece disponível.
 - A compatibilidade com clientes é documentada apenas onde há integração concreta no repositório: a API estável de MCP para extensões do VS Code. Outros clientes podem funcionar com um comando `stdio` padrão, mas não são apresentados aqui como testados.

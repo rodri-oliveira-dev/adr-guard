@@ -5,7 +5,7 @@ ADR Guard para VS Code é uma extensão de workspace que apresenta a CLI existen
 > **Extensão publicada:** [ADR Guard para VS Code](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard) está disponível no Visual Studio Marketplace como `rodrioliveira.adr-guard`. A extensão VS Code e a CLI .NET são distribuídas e versionadas separadamente; a extensão não inclui a CLI.
 
 <!-- vsix-package-status:start -->
-> **Estado da release (verificado em 19/11/2026):** a versão 1.1.0 está publicada no Marketplace e adiciona o provider MCP e os fluxos visuais de Impacto, Drift, baseline, catálogo enriquecido, Rascunho por IA e Review Técnico descritos abaixo. A versão 1.1.1 é uma candidata de manutenção preparada, não um download publicado. CLI 1.11.0 e MCP 1.0.1 estão publicados independentemente; CLI 1.12.0 permanece uma candidata não publicada.
+> **Estado da release (verificado em 19/11/2026):** a extensão `1.1.1` está publicada no [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=rodrioliveira.adr-guard). Ela preserva o provider MCP, os contratos visuais e os fluxos de Impacto, Drift, baseline, catálogo enriquecido e IA introduzidos em `1.1.0`. A CLI `1.12.0` e o MCP `1.0.1` estão publicados independentemente e precisam ser instalados separadamente conforme o fluxo desejado.
 <!-- vsix-package-status:end -->
 
 ## Funcionalidades
@@ -152,7 +152,7 @@ Esses fluxos usam sempre a CLI diretamente e funcionam com MCP habilitado, desab
 
 ## Integração MCP
 
-Instale o pacote publicado com `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.0`. Isso normalmente cria o host em `$HOME/.dotnet/tools/adr-guard-mcp` no Unix ou `%USERPROFILE%\.dotnet\tools\adr-guard-mcp.exe` no Windows. Resolva o caminho absoluto no host com `command -v adr-guard-mcp` ou `(Get-Command adr-guard-mcp).Source` e salve esse valor em `adrGuard.mcp.path`. A extensão não presume que o host herdou o `PATH` do shell interativo.
+Instale o pacote publicado com `dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.1`. Isso normalmente cria o host em `$HOME/.dotnet/tools/adr-guard-mcp` no Unix ou `%USERPROFILE%\.dotnet\tools\adr-guard-mcp.exe` no Windows. Resolva o caminho absoluto no host com `command -v adr-guard-mcp` ou `(Get-Command adr-guard-mcp).Source` e salve esse valor em `adrGuard.mcp.path`. A extensão não presume que o host herdou o `PATH` do shell interativo.
 
 O provider MCP opcional começa desabilitado. Em workspace local `file:` e confiável, defina `adrGuard.mcp.path` no escopo de máquina para uma `adr-guard-mcp.dll` absoluta ou app host da plataforma fora de todos os workspaces e habilite `adrGuard.mcp.enabled` na pasta desejada. A tela distingue desabilitado, não configurado, não encontrado, inválido, disponível para iniciar e erro conhecido. A verificação explícita valida a configuração; nunca informa “conectado” apenas por um caminho válido.
 
@@ -219,11 +219,11 @@ O manifesto é a fonte de verdade. Valores de recurso são salvos por pasta pela
 | --- | --- |
 | VS Code | `1.101.0` ou superior na linha `1.x`. |
 | Extensão 1.1.0 | Publicada no Visual Studio Marketplace. Releases da extensão e da CLI permanecem independentes. |
-| Extensão 1.1.1 | Candidata de manutenção preparada; ainda não publicada. |
+| Extensão 1.1.1 | Publicada no Visual Studio Marketplace; versionada independentemente da CLI e do MCP. |
 | Integração básica da CLI | `adr-guard` v1.3.0 ou superior compatível para os comandos básicos documentados. |
 | Criação/edição visual | Contratos de formulário schema `1.0` da CLI 1.7.0. |
 | Impacto, drift, baseline, catálogo enriquecido, draft, review/comparação | Build da CLI cujo `<command> --help` exponha os flags pedidos; a extensão verifica capacidades em vez de presumir versões iguais. |
-| MCP | Opcional. As extensões 1.1.0/1.1.1 usam a API estável de provider MCP do VS Code com o MCP 1.0.0 instalado separadamente ou build compatível com o schema `1.0`; a extensão funciona integralmente sem ele. |
+| MCP | Opcional. As extensões 1.1.0/1.1.1 usam a API estável de provider MCP do VS Code com o MCP 1.0.1 instalado separadamente (recomendado) ou build compatível com o schema `1.0`; a extensão funciona integralmente sem ele. |
 
 ## Solução de problemas
 

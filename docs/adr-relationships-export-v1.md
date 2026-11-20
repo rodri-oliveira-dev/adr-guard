@@ -2,7 +2,7 @@
 
 [Português (Brasil)](adr-relationships-export-v1.pt-BR.md)
 
-This document freezes the JSON exchange contract prepared for Align CLI integration. Core produces this deterministic data, and both the MCP relationship tool and the source-stage CLI adapter reuse that implementation without changing the MCP contract. The CLI command is implemented in the repository but is not in a published release yet.
+This document freezes the JSON exchange contract prepared for Align CLI integration. Core produces this deterministic data, and both the MCP relationship tool and the CLI export command reuse that implementation without changing the MCP contract. The CLI export command is published in version `1.12.0`.
 
 The authoritative machine-readable definition is [`adr-relationships-export-v1.schema.json`](schemas/adr-relationships-export-v1.schema.json). Representative integration fixtures are in [`docs/examples/adr-relationships-export-v1`](examples/adr-relationships-export-v1/).
 
@@ -23,7 +23,7 @@ The exporter reads at most 1,000 ADR Markdown files of 524,288 bytes each, requi
 
 ## GitHub Actions and Align
 
-[`github-action-relationships-export.yml`](examples/github-action-relationships-export.yml) shows a least-privilege job that restores a manifest-pinned ADR Guard tool, writes `.adr-guard/relationships.json`, and uploads it for an external consumer such as Align. Commit a `.config/dotnet-tools.json` pinned to a released version that contains this command before enabling the example; the currently published CLI does not contain it yet.
+[`github-action-relationships-export.yml`](examples/github-action-relationships-export.yml) shows a least-privilege job that restores a manifest-pinned ADR Guard tool, writes `.adr-guard/relationships.json`, and uploads it for an external consumer such as Align. Before enabling the example, pin `.config/dotnet-tools.json` to published CLI `1.12.0` or a newer compatible release.
 
 Align can download or receive the artifact and join each repository-relative `path` to its imported documentation tree. It must accept only `resolution: "resolved"` as a uniquely identified target and must still inspect `issues` before treating the edge as semantically valid.
 

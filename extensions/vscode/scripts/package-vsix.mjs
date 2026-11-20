@@ -25,8 +25,14 @@ export function prepareReadme(content, locale, version) {
     ? `| Extensão ${version} | Versão deste pacote; confirme a disponibilidade pública no Visual Studio Marketplace. |`
     : `| Extension ${version} | This package version; verify public availability in the Visual Studio Marketplace. |`;
   const compatibilityPattern = locale === 'pt-BR'
-    ? new RegExp(`^\\| Extensão ${escapedVersion} \\| Candidata de manutenção preparada; ainda não publicada\\. \\|$`, 'gm')
-    : new RegExp(`^\\| Extension ${escapedVersion} \\| Prepared maintenance candidate; not yet published\\. \\|$`, 'gm');
+    ? new RegExp(
+      '^\\| Extensão ' + escapedVersion + ' \\| (?:Candidata de manutenção preparada; ainda não publicada|Publicada no Visual Studio Marketplace; versionada independentemente da CLI e do MCP)\\. \\|$',
+      'gm',
+    )
+    : new RegExp(
+      '^\\| Extension ' + escapedVersion + ' \\| (?:Prepared maintenance candidate; not yet published|Published on the Visual Studio Marketplace; remains independently versioned from the CLI and MCP)\\. \\|$',
+      'gm',
+    );
 
   let prepared = replaceExactlyOnce(
     content,
@@ -45,11 +51,17 @@ export function prepareReadme(content, locale, version) {
 
 export function prepareChangelog(content, version) {
   const escapedVersion = version.replaceAll('.', '\\.');
+  const statusPattern = new RegExp(
+    '^## ' + escapedVersion + ' — (?:prepared (\\d{4}-\\d{2}-\\d{2}), not yet published|published \\(verified (\\d{4}-\\d{2}-\\d{2})\\))$',
+    'gm',
+  );
   return replaceExactlyOnce(
     content,
-    new RegExp(`^## ${escapedVersion} — prepared (\\d{4}-\\d{2}-\\d{2}), not yet published$`, 'gm'),
-    `## ${version} — $1`,
-    `prepared ${version} changelog heading`,
+    statusPattern,
+    (_match, preparedDate, verifiedDate) => preparedDate
+      ? '## ' + version + ' — ' + preparedDate
+      : '## ' + version + ' — published (verified ' + verifiedDate + ')',
+    'prepared or published ' + version + ' changelog heading',
   );
 }
 

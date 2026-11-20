@@ -104,6 +104,7 @@ Use native MTP `--solution`/`--project` syntax for new local commands. xUnit v3 
 
 ## Documentation
 
+- When a CLI, MCP, VS Code, or GitHub Action source version or publication status changes, invoke the repository-local `product-version-documentation` skill before committing. Keep both language versions, compatibility matrix, release notes, examples and portal aligned in the same PR; never infer published availability solely from a source bump.
 - Update README files and public docs when user-visible commands, behavior, configuration, setup, or guarantees change. Update schema/reference docs and examples with versioned contract changes.
 - Maintain the established bilingual strategy: public English documentation has a corresponding pt-BR version or portal route where the surrounding section is bilingual. Keep meaning and examples aligned rather than translating only headings.
 - Every public feature, behavior change, command, contract, configuration, or integration across the ADR Guard CLI, VS Code extension, MCP server, GitHub Action, containers, or Agent Skills must update the corresponding repository and portal documentation in English and Brazilian Portuguese in the same pull request. Documentation must match implemented behavior, keep both languages equivalent, explicitly distinguish development-only capabilities from officially published ones, and never claim release or distribution availability without verifying the actual publication channel.
@@ -134,5 +135,6 @@ Load a skill when its description matches the task; the user request and this fi
 | `csharp-refactoring` | Perform behavior-preserving C# rename, extraction, move, or consolidation. |
 | `repository-governance-sdd` | Change AGENTS.md, contributor skills, ADR/process governance, or agent documentation. |
 | `vscode-extension-development` | Change or review the ADR Guard VS Code extension and its CLI adapter/contracts. |
+| `product-version-documentation` | Synchronize per-product versions, publication status, EN/pt-BR documentation, release notes and installation examples when a CLI/MCP/VS Code/Action version changes. |
 
 The eleven `skills/adr-guard-*` folders are product artifacts for consumers. Do not move, rename, or use them as contributor skills, and do not broaden their validator to enforce `.agents/skills` rules.
