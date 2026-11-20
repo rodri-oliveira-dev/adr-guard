@@ -35,7 +35,7 @@ dotnet src/AdrGuard.Mcp/bin/Release/net10.0/adr-guard-mcp.dll --repository <repo
 
 The server exposes `list_adrs`, `get_adr`, `search_adrs`, `get_adr_relationships`, `validate_adrs`, `analyze_impact`, and `verify_architecture` over `stdio`. Its process stdout is reserved for MCP messages; operational logging is written to stderr. The repository root is fixed at startup, all tools are read-only, and paths accepted by tools are repository-relative.
 
-Published MCP packages contain `adr-guard-mcp` plus the internal, non-packable `AdrGuard.Core.dll`; they do not contain or depend on the `adr-guard` CLI executable. Core has no independent package, tag, or release stream.
+Starting with `1.0.1`, published MCP packages contain `adr-guard-mcp` plus the internal, non-packable `AdrGuard.Core.dll`; they do not contain or depend on the `adr-guard` CLI executable. The historical `1.0.0` package contains the `adr-guard` executable and depends on it. Core has no independent package, tag, or release stream.
 
 Optional startup argument `--timeout-seconds` accepts values from 1 through 300 and defaults to 30 seconds.
 

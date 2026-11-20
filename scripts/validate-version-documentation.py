@@ -55,7 +55,7 @@ def contains_version(content: str, version: str) -> bool:
 def check_docs(root: Path, component: str, version: str, paths: list[str], errors: list[str]) -> None:
     for relative in paths:
         content = read_text(root, relative, errors)
-        if content and not contains_version(content, version):
+        if not contains_version(content, version):
             errors.append(f"{relative}: {component} source version {version!r} is not documented")
 
 

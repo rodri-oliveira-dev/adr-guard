@@ -22,6 +22,29 @@ class VersionDocumentationValidationTests(unittest.TestCase):
         self.assertFalse(validator.contains_version("CLI version 1.12.01 is available", "1.12.0"))
         self.assertFalse(validator.contains_version("CLI version 11.12.0 is available", "1.12.0"))
 
+    def test_empty_required_documents_are_rejected(self):
+        original_read = validator.read_text
+        for required_path in (
+            "docs/cli-reference.pt-BR.md",
+            "docs/mcp.pt-BR.md",
+            "extensions/vscode/README.pt-BR.md",
+        ):
+            for empty_text in ("", "   \\n"):
+                with self.subTest(path=required_path, content=repr(empty_text)):
+                    def empty_reference(root, relative, errors):
+                        if relative == required_path:
+                            return empty_text
+                        return original_read(root, relative, errors)
+
+                    with patch.object(validator, "read_text", side_effect=empty_reference):
+                        errors = validator.validate_version_documentation(ROOT)
+
+                    self.assertTrue(
+                        any(required_path in error and "not documented" in error
+                            for error in errors),
+                        errors,
+                    )
+
     def test_missing_reference_is_detected_even_when_other_documents_are_current(self):
         version = validator.xml_version(ROOT, "src/AdrGuard/AdrGuard.csproj", [])
         original_read = validator.read_text

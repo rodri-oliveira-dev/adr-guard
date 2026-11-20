@@ -25,7 +25,6 @@ public sealed class McpDistributionContractTests
 
         Assert.Equal(ExpectedProjectVersion, candidateVersion);
         Assert.Empty(Validate(manifest, PublishedManifestVersion, readme));
-        Assert.Contains($"--version {PublishedManifestVersion}", readme, StringComparison.Ordinal);
         Assert.Contains("jq --arg version \"$VERSION\" '.version = $version | .packages = (.packages | map(.version = $version))'", workflow, StringComparison.Ordinal);
         Assert.Contains("test \"$(jq -r '.version' .mcp/server.json)\" = \"$VERSION\"", workflow, StringComparison.Ordinal);
         Assert.Contains("test \"$(jq -r '.packages[0].version' .mcp/server.json)\" = \"$VERSION\"", workflow, StringComparison.Ordinal);
@@ -38,6 +37,7 @@ public sealed class McpDistributionContractTests
     [InlineData("package")]
     [InlineData("transport")]
     [InlineData("marker")]
+    [InlineData("install-version-prefix")]
     public void InvalidDistributionContractsAreRejected(string mutation)
     {
         var root = FindRepositoryRoot();
@@ -53,6 +53,7 @@ public sealed class McpDistributionContractTests
             case "package": manifest["packages"]![0]!["identifier"] = "Wrong.Package"; break;
             case "transport": manifest["packages"]![0]!["transport"]!["type"] = "sse"; break;
             case "marker": readme = readme.Replace(ExpectedName, "io.github.example/wrong", StringComparison.Ordinal); break;
+            case "install-version-prefix": readme = readme.Replace($"dotnet tool install --global {ExpectedPackage} --version {version}", $"dotnet tool install --global {ExpectedPackage} --version {version}0", StringComparison.Ordinal); break;
         }
 
         Assert.NotEmpty(Validate(manifest, version, readme));
@@ -117,6 +118,11 @@ public sealed class McpDistributionContractTests
         if (package?["registryBaseUrl"]?.GetValue<string>() != "https://api.nuget.org/v3/index.json") issues.Add("registry URL");
         if (package?["transport"]?["type"]?.GetValue<string>() != "stdio") issues.Add("transport");
         if (!readme.Contains($"<!-- mcp-name: {ExpectedName} -->", StringComparison.Ordinal)) issues.Add("ownership marker");
+        var requiredInstallCommand = $"dotnet tool install --global {ExpectedPackage} --version {projectVersion}";
+        if (!readme.Split('\n').Any(line => string.Equals(line.TrimEnd('\r'), requiredInstallCommand, StringComparison.Ordinal)))
+        {
+            issues.Add("global install command version");
+        }
         return issues;
     }
 

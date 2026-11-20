@@ -49,6 +49,13 @@ dotnet tool install --global RodriOliveira.AdrGuard.Mcp --version 1.0.1
 adr-guard-mcp --repository /absolute/path/to/repository --adr-directory docs/adr
 ```
 
+To update an existing global installation to the published version:
+
+```shell
+dotnet tool update --global RodriOliveira.AdrGuard.Mcp --version 1.0.1
+```
+
+
 <!-- release-candidate-only:start -->
 <!-- NuGet.org, GitHub Releases, and MCP Registry publication verified. GitHub Packages remains a separate channel. -->
 <!-- release-candidate-only:end -->
