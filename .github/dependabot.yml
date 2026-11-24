@@ -43,3 +43,10 @@ updates:
     cooldown:
       default-days: 7
     rebase-strategy: "auto"
+    # Digest-only pins are required by the Sonar policy. Dependabot cannot
+    # reliably retain the Alpine variant for these references (see #315, #334).
+    # Refresh these two images separately using verified Alpine 3.24 digests;
+    # keep container build, smoke tests and vulnerability scans mandatory.
+    ignore:
+      - dependency-name: "dotnet/sdk"
+      - dependency-name: "dotnet/runtime"
