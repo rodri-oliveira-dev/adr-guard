@@ -84,7 +84,7 @@ Se somente um entre provider/model for informado, ou se autorização explícita
 
 ## Pré-requisitos e instalação local
 
-- clone do repositório e SDK .NET fixado por `global.json` (`10.0.403` neste snapshot do código-fonte);
+- clone do repositório e SDK .NET fixado por `global.json`;
 - executável `AdrGuard.Mcp` compilado localmente para todos os fluxos;
 - CLI ADR Guard compilada localmente somente para preview de proposta ou criação supervisionada;
 - conta OpenAI, modelo selecionado explicitamente e `OPENAI_API_KEY` somente quando a síntese remota estiver habilitada;
