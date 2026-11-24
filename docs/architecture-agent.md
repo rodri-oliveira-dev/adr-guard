@@ -84,7 +84,7 @@ If only one of provider/model is supplied, or remote context authorization or th
 
 ## Prerequisites and local installation
 
-- a repository clone and the .NET SDK pinned by `global.json` (`10.0.403` in this source snapshot);
+- a repository clone and the .NET SDK pinned by `global.json`;
 - the locally built `AdrGuard.Mcp` executable for all flows;
 - the locally built ADR Guard CLI only for proposal preview or supervised creation;
 - an OpenAI account, an explicitly selected model, and `OPENAI_API_KEY` only when remote synthesis is enabled;

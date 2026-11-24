@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-# .NET SDK 10.0.403, Alpine 3.24 (verified alpine3.24 image digest).
+# .NET SDK 10.0.404, Alpine 3.24 (alpine3.24 image digest).
 # The FROM reference is digest-only to keep the immutable pin and comply with Sonar.
-FROM mcr.microsoft.com/dotnet/sdk@sha256:5562fd626eec39f6f53218f9b7d7856ab7195d51d846568304fbe85071a3b6e6 AS build
+FROM mcr.microsoft.com/dotnet/sdk@sha256:0294f285d062afacc8b5f6d7febb0cd4ee879320e5585fa15f2f4ebf1feb9ba7 AS build
 WORKDIR /src
 
 COPY global.json Directory.Build.props Directory.Packages.props ./

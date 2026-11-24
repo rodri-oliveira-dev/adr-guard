@@ -75,7 +75,7 @@ if grep -Eq '^[[:space:]]+(drift-write-baseline|drift-update-baseline|script|com
 fi
 
 # Verify digest-only images with the audited Alpine release documented above each FROM.
-grep -Eq '^# \.NET SDK 10\.0\.403, Alpine 3\.24' "${ROOT_DIR}/Dockerfile"
+grep -Eq '^# \.NET SDK 10\.0\.404, Alpine 3\.24' "${ROOT_DIR}/Dockerfile"
 grep -Eq '^# \.NET Runtime 10\.0\.15, Alpine 3\.24' "${ROOT_DIR}/Dockerfile"
 grep -Eq '^FROM mcr\.microsoft\.com/dotnet/sdk@sha256:[a-f0-9]{64} AS build' "${ROOT_DIR}/Dockerfile"
 grep -Eq '^FROM mcr\.microsoft\.com/dotnet/runtime@sha256:[a-f0-9]{64} AS final' "${ROOT_DIR}/Dockerfile"

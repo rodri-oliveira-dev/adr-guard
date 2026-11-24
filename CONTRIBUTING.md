@@ -20,7 +20,7 @@ Search existing issues and discussions before opening a new one. For significant
 
 ## Prepare your environment
 
-ADR Guard currently uses the .NET SDK pinned in [`global.json`](global.json) (10.0.403 at the time this guide was written) and targets .NET 10.
+ADR Guard currently uses the .NET SDK pinned in [`global.json`](global.json) and targets .NET 10.
 
 1. Fork the repository and clone your fork.
 2. Create a focused branch from the current `main`.
