@@ -9,7 +9,7 @@
 ![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)
 [![License](https://img.shields.io/github/license/rodri-oliveira-dev/adr-guard)](LICENSE)
 
-[Português (Brasil)](README.pt-BR.md) · [Documentation portal](https://rodri-oliveira-dev.github.io/adr-guard/) · [Markdown documentation](docs/index.md) · [Changelog](CHANGELOG.md)
+[Português (Brasil)](README.pt-BR.md) · [Documentation portal](https://rodri-oliveira-dev.github.io/adr-guard/) · [Markdown documentation](docs/index.md) · [Changelog](CHANGELOG.md) · [Accessibility](ACCESSIBILITY.md#english)
 
 **Understand architectural decisions. Record the reasoning. Keep the history trustworthy.**
 
