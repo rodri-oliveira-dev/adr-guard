@@ -2,7 +2,7 @@
 
 # .NET SDK 10.0.403, Alpine 3.24 (verified alpine3.24 image digest).
 # The FROM reference is digest-only to keep the immutable pin and comply with Sonar.
-FROM mcr.microsoft.com/dotnet/sdk@sha256:5562fd626eec39f6f53218f9b7d7856ab7195d51d846568304fbe85071a3b6e6 AS build
+FROM mcr.microsoft.com/dotnet/sdk@sha256:2794448a07118a6eaf00f29ab5d2bf44928517ce5ff86505a63a69230374f599 AS build
 WORKDIR /src
 
 COPY global.json Directory.Build.props Directory.Packages.props ./
@@ -22,7 +22,7 @@ RUN dotnet publish src/AdrGuard/AdrGuard.csproj \
     /p:UseAppHost=true
 
 # .NET Runtime 10.0.15, Alpine 3.24 (verified alpine3.24 image digest).
-FROM mcr.microsoft.com/dotnet/runtime@sha256:7518aaad9e4328001518006a7e8b3fcf6ce8f8816355574f7264c1fa0a0ce188 AS final
+FROM mcr.microsoft.com/dotnet/runtime@sha256:43a34aaf5edd4ae1a36dd82fe857602e4b5449bfcf1a9bed753eeb0727dc0c70 AS final
 WORKDIR /workspace
 
 # Impact analysis invokes the bounded local Git CLI. The runtime remains
